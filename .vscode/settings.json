@@ -1,0 +1,46 @@
+{
+    "workbench.startupEditor": "none",
+    "explorer.compactFolders": false,
+    "code-runner.runInTerminal": true,
+    "code-runner.clearPreviousOutput": true,
+    "code-runner.executorMap": {
+        "python": "cls ; python -u",
+    },
+    "code-runner.ignoreSelection": true,
+    "workbench.colorTheme": "OM Theme (Default Dracula Italic)",
+    "workbench.iconTheme": "material-icon-theme",
+    "python.defaultInterpreterPath": "python",
+    "editor.formatOnSave": true,
+    // "python.linting.flake8Enabled": true,
+    // "python.linting.mypyEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.analysis.diagnosticSeverityOverrides": {},
+    "python.analysis.typeCheckingMode": "basic",
+    "editor.rulers": [
+        80,
+        120
+    ],
+    // "cSpell.enabled": false
+    "autopep8.args": [
+        "--max-line-length",
+        "119"
+    ],
+    "flake8.args": [
+        "--max-line-length",
+        "119"
+    ],
+    "workbench.colorCustomizations": {
+        "separators.classes.borderColor": "#8be8fdb0",
+        "separators.constructors.borderColor": "#FFFFFF",
+        "separators.enums.borderColor": "#FFFFFF",
+        "separators.functions.borderColor": "#42fa5eb0",
+        "separators.interfaces.borderColor": "#FFFFFF",
+        "separators.methods.borderColor": "#42fa5eb0",
+        "separators.namespaces.borderColor": "#FFFFFF",
+        "separators.structs.borderColor": "#FFFFFF",
+    },
+    "emmet.includeLanguages": {
+        "django-html": "html"
+    },
+}
