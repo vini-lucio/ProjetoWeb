@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static "home/css/style.css" %}">
-    <title>Document</title>
-</head>
-<body>
-    {% block conteudo %}{% endblock conteudo %}
-</body>
+    <head>
+        {% include "home/partials/_head.html" %}
+    </head>
+    <body>
+        {% include "home/partials/_cabecalho.html" %}
+
+        {% block conteudo %}{% endblock conteudo %}
+        
+        {% include "home/partials/_paginacao.html" %}
+
+        {% include "home/partials/_rodape.html" %}
+    </body>
 </html>

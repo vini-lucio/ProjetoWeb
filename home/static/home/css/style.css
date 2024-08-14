@@ -1,3 +1,47 @@
+:root {
+    --azul-escuro: rgb(0, 50, 105);
+    --verde-claro: rgb(189, 198, 56);
+    --cinza-claro: rgb(238, 238, 238);
+    --branco: rgb(255, 255, 255);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 62.5%;
+    scroll-behavior: smooth;
+}
+
+a {
+    text-decoration: none;
+}
+
+
 body {
-    background-color: red;
+    font-family: 'Puntodewa', sans-serif;
+}
+
+a {
+    color: inherit;
+}
+
+.cabecalho {
+    background-color: var(--azul-escuro);
+    color: var(--branco);
+    border-bottom: 0.5rem solid var(--verde-claro);
+    justify-content: center;
+    text-align: center;
+}
+
+.cabecalho div {
+    padding: 1rem;
+}
+
+.principal {
+    background-color: var(--cinza-claro);
+    min-height: 100vh;
 }
