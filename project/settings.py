@@ -11,21 +11,32 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(BASE_DIR / 'dotenv_files' / '.env', override=True)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-tc_(lz3%e&5m88rd%w!ay805m$x1a8ok8c2!(&vi$4yiektw_p'
+# SECRET_KEY = 'django-insecure-tc_(lz3%e&5m88rd%w!ay805m$x1a8ok8c2!(&vi$4yiektw_p'
+SECRET_KEY = os.getenv('SECRET_KEY', 'change-me')
+# SECRET_KEY = "8g(x&+3r62fe=)m7!-02)ni2r&d@wg&bu-ipe7&05s^y!j&c"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(int(os.getenv('DEBUG', 0)))
+# DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    h.strip() for h in os.getenv('ALLOWED_HOSTS', '').split(',')
+    if h.strip()
+]
+# ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 
 # Application definition
@@ -37,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'home',
 ]
 
 MIDDLEWARE = [
@@ -73,12 +85,24 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# if DEBUG:
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+# else:
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': os.getenv('DB_ENGINE', 'change-me'),
+#             'NAME': os.getenv('POSTGRES_DB', 'change-me'),
+#             'USER': os.getenv('POSTGRES_USER', 'change-me'),
+#             'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'change-me'),
+#             'HOST': os.getenv('POSTGRES_HOST', 'change-me'),
+#             'PORT': os.getenv('POSTGRES_PORT', 'change-me'),
+#         }
+#     }
 
 
 # Password validation
@@ -103,9 +127,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'pt-br'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Sao_Paulo'
 
 USE_I18N = True
 
@@ -116,6 +140,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'static'
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
