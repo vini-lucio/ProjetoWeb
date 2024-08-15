@@ -71,14 +71,14 @@ a {
 }
 
 .grid-icones-pequenos {
-    max-width: 50rem;
+    max-width: 52rem;
 }
 
 .icones-pequenos {
     width: 100%;
     height: 100%;
-    max-width: 7rem;
-    max-height: 7rem;
+    max-width: 7.4rem;
+    max-height: 7.4rem;
     margin: 0 auto;
     overflow: hidden;
     border: 0.2rem solid var(--verde-claro);
@@ -92,6 +92,6 @@ a {
 }
 
 .icones-pequenos img {
-    width: 100%;
-    height: 100%;
+    width: 7rem;
+    height: 7rem;
 }
