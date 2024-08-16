@@ -42,6 +42,18 @@ a {
     padding: 1rem;
 }
 
+.rodape {
+    background-color: var(--azul-escuro);
+    color: var(--branco);
+    border-top: 0.5rem solid var(--verde-claro);
+    justify-content: center;
+    text-align: center;
+}
+
+.rodape div {
+    padding: 1rem;
+}
+
 .principal {
     background-color: var(--cinza-claro);
     min-height: 100vh;
