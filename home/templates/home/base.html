@@ -4,10 +4,12 @@
         {% include "home/partials/_head.html" %}
     </head>
     <body>
-        {% include "home/partials/_cabecalho.html" %}
-
         <section style="background-image: url('/media/imagens_provisorias/fundo.png');" class="principal">
+
+            {% include "home/partials/_cabecalho.html" %}
+
             {% block conteudo %}{% endblock conteudo %}
+            
         </section>
         
         {% include "home/partials/_paginacao.html" %}
