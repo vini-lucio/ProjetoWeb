@@ -45,6 +45,7 @@ a {
 .rodape {
     background-color: var(--azul-escuro);
     color: var(--branco);
+    font-size: 1.5rem;
     border-top: 0.5rem solid var(--verde-claro);
     justify-content: center;
     text-align: center;
@@ -52,6 +53,10 @@ a {
 
 .rodape div {
     padding: 1rem;
+}
+
+.rodape p {
+    line-height: 2.5rem;
 }
 
 .principal {
