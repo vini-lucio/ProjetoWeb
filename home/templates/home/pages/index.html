@@ -5,294 +5,46 @@
     <section style="background-image: url('/media/imagens_provisorias/fundo.png');" class="principal">
 
         <div class="grid grid-icones-pequenos">
-            <div class="icones icones-pequenos">
-                <a href="#"><img src="/media/imagens_provisorias/icone_pequeno.png" alt=""></a>
-            </div>
-            <div class="icones icones-pequenos">
-                <a href="#"><img src="/media/imagens_provisorias/icone_pequeno.png" alt=""></a>
-            </div>
-            <div class="icones icones-pequenos">
-                <a href="#"><img src="/media/imagens_provisorias/icone_pequeno.png" alt=""></a>
-            </div>
-            <div class="icones icones-pequenos">
-                <a href="#"><img src="/media/imagens_provisorias/icone_pequeno.png" alt=""></a>
-            </div>
-            <div class="icones icones-pequenos">
-                <a href="#"><img src="/media/imagens_provisorias/icone_pequeno.png" alt=""></a>
-            </div>
-            <div class="icones icones-pequenos">
-                <a href="#"><img src="/media/imagens_provisorias/icone_pequeno.png" alt=""></a>
-            </div>
+            {% for home_link in home_links %}
+                {% if home_link.tamanho_botao == 'pequeno' %}
+                    <div class="icones icones-pequenos">
+                        <a href="#">
+                            {% if home_link.imagem_capa %}
+                                <img loading="lazy" src="{{ home_link.imagem_capa.url }}">
+                            {% endif %}
+                        </a>
+                    </div>
+                {% endif %}
+            {% endfor %}
         </div>
 
         <div class="grid grid-icones-medios">
-            <div class="icones icones-medios">
-                <a href="#"><img src="/media/imagens_provisorias/icone_medio.png" alt=""></a>
-            </div>
-            <div class="icones icones-medios">
-                <a href="#"><img src="/media/imagens_provisorias/icone_medio.png" alt=""></a>
-            </div>
-            <div class="icones icones-medios">
-                <a href="#"><img src="/media/imagens_provisorias/icone_medio.png" alt=""></a>
-            </div>
-            <div class="icones icones-medios">
-                <a href="#"><img src="/media/imagens_provisorias/icone_medio.png" alt=""></a>
-            </div>
-            <div class="icones icones-medios">
-                <a href="#"><img src="/media/imagens_provisorias/icone_medio.png" alt=""></a>
-            </div>
-            <div class="icones icones-medios">
-                <a href="#"><img src="/media/imagens_provisorias/icone_medio.png" alt=""></a>
-            </div>
-            <div class="icones icones-medios">
-                <a href="#"><img src="/media/imagens_provisorias/icone_medio.png" alt=""></a>
-            </div>
-            <div class="icones icones-medios">
-                <a href="#"><img src="/media/imagens_provisorias/icone_medio.png" alt=""></a>
-            </div>
+            {% for home_link in home_links %}
+                {% if home_link.tamanho_botao == 'medio' %}
+                     <div class="icones icones-medios">
+                        <a href="#">
+                            <img loading="lazy" src="{{ home_link.imagem_capa.url }}">
+                        </a>
+                    </div>
+                {% endif %}
+            {% endfor %}
         </div>
 
         <div class="grid grid-icones-grandes">
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
+            {% for home_link in home_links %}
+                {% if home_link.tamanho_botao == 'grande' %}
+                    <div class="icones icones-grandes">
+                        <a href="#">
+                            <div class="icones-grandes-imagem">
+                                <img loading="lazy" src="{{ home_link.imagem_capa.url }}">
+                            </div>
+                            <div class="icones-grandes-texto">
+                                <p>{{ home_link.titulo }}</p>
+                            </div>
+                        </a>
                     </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="icones icones-grandes">
-                <a href="#">
-                    <div class="icones-grandes-imagem">
-                        <img src="/media/imagens_provisorias/icone_grande.png" alt="">
-                    </div>
-                    <div class="icones-grandes-texto">
-                        <p>Lorem ipsum dolor sit amet.</p>
-                    </div>
-                </a>
-            </div>
+                {% endif %}
+            {% endfor %}
         </div>
 
     </section>
