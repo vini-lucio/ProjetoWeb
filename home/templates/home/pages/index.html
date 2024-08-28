@@ -4,6 +4,16 @@
 
     <section style="background-image: url('/media/imagens_provisorias/fundo.png');" class="principal">
 
+        {% for home_link in home_links %}
+            {% if home_link.tamanho_botao == 'comunicado' %}
+                <div class="grid grid-icones-comunicados">
+                    <div class="icones icones-comunicados">
+                        <img loading="lazy" src="{{ home_link.imagem_capa.url }}">
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+
         <div class="grid grid-icones-pequenos">
             {% for home_link in home_links %}
                 {% if home_link.tamanho_botao == 'pequeno' %}

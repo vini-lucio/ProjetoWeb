@@ -24,6 +24,7 @@ class HomeLinks(models.Model):
         'pequeno': 'Pequeno',
         'medio': 'Medio',
         'grande': 'Grande',
+        'comunicado': 'Comunicado',
     }
 
     help_text_tamanho_botao = "Se alterar esse campo, inclua a imagem novamente para redimensionar"
@@ -67,8 +68,8 @@ class HomeLinks(models.Model):
         super_save = super().save(*args, **kwargs)
 
         if self.imagem_capa and self.imagem_capa.name != imagem_capa_anteior:
-            largura = 0
-            altura = 0
+            largura = None
+            altura = None
 
             if self.tamanho_botao == 'pequeno':
                 largura = LARGURA_IMAGEM_PADRAO_PEQUENO
@@ -80,6 +81,7 @@ class HomeLinks(models.Model):
                 largura = LARGURA_IMAGEM_PADRAO_GRANDE
                 altura = ALTURA_IMAGEM_PADRAO_GRANDE
 
+            # tamanho imagem comunicado é none, largura maxima de 1200px, somente otimizar
             redimensionar_imagem(self.imagem_capa, largura, altura)
 
         return super_save

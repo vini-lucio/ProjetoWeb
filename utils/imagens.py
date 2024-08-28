@@ -5,7 +5,10 @@ from PIL import Image
 
 def redimensionar_imagem(imagem_django, largura_px: int | None = None, altura_px: int | None = None,
                          otimizar=True, qualidade=100):
-    """Se somente a largura for enviada a altura será redimensionada proporcionalmente e vice versa"""
+    """
+    Se somente a largura for enviada a altura será redimensionada proporcionalmente e vice versa.
+    Quando largura e altura for None, será redimensionado proporcionalmente para ter no maximo 1200px de largura.
+    """
     caminho_imagem = Path(settings.MEDIA_ROOT / imagem_django.name).resolve()
     imagem_pillow = Image.open(caminho_imagem)
 
@@ -21,8 +24,12 @@ def redimensionar_imagem(imagem_django, largura_px: int | None = None, altura_px
         largura_nova = largura_px
         altura_nova = altura_px
     else:
-        imagem_pillow.close()
-        return imagem_pillow
+        if largura_original <= 1200:
+            largura_nova = largura_original
+            altura_nova = altura_original
+        else:
+            largura_nova = 1200
+            altura_nova = round(largura_nova * altura_original / largura_original)
 
     nova_imagem = imagem_pillow.resize((largura_nova, altura_nova), Image.Resampling.LANCZOS)
     nova_imagem.save(caminho_imagem, optimize=otimizar, quality=qualidade)
