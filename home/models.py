@@ -26,6 +26,8 @@ class HomeLinks(models.Model):
         'grande': 'Grande',
     }
 
+    help_text_tamanho_botao = "Se alterar esse campo, inclua a imagem novamente para redimensionar"
+
     help_text_imagem_capa = (
         "A imagem será redimensionada automaticamente ao incluir nova imagem "
         "de acordo com o tamanho do botão selecionado: "
@@ -39,7 +41,8 @@ class HomeLinks(models.Model):
     titulo = models.CharField("Título", max_length=30, unique=True, blank=False, null=False)
     slug = models.SlugField("Slug", unique=True, default='', null=False, blank=True, max_length=255)
     tamanho_botao = models.CharField("Tamanho do Botão", max_length=10, choices=tamanhos_botoes,  # type:ignore
-                                     default='grande', blank=False, null=False)  # type:ignore
+                                     default='grande', blank=False, null=False,
+                                     help_text=help_text_tamanho_botao)  # type:ignore
     imagem_capa = models.ImageField("Imagem de Capa", upload_to='home/link_capa/',
                                     blank=True, default='', help_text=help_text_imagem_capa)
     link_externo = models.BooleanField("Link Externo", blank=False, null=False, default=False)
@@ -49,12 +52,14 @@ class HomeLinks(models.Model):
     ordem = models.DecimalField("Ordem", max_digits=7, decimal_places=2,
                                 default=1000.00, blank=False, null=False, help_text=help_text_ordem)  # type:ignore
 
-    def save(self, *args, **kwargs) -> None:
+    def clean(self):
         if not self.link_externo:
             self.url_externo = ''
         if not self.url_externo and self.link_externo:
-            raise ValidationError("Informar URL do Link Externo")
+            raise ValidationError({"url_externo": "Informar URL do Link Externo"})
+        return super().clean()
 
+    def save(self, *args, **kwargs) -> None:
         if not self.slug == slugify(self.titulo):
             self.slug = slugify(self.titulo)
 
