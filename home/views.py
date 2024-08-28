@@ -1,5 +1,5 @@
 # from django.shortcuts import render
-from django.views.generic import ListView
+from django.views.generic import ListView, DetailView
 from home.models import HomeLinks
 
 
@@ -13,3 +13,13 @@ class IndexListView(ListView):
     context_object_name = 'home_links'
     ordering = 'tamanho_botao', 'ordem', 'id',
     queryset = HomeLinks.objects.filter(visivel=True)
+
+
+class HomeLinkDetailView(DetailView):
+    model = HomeLinks
+    template_name = 'home/pages/pagina.html'
+    slug_field = 'slug'
+    context_object_name = 'home_link'
+
+    def get_queryset(self):
+        return super().get_queryset().filter(visivel=True)

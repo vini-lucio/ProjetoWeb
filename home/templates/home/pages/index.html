@@ -18,7 +18,7 @@
             {% for home_link in home_links %}
                 {% if home_link.tamanho_botao == 'pequeno' %}
                     <div class="icones icones-pequenos">
-                        <a href="#">
+                        <a href="{% url "home:home_link" home_link.slug %}">
                             {% if home_link.imagem_capa %}
                                 <img loading="lazy" src="{{ home_link.imagem_capa.url }}">
                             {% endif %}
@@ -32,7 +32,7 @@
             {% for home_link in home_links %}
                 {% if home_link.tamanho_botao == 'medio' %}
                      <div class="icones icones-medios">
-                        <a href="#">
+                        <a href="{% url "home:home_link" home_link.slug %}">
                             <img loading="lazy" src="{{ home_link.imagem_capa.url }}">
                         </a>
                     </div>
@@ -44,7 +44,7 @@
             {% for home_link in home_links %}
                 {% if home_link.tamanho_botao == 'grande' %}
                     <div class="icones icones-grandes">
-                        <a href="#">
+                        <a href="{% url "home:home_link" home_link.slug %}">
                             <div class="icones-grandes-imagem">
                                 <img loading="lazy" src="{{ home_link.imagem_capa.url }}">
                             </div>
