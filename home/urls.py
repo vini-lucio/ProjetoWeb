@@ -5,5 +5,5 @@ app_name = 'home'
 
 urlpatterns = [
     path('', IndexListView.as_view(), name='index'),
-    path('<slug:slug>/', HomeLinkDetailView.as_view(), name='home_link'),
+    path('home_link/<slug:slug>/', HomeLinkDetailView.as_view(), name='home_link'),
 ]
