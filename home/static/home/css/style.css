@@ -62,6 +62,7 @@ a {
 
 .principal {
     background-color: var(--cinza-claro);
+    color: var(--azul-escuro);
     min-height: 100vh;
     background-size: cover;
     background-position: center center;
@@ -166,4 +167,20 @@ a {
     justify-content: center;
     font-size: 2.1rem;
     font-weight: bold;
+}
+
+.titulo {
+    padding: 2rem;
+    color: var(--verde-claro);
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 5rem;
+}
+
+/* TODO: rever css summernote */
+.texto-conteudo {
+    padding: 2rem;
+    color: var(--azul-escuro);
+    text-align: center;
+    font-size: 2rem;
 }

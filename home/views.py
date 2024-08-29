@@ -18,7 +18,6 @@ class IndexListView(ListView):
 class HomeLinkDetailView(DetailView):
     model = HomeLinks
     template_name = 'home/pages/pagina.html'
-    slug_field = 'slug'
     context_object_name = 'home_link'
 
     def get_queryset(self):
