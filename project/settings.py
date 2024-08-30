@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'home',
+    'django_summernote',
 ]
 
 MIDDLEWARE = [
@@ -149,3 +150,34 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+SUMMERNOTE_CONFIG = {
+    'summernote': {
+        # Toolbar customization
+        # https://summernote.org/deep-dive/#custom-toolbar-popover
+        'width': '400%',
+        'height': '800',
+        'toolbar': [
+            ['style', ['style', ]],
+            ['font', ['bold', 'italic', 'clear']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph', 'hr', ]],
+            ['table', ['table']],
+            ['insert', ['link', 'picture']],
+            ['view', ['fullscreen', 'codeview', 'undo', 'redo']],
+        ],
+        'lang': 'pt-BR',
+        'codemirror': {
+            'mode': 'htmlmixed',
+            'lineNumbers': 'true',
+            'lineWrapping': 'true',
+            'theme': 'dracula',
+        },
+    },
+    'css': (
+        '//cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/dracula.min.css',
+    ),
+    'attachment_upload_to': 'home/link_conteudo/',
+    'attachment_filesize_limit': 30 * 1024 * 1024,
+    'attachment_model': 'home.PostAttachment',
+}

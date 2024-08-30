@@ -2,6 +2,22 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from utils.imagens import redimensionar_imagem
+from django_summernote.models import AbstractAttachment
+
+
+class PostAttachment(AbstractAttachment):
+    def save(self, *args, **kwargs):
+        if not self.name:
+            self.name = self.file.name
+
+        nome_arquivo_atual = str(self.file.name)
+        super_save = super().save(*args, **kwargs)
+
+        if self.file and nome_arquivo_atual != self.file.name:
+            redimensionar_imagem(self.file)
+
+        return super_save
+
 
 FATOR_AMPLIACAO_HOVER_CSS = 1.05
 

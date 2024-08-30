@@ -177,10 +177,11 @@ a {
     font-size: 5rem;
 }
 
-/* TODO: rever css summernote */
-.texto-conteudo {
+.link-conteudo {
     padding: 2rem;
     color: var(--azul-escuro);
     text-align: center;
+    align-content: center;
+    justify-content: center;
     font-size: 2rem;
 }
