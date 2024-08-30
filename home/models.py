@@ -67,7 +67,7 @@ class HomeLinks(models.Model):
     link_externo = models.BooleanField("Link Externo", blank=False, null=False, default=False)
     url_externo = models.CharField("URL do Link Externo", max_length=2048, blank=True, null=True)
     visivel = models.BooleanField("Visível", blank=False, null=False, default=True)
-    conteudo = models.TextField("Conteudo")
+    conteudo = models.TextField("Conteudo", blank=True, null=True)
     ordem = models.DecimalField("Ordem", max_digits=7, decimal_places=2,
                                 default=1000.00, blank=False, null=False, help_text=help_text_ordem)  # type:ignore
 

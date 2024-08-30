@@ -1,0 +1,17 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <h1 class="titulo"><p>Consultoria de Vendas</p></h1>
+
+        <div class="link-conteudo">
+            {% for home_link in home_links %}
+                <p>{{ home_link.titulo }}</p>
+            {% endfor %}
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

@@ -22,3 +22,11 @@ class HomeLinkDetailView(DetailView):
 
     def get_queryset(self):
         return super().get_queryset().filter(visivel=True)
+
+
+class ConsultoriaVendasListView(ListView):
+    model = HomeLinks
+    template_name = 'home/pages/consultoria-vendas.html'
+    context_object_name = 'home_links'
+    ordering = 'ordem', 'id',
+    queryset = HomeLinks.objects.filter(visivel=True, tamanho_botao='consultoria')
