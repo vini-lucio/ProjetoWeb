@@ -1,10 +1,6 @@
-# from django.shortcuts import render
+from django.shortcuts import render
 from django.views.generic import ListView, DetailView
 from home.models import HomeLinks
-
-
-# def index(request):
-#     return render(request, 'home/pages/index.html')
 
 
 class IndexListView(ListView):
@@ -30,3 +26,7 @@ class ConsultoriaVendasListView(ListView):
     context_object_name = 'home_links'
     ordering = 'ordem', 'id',
     queryset = HomeLinks.objects.filter(visivel=True, tamanho_botao='consultoria')
+
+
+def calculo_piso_elevado(request):
+    return render(request, 'home/pages/calculo-piso-elevado.html')

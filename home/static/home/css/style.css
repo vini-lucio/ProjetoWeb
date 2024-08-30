@@ -179,7 +179,14 @@ a {
     color: var(--verde-claro);
     text-align: center;
     text-transform: uppercase;
+}
+
+.titulo h1 {
     font-size: 5rem;
+}
+
+.titulo h2 {
+    font-size: 4rem;
 }
 
 .link-conteudo {
@@ -189,4 +196,15 @@ a {
     align-content: center;
     justify-content: center;
     font-size: 2rem;
+}
+
+.moldura-verde {
+    padding: 2rem;
+    border: var(--tamanho-borda-icones) solid var(--verde-claro);
+    border-radius: 1.5rem;
+    width: fit-content;
+    text-align: center;
+    align-content: center;
+    justify-content: center;
+    margin: 0 auto;
 }
