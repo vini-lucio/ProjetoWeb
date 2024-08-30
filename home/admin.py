@@ -12,3 +12,4 @@ class HomeLinksAdmin(SummernoteModelAdmin):
     list_editable = 'visivel', 'ordem'
     readonly_fields = 'slug',
     ordering = 'tamanho_botao', 'ordem', 'id',
+    search_fields = 'tamanho_botao',

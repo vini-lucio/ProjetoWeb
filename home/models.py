@@ -41,11 +41,13 @@ class HomeLinks(models.Model):
         'medio': 'Medio',
         'grande': 'Grande',
         'comunicado': 'Comunicado',
+        'consultoria': 'Consultoria de Vendas',
     }
 
     help_text_tamanho_botao = "Se alterar esse campo, inclua a imagem novamente para redimensionar"
 
     help_text_imagem_capa = (
+        "Tamanho 'Consultoria de Vendas' não exibe imagem de capa, deixar em branco. "
         "A imagem será redimensionada automaticamente ao incluir nova imagem "
         "de acordo com o tamanho do botão selecionado: "
         f"Pequeno {LARGURA_IMAGEM_PADRAO_PEQUENO}x{ALTURA_IMAGEM_PADRAO_PEQUENO} px, "
@@ -57,7 +59,7 @@ class HomeLinks(models.Model):
 
     titulo = models.CharField("Título", max_length=30, unique=True, blank=False, null=False)
     slug = models.SlugField("Slug", unique=True, default='', null=False, blank=True, max_length=255)
-    tamanho_botao = models.CharField("Tamanho do Botão", max_length=10, choices=tamanhos_botoes,  # type:ignore
+    tamanho_botao = models.CharField("Tamanho do Botão", max_length=30, choices=tamanhos_botoes,  # type:ignore
                                      default='grande', blank=False, null=False,
                                      help_text=help_text_tamanho_botao)  # type:ignore
     imagem_capa = models.ImageField("Imagem de Capa", upload_to='home/link_capa/',
