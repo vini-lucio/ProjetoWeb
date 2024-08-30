@@ -7,9 +7,23 @@
         <h1 class="titulo"><p>Consultoria de Vendas</p></h1>
 
         <div class="link-conteudo">
-            {% for home_link in home_links %}
-                <p>{{ home_link.titulo }}</p>
-            {% endfor %}
+
+            <div class="grid grid-icones-grandes">
+                {% for home_link in home_links %}
+                    <div class="icones icones-medios">
+                        {% if home_link.link_externo %}
+                            <a href="{{ home_link.url_externo }}">
+                        {% else %}
+                            <a href="{% url "home:home_link" home_link.slug %}">
+                        {% endif %}
+                                <div class="icones-grandes-texto icones-fundo-azul">
+                                    <p>{{ home_link.titulo }}</p>
+                                </div>
+                            </a>
+                    </div>
+                {% endfor %}
+            </div>
+
         </div>
 
     </section>

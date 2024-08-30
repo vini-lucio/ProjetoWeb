@@ -169,6 +169,11 @@ a {
     font-weight: bold;
 }
 
+.icones-fundo-azul {
+    color: var(--branco);
+    background-color: var(--azul-escuro);
+}
+
 .titulo {
     padding: 2rem;
     color: var(--verde-claro);
