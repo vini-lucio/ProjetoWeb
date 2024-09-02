@@ -5,6 +5,10 @@
     --branco: rgb(255, 255, 255);
     --vemelho: rgb(205, 33, 41);
     --tamanho-borda-icones: 0.2rem;
+    --tamanho-fonte-h1: 5rem;
+    --tamanho-fonte-h2: 4rem;
+    --tamanho-fonte-p: 2rem;
+    --tamanho-fonte-p-pequeno: 1.5rem;
 }
 
 * {
@@ -24,21 +28,36 @@ a {
 }
 
 
-body {
+body,
+textarea {
     font-family: 'Puntodewa', sans-serif;
 }
 
 h1 {
-    font-size: 5rem;
+    font-size: var(--tamanho-fonte-h1);
 }
 
 h2 {
-    font-size: 4rem;
+    font-size: var(--tamanho-fonte-h2);
 }
 
-p {
-    font-size: 2rem;
+p,
+label,
+input,
+textarea,
+button {
+    font-size: var(--tamanho-fonte-p);
     line-height: 2.5rem;
+}
+
+input,
+textarea {
+    color: var(--azul-escuro);
+}
+
+input:focus,
+textarea:focus {
+    box-shadow: 0 0 0.5rem 0.2rem var(--verde-claro);
 }
 
 
@@ -66,8 +85,9 @@ p {
     padding: 1rem;
 }
 
-.rodape p {
-    font-size: 1.5rem;
+.rodape p,
+.fonte-p-pequeno {
+    font-size: var(--tamanho-fonte-p-pequeno);
 }
 
 .principal {
@@ -175,7 +195,6 @@ p {
     text-align: center;
     align-content: center;
     justify-content: center;
-    font-size: 2rem;
     font-weight: bold;
 }
 
@@ -207,5 +226,64 @@ p {
     text-align: center;
     align-content: center;
     justify-content: center;
-    margin: 0 auto;
+    margin: 2rem auto;
+}
+
+.moldura-verde textarea {
+    width: 100%;
+}
+
+.grid-2col-numero {
+    display: grid;
+    grid-template-columns: auto 8rem;
+    gap: 0.5rem;
+    text-align: right;
+}
+
+.grid-simples {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.grid-2col-numero2 {
+    display: grid;
+    grid-template-columns: max-content 8rem auto;
+    gap: 0.5rem;
+}
+
+.verde-negrito {
+    font-weight: bolder;
+    color: var(--verde-claro);
+}
+
+.vermelho-negrito {
+    font-weight: bolder;
+    color: var(--vemelho);
+}
+
+.azul-negrito {
+    font-weight: bolder;
+    color: var(--azul-escuro);
+}
+
+.botao {
+    padding: 1rem;
+    border: var(--tamanho-borda-icones) solid var(--verde-claro);
+    background: var(--azul-escuro);
+    color: var(--branco);
+    cursor: pointer;
+    transition: all 200ms ease-in-out;
+}
+
+.botao:hover {
+    background: var(--verde-claro);
+    color: var(--azul-escuro);
+}
+
+@media (max-width: 400px) {
+    .grid-2col-numero {
+        grid-template-columns: auto;
+        gap: 0.5rem;
+        text-align: left;
+    }
 }

@@ -76,15 +76,15 @@
                 document.getElementById("cortetubo").value = tubocorte;
                 
                 if (tubocorte <= tuboconcretominimo) {
-                    document.getElementById("obspet").value = "";
+                    document.getElementById("obspet").innerHTML = "";
                 } else {
                     if (tubocorte <= tuboconcretoacominimo) {
-                        document.getElementById("obspet").value = "Tubo com mais de " + tuboconcretominimo + " cm recomenda-se preencher com concreto";
+                        document.getElementById("obspet").innerHTML = "Tubo com mais de " + tuboconcretominimo + " cm recomenda-se preencher com concreto";
                     } else {
                         if (tubocorte>tuboconcretoacominimo) {
-                            document.getElementById("obspet").value = "Tubo com mais de " + tuboconcretoacominimo + " cm recomenda-se preencher com concreto e estruturar com vergalhão de aço";
+                            document.getElementById("obspet").innerHTML = "Tubo com mais de " + tuboconcretoacominimo + " cm recomenda-se preencher com concreto e estruturar com vergalhão de aço";
                         } else {
-                            document.getElementById("obspet").value = "";
+                            document.getElementById("obspet").innerHTML = "";
                         }
                     }
                 }
@@ -130,44 +130,83 @@
                 
             </script>
             
-            <div class="moldura-verde">
-                <p>Largura da placa (cm): <input type="number" id="larguraplaca" name="larguraplaca"></p>
-                <p>Comprimento da placa (cm): <input type="number" id="comprimentoplaca" name="comprimentoplaca"></p>
-                <p>Espessura da placa (cm): <input type="number" id="alturaplaca" name="alturaplaca"></p>
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="larguraplaca">Largura da placa (cm):</label>
+                    <input type="number" id="larguraplaca" name="larguraplaca">
+
+                    <label for ="comprimentoplaca">Comprimento da placa (cm):</label>
+                    <input type="number" id="comprimentoplaca" name="comprimentoplaca">
+
+                    <label for ="alturaplaca">Espessura da placa (cm):</label>
+                    <input type="number" id="alturaplaca" name="alturaplaca">
+
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="alturafinal">Altura final do piso (cm):</label>
+                    <input type="number" id="alturafinal" name="alturafinal">
+
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="areaaplicacao">Area de aplicação (m²):</label>
+                    <input type="number" id="areaaplicacao" name="areaaplicacao">
+
+                </div>
+                
+            </fieldset>
+
+            <div>
+                <button class="botao" type="button" onclick="calcular1()">Calcular</button>
             </div>
 
-            <b>------------------------------------------------------------------------------</b><br><br>
-            
-            <b>Altura final do piso (cm): </b><input type="number" id="alturafinal" name="alturafinal"><br><br>
-            
-            <b>------------------------------------------------------------------------------</b><br><br>
-            
-            <b>Area de aplicação (m²): </b><input type="number" id="areaaplicacao" name="areaaplicacao"><br><br>
-            
-            <b>------------------------------------------------------------------------------</b><br><br>
-            
-            <button type="button" onclick="calcular1()">Calcular</button><br><br><br><br>
-            
-            <b>------------------------------------------------------------------------------</b><br><br>
-            
-            <b>PET + TUBO</b><br>
-            Conjunto: PE6 + PET5 + PET4 + Tubo Cortado + PET1<br>
-            <b><font color="blue">Corte do tubo (cm): </font></b><input type="text" id="cortetubo" name="cortetubo"><br>
-            <input type="text" id="obspet" name="obspet" size=85><br><br>
-            
-            <b>ou</b><br><br>
-            
-            <b>PE + PROLONGADOR</b><br>
-            Conjunto: PE6 + PE5 + PE4 + Prolongadores + PE1<br>
-            <b><font color="blue">Combinação de prolongadores: </font></b><input type="text" id="prolongadores" name="prolongadores"><br><br><br><br>
-            
-            <b>------------------------------------------------------------------------------</b><br><br>
-            
-            <b><font color="red">Quantidade de conjuntos (aproximado): </font></b><input type="number" id="conjuntosexato" name="conjuntosexato"><br><br>
-            
-            <b>------------------------------------------------------------------------------</b><br><br>
-            
-            <b><font color="red">Quantidade de conjuntos + segurança: </font></b><input type="number" id="conjuntosseguranca" name="conjuntosseguranca"><br><br>
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="azul-negrito">PET + TUBO</p>
+                    <p class="fonte-p-pequeno">Conjunto: PE6 + PET5 + PET4 + Tubo Cortado + PET1</p>
+
+                    <div class="grid-2col-numero2">
+                        <label class="verde-negrito" for ="cortetubo">Corte do tubo (cm):</label>
+                        <input type="text" id="cortetubo" name="cortetubo">
+                    </div>
+
+                    <textarea id="obspet" name="obspet" rows="3"></textarea>
+                </div>
+            </fieldset>
+                                   
+            <div>
+                <p class="vermelho-negrito">ou</p>
+            </div>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="azul-negrito">PE + PROLONGADOR</p>
+                    <p class="fonte-p-pequeno">Conjunto: PE6 + PE5 + PE4 + Prolongadores + PE1</p>
+
+                    <label class="verde-negrito" for ="prolongadores">Combinação de prolongadores:</label>
+                    <input type="text" id="prolongadores" name="prolongadores">
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label class="vermelho-negrito" for ="conjuntosexato">Quantidade de conjuntos (aproximado):</label>
+                    <input type="number" id="conjuntosexato" name="conjuntosexato">
+
+                    <label class="vermelho-negrito" for ="conjuntosseguranca">Quantidade de conjuntos + segurança:</label>
+                    <input type="number" id="conjuntosseguranca" name="conjuntosseguranca">
+
+                </div>
+            </fieldset>
 
         </div>
 
