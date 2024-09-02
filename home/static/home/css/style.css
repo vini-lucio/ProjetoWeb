@@ -247,7 +247,7 @@ textarea:focus {
 
 .grid-2col-numero2 {
     display: grid;
-    grid-template-columns: max-content 8rem auto;
+    grid-template-columns: max-content auto;
     gap: 0.5rem;
 }
 
