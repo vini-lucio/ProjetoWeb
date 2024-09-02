@@ -280,10 +280,13 @@ textarea:focus {
     color: var(--azul-escuro);
 }
 
-@media (max-width: 400px) {
+@media (max-width: 570px) {
     .grid-2col-numero {
         grid-template-columns: auto;
-        gap: 0.5rem;
-        text-align: left;
+        text-align: center;
+    }
+
+    .grid-2col-numero2 {
+        grid-template-columns: auto;
     }
 }
