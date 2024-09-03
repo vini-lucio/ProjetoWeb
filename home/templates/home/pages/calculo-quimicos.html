@@ -2,6 +2,50 @@
 
 {% block conteudo %}
 
+    <script type = "text/javascript">
+
+        function calcular_agfix() {
+            var m2_agfix = document.getElementById("m2_agfix").value;
+            m2_agfix = Number(m2_agfix);
+
+            agfix_chapisco_convencional = 0.3 * m2_agfix
+            agfix_chapisco_rolado = 0.2 * m2_agfix
+            agfix_pisos_revestimentos = 0.4 * m2_agfix
+
+            document.getElementById("agfix_chapisco_convencional").value = agfix_chapisco_convencional;
+            document.getElementById("agfix_agua_chapisco_convencional").value = agfix_chapisco_convencional * 2;
+
+            document.getElementById("agfix_chapisco_rolado").value = agfix_chapisco_rolado;
+            document.getElementById("agfix_agua_chapisco_rolado").value = agfix_chapisco_rolado * 2;
+
+            document.getElementById("agfix_pisos_revestimentos").value = agfix_pisos_revestimentos;
+            document.getElementById("agfix_agua_pisos_revestimentos").value = agfix_pisos_revestimentos * 2;
+        }
+
+        function calcular_agdesmoldante() {
+            var m2_agdesmoldante = document.getElementById("m2_agdesmoldante").value;
+            m2_agdesmoldante = Number(m2_agdesmoldante);
+
+            agdesmoldante_forma_plastificada_1_5 = 0.006 * m2_agdesmoldante
+            agdesmoldante_forma_plastificada_1_10 = 0.003 * m2_agdesmoldante
+            agdesmoldante_forma_resinada_1_5 = 0.017 * m2_agdesmoldante
+            agdesmoldante_forma_resinada_1_10 = 0.01 * m2_agdesmoldante
+
+            document.getElementById("agdesmoldante_forma_plastificada_1_5").value = agdesmoldante_forma_plastificada_1_5;
+            document.getElementById("agdesmoldante_agua_forma_plastificada_1_5").value = agdesmoldante_forma_plastificada_1_5 * 5;
+
+            document.getElementById("agdesmoldante_forma_plastificada_1_10").value = agdesmoldante_forma_plastificada_1_10;
+            document.getElementById("agdesmoldante_agua_forma_plastificada_1_10").value = agdesmoldante_forma_plastificada_1_10 * 10;
+        
+            document.getElementById("agdesmoldante_forma_resinada_1_5").value = agdesmoldante_forma_resinada_1_5;
+            document.getElementById("agdesmoldante_agua_forma_resinada_1_5").value = agdesmoldante_forma_resinada_1_5 * 5;
+        
+            document.getElementById("agdesmoldante_forma_resinada_1_10").value = agdesmoldante_forma_resinada_1_10;
+            document.getElementById("agdesmoldante_agua_forma_resinada_1_10").value = agdesmoldante_forma_resinada_1_10 * 10;
+        }
+        
+    </script>
+
     <section class="principal">
 
         <div class="titulo">
@@ -12,7 +56,7 @@
 
             <div class="grid-simples">
                 <a href="#agfix"><div class="botao-div">AG.fix</div></a>
-                <div class="botao-div">AG.desmoldante</div>
+                <a href="#agdesmoldante"><div class="botao-div">AG.desmoldante</div></a>
                 <div class="botao-div">AG.desmoldante ECO</div>
                 <div class="botao-div">AG.desmoldante Mineral</div>
                 <div class="botao-div">AG.cura</div>
@@ -31,28 +75,6 @@
         </div>
 
         <div class="link-conteudo link-conteudo-escuro">
-            
-            <script type = "text/javascript">
-
-                function calcular_agfix() {
-                    var m2_agfix = document.getElementById("m2_agfix").value;
-                    m2_agfix = Number(m2_agfix);
-
-                    agfix_chapisco_convencional = 0.3 * m2_agfix
-                    agfix_chapisco_rolado = 0.2 * m2_agfix
-                    agfix_pisos_revestimentos = 0.4 * m2_agfix
-
-                    document.getElementById("agfix_chapisco_convencional").value = agfix_chapisco_convencional;
-                    document.getElementById("agua_chapisco_convencional").value = agfix_chapisco_convencional * 2;
-
-                    document.getElementById("agfix_chapisco_rolado").value = agfix_chapisco_rolado;
-                    document.getElementById("agua_chapisco_rolado").value = agfix_chapisco_rolado * 2;
-
-                    document.getElementById("agfix_pisos_revestimentos").value = agfix_pisos_revestimentos;
-                    document.getElementById("agua_pisos_revestimentos").value = agfix_pisos_revestimentos * 2;
-                }
-                
-            </script>
 
             <fieldset class="moldura-verde">
                 <div class="grid-2col-numero">
@@ -82,8 +104,8 @@
                     </div>
 
                     <div class="grid-2col-numero">
-                        <label class="branco-negrito" for ="agua_chapisco_convencional">Litros de agua:</label>
-                        <input type="number" id="agua_chapisco_convencional" name="agua_chapisco_convencional">
+                        <label class="branco-negrito" for ="agfix_agua_chapisco_convencional">Litros de agua:</label>
+                        <input type="number" id="agfix_agua_chapisco_convencional" name="agfix_agua_chapisco_convencional">
                     </div>
 
                 </div>
@@ -103,8 +125,8 @@
                     </div>
 
                     <div class="grid-2col-numero">
-                        <label class="branco-negrito" for ="agua_chapisco_rolado">Litros de agua:</label>
-                        <input type="number" id="agua_chapisco_rolado" name="agua_chapisco_rolado">
+                        <label class="branco-negrito" for ="agfix_agua_chapisco_rolado">Litros de agua:</label>
+                        <input type="number" id="agfix_agua_chapisco_rolado" name="agfix_agua_chapisco_rolado">
                     </div>
 
                 </div>
@@ -124,8 +146,8 @@
                     </div>
 
                     <div class="grid-2col-numero">
-                        <label class="branco-negrito" for ="agua_chapisco_rolado">Litros de agua:</label>
-                        <input type="number" id="agua_pisos_revestimentos" name="agua_pisos_revestimentos">
+                        <label class="branco-negrito" for ="agfix_agua_chapisco_rolado">Litros de agua:</label>
+                        <input type="number" id="agfix_agua_pisos_revestimentos" name="agfix_agua_pisos_revestimentos">
                     </div>
 
                 </div>
@@ -134,5 +156,120 @@
         </div>
 
     </section>
+
+    <section id="agdesmoldante" class="principal">
+
+        <div class="titulo">
+            <h2>Calculo Consumo AG.desmoldante</h2>
+        </div>
+
+        <div class="link-conteudo">
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="m2_agdesmoldante">Area de aplicação (m²):</label>
+                    <input type="number" id="m2_agdesmoldante" name="m2_agdesmoldante">
+
+                </div>
+
+            </fieldset>
+
+            <div>
+                <button class="botao" type="button" onclick="calcular_agdesmoldante()">Calcular</button>
+            </div>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="azul-negrito">Forma Plastificada</p>
+                    <p class="azul-negrito">Diluição 1:5</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agdesmoldante_forma_plastificada_1_5">Litros de AG.desmoldante:</label>
+                        <input type="number" id="agdesmoldante_forma_plastificada_1_5" name="agdesmoldante_forma_plastificada_1_5">
+                    </div>
+
+                    <div>
+                        <p class="vermelho-negrito">e</p>
+                    </div>
+
+                    <div class="grid-2col-numero">
+                        <label class="azul-negrito" for ="agdesmoldante_agua_forma_plastificada_1_5">Litros de agua:</label>
+                        <input type="number" id="agdesmoldante_agua_forma_plastificada_1_5" name="agdesmoldante_agua_forma_plastificada_1_5">
+                    </div>
+
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="azul-negrito">Forma Plastificada</p>
+                    <p class="azul-negrito">Diluição 1:10</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agdesmoldante_forma_plastificada_1_10">Litros de AG.desmoldante:</label>
+                        <input type="number" id="agdesmoldante_forma_plastificada_1_10" name="agdesmoldante_forma_plastificada_1_10">
+                    </div>
+
+                    <div>
+                        <p class="vermelho-negrito">e</p>
+                    </div>
+
+                    <div class="grid-2col-numero">
+                        <label class="azul-negrito" for ="agdesmoldante_agua_forma_plastificada_1_10">Litros de agua:</label>
+                        <input type="number" id="agdesmoldante_agua_forma_plastificada_1_10" name="agdesmoldante_agua_forma_plastificada_1_10">
+                    </div>
+
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="azul-negrito">Forma Resinada</p>
+                    <p class="azul-negrito">Diluição 1:5</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agdesmoldante_forma_resinada_1_5">Litros de AG.desmoldante:</label>
+                        <input type="number" id="agdesmoldante_forma_resinada_1_5" name="agdesmoldante_forma_resinada_1_5">
+                    </div>
+
+                    <div>
+                        <p class="vermelho-negrito">e</p>
+                    </div>
+
+                    <div class="grid-2col-numero">
+                        <label class="azul-negrito" for ="agdesmoldante_agua_forma_resinada_1_5">Litros de agua:</label>
+                        <input type="number" id="agdesmoldante_agua_forma_resinada_1_5" name="agdesmoldante_agua_forma_resinada_1_5">
+                    </div>
+
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="azul-negrito">Forma Resinada</p>
+                    <p class="azul-negrito">Diluição 1:10</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agdesmoldante_forma_resinada_1_10">Litros de AG.desmoldante:</label>
+                        <input type="number" id="agdesmoldante_forma_resinada_1_10" name="agdesmoldante_forma_resinada_1_10">
+                    </div>
+
+                    <div>
+                        <p class="vermelho-negrito">e</p>
+                    </div>
+
+                    <div class="grid-2col-numero">
+                        <label class="azul-negrito" for ="agdesmoldante_agua_forma_resinada_1_10">Litros de agua:</label>
+                        <input type="number" id="agdesmoldante_agua_forma_resinada_1_10" name="agdesmoldante_agua_forma_resinada_1_10">
+                    </div>
+
+                </div>
+            </fieldset>
+            
+        </div>
+
+    </section>
+
 
 {% endblock conteudo %}
