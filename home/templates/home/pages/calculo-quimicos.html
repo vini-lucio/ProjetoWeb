@@ -43,6 +43,17 @@
             document.getElementById("agdesmoldante_forma_resinada_1_10").value = agdesmoldante_forma_resinada_1_10;
             document.getElementById("agdesmoldante_agua_forma_resinada_1_10").value = agdesmoldante_forma_resinada_1_10 * 10;
         }
+
+        function calcular_agdesmoldante_eco() {
+            var m2_agdesmoldante_eco = document.getElementById("m2_agdesmoldante_eco").value;
+            m2_agdesmoldante_eco = Number(m2_agdesmoldante_eco);
+
+            agdesmoldante_eco_rendimento_0045 = 0.045 * m2_agdesmoldante_eco
+            agdesmoldante_eco_rendimento_0065 = 0.065 * m2_agdesmoldante_eco
+        
+            document.getElementById("agdesmoldante_eco_rendimento_0045").value = agdesmoldante_eco_rendimento_0045;
+            document.getElementById("agdesmoldante_eco_rendimento_0065").value = agdesmoldante_eco_rendimento_0065;
+        }
         
     </script>
 
@@ -57,7 +68,7 @@
             <div class="grid-simples">
                 <a href="#agfix"><div class="botao-div">AG.fix</div></a>
                 <a href="#agdesmoldante"><div class="botao-div">AG.desmoldante</div></a>
-                <div class="botao-div">AG.desmoldante ECO</div>
+                <a href="#agdesmoldante-eco"><div class="botao-div">AG.desmoldante ECO</div></a>
                 <div class="botao-div">AG.desmoldante Mineral</div>
                 <div class="botao-div">AG.cura</div>
                 <div class="botao-div">AG.cura PREMIUM</div>
@@ -266,10 +277,57 @@
 
                 </div>
             </fieldset>
-            
+
         </div>
 
     </section>
 
+    <section id="agdesmoldante-eco" class="principal principal-escuro">
+
+        <div class="titulo">
+            <h2>Calculo Consumo AG.desmoldante ECO</h2>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="m2_agdesmoldante_eco">Area de aplicação (m²):</label>
+                    <input type="number" id="m2_agdesmoldante_eco" name="m2_agdesmoldante_eco">
+
+                </div>
+
+            </fieldset>
+
+            <div>
+                <button class="botao botao-escuro" type="button" onclick="calcular_agdesmoldante_eco()">Calcular</button>
+            </div>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="branco-negrito">Rendimento 0,045 L/m²</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agdesmoldante_eco_rendimento_0045">Litros de AG.desmoldante ECO:</label>
+                        <input type="number" id="agdesmoldante_eco_rendimento_0045" name="agdesmoldante_eco_rendimento_0045">
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="branco-negrito">Rendimento 0,065 L/m²</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agdesmoldante_eco_rendimento_0065">Litros de AG.desmoldante ECO:</label>
+                        <input type="number" id="agdesmoldante_eco_rendimento_0065" name="agdesmoldante_eco_rendimento_0065">
+                    </div>
+                </div>
+            </fieldset>
+
+        </div>
+
+    </section>
 
 {% endblock conteudo %}
