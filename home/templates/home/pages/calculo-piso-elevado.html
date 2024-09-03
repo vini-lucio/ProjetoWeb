@@ -14,108 +14,109 @@
 
                 function calcular1() {
                 
-                var larguraplaca = document.getElementById("larguraplaca").value;
-                var comprimentoplaca = document.getElementById("comprimentoplaca").value;
-                var alturaplaca = document.getElementById("alturaplaca").value;
-                var alturafinal = document.getElementById("alturafinal").value;
-                var areaaplicacao = document.getElementById("areaaplicacao").value;
-                var areaplaca = 0;
-                var alturaconjunto = 0;
-                var placas = 0;
-                var placas10 = 0;
-                var conjuntosexato = 0;
-                var conjuntosseguranca = 0;
-                
-                var pet5 = 2.1;
-                var pet1 = 0.3;
-                var tubo = 0;
-                var tubocorte = 0;
-                var tubominimo = 7;
-                var tuboconcretominimo = 60;
-                var tuboconcretoacominimo = 100;
-                
-                var pe5 = 1.5;
-                var pe3 = 3;
-                var pe2 = 5;
-                var pe1 = 3;
-                var peminimo = 5.5;
-                var prolongadores = 0;
-                var prolongadorminimo = 1;
-                var prolongadormaximo = 12;
-                var combinacaoprolongadores = 0;
-                
-                larguraplaca = Number(larguraplaca);
-                comprimentoplaca = Number(comprimentoplaca);
-                alturaplaca = Number(alturaplaca);
-                alturafinal = Number(alturafinal);
-                areaaplicacao = Number(areaaplicacao);
-                
-                areaplaca = larguraplaca * comprimentoplaca / 10000;
-                alturaconjunto = alturafinal - alturaplaca;
-                
-                placas = Math.ceil(areaaplicacao / areaplaca);
-                placas10 = Math.ceil(placas * 1.1);
-                
-                conjuntosexato = Math.ceil(Math.pow(Math.sqrt(placas10) + 1, 2));
-                document.getElementById("conjuntosexato").value = conjuntosexato;
-                
-                conjuntosseguranca = Math.ceil(Math.pow(Math.ceil(Math.sqrt(placas10)) + 1, 2));
-                document.getElementById("conjuntosseguranca").value = conjuntosseguranca;
-                
-                tubo = alturaconjunto - pet1 - pet5;
-                
-                if (alturaconjunto < peminimo) {
-                    tubocorte = "Abaixo do tamanho minimo";
-                } else {
-                    if (tubo < tubominimo) {
-                        tubocorte = "Utilizar PE";
+                    var larguraplaca = document.getElementById("larguraplaca").value;
+                    var comprimentoplaca = document.getElementById("comprimentoplaca").value;
+                    var alturaplaca = document.getElementById("alturaplaca").value;
+                    var alturafinal = document.getElementById("alturafinal").value;
+                    var areaaplicacao = document.getElementById("areaaplicacao").value;
+                    var areaplaca = 0;
+                    var alturaconjunto = 0;
+                    var placas = 0;
+                    var placas10 = 0;
+                    var conjuntosexato = 0;
+                    var conjuntosseguranca = 0;
+                    
+                    var pet5 = 2.1;
+                    var pet1 = 0.3;
+                    var tubo = 0;
+                    var tubocorte = 0;
+                    var tubominimo = 7;
+                    var tuboconcretominimo = 60;
+                    var tuboconcretoacominimo = 100;
+                    
+                    var pe5 = 1.5;
+                    var pe3 = 3;
+                    var pe2 = 5;
+                    var pe1 = 3;
+                    var peminimo = 5.5;
+                    var prolongadores = 0;
+                    var prolongadorminimo = 1;
+                    var prolongadormaximo = 12;
+                    var combinacaoprolongadores = 0;
+                    
+                    larguraplaca = Number(larguraplaca);
+                    comprimentoplaca = Number(comprimentoplaca);
+                    alturaplaca = Number(alturaplaca);
+                    alturafinal = Number(alturafinal);
+                    areaaplicacao = Number(areaaplicacao);
+                    
+                    areaplaca = larguraplaca * comprimentoplaca / 10000;
+                    alturaconjunto = alturafinal - alturaplaca;
+                    
+                    placas = Math.ceil(areaaplicacao / areaplaca);
+                    placas10 = Math.ceil(placas * 1.1);
+                    
+                    conjuntosexato = Math.ceil(Math.pow(Math.sqrt(placas10) + 1, 2));
+                    document.getElementById("conjuntosexato").value = conjuntosexato;
+                    
+                    conjuntosseguranca = Math.ceil(Math.pow(Math.ceil(Math.sqrt(placas10)) + 1, 2));
+                    document.getElementById("conjuntosseguranca").value = conjuntosseguranca;
+                    
+                    tubo = alturaconjunto - pet1 - pet5;
+                    
+                    if (alturaconjunto < peminimo) {
+                        tubocorte = "Abaixo do tamanho minimo";
                     } else {
-                        tubocorte=Math.ceil(tubo - 1);
-                    }
-                }
-                document.getElementById("cortetubo").value = tubocorte;
-                
-                if (tubocorte <= tuboconcretominimo) {
-                    document.getElementById("obspet").innerHTML = "";
-                } else {
-                    if (tubocorte <= tuboconcretoacominimo) {
-                        document.getElementById("obspet").innerHTML = "Tubo com mais de " + tuboconcretominimo + " cm recomenda-se preencher com concreto";
-                    } else {
-                        if (tubocorte>tuboconcretoacominimo) {
-                            document.getElementById("obspet").innerHTML = "Tubo com mais de " + tuboconcretoacominimo + " cm recomenda-se preencher com concreto e estruturar com vergalhão de aço";
+                        if (tubo < tubominimo) {
+                            tubocorte = "Utilizar PE";
                         } else {
-                            document.getElementById("obspet").innerHTML = "";
+                            tubocorte=Math.ceil(tubo - 1);
                         }
                     }
-                }
-                
-                prolongadores = alturaconjunto-pe1-pe5;
-                
-                if (prolongadores < prolongadorminimo) {
-                    combinacaoprolongadores = "Abaixo do tamanho minimo";
-                } else {
-                    if (prolongadores < pe3) {
-                        combinacaoprolongadores = "Nenhum prolongador";
+                    document.getElementById("cortetubo").value = tubocorte;
+                    
+                    if (tubocorte <= tuboconcretominimo) {
+                        document.getElementById("obspet").innerHTML = "";
                     } else {
-                        if (prolongadores < pe2) {
-                            combinacaoprolongadores = "PE3";
+                        if (tubocorte <= tuboconcretoacominimo) {
+                            document.getElementById("obspet").innerHTML = "Tubo com mais de " + tuboconcretominimo + " cm recomenda-se preencher com concreto";
                         } else {
-                            if (prolongadores < pe3+pe3) {
-                                combinacaoprolongadores = "PE2";
+                            if (tubocorte>tuboconcretoacominimo) {
+                                document.getElementById("obspet").innerHTML = "Tubo com mais de " + tuboconcretoacominimo + " cm recomenda-se preencher com concreto e estruturar com vergalhão de aço";
                             } else {
-                                if (prolongadores < pe3+pe2) {
-                                    combinacaoprolongadores = "PE3+PE3";
+                                document.getElementById("obspet").innerHTML = "";
+                            }
+                        }
+                    }
+                    
+                    prolongadores = alturaconjunto-pe1-pe5;
+                    
+                    if (prolongadores < prolongadorminimo) {
+                        combinacaoprolongadores = "Abaixo do tamanho minimo";
+                    } else {
+                        if (prolongadores < pe3) {
+                            combinacaoprolongadores = "Nenhum prolongador";
+                        } else {
+                            if (prolongadores < pe2) {
+                                combinacaoprolongadores = "PE3";
+                            } else {
+                                if (prolongadores < pe3+pe3) {
+                                    combinacaoprolongadores = "PE2";
                                 } else {
-                                    if (prolongadores < pe2+pe2) {
-                                        combinacaoprolongadores = "PE3+PE2";
+                                    if (prolongadores < pe3+pe2) {
+                                        combinacaoprolongadores = "PE3+PE3";
                                     } else {
-                                        if (prolongadores <= prolongadormaximo) {
-                                            combinacaoprolongadores = "PE2+PE2";
+                                        if (prolongadores < pe2+pe2) {
+                                            combinacaoprolongadores = "PE3+PE2";
                                         } else {
-                                            if (prolongadores > prolongadormaximo) {
-                                                combinacaoprolongadores = "Utilizar PET";
+                                            if (prolongadores <= prolongadormaximo) {
+                                                combinacaoprolongadores = "PE2+PE2";
                                             } else {
-                                                combinacaoprolongadores = "";
+                                                if (prolongadores > prolongadormaximo) {
+                                                    combinacaoprolongadores = "Utilizar PET";
+                                                } else {
+                                                    combinacaoprolongadores = "";
+                                                }
                                             }
                                         }
                                     }
@@ -123,8 +124,7 @@
                             }
                         }
                     }
-                }
-                document.getElementById("prolongadores").value = combinacaoprolongadores;
+                    document.getElementById("prolongadores").value = combinacaoprolongadores;
                 
                 }
                 

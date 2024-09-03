@@ -30,3 +30,7 @@ class ConsultoriaVendasListView(ListView):
 
 def calculo_piso_elevado(request):
     return render(request, 'home/pages/calculo-piso-elevado.html')
+
+
+def calculo_quimicos(request):
+    return render(request, 'home/pages/calculo-quimicos.html')

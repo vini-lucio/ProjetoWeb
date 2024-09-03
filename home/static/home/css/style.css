@@ -45,14 +45,18 @@ p,
 label,
 input,
 textarea,
-button {
+button,
+.botao-div {
     font-size: var(--tamanho-fonte-p);
     line-height: 2.5rem;
+    padding: 0 0.5rem;
 }
 
 input,
 textarea {
     color: var(--azul-escuro);
+    outline: none;
+    border: none;
 }
 
 input:focus,
@@ -96,6 +100,11 @@ textarea:focus {
     min-height: 100vh;
     background-size: cover;
     background-position: center center;
+}
+
+.principal-escuro {
+    background-color: var(--azul-escuro);
+    color: var(--branco);
 }
 
 .logo-img {
@@ -218,6 +227,10 @@ textarea:focus {
     justify-content: center;
 }
 
+.link-conteudo-escuro {
+    color: var(--branco);
+}
+
 .moldura-verde {
     padding: 2rem;
     border: var(--tamanho-borda-icones) solid var(--verde-claro);
@@ -243,6 +256,8 @@ textarea:focus {
 .grid-simples {
     display: grid;
     gap: 0.5rem;
+    width: fit-content;
+    margin: 0 auto;
 }
 
 .grid-2col-numero2 {
@@ -266,7 +281,18 @@ textarea:focus {
     color: var(--azul-escuro);
 }
 
-.botao {
+.branco-negrito {
+    font-weight: bolder;
+    color: var(--branco);
+}
+
+.cinza-negrito {
+    font-weight: bolder;
+    color: var(--cinza-claro);
+}
+
+.botao,
+.botao-div {
     padding: 1rem;
     border: var(--tamanho-borda-icones) solid var(--verde-claro);
     background: var(--azul-escuro);
@@ -275,9 +301,20 @@ textarea:focus {
     transition: all 200ms ease-in-out;
 }
 
-.botao:hover {
+.botao-escuro {
     background: var(--verde-claro);
     color: var(--azul-escuro);
+}
+
+.botao:hover,
+.botao-div:hover {
+    background: var(--verde-claro);
+    color: var(--azul-escuro);
+}
+
+.botao-escuro:hover {
+    background: var(--azul-escuro);
+    color: var(--branco);
 }
 
 @media (max-width: 570px) {

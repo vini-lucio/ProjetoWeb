@@ -1,0 +1,138 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="titulo">
+            <h1>Calculo Consumo Quimicos</h1>
+        </div>
+
+        <div class="link-conteudo">
+
+            <div class="grid-simples">
+                <a href="#agfix"><div class="botao-div">AG.fix</div></a>
+                <div class="botao-div">AG.desmoldante</div>
+                <div class="botao-div">AG.desmoldante ECO</div>
+                <div class="botao-div">AG.desmoldante Mineral</div>
+                <div class="botao-div">AG.cura</div>
+                <div class="botao-div">AG.cura PREMIUM</div>
+                <div class="botao-div">AG.cura ACRILICO</div>
+            </div>
+
+        </div>
+
+    </section>
+
+    <section id="agfix" class="principal principal-escuro">
+
+        <div class="titulo">
+            <h2>Calculo Consumo AG.fix</h2>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+            
+            <script type = "text/javascript">
+
+                function calcular_agfix() {
+                    var m2_agfix = document.getElementById("m2_agfix").value;
+                    m2_agfix = Number(m2_agfix);
+
+                    agfix_chapisco_convencional = 0.3 * m2_agfix
+                    agfix_chapisco_rolado = 0.2 * m2_agfix
+                    agfix_pisos_revestimentos = 0.4 * m2_agfix
+
+                    document.getElementById("agfix_chapisco_convencional").value = agfix_chapisco_convencional;
+                    document.getElementById("agua_chapisco_convencional").value = agfix_chapisco_convencional * 2;
+
+                    document.getElementById("agfix_chapisco_rolado").value = agfix_chapisco_rolado;
+                    document.getElementById("agua_chapisco_rolado").value = agfix_chapisco_rolado * 2;
+
+                    document.getElementById("agfix_pisos_revestimentos").value = agfix_pisos_revestimentos;
+                    document.getElementById("agua_pisos_revestimentos").value = agfix_pisos_revestimentos * 2;
+                }
+                
+            </script>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="m2_agfix">Area de aplicação (m²):</label>
+                    <input type="number" id="m2_agfix" name="m2_agfix">
+
+                </div>
+
+            </fieldset>
+
+            <div>
+                <button class="botao botao-escuro" type="button" onclick="calcular_agfix()">Calcular</button>
+            </div>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="branco-negrito">Chapisco Convencional</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agfix_chapisco_convencional">Litros de AG.fix:</label>
+                        <input type="number" id="agfix_chapisco_convencional" name="agfix_chapisco_convencional">
+                    </div>
+
+                    <div>
+                        <p class="vermelho-negrito">e</p>
+                    </div>
+
+                    <div class="grid-2col-numero">
+                        <label class="branco-negrito" for ="agua_chapisco_convencional">Litros de agua:</label>
+                        <input type="number" id="agua_chapisco_convencional" name="agua_chapisco_convencional">
+                    </div>
+
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="branco-negrito">Chapisco Rolado</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agfix_chapisco_rolado">Litros de AG.fix:</label>
+                        <input type="number" id="agfix_chapisco_rolado" name="agfix_chapisco_rolado">
+                    </div>
+
+                    <div>
+                        <p class="vermelho-negrito">e</p>
+                    </div>
+
+                    <div class="grid-2col-numero">
+                        <label class="branco-negrito" for ="agua_chapisco_rolado">Litros de agua:</label>
+                        <input type="number" id="agua_chapisco_rolado" name="agua_chapisco_rolado">
+                    </div>
+
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="branco-negrito">Pisos e revestimentos</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agfix_pisos_revestimentos">Litros de AG.fix:</label>
+                        <input type="number" id="agfix_pisos_revestimentos" name="agfix_pisos_revestimentos">
+                    </div>
+
+                    <div>
+                        <p class="vermelho-negrito">e</p>
+                    </div>
+
+                    <div class="grid-2col-numero">
+                        <label class="branco-negrito" for ="agua_chapisco_rolado">Litros de agua:</label>
+                        <input type="number" id="agua_pisos_revestimentos" name="agua_pisos_revestimentos">
+                    </div>
+
+                </div>
+            </fieldset>
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}
