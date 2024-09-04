@@ -8,6 +8,7 @@
     --tamanho-fonte-h1: 5rem;
     --tamanho-fonte-h2: 4rem;
     --tamanho-fonte-p: 2rem;
+    --tamanho-fonte-p-grande: 3rem;
     --tamanho-fonte-p-pequeno: 1.5rem;
 }
 
@@ -315,6 +316,19 @@ textarea:focus {
 .botao-escuro:hover {
     background: var(--azul-escuro);
     color: var(--branco);
+}
+
+.topo {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 6rem;
+    height: 6rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    font-size: var(--tamanho-fonte-p-grande);
 }
 
 @media (max-width: 570px) {
