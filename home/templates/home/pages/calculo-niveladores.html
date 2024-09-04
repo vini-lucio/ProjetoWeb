@@ -1,0 +1,113 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <script type = "text/javascript">
+
+        function calcular1() {
+            var largurapiso = document.getElementById("largurapiso").value;
+            var comprimentopiso = document.getElementById("comprimentopiso").value;
+            var areaaplicacao = document.getElementById("areaaplicacao").value;
+            var areapiso = 0;
+            var pisos = 0;
+            var pisos10 = 0;
+            var niveladoresexato = 0;
+            var niveladoresseguranca = 0;
+            var niveladoreslargura = 0;
+            var niveladorescomprimento = 0;
+            
+            largurapiso = Number(largurapiso);
+            comprimentopiso = Number(comprimentopiso);
+            areaaplicacao = Number(areaaplicacao);
+            
+            areapiso = largurapiso * comprimentopiso / 10000;
+            
+            pisos = Math.ceil(areaaplicacao / areapiso);
+            pisos10 = Math.ceil(pisos * 1.1);
+            
+            if (largurapiso / 50 < 2) {
+                niveladoreslargura = 2;
+            } else {
+                niveladoreslargura = Math.ceil(largurapiso / 50);
+            }
+            document.getElementById("niveladoreslargura").value = niveladoreslargura;
+            
+            if (comprimentopiso / 50 < 2) {
+                niveladorescomprimento = 2;
+            } else {
+                niveladorescomprimento = Math.ceil(comprimentopiso / 50);
+            }
+            document.getElementById("niveladorescomprimento").value = niveladorescomprimento;
+            
+            niveladoresexato = Math.ceil(Math.sqrt(pisos10) * (Math.sqrt(pisos10) + 1) * niveladoreslargura + Math.sqrt(pisos10) * (Math.sqrt(pisos10) + 1) * niveladorescomprimento);
+            document.getElementById("niveladoresexato").value = niveladoresexato;
+            
+            niveladoresseguranca = Math.ceil(Math.ceil(Math.sqrt(pisos10)) * (Math.ceil(Math.sqrt(pisos10)) + 1) * niveladoreslargura + Math.ceil(Math.sqrt(pisos10)) * (Math.ceil(Math.sqrt(pisos10)) + 1) * niveladorescomprimento);
+            document.getElementById("niveladoresseguranca").value = niveladoresseguranca;
+        }
+        
+    </script>
+
+    <section class="principal">
+
+        <div class="titulo">
+            <h1>Calculo Niveladores de Piso</h1>
+        </div>
+
+        <div class="link-conteudo">
+            
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="largurapiso">Largura do piso (cm):</label>
+                    <input type="number" id="largurapiso" name="largurapiso">
+
+                    <label for ="comprimentopiso">Comprimento do piso (cm):</label>
+                    <input type="number" id="comprimentopiso" name="comprimentopiso">
+
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="areaaplicacao">Area de aplicação (m²):</label>
+                    <input type="number" id="areaaplicacao" name="areaaplicacao">
+
+                </div>
+                
+            </fieldset>
+
+            <div>
+                <button class="botao" type="button" onclick="calcular1()">Calcular</button>
+            </div>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label class="verde-negrito" for ="niveladoreslargura">Niveladores na largura:</label>
+                    <input type="number" id="niveladoreslargura" name="niveladoreslargura">
+
+                    <label class="verde-negrito" for ="niveladorescomprimento">Niveladores no comprimento:</label>
+                    <input type="number" id="niveladorescomprimento" name="niveladorescomprimento">
+
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label class="vermelho-negrito" for ="niveladoresexato">Quantidade de niveladores (aproximado):</label>
+                    <input type="number" id="niveladoresexato" name="niveladoresexato">
+
+                    <label class="vermelho-negrito" for ="niveladoresseguranca">Quantidade de niveladores + segurança:</label>
+                    <input type="number" id="niveladoresseguranca" name="niveladoresseguranca">
+
+                </div>
+            </fieldset>
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

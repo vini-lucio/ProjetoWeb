@@ -34,3 +34,7 @@ def calculo_piso_elevado(request):
 
 def calculo_quimicos(request):
     return render(request, 'home/pages/calculo-quimicos.html')
+
+
+def calculo_niveladores(request):
+    return render(request, 'home/pages/calculo-niveladores.html')
