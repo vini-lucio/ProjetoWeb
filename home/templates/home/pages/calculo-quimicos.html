@@ -54,6 +54,48 @@
             document.getElementById("agdesmoldante_eco_rendimento_0045").value = agdesmoldante_eco_rendimento_0045;
             document.getElementById("agdesmoldante_eco_rendimento_0065").value = agdesmoldante_eco_rendimento_0065;
         }
+
+        function calcular_agdesmoldante_mineral() {
+            var m2_agdesmoldante_mineral = document.getElementById("m2_agdesmoldante_mineral").value;
+            m2_agdesmoldante_mineral = Number(m2_agdesmoldante_mineral);
+
+            agdesmoldante_mineral_forma_resinada_12=0.083*m2_agdesmoldante_mineral
+            agdesmoldante_mineral_forma_resinada_10 = 0.1 * m2_agdesmoldante_mineral
+            agdesmoldante_mineral_forma_plastificada_35 = 0.028 * m2_agdesmoldante_mineral
+            agdesmoldante_mineral_forma_plastificada_30 = 0.033 * m2_agdesmoldante_mineral
+
+            document.getElementById("agdesmoldante_mineral_forma_resinada_12").value = agdesmoldante_mineral_forma_resinada_12;
+            document.getElementById("agdesmoldante_mineral_forma_resinada_10").value = agdesmoldante_mineral_forma_resinada_10;
+            document.getElementById("agdesmoldante_mineral_forma_plastificada_35").value = agdesmoldante_mineral_forma_plastificada_35;
+            document.getElementById("agdesmoldante_mineral_forma_plastificada_30").value = agdesmoldante_mineral_forma_plastificada_30;
+        }
+
+        function calcular_agcura() {
+            var m2_agcura = document.getElementById("m2_agcura").value;
+            m2_agcura = Number(m2_agcura);
+
+            agcura_litros = 0.05 * m2_agcura
+
+            document.getElementById("agcura_litros").value = agcura_litros;
+        }
+
+        function calcular_agcura_premium() {
+            var m2_agcura_premium = document.getElementById("m2_agcura_premium").value;
+            m2_agcura_premium = Number(m2_agcura_premium);
+
+            agcura_premium_litros = 0.05 * m2_agcura_premium
+
+            document.getElementById("agcura_premium_litros").value = agcura_premium_litros;
+        }
+
+        function calcular_agcura_acrilico() {
+            var m2_agcura_acrilico = document.getElementById("m2_agcura_acrilico").value;
+            m2_agcura_acrilico = Number(m2_agcura_acrilico);
+
+            agcura_acrilico_litros = 0.05 * m2_agcura_acrilico
+
+            document.getElementById("agcura_acrilico_litros").value = agcura_acrilico_litros;
+        }
         
     </script>
 
@@ -69,10 +111,10 @@
                 <a href="#agfix"><div class="botao-div">AG.fix</div></a>
                 <a href="#agdesmoldante"><div class="botao-div">AG.desmoldante</div></a>
                 <a href="#agdesmoldante-eco"><div class="botao-div">AG.desmoldante ECO</div></a>
-                <div class="botao-div">AG.desmoldante Mineral</div>
-                <div class="botao-div">AG.cura</div>
-                <div class="botao-div">AG.cura PREMIUM</div>
-                <div class="botao-div">AG.cura ACRILICO</div>
+                <a href="#agdesmoldante-mineral"><div class="botao-div">AG.desmoldante Mineral</div></a>
+                <a href="#agcura"><div class="botao-div">AG.cura</div></a>
+                <a href="#agcura-premium"><div class="botao-div">AG.cura PREMIUM</div></a>
+                <a href="#agcura-acrilico"><div class="botao-div">AG.cura ACRILICO</div></a>
             </div>
 
         </div>
@@ -322,6 +364,185 @@
                     <div class="grid-2col-numero">
                         <label class="verde-negrito" for ="agdesmoldante_eco_rendimento_0065">Litros de AG.desmoldante ECO:</label>
                         <input type="number" id="agdesmoldante_eco_rendimento_0065" name="agdesmoldante_eco_rendimento_0065">
+                    </div>
+                </div>
+            </fieldset>
+
+        </div>
+
+    </section>
+
+    <section id="agdesmoldante-mineral" class="principal">
+
+        <div class="titulo">
+            <h2>Calculo Consumo AG.desmoldante Mineral</h2>
+        </div>
+
+        <div class="link-conteudo">
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="m2_agdesmoldante_mineral">Area de aplicação (m²):</label>
+                    <input type="number" id="m2_agdesmoldante_mineral" name="m2_agdesmoldante_mineral">
+
+                </div>
+
+            </fieldset>
+
+            <div>
+                <button class="botao" type="button" onclick="calcular_agdesmoldante_mineral()">Calcular</button>
+            </div>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="azul-negrito">Forma Plastificada</p>
+                    <p class="azul-negrito">Rendimento 35 m²/L</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agdesmoldante_mineral_forma_plastificada_35">Litros de AG.desmoldante Mineral:</label>
+                        <input type="number" id="agdesmoldante_mineral_forma_plastificada_35" name="agdesmoldante_mineral_forma_plastificada_35">
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="azul-negrito">Forma Plastificada</p>
+                    <p class="azul-negrito">Rendimento 30 m²/L</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agdesmoldante_mineral_forma_plastificada_30">Litros de AG.desmoldante Mineral:</label>
+                        <input type="number" id="agdesmoldante_mineral_forma_plastificada_30" name="agdesmoldante_mineral_forma_plastificada_30">
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="azul-negrito">Forma Resinada</p>
+                    <p class="azul-negrito">Rendimento 12 m²/L</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agdesmoldante_mineral_forma_resinada_12">Litros de AG.desmoldante Mineral:</label>
+                        <input type="number" id="agdesmoldante_mineral_forma_resinada_12" name="agdesmoldante_mineral_forma_resinada_12">
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="azul-negrito">Forma Resinada</p>
+                    <p class="azul-negrito">Rendimento 10 m²/L</p>
+
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agdesmoldante_mineral_forma_resinada_10">Litros de AG.desmoldante Mineral:</label>
+                        <input type="number" id="agdesmoldante_mineral_forma_resinada_10" name="agdesmoldante_mineral_forma_resinada_10">
+                    </div>
+                </div>
+            </fieldset>
+
+        </div>
+
+    </section>
+
+    <section id="agcura" class="principal principal-escuro">
+
+        <div class="titulo">
+            <h2>Calculo Consumo AG.cura</h2>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="m2_agcura">Area de aplicação (m²):</label>
+                    <input type="number" id="m2_agcura" name="m2_agcura">
+
+                </div>
+
+            </fieldset>
+
+            <div>
+                <button class="botao botao-escuro" type="button" onclick="calcular_agcura()">Calcular</button>
+            </div>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agcura_litros">Litros de AG.cura:</label>
+                        <input type="number" id="agcura_litros" name="agcura">
+                    </div>
+                </div>
+            </fieldset>
+
+        </div>
+
+    </section>
+
+    <section id="agcura-premium" class="principal">
+
+        <div class="titulo">
+            <h2>Calculo Consumo AG.cura PREMIUM</h2>
+        </div>
+
+        <div class="link-conteudo">
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="m2_agcura_premium">Area de aplicação (m²):</label>
+                    <input type="number" id="m2_agcura_premium" name="m2_agcura_premium">
+
+                </div>
+
+            </fieldset>
+
+            <div>
+                <button class="botao" type="button" onclick="calcular_agcura_premium()">Calcular</button>
+            </div>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agcura_premium_litros">Litros de AG.cura PREMIUM:</label>
+                        <input type="number" id="agcura_premium_litros" name="agcura_premium">
+                    </div>
+                </div>
+            </fieldset>
+
+        </div>
+
+    </section>
+
+    <section id="agcura-acrilico" class="principal principal-escuro">
+
+        <div class="titulo">
+            <h2>Calculo Consumo AG.cura ACRILICO</h2>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="m2_agcura_acrilico">Area de aplicação (m²):</label>
+                    <input type="number" id="m2_agcura_acrilico" name="m2_agcura_acrilico">
+
+                </div>
+
+            </fieldset>
+
+            <div>
+                <button class="botao botao-escuro" type="button" onclick="calcular_agcura_acrilico()">Calcular</button>
+            </div>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="agcura_acrilico_litros">Litros de AG.cura ACRILICO:</label>
+                        <input type="number" id="agcura_acrilico_litros" name="agcura_acrilico">
                     </div>
                 </div>
             </fieldset>
