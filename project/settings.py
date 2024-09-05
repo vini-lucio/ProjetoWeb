@@ -91,7 +91,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    },
+    'oracle': {
+        'ENGINE': os.getenv('ORACLE_ENGINE'),
+        'NAME': os.getenv('ORACLE_NAME'),
+        'USER': os.getenv('ORACLE_USER'),
+        'PASSWORD': os.getenv('ORACLE_PASSWORD'),
+    },
 }
 # else:
 #     DATABASES = {
