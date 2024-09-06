@@ -88,11 +88,11 @@ WSGI_APPLICATION = 'project.wsgi.application'
 
 # if DEBUG:
 DATABASES = {
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    # },
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    },
-    'postgres': {
         'ENGINE': os.getenv('POSTGRES_ENGINE'),
         'NAME': os.getenv('POSTGRES_NAME'),
         'USER': os.getenv('POSTGRES_USER'),
