@@ -19,6 +19,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / 'dotenv_files' / '.env', override=True)
 
+ORACLE_USER = os.getenv('ORACLE_USER')
+ORACLE_PASSWORD = os.getenv('ORACLE_PASSWORD')
+ORACLE_DSN = os.getenv('ORACLE_DSN')
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -101,12 +105,15 @@ DATABASES = {
         'HOST': os.getenv('POSTGRES_HOST'),
         'PORT': os.getenv('POSTGRES_PORT'),
     },
-    'oracle': {
-        'ENGINE': os.getenv('ORACLE_ENGINE'),
-        'NAME': os.getenv('ORACLE_NAME'),
-        'USER': os.getenv('ORACLE_USER'),
-        'PASSWORD': os.getenv('ORACLE_PASSWORD'),
-    },
+    # 'oracle': {
+    #     'ENGINE': os.getenv('ORACLE_ENGINE'),
+    #     'NAME': os.getenv('ORACLE_NAME'),
+    #     'USER': os.getenv('ORACLE_USER'),
+    #     'PASSWORD': os.getenv('ORACLE_PASSWORD'),
+
+    #     'HOST': os.getenv('ORACLE_HOST'),
+    #     'PORT': os.getenv('ORACLE_PORT'),
+    # },
 }
 
 
