@@ -10,6 +10,11 @@ class IndexListView(ListView):
     ordering = 'tamanho_botao', 'ordem', 'id',
     queryset = HomeLinks.objects.filter(visivel=True)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({'titulo_pagina': 'Home'})
+        return context
+
 
 class HomeLinkDetailView(DetailView):
     model = HomeLinks
@@ -19,6 +24,12 @@ class HomeLinkDetailView(DetailView):
     def get_queryset(self):
         return super().get_queryset().filter(visivel=True)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        titulo_pagina = f'{self.get_object().titulo}'  # type: ignore
+        context.update({'titulo_pagina': titulo_pagina})
+        return context
+
 
 class ConsultoriaVendasListView(ListView):
     model = HomeLinks
@@ -27,14 +38,22 @@ class ConsultoriaVendasListView(ListView):
     ordering = 'ordem', 'id',
     queryset = HomeLinks.objects.filter(visivel=True, tamanho_botao='consultoria')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({'titulo_pagina': 'Consultoria de Vendas'})
+        return context
+
 
 def calculo_piso_elevado(request):
-    return render(request, 'home/pages/calculo-piso-elevado.html')
+    titulo_pagina = 'Calculo Piso Elevado'
+    return render(request, 'home/pages/calculo-piso-elevado.html', {'titulo_pagina': titulo_pagina})
 
 
 def calculo_quimicos(request):
-    return render(request, 'home/pages/calculo-quimicos.html')
+    titulo_pagina = 'Calculo Quimicos'
+    return render(request, 'home/pages/calculo-quimicos.html', {'titulo_pagina': titulo_pagina})
 
 
 def calculo_niveladores(request):
-    return render(request, 'home/pages/calculo-niveladores.html')
+    titulo_pagina = 'Calculo Niveladores de Piso'
+    return render(request, 'home/pages/calculo-niveladores.html', {'titulo_pagina': titulo_pagina})
