@@ -1,9 +1,6 @@
 from django.shortcuts import render
 from django.views.generic import ListView, DetailView
 from home.models import HomeLinks
-# TODO: remover teste
-from utils.teste import teste
-from django.conf import settings
 
 
 class IndexListView(ListView):
@@ -43,8 +40,6 @@ class ConsultoriaVendasListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # TODO: remover teste
-        teste(settings.ORACLE_USER, settings.ORACLE_PASSWORD, settings.ORACLE_DSN)
         context.update({'titulo_pagina': 'Consultoria de Vendas'})
         return context
 
