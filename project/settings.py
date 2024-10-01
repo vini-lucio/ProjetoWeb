@@ -22,6 +22,7 @@ load_dotenv(BASE_DIR / 'dotenv_files' / '.env', override=True)
 ORACLE_USER = os.getenv('ORACLE_USER')
 ORACLE_PASSWORD = os.getenv('ORACLE_PASSWORD')
 ORACLE_DSN = os.getenv('ORACLE_DSN')
+LD_LIBRARY_PATH = os.getenv('LD_LIBRARY_PATH')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
