@@ -75,7 +75,7 @@ class HomeLinks(models.Model):
         if not self.link_externo:
             self.url_externo = ''
         if not self.url_externo and self.link_externo:
-            raise ValidationError({"url_externo": "Informar URL do Link Externo"})
+            raise ValidationError({"url_externo": ["Informar URL do Link Externo"]})
         return super().clean()
 
     def save(self, *args, **kwargs) -> None:
@@ -106,3 +106,38 @@ class HomeLinks(models.Model):
 
     def __str__(self) -> str:
         return self.titulo
+
+
+class SiteSetup(models.Model):
+    class Meta:
+        verbose_name = "Site Setup"
+        verbose_name_plural = "Site Setup"
+
+    help_text_favicon = "A imagem será redimensionada para 32x32 px"
+    help_text_logo = "A imagem será redimensionada proporcionalmente para 100 px de altura"
+
+    favicon = models.ImageField("Favicon", upload_to='home/favicon/', blank=True,
+                                null=True, help_text=help_text_favicon)
+    logo_cabecalho = models.ImageField("Logo", upload_to='home/logo/', blank=True, null=True, help_text=help_text_logo)
+    texto_rodape = models.TextField("Texto do Rodapé", blank=True, null=True)
+
+    def save(self, *args, **kwargs) -> None:
+        favicon_anterior = self.favicon.name
+        logo_cabecalho_anterior = self.logo_cabecalho.name
+
+        super_save = super().save(*args, **kwargs)
+
+        if self.favicon and self.favicon.name != favicon_anterior:
+            largura = 32
+            altura = 32
+            redimensionar_imagem(self.favicon, largura, altura)
+
+        if self.logo_cabecalho and self.logo_cabecalho.name != logo_cabecalho_anterior:
+            largura = None
+            altura = 100
+            redimensionar_imagem(self.logo_cabecalho, largura, altura)
+
+        return super_save
+
+    def __str__(self) -> str:
+        return "Site Setup"

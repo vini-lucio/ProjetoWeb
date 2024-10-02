@@ -1,5 +1,6 @@
 from django.contrib import admin
-from home.models import HomeLinks
+from django.http import HttpRequest
+from home.models import HomeLinks, SiteSetup
 from django_summernote.admin import SummernoteModelAdmin
 
 
@@ -13,3 +14,9 @@ class HomeLinksAdmin(SummernoteModelAdmin):
     readonly_fields = 'slug',
     ordering = 'tamanho_botao', 'ordem', 'id',
     search_fields = 'tamanho_botao',
+
+
+@admin.register(SiteSetup)
+class SiteSetupAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return not SiteSetup.objects.exists()
