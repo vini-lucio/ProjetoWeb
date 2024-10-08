@@ -228,6 +228,10 @@ textarea:focus {
     justify-content: center;
 }
 
+.link-conteudo table {
+    margin: 0 auto;
+}
+
 .link-conteudo-escuro {
     color: var(--branco);
 }
