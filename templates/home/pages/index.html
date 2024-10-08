@@ -8,7 +8,9 @@
             {% if home_link.tamanho_botao == 'comunicado' %}
                 <div class="grid grid-icones-comunicados">
                     <div class="icones icones-comunicados">
-                        <img loading="lazy" src="{{ home_link.imagem_capa.url }}">
+                        <div class="link-conteudo">
+                            {{ home_link.conteudo | safe }}
+                        </div>
                     </div>
                 </div>
             {% endif %}

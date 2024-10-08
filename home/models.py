@@ -47,7 +47,7 @@ class HomeLinks(models.Model):
     help_text_tamanho_botao = "Se alterar esse campo, inclua a imagem novamente para redimensionar"
 
     help_text_imagem_capa = (
-        "Tamanho 'Consultoria de Vendas' não exibe imagem de capa, deixar em branco. "
+        "Tamanho 'Consultoria de Vendas' e 'Comunicado' não exibe imagem de capa, deixar em branco. "
         "A imagem será redimensionada automaticamente ao incluir nova imagem "
         "de acordo com o tamanho do botão selecionado: "
         f"Pequeno {LARGURA_IMAGEM_PADRAO_PEQUENO}x{ALTURA_IMAGEM_PADRAO_PEQUENO} px, "
