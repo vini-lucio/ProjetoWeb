@@ -205,7 +205,6 @@ textarea:focus {
     text-align: center;
     align-content: center;
     justify-content: center;
-    font-weight: bold;
 }
 
 .icones-fundo-azul {
@@ -236,6 +235,7 @@ textarea:focus {
 
 .link-conteudo img {
     max-width: 100%;
+    border: var(--tamanho-borda-icones) solid var(--verde-claro);
 }
 
 .link-conteudo-escuro {
