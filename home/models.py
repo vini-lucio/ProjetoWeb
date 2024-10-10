@@ -108,6 +108,19 @@ class HomeLinks(models.Model):
         return self.titulo
 
 
+class HomeLinksDocumentos(models.Model):
+    class Meta:
+        verbose_name = 'Documento Home Link'
+        verbose_name_plural = 'Documentos Home Link'
+
+    home_link = models.ForeignKey(HomeLinks, verbose_name="Home Link", on_delete=models.CASCADE)
+    nome = models.CharField("Nome Documento", max_length=50)
+    documento = models.FileField("Documento", upload_to='home/link_documento/')
+
+    def __str__(self) -> str:
+        return self.nome
+
+
 class SiteSetup(models.Model):
     class Meta:
         verbose_name = "Site Setup"
