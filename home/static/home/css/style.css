@@ -226,10 +226,16 @@ textarea:focus {
     text-align: center;
     align-content: center;
     justify-content: center;
+    max-width: 120rem;
+    margin: 0 auto;
 }
 
 .link-conteudo table {
     margin: 0 auto;
+}
+
+.link-conteudo img {
+    max-width: 100%;
 }
 
 .link-conteudo-escuro {
