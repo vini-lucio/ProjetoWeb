@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.views.generic import ListView, DetailView
 from home.models import HomeLinks
+from django.db.models import Q
 
 
 class IndexListView(ListView):
@@ -36,7 +37,8 @@ class ConsultoriaVendasListView(ListView):
     template_name = 'home/pages/consultoria-vendas.html'
     context_object_name = 'home_links'
     ordering = 'ordem', 'id',
-    queryset = HomeLinks.objects.filter(visivel=True, tamanho_botao='consultoria')
+    queryset = HomeLinks.objects.filter(visivel=True).filter(
+        Q(tamanho_botao='consultoria') | Q(url_externo='consultoria-vendas/'))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
