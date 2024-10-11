@@ -39,13 +39,121 @@
                     </div>
 
                     {% if home_link.homelinksdocumentos_set.all %}
+
                         <div class="link-conteudo">
                             <div class="grid-simples">
                                 {% for documento in home_link.homelinksdocumentos_set.all %}
-                                    <a target="_blanck" href="{{ documento.documento.url }}"><div class="botao-div">{{ documento.nome }}</div></a>
+                                    {% if documento.nome|slice:":2" != 'M.' %}
+                                        <a target="_blanck" href="{{ documento.documento.url }}"><div class="botao-div">{{ documento.nome }}</div></a>
+                                    {% endif %}
                                 {% endfor %}
                             </div>
                         </div>
+
+                        <div class="link-conteudo">
+                            <div class="titulo">
+                                <h2>Modulo 0 - Introdução</h2>
+                            </div>
+                            <div class="grid-simples">
+                                {% for documento in home_link.homelinksdocumentos_set.all %}
+                                    {% if documento.nome|slice:":3" == 'M.0' %}
+                                        <a target="_blanck" href="{{ documento.documento.url }}"><div class="botao-div">{{ documento.nome }}</div></a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="link-conteudo">
+                            <div class="titulo">
+                                <h2>Modulo 1 - Fundação</h2>
+                            </div>
+                            <div class="grid-simples">
+                                {% for documento in home_link.homelinksdocumentos_set.all %}
+                                    {% if documento.nome|slice:":3" == 'M.1' %}
+                                        <a target="_blanck" href="{{ documento.documento.url }}"><div class="botao-div">{{ documento.nome }}</div></a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="link-conteudo">
+                            <div class="titulo">
+                                <h2>Modulo 2 - Armadura Horizontal e Vertical</h2>
+                            </div>
+                            <div class="grid-simples">
+                                {% for documento in home_link.homelinksdocumentos_set.all %}
+                                    {% if documento.nome|slice:":3" == 'M.2' %}
+                                        <a target="_blanck" href="{{ documento.documento.url }}"><div class="botao-div">{{ documento.nome }}</div></a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="link-conteudo">
+                            <div class="titulo">
+                                <h2>Modulo 3 - Parede de Concreto</h2>
+                            </div>
+                            <div class="grid-simples">
+                                {% for documento in home_link.homelinksdocumentos_set.all %}
+                                    {% if documento.nome|slice:":3" == 'M.3' %}
+                                        <a target="_blanck" href="{{ documento.documento.url }}"><div class="botao-div">{{ documento.nome }}</div></a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="link-conteudo">
+                            <div class="titulo">
+                                <h2>Modulo 4 - Piso e Protenção</h2>
+                            </div>
+                            <div class="grid-simples">
+                                {% for documento in home_link.homelinksdocumentos_set.all %}
+                                    {% if documento.nome|slice:":3" == 'M.4' %}
+                                        <a target="_blanck" href="{{ documento.documento.url }}"><div class="botao-div">{{ documento.nome }}</div></a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="link-conteudo">
+                            <div class="titulo">
+                                <h2>Modulo 5 - Industrias</h2>
+                            </div>
+                            <div class="grid-simples">
+                                {% for documento in home_link.homelinksdocumentos_set.all %}
+                                    {% if documento.nome|slice:":3" == 'M.5' %}
+                                        <a target="_blanck" href="{{ documento.documento.url }}"><div class="botao-div">{{ documento.nome }}</div></a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="link-conteudo">
+                            <div class="titulo">
+                                <h2>Modulo 6 - Quimicos</h2>
+                            </div>
+                            <div class="grid-simples">
+                                {% for documento in home_link.homelinksdocumentos_set.all %}
+                                    {% if documento.nome|slice:":3" == 'M.6' %}
+                                        <a target="_blanck" href="{{ documento.documento.url }}"><div class="botao-div">{{ documento.nome }}</div></a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="link-conteudo">
+                            <div class="titulo">
+                                <h2>Modulo 7 - Piso Elevado</h2>
+                            </div>
+                            <div class="grid-simples">
+                                {% for documento in home_link.homelinksdocumentos_set.all %}
+                                    {% if documento.nome|slice:":3" == 'M.7' %}
+                                        <a target="_blanck" href="{{ documento.documento.url }}"><div class="botao-div">{{ documento.nome }}</div></a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
                     {% endif %}
 
                 {% endif %}
