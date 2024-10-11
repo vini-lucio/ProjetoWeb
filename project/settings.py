@@ -190,7 +190,7 @@ SUMMERNOTE_CONFIG = {
     'css': (
         '//cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/dracula.min.css',
     ),
-    'attachment_upload_to': 'home/link_conteudo/',
+    'attachment_upload_to': 'home/link_conteudo/%Y/%m/',
     'attachment_filesize_limit': 30 * 1024 * 1024,
     'attachment_model': 'home.PostAttachment',
 }

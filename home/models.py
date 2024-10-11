@@ -62,7 +62,7 @@ class HomeLinks(models.Model):
     tamanho_botao = models.CharField("Tamanho do Botão", max_length=30, choices=tamanhos_botoes,  # type:ignore
                                      default='grande', blank=False, null=False,
                                      help_text=help_text_tamanho_botao)  # type:ignore
-    imagem_capa = models.ImageField("Imagem de Capa", upload_to='home/link_capa/',
+    imagem_capa = models.ImageField("Imagem de Capa", upload_to='home/link_capa/%Y/%m/',
                                     blank=True, default='', help_text=help_text_imagem_capa)
     link_externo = models.BooleanField("Link Externo", blank=False, null=False, default=False)
     url_externo = models.CharField("URL do Link Externo", max_length=2048, blank=True, null=True)
@@ -112,10 +112,11 @@ class HomeLinksDocumentos(models.Model):
     class Meta:
         verbose_name = 'Documento Home Link'
         verbose_name_plural = 'Documentos Home Link'
+        ordering = 'nome',
 
     home_link = models.ForeignKey(HomeLinks, verbose_name="Home Link", on_delete=models.CASCADE)
     nome = models.CharField("Nome Documento", max_length=50)
-    documento = models.FileField("Documento", upload_to='home/link_documento/')
+    documento = models.FileField("Documento", upload_to='home/link_documento/%Y/%m/')
 
     def __str__(self) -> str:
         return self.nome
@@ -129,9 +130,10 @@ class SiteSetup(models.Model):
     help_text_favicon = "A imagem será redimensionada para 32x32 px"
     help_text_logo = "A imagem será redimensionada proporcionalmente para 100 px de altura"
 
-    favicon = models.ImageField("Favicon", upload_to='home/favicon/', blank=True,
+    favicon = models.ImageField("Favicon", upload_to='home/favicon/%Y/%m/', blank=True,
                                 null=True, help_text=help_text_favicon)
-    logo_cabecalho = models.ImageField("Logo", upload_to='home/logo/', blank=True, null=True, help_text=help_text_logo)
+    logo_cabecalho = models.ImageField("Logo", upload_to='home/logo/%Y/%m/',
+                                       blank=True, null=True, help_text=help_text_logo)
     texto_rodape = models.TextField("Texto do Rodapé", blank=True, null=True)
 
     def save(self, *args, **kwargs) -> None:
