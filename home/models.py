@@ -1,8 +1,9 @@
 from django.db import models
-from django.core.exceptions import ValidationError
+# from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from utils.imagens import redimensionar_imagem
 from django_summernote.models import AbstractAttachment
+from django.db.models import Q
 
 
 class PostAttachment(AbstractAttachment):
@@ -35,6 +36,23 @@ class HomeLinks(models.Model):
     class Meta:
         verbose_name = 'Home Link'
         verbose_name_plural = 'Home Links'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['titulo',],
+                name='homelinks_unique_titulo',
+                violation_error_message="Titulo é campo unico"
+            ),
+            models.UniqueConstraint(
+                fields=['slug',],
+                name='homelinks_unique_slug',
+                violation_error_message="Slug é campo unico"
+            ),
+            models.CheckConstraint(
+                check=(Q(link_externo=True) & Q(url_externo__isnull=False)) | Q(link_externo=False),
+                name='homelinks_check_url_externo',
+                violation_error_message="Informar URL do Link Externo"
+            ),
+        ]
 
     tamanhos_botoes = {
         'pequeno': 'Pequeno',
@@ -57,8 +75,8 @@ class HomeLinks(models.Model):
 
     help_text_ordem = "Mudar numero para forçar outra ordenação"
 
-    titulo = models.CharField("Título", max_length=30, unique=True, blank=False, null=False)
-    slug = models.SlugField("Slug", unique=True, default='', null=False, blank=True, max_length=255)
+    titulo = models.CharField("Título", max_length=30, blank=False, null=False)
+    slug = models.SlugField("Slug", default='', null=False, blank=True, max_length=255)
     tamanho_botao = models.CharField("Tamanho do Botão", max_length=30, choices=tamanhos_botoes,  # type:ignore
                                      default='grande', blank=False, null=False,
                                      help_text=help_text_tamanho_botao)  # type:ignore
@@ -74,8 +92,6 @@ class HomeLinks(models.Model):
     def clean(self):
         if not self.link_externo:
             self.url_externo = ''
-        if not self.url_externo and self.link_externo:
-            raise ValidationError({"url_externo": ["Informar URL do Link Externo"]})
         return super().clean()
 
     def save(self, *args, **kwargs) -> None:
@@ -113,6 +129,13 @@ class HomeLinksDocumentos(models.Model):
         verbose_name = 'Documento Home Link'
         verbose_name_plural = 'Documentos Home Link'
         ordering = 'nome',
+        constraints = [
+            models.UniqueConstraint(
+                fields=['nome', 'home_link',],
+                name='homelinksdocumentos_unique_nome',
+                violation_error_message="Nome é campo unico dentro de um Home Link"
+            ),
+        ]
 
     home_link = models.ForeignKey(HomeLinks, verbose_name="Home Link", on_delete=models.CASCADE)
     nome = models.CharField("Nome Documento", max_length=50)
