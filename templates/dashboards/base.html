@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        {% include "dashboards/partials/_head.html" %}
+    </head>
+    <body>
+
+        {% include "dashboards/partials/_cabecalho.html" %}
+
+        {% block conteudo %}{% endblock conteudo %}
+        
+        {% include "dashboards/partials/_paginacao.html" %}
+
+        {% include "dashboards/partials/_rodape.html" %}
+
+        <a href="#"><div class="botao-div topo">⇧</div></a>
+        
+    </body>
+</html>
