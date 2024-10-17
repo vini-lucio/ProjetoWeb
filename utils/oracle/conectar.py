@@ -4,7 +4,7 @@ from django.conf import settings
 
 
 def conectar() -> oracledb.Connection:
-    """Conectar ao banco de dados oracle com as configurações do settings do django"""
+    """Conectar ao banco de dados Oracle com as configurações do settings do Django"""
     oracle_user = settings.ORACLE_USER
     oracle_password = settings.ORACLE_PASSWORD
     oracle_dsn = settings.ORACLE_DSN
@@ -24,3 +24,12 @@ def conectar() -> oracledb.Connection:
     )
 
     return connection
+
+
+def executar(sql: str) -> list:
+    """Conecta e executa um SQL no banco de dados Oracle"""
+    connection = conectar()
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+        resultado = cursor.fetchall()
+    return resultado
