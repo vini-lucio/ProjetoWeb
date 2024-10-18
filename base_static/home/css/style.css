@@ -4,12 +4,26 @@
     --cinza-claro: rgb(238, 238, 238);
     --branco: rgb(255, 255, 255);
     --vemelho: rgb(205, 33, 41);
+
     --tamanho-borda-icones: 0.2rem;
+
     --tamanho-fonte-h1: 5rem;
     --tamanho-fonte-h2: 4rem;
+
     --tamanho-fonte-p: 2rem;
+    --tamanho-linha-p: 2.5rem;
+
     --tamanho-fonte-p-grande: 3rem;
+
     --tamanho-fonte-p-pequeno: 1.5rem;
+
+    --tamanho-fonte-p-dashboard: 3.5rem;
+    --tamanho-linha-p-dashboard: 4rem;
+
+    --tamanho-fonte-p-dashboard-muito-pequeno: 1.5rem;
+
+    --tamanho-fonte-p-dashboard-pequeno: 3rem;
+    --tamanho-linha-p-dashboard-pequeno: 3.5rem;
 }
 
 * {
@@ -49,7 +63,7 @@ textarea,
 button,
 .botao-div {
     font-size: var(--tamanho-fonte-p);
-    line-height: 2.5rem;
+    line-height: var(--tamanho-linha-p);
     padding: 0 0.5rem;
 }
 
@@ -282,8 +296,16 @@ textarea:focus {
     color: var(--verde-claro);
 }
 
+.fonte-verde {
+    color: var(--verde-claro);
+}
+
 .vermelho-negrito {
     font-weight: bolder;
+    color: var(--vemelho);
+}
+
+.fonte-vermelho {
     color: var(--vemelho);
 }
 
@@ -292,13 +314,25 @@ textarea:focus {
     color: var(--azul-escuro);
 }
 
+.fonte-azul {
+    color: var(--azul-escuro);
+}
+
 .branco-negrito {
     font-weight: bolder;
     color: var(--branco);
 }
 
+.fonte-branco {
+    color: var(--branco);
+}
+
 .cinza-negrito {
     font-weight: bolder;
+    color: var(--cinza-claro);
+}
+
+.fonte-cinza {
     color: var(--cinza-claro);
 }
 
@@ -339,6 +373,137 @@ textarea:focus {
     align-items: center;
     border-radius: 50%;
     font-size: var(--tamanho-fonte-p-grande);
+}
+
+@property --valor-pizza {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
+}
+
+.pie {
+    --valor-pizza: 20;
+    --largura-barra: 3rem;
+    --cor-barra: var(--azul-escuro);
+    --largura-grafico: 30rem;
+    --tamanho-fonte: 5.5rem;
+
+    width: var(--largura-grafico);
+    aspect-ratio: 1;
+    position: relative;
+    display: inline-grid;
+    /* margin: 5px; */
+    margin: 0;
+    place-content: center;
+    /* font-size: 5.5rem; */
+    font-size: var(--tamanho-fonte);
+    /* font-weight: bold; */
+    /* font-family: sans-serif; */
+}
+
+.pie:before,
+.pie:after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+}
+
+.pie:before {
+    inset: 0;
+    background:
+        radial-gradient(farthest-side, var(--cor-barra) 98%, #0000) top/var(--largura-barra) var(--largura-barra) no-repeat,
+        conic-gradient(var(--cor-barra) calc(var(--valor-pizza)*1%), #0000 0);
+    -webkit-mask: radial-gradient(farthest-side, #0000 calc(99% - var(--largura-barra)), #000 calc(100% - var(--largura-barra)));
+    mask: radial-gradient(farthest-side, #0000 calc(99% - var(--largura-barra)), #000 calc(100% - var(--largura-barra)));
+}
+
+.pie:after {
+    inset: calc(50% - var(--largura-barra)/2);
+    background: var(--cor-barra);
+    transform: rotate(calc(var(--valor-pizza)*3.6deg)) translateY(calc(50% - var(--largura-grafico)/2));
+}
+
+.animate {
+    animation: valor-pizza 1s .5s both;
+}
+
+.no-round:before {
+    background-size: 0 0, auto;
+}
+
+.no-round:after {
+    content: none;
+}
+
+@keyframes valor-pizza {
+    from {
+        --valor-pizza: 0
+    }
+}
+
+.dashboard-vendas-conteudo {
+    padding: 2rem;
+    color: var(--azul-escuro);
+    text-align: center;
+    align-content: center;
+    justify-content: center;
+    min-width: 36rem;
+    margin: 0 auto;
+}
+
+.div-dashboard {
+    width: fit-content;
+    text-align: center;
+    align-content: center;
+    justify-content: center;
+    margin: 2rem auto;
+}
+
+.div-dashboard p {
+    font-size: var(--tamanho-fonte-p-dashboard);
+    line-height: var(--tamanho-linha-p-dashboard);
+    padding: 0 0.5rem;
+}
+
+.div-dashboard .fonte-muito-pequena-dashboard {
+    font-size: var(--tamanho-fonte-p-dashboard-muito-pequeno);
+}
+
+.pie p {
+    font-size: var(--tamanho-fonte-p-dashboard-pequeno);
+    line-height: var(--tamanho-linha-p-dashboard-pequeno);
+}
+
+.moldura-verde-dashboard {
+    padding: 2rem;
+    border: var(--tamanho-borda-icones) solid var(--verde-claro);
+    border-radius: 1.5rem;
+    width: fit-content;
+    text-align: center;
+    align-content: center;
+    justify-content: center;
+}
+
+.grid-dashboard {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.grid-dashboard-2 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin: 0 auto;
+    text-align: center;
+    align-content: center;
+    justify-content: center;
+}
+
+.grid-dashboard div {
+    text-align: center;
+    align-content: center;
+    justify-content: center;
 }
 
 @media (max-width: 570px) {

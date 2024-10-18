@@ -13,7 +13,7 @@ def vendas_tv(request):
     FALTAM_ABRIR_ORCAMENTOS_DIA = round(FALTAM_META_DIA / (CONVERSAO_DE_ORCAMENTOS / 100), 2)
     META_MES = 3800000.0
     PEDIDOS_MES = pedidos_mes()
-    PORCENTAGEM_META_MES = round(PEDIDOS_MES / META_MES * 100, 2)
+    PORCENTAGEM_META_MES = int(PEDIDOS_MES / META_MES * 100)
     FALTAM_META_MES = round(META_MES - PEDIDOS_MES, 2)
 
     # TODO: confere pedido

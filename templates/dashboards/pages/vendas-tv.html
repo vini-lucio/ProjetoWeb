@@ -3,35 +3,73 @@
 {% block conteudo %}
 
     <section class="principal">
-        <p>Meta Diaria:</p>
-        <p>R$ {{ dados.meta_diaria }}</p>
-        <br>
-        <p>Pedidos Fechados Dia:</p>
-        <p>R$ {{ dados.pedidos_dia }}</p>
-        <br>
-        <p>Meta Diaria Realizada:</p>
-        <p>{{ dados.porcentagem_meta_dia }}%</p>
-        <br>
-        <p>Faltam Meta Dia:</p>
-        <p>R$ {{ dados.faltam_meta_dia }}</p>
-        <br>
-        <p>Taxa de Conversão de Orçamentos (ultimos 90 dias):</p>
-        <p>{{ dados.conversao_de_orcamentos }}%</p>
-        <br>
-        <p>Faltam Orçamentos Dia:</p>
-        <p>R$ {{ dados.faltam_abrir_orcamentos_dia }}</p>
-        <br>
-        <p>Meta Mes:</p>
-        <p>R$ {{ dados.meta_mes }}</p>
-        <br>
-        <p>Pedidos Fechados Mes:</p>
-        <p>R$ {{ dados.pedidos_mes }}</p>
-        <br>
-        <p>Meta Mes Realizada:</p>
-        <p>{{ dados.porcentagem_meta_mes }}%</p>
-        <br>
-        <p>Faltam Meta Mes:</p>
-        <p>R$ {{ dados.faltam_meta_mes }}</p>
+        <div class="dashboard-vendas-conteudo">
+
+            <div class="grid-dashboard-2">
+
+                <div class="moldura-verde-dashboard grid-dashboard">
+
+                    <div>
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Meta Diaria</p>
+                            <p>R$ {{ dados.meta_diaria }}</p>
+                        </div>
+
+                        <div 
+                            class="pie animate no-round" 
+                            style="--valor-pizza:{{ dados.porcentagem_meta_dia }};--largura-barra:3rem;--cor-barra:var(--azul-escuro);--largura-grafico:36rem;--tamanho-fonte:11rem"
+                        >
+                        {{ dados.porcentagem_meta_dia }}%<br>
+                        <p>R$ {{ dados.faltam_meta_dia }}<br><span class="fonte-verde">Faltam no dia</span></p>
+                        </div>
+
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Pedidos Hoje</p>
+                            <p>R$ {{ dados.pedidos_dia }}</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Conversão de Orçamentos*</p>
+                            <p>{{ dados.conversao_de_orcamentos }}%</p>
+                            <p class="fonte-muito-pequena-dashboard">* Ultimos 90 dias</p>
+
+                            <p class="fonte-verde">Faltam Orçamentos Dia**</p>
+                            <p>R$ {{ dados.faltam_abrir_orcamentos_dia }}</p>
+                            <p class="fonte-muito-pequena-dashboard">** Novos orçamentos para bater a meta do dia</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="moldura-verde-dashboard grid-dashboard">
+
+                    <div>
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Meta Mensal</p>
+                            <p>R$ {{ dados.meta_mes }}</p>
+                        </div>
+
+                        <div 
+                            class="pie animate no-round" 
+                            style="--valor-pizza:{{ dados.porcentagem_meta_mes }};--largura-barra:3rem;--cor-barra:var(--azul-escuro);--largura-grafico:36rem;--tamanho-fonte:11rem"
+                        >
+                        {{ dados.porcentagem_meta_mes }}%<br>
+                        <p>R$ {{ dados.faltam_meta_mes }}<br><span class="fonte-verde">Faltam no mês</span></p>
+                        </div>
+
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Pedidos Mês</p>
+                            <p>R$ {{ dados.pedidos_mes }}</p>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
     </section>
 
 {% endblock conteudo %}
