@@ -72,4 +72,16 @@
         </div>
     </section>
 
+    <script>
+        window.addEventListener(
+            'load', function () {
+                document.body.style.width = '99%';
+                setTimeout(
+                    function() {
+                        document.body.style.width = '100%';
+                    }, 0
+                );
+            }
+        );
+    </script>
 {% endblock conteudo %}
