@@ -517,14 +517,8 @@ textarea:focus {
     }
 }
 
-@media (max-width: 1300px) {
-    .grid-dashboard-2 {
-        flex-wrap: nowrap;
-    }
-}
-
-@media (max-width: 800px) {
-    .grid-dashboard-2 {
-        flex-wrap: wrap;
+@media (max-width: 1280px) {
+    .grid-dashboard {
+        display: block;
     }
 }
