@@ -73,15 +73,10 @@
     </section>
 
     <script>
-        window.addEventListener(
-            'load', function () {
-                document.body.style.width = '99%';
-                setTimeout(
-                    function() {
-                        document.body.style.width = '100%';
-                    }, 0
-                );
-            }
-        );
+        setTimeout(function() {
+            var element = document.querySelector('.pie');
+            element.style.setProperty('--largura-grafico', '20rem');
+        }, 3000); // Delay for 1000 milliseconds = 1 second
     </script>
+    
 {% endblock conteudo %}
