@@ -385,8 +385,8 @@ textarea:focus {
     --valor-pizza: 20;
     --largura-barra: 3rem;
     --cor-barra: var(--azul-escuro);
-    --largura-grafico: 30rem;
-    --tamanho-fonte: 5.5rem;
+    --largura-grafico: 33rem;
+    --tamanho-fonte: 8.5rem;
 
     width: var(--largura-grafico);
     aspect-ratio: 1;
@@ -514,5 +514,17 @@ textarea:focus {
 
     .grid-2col-numero2 {
         grid-template-columns: auto;
+    }
+}
+
+@media (max-width: 1300px) {
+    .grid-dashboard-2 {
+        flex-wrap: nowrap;
+    }
+}
+
+@media (max-width: 800px) {
+    .grid-dashboard-2 {
+        flex-wrap: wrap;
     }
 }
