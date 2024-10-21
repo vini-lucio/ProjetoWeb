@@ -15,6 +15,7 @@
                             <p>R$ {{ dados.meta_diaria }}</p>
                         </div>
 
+                        {% comment %} O estilo --largura-grafico:33rem não carrega direito no safari, usar em pixel ou script que reaplica depois de um timeout {% endcomment %}
                         <div 
                             class="pie animate no-round" 
                             style="--valor-pizza:{{ dados.porcentagem_meta_dia }};--largura-barra:3rem;--cor-barra:var(--azul-escuro);--largura-grafico:33rem;--tamanho-fonte:8.5rem"
@@ -51,6 +52,7 @@
                             <p>R$ {{ dados.meta_mes }}</p>
                         </div>
 
+                        {% comment %} O estilo --largura-grafico:33rem não carrega direito no safari, usar em pixel ou script que reaplica depois de um timeout {% endcomment %}
                         <div 
                             class="pie animate no-round" 
                             style="--valor-pizza:{{ dados.porcentagem_meta_mes }};--largura-barra:3rem;--cor-barra:var(--azul-escuro);--largura-grafico:33rem;--tamanho-fonte:8.5rem"
@@ -72,11 +74,14 @@
         </div>
     </section>
 
+    {% comment %} O estilo --largura-grafico:33rem não carrega direito no safari, usar em pixel ou script que reaplica depois de um timeout {% endcomment %}
     <script>
         setTimeout(function() {
-            var element = document.querySelector('.pie');
-            element.style.setProperty('--largura-grafico', '20rem');
-        }, 3000); // Delay for 1000 milliseconds = 1 second
+            var elements = document.querySelectorAll('.pie');
+            elements.forEach(function(element) {
+                element.style.setProperty('--largura-grafico', '33rem');
+            });
+        }, 1000); // Delay for 1000 milliseconds = 1 second
     </script>
     
 {% endblock conteudo %}
