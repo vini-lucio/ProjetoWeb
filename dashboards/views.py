@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from .services import pedidos_dia, conversao_de_orcamentos, pedidos_mes
+from utils.data_hora_atual import data_hora_atual
 
 
 def vendas_tv(request):
@@ -16,6 +17,8 @@ def vendas_tv(request):
     PORCENTAGEM_META_MES = int(PEDIDOS_MES / META_MES * 100)
     FALTAM_META_MES = round(META_MES - PEDIDOS_MES, 2)
 
+    DATA_HORA_ATUAL = data_hora_atual()
+
     # TODO: confere pedido
     # TODO: cores rentabilidade (dia, mes, quanto falta para mudar de cor (valor e porcentagem))
 
@@ -30,6 +33,7 @@ def vendas_tv(request):
         'pedidos_mes': PEDIDOS_MES,
         'porcentagem_meta_mes': PORCENTAGEM_META_MES,
         'faltam_meta_mes': FALTAM_META_MES,
+        'data_hora_atual': DATA_HORA_ATUAL,
     }
 
     contexto = {'titulo_pagina': titulo_pagina, 'dados': dados}

@@ -71,6 +71,10 @@
 
             </div>
 
+            <div class="moldura-verde-dashboard div-dashboard">
+                <p>Atualizado em: {{ dados.data_hora_atual }}</p>
+            </div>
+
         </div>
     </section>
 
@@ -81,7 +85,7 @@
             elements.forEach(function(element) {
                 element.style.setProperty('--largura-grafico', '33.1rem');
             });
-        }, 2000); // Delay for 1000 milliseconds = 1 second
+        }, 1600); // Delay for 1000 milliseconds = 1 second, tempo 100 milesegundos a mais que o definido na animação do grafico no css
     </script>
     
 {% endblock conteudo %}

@@ -3,7 +3,7 @@
     --verde-claro: rgb(189, 198, 56);
     --cinza-claro: rgb(238, 238, 238);
     --branco: rgb(255, 255, 255);
-    --vemelho: rgb(205, 33, 41);
+    --vermelho: rgb(205, 33, 41);
 
     --tamanho-borda-icones: 0.2rem;
 
@@ -162,7 +162,7 @@ textarea:focus {
 }
 
 .icones-comunicados {
-    border: var(--tamanho-borda-icones) solid var(--vemelho);
+    border: var(--tamanho-borda-icones) solid var(--vermelho);
     box-shadow: none;
     max-width: calc(111.6rem + 2 * var(--tamanho-borda-icones));
     width: auto;
@@ -302,11 +302,11 @@ textarea:focus {
 
 .vermelho-negrito {
     font-weight: bolder;
-    color: var(--vemelho);
+    color: var(--vermelho);
 }
 
 .fonte-vermelho {
-    color: var(--vemelho);
+    color: var(--vermelho);
 }
 
 .azul-negrito {
