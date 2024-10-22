@@ -18,7 +18,7 @@
                         {% comment %} O estilo --largura-grafico:33rem não carrega direito no safari, usar em pixel ou script que reaplica depois de um timeout {% endcomment %}
                         <div 
                             class="pie animate no-round" 
-                            style="--valor-pizza:{{ dados.porcentagem_meta_dia }};--largura-barra:3rem;--cor-barra:var(--azul-escuro);--largura-grafico:33rem;--tamanho-fonte:8.5rem"
+                            style="--valor-pizza:{{ dados.porcentagem_meta_dia }};--largura-barra:3rem;--cor-barra:var({{ dados.cor_rentabilidade_css_dia }});--largura-grafico:33rem;--tamanho-fonte:8.5rem"
                         >
                         {{ dados.porcentagem_meta_dia }}%<br>
                         <p>R$ {{ dados.faltam_meta_dia }}<br><span class="fonte-verde">Faltam no dia</span></p>
@@ -55,7 +55,7 @@
                         {% comment %} O estilo --largura-grafico:33rem não carrega direito no safari, usar em pixel ou script que reaplica depois de um timeout {% endcomment %}
                         <div 
                             class="pie animate no-round" 
-                            style="--valor-pizza:{{ dados.porcentagem_meta_mes }};--largura-barra:3rem;--cor-barra:var(--azul-escuro);--largura-grafico:33rem;--tamanho-fonte:8.5rem"
+                            style="--valor-pizza:{{ dados.porcentagem_meta_mes }};--largura-barra:3rem;--cor-barra:var({{ dados.cor_rentabilidade_css_mes }});--largura-grafico:33rem;--tamanho-fonte:8.5rem"
                         >
                         {{ dados.porcentagem_meta_mes }}%<br>
                         <p>R$ {{ dados.faltam_meta_mes }}<br><span class="fonte-verde">Faltam no mês</span></p>
@@ -73,6 +73,10 @@
 
             <div class="moldura-verde-dashboard div-dashboard">
                 <p>Atualizado em: {{ dados.data_hora_atual }}</p>
+            </div>
+
+            <div class="div-dashboard">
+                <p class="fonte-muito-pequena-dashboard">Faltam R$ {{ dados.falta_mudar_cor_mes_valor }} com margem de {{ dados.falta_mudar_cor_mes_valor_rentabilidade }}% para {{ dados.falta_mudar_cor_mes_cor }} no mês. ({{ dados.falta_mudar_cor_mes_porcentagem }})</p>
             </div>
 
         </div>

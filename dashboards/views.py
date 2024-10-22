@@ -1,6 +1,8 @@
 from django.shortcuts import render
-from .services import pedidos_dia, conversao_de_orcamentos, pedidos_mes
+from .services import (pedidos_dia, conversao_de_orcamentos, pedidos_mes, rentabilidade_pedidos_dia,
+                       rentabilidade_pedidos_mes)
 from utils.data_hora_atual import data_hora_atual
+from utils.cor_rentabilidade import cor_rentabilidade_css, falta_mudar_cor_mes
 
 
 def vendas_tv(request):
@@ -17,10 +19,30 @@ def vendas_tv(request):
     PORCENTAGEM_META_MES = int(PEDIDOS_MES / META_MES * 100)
     FALTAM_META_MES = round(META_MES - PEDIDOS_MES, 2)
 
+    RENTABILIDADE_PEDIDOS_DIA = rentabilidade_pedidos_dia()
+    COR_RENTABILIDADE_PEDIDOS_DIA = cor_rentabilidade_css(RENTABILIDADE_PEDIDOS_DIA)
+
+    RENTABILIDADE_PEDIDOS_MES = rentabilidade_pedidos_mes()
+    RENTABILIDADE_PEDIDOS_MES_MC_MES = RENTABILIDADE_PEDIDOS_MES['mc_mes']
+    RENTABILIDADE_PEDIDOS_MES_TOTAL_MES_SEM_CONVERTER_MOEDA = RENTABILIDADE_PEDIDOS_MES['total_mes_sem_converter_moeda']
+    RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE = RENTABILIDADE_PEDIDOS_MES['rentabilidade_mes']
+    COR_RENTABILIDADE_PEDIDOS_MES = cor_rentabilidade_css(RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE)
+
+    FALTA_MUDAR_COR_MES = falta_mudar_cor_mes(
+        RENTABILIDADE_PEDIDOS_MES_MC_MES,
+        RENTABILIDADE_PEDIDOS_MES_TOTAL_MES_SEM_CONVERTER_MOEDA,
+        RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE
+    )
+    FALTA_MUDAR_COR_MES_VALOR = round(FALTA_MUDAR_COR_MES[0], 2)
+    FALTA_MUDAR_COR_MES_VALOR_RENTABILIDADE = round(FALTA_MUDAR_COR_MES[1], 2)
+    FALTA_MUDAR_COR_MES_PORCENTAGEM = round(FALTA_MUDAR_COR_MES[2], 2)
+    FALTA_MUDAR_COR_MES_COR = FALTA_MUDAR_COR_MES[3]
+
     DATA_HORA_ATUAL = data_hora_atual()
 
     # TODO: confere pedido
-    # TODO: cores rentabilidade (dia, mes, quanto falta para mudar de cor (valor e porcentagem))
+    # TODO: tabela de parametros com as datas, despesa fixa e meta total
+    # TODO: separar codigo SQL em comum (LFRETE interno, por exemplo)
 
     dados = {
         'meta_diaria': META_DIARIA,
@@ -34,6 +56,14 @@ def vendas_tv(request):
         'porcentagem_meta_mes': PORCENTAGEM_META_MES,
         'faltam_meta_mes': FALTAM_META_MES,
         'data_hora_atual': DATA_HORA_ATUAL,
+        'rentabilidade_pedidos_dia': RENTABILIDADE_PEDIDOS_DIA,
+        'cor_rentabilidade_css_dia': COR_RENTABILIDADE_PEDIDOS_DIA,
+        'rentabilidade_pedidos_mes_rentabilidade_mes': RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE,
+        'cor_rentabilidade_css_mes': COR_RENTABILIDADE_PEDIDOS_MES,
+        'falta_mudar_cor_mes_valor': FALTA_MUDAR_COR_MES_VALOR,
+        'falta_mudar_cor_mes_valor_rentabilidade': FALTA_MUDAR_COR_MES_VALOR_RENTABILIDADE,
+        'falta_mudar_cor_mes_porcentagem': FALTA_MUDAR_COR_MES_PORCENTAGEM,
+        'falta_mudar_cor_mes_cor': FALTA_MUDAR_COR_MES_COR,
     }
 
     contexto = {'titulo_pagina': titulo_pagina, 'dados': dados}
