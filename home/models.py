@@ -4,6 +4,7 @@ from django.utils.text import slugify
 from utils.imagens import redimensionar_imagem
 from django_summernote.models import AbstractAttachment
 from django.db.models import Q
+from utils.converter import converter_data_django_para_str_ddmmyyyy
 
 
 class PostAttachment(AbstractAttachment):
@@ -180,6 +181,50 @@ class SiteSetup(models.Model):
                                                 max_digits=5, decimal_places=2)
     rentabilidade_vermelha = models.DecimalField("Rentabilidade Vermelha %", default=0.00,  # type:ignore
                                                  max_digits=5, decimal_places=2)
+
+    @property
+    def primeiro_dia_mes_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.primeiro_dia_mes)
+
+    @property
+    def primeiro_dia_util_mes_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.primeiro_dia_util_mes)
+
+    @property
+    def ultimo_dia_mes_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.ultimo_dia_mes)
+
+    @property
+    def primeiro_dia_util_proximo_mes_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.primeiro_dia_util_proximo_mes)
+
+    @property
+    def meta_mes_as_float(self):
+        return float(self.meta_mes)
+
+    @property
+    def dias_uteis_mes_as_float(self):
+        return float(self.dias_uteis_mes)
+
+    @property
+    def meta_diaria_as_float(self):
+        return float(self.meta_diaria)
+
+    @property
+    def despesa_administrativa_fixa_as_float(self):
+        return float(self.despesa_administrativa_fixa)
+
+    @property
+    def rentabilidade_verde_as_float(self):
+        return float(self.rentabilidade_verde)
+
+    @property
+    def rentabilidade_amarela_as_float(self):
+        return float(self.rentabilidade_amarela)
+
+    @property
+    def rentabilidade_vermelha_as_float(self):
+        return float(self.rentabilidade_vermelha)
 
     def clean(self) -> None:
         if self.dias_uteis_mes == 0:

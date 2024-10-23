@@ -1,8 +1,11 @@
-verde = 16
-amarelo = 14
-vermelho = 12
+from utils.site_setup import get_site_setup
 
-despesa_adm = 13.04
+SITE_SETUP = get_site_setup()
+if SITE_SETUP:
+    verde = SITE_SETUP.rentabilidade_verde_as_float
+    amarelo = SITE_SETUP.rentabilidade_amarela_as_float
+    vermelho = SITE_SETUP.rentabilidade_vermelha_as_float
+    despesa_adm = SITE_SETUP.despesa_administrativa_fixa_as_float
 
 sugestao_rentabilidade_a_menos = -1.99
 sugestao_rentabilidade_a_mais = 3.0

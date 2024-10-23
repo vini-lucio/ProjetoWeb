@@ -1,6 +1,6 @@
-from home.models import SiteSetup
+from utils.site_setup import get_site_setup
 
 
 def site_setup(request):
-    setup = SiteSetup.objects.order_by('-id').first()
+    setup = get_site_setup()
     return {'site_setup': setup}

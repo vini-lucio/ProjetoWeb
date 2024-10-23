@@ -1,7 +1,7 @@
 from utils.oracle.conectar import executar
 
 
-def pedidos_dia() -> float:
+def pedidos_dia(primeiro_dia_util_proximo_mes: str) -> float:
     """Valor mercadorias dos pedidos com valor comercial no dia com entrega até o primeiro dia util do proximo mes"""
     sql = """
         SELECT
@@ -25,8 +25,10 @@ def pedidos_dia() -> float:
             -- hoje
             PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
             -- primeiro dia util proximo mes
-            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('01/11/2024','DD-MM-YYYY')
+            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
     """
+
+    sql = sql.format(primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     resultado = executar(sql)
 
@@ -36,12 +38,12 @@ def pedidos_dia() -> float:
     return float(resultado[0][0])
 
 
-def rentabilidade_pedidos_dia() -> float:
+def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_util_proximo_mes: str) -> float:
     """Rentabilidade dos pedidos com valor comercial no dia com entrega até o primeiro dia util do proximo mes"""
     sql = """
         SELECT
             -- despesa administrativa (ultima subtração)
-            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - 13.04 AS RENTABILIDADE
+            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - {despesa_administrativa_fixa} AS RENTABILIDADE
 
         FROM
             (
@@ -105,7 +107,7 @@ def rentabilidade_pedidos_dia() -> float:
                                     -- hoje
                                     PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
                                     -- primeiro dia util do proximo mes
-                                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('01/11/2024','DD-MM-YYYY')
+                                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
                             )
                     ) LFRETE,
                     COPLAS.VENDEDORES,
@@ -124,7 +126,7 @@ def rentabilidade_pedidos_dia() -> float:
                     -- hoje
                     PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
                     -- primeiro dia util do proximo mes
-                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('01/11/2024','DD-MM-YYYY')
+                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
 
                 GROUP BY
                     LFRETE.MC_SEM_FRETE,
@@ -133,6 +135,9 @@ def rentabilidade_pedidos_dia() -> float:
                     LFRETE.MC_SEM_FRETE_PQ
             )
     """
+
+    sql = sql.format(despesa_administrativa_fixa=despesa_administrativa_fixa,
+                     primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     resultado = executar(sql)
 
@@ -168,7 +173,8 @@ def conversao_de_orcamentos():
     return float(resultado[0][0])
 
 
-def pedidos_mes() -> float:
+def pedidos_mes(primeiro_dia_mes: str, primeiro_dia_util_mes: str,
+                ultimo_dia_mes: str, primeiro_dia_util_proximo_mes: str) -> float:
     """Valor mercadorias dos pedidos com valor comercial no mes com entrega até o primeiro dia util do proximo mes, debitando as notas de devolução"""
     sql = """
         SELECT
@@ -194,9 +200,9 @@ def pedidos_mes() -> float:
                     PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
 
                     -- primeiro dia do mes
-                    NOTAS.DATA_EMISSAO >= TO_DATE('01/10/2024','DD-MM-YYYY') AND
+                    NOTAS.DATA_EMISSAO >= TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
                     -- ultimo dia do mes
-                    NOTAS.DATA_EMISSAO <= TO_DATE('31/10/2024','DD-MM-YYYY')
+                    NOTAS.DATA_EMISSAO <= TO_DATE('{ultimo_dia_mes}','DD-MM-YYYY')
             ) DEVOLUCOES,
             COPLAS.PRODUTOS,
             COPLAS.PEDIDOS,
@@ -210,25 +216,28 @@ def pedidos_mes() -> float:
             (
                 (
                     -- primeiro dia do mes
-                    PEDIDOS.DATA_PEDIDO < TO_DATE('01/10/2024','DD-MM-YYYY') AND
+                    PEDIDOS.DATA_PEDIDO < TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
                     -- primeiro dia util do mes
-                    PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE('01/10/2024','DD-MM-YYYY') AND
+                    PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE('{primeiro_dia_util_mes}','DD-MM-YYYY') AND
                     -- primeiro dia util do proximo mes
-                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('01/11/2024','DD-MM-YYYY')
+                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
                 ) OR
                 (
                     -- primeiro dia do mes
-                    PEDIDOS.DATA_PEDIDO >= TO_DATE('01/10/2024','DD-MM-YYYY') AND
+                    PEDIDOS.DATA_PEDIDO >= TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
                     -- ultimo dia do mes
-                    PEDIDOS.DATA_PEDIDO <= TO_DATE('31/10/2024','DD-MM-YYYY') AND
+                    PEDIDOS.DATA_PEDIDO <= TO_DATE('{ultimo_dia_mes}','DD-MM-YYYY') AND
                     -- primeiro dia util do proximo mes
-                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('01/11/2024','DD-MM-YYYY')
+                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
                 )
             )
 
         GROUP BY
             DEVOLUCOES.TOTAL
     """
+
+    sql = sql.format(primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
+                     ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     resultado = executar(sql)
 
@@ -238,7 +247,9 @@ def pedidos_mes() -> float:
     return float(resultado[0][0])
 
 
-def rentabilidade_pedidos_mes() -> dict[str, float]:
+def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_mes: str,
+                              primeiro_dia_util_mes: str, ultimo_dia_mes: str,
+                              primeiro_dia_util_proximo_mes: str) -> dict[str, float]:
     """Rentabilidade dos pedidos com valor comercial no mes com entrega até o primeiro dia util do proximo mes"""
     sql = """
         SELECT
@@ -246,7 +257,7 @@ def rentabilidade_pedidos_mes() -> dict[str, float]:
             TOTAL_MES,
 
             -- despesa administrativa (ultima subtração)
-            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - 13.04 AS RENTABILIDADE
+            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - {despesa_administrativa_fixa} AS RENTABILIDADE
 
         FROM
             (
@@ -295,9 +306,9 @@ def rentabilidade_pedidos_mes() -> dict[str, float]:
                             PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
 
                             -- primeiro dia do mes
-                            NOTAS.DATA_EMISSAO >= TO_DATE('01/10/2024','DD-MM-YYYY') AND
+                            NOTAS.DATA_EMISSAO >= TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
                             -- ultimo dia do mes
-                            NOTAS.DATA_EMISSAO <= TO_DATE('31/10/2024','DD-MM-YYYY')
+                            NOTAS.DATA_EMISSAO <= TO_DATE('{ultimo_dia_mes}','DD-MM-YYYY')
                     ) DEVOLUCOES,
                     (
                         SELECT
@@ -344,19 +355,19 @@ def rentabilidade_pedidos_mes() -> dict[str, float]:
                                     (
                                         (
                                             -- primeiro dia do mes
-                                            PEDIDOS.DATA_PEDIDO < TO_DATE('01/10/2024','DD-MM-YYYY') AND
+                                            PEDIDOS.DATA_PEDIDO < TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
                                             -- primeiro dia util do mes
-                                            PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE('01/10/2024','DD-MM-YYYY') AND
+                                            PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE('{primeiro_dia_util_mes}','DD-MM-YYYY') AND
                                             -- primeiro dia util do proximo mes
-                                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('01/11/2024','DD-MM-YYYY')
+                                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
                                         ) OR
                                         (
                                             -- primeiro dia do mes
-                                            PEDIDOS.DATA_PEDIDO >= TO_DATE('01/10/2024','DD-MM-YYYY') AND
+                                            PEDIDOS.DATA_PEDIDO >= TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
                                             -- ultimo dia do mes
-                                            PEDIDOS.DATA_PEDIDO <= TO_DATE('31/10/2024','DD-MM-YYYY') AND
+                                            PEDIDOS.DATA_PEDIDO <= TO_DATE('{ultimo_dia_mes}','DD-MM-YYYY') AND
                                             -- primeiro dia util do proximo mes
-                                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('01/11/2024','DD-MM-YYYY')
+                                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
                                         )
                                     )
                             )
@@ -377,19 +388,19 @@ def rentabilidade_pedidos_mes() -> dict[str, float]:
                     (
                         (
                             -- primeiro dia do mes
-                            PEDIDOS.DATA_PEDIDO < TO_DATE('01/10/2024','DD-MM-YYYY') AND
+                            PEDIDOS.DATA_PEDIDO < TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
                             -- primeiro dia util do mes
-                            PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE('01/10/2024','DD-MM-YYYY') AND
+                            PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE('{primeiro_dia_util_mes}','DD-MM-YYYY') AND
                             -- primeiro dia util do proximo mes
-                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('01/11/2024','DD-MM-YYYY')
+                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
                         ) OR
                         (
                             -- primeiro dia do mes
-                            PEDIDOS.DATA_PEDIDO >= TO_DATE('01/10/2024','DD-MM-YYYY') AND
+                            PEDIDOS.DATA_PEDIDO >= TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
                             -- ultimo dia do mes
-                            PEDIDOS.DATA_PEDIDO <= TO_DATE('31/10/2024','DD-MM-YYYY') AND
+                            PEDIDOS.DATA_PEDIDO <= TO_DATE('{ultimo_dia_mes}','DD-MM-YYYY') AND
                             -- primeiro dia util do proximo mes
-                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('01/11/2024','DD-MM-YYYY')
+                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
                         )
                     )
 
@@ -408,6 +419,10 @@ def rentabilidade_pedidos_mes() -> dict[str, float]:
                     LFRETE.MC_SEM_FRETE_PQ
             )
     """
+
+    sql = sql.format(despesa_administrativa_fixa=despesa_administrativa_fixa, primeiro_dia_mes=primeiro_dia_mes,
+                     primeiro_dia_util_mes=primeiro_dia_util_mes, ultimo_dia_mes=ultimo_dia_mes,
+                     primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     resultado = executar(sql)
 
