@@ -26,5 +26,7 @@ class HomeLinksAdmin(SummernoteModelAdmin):
 
 @admin.register(SiteSetup)
 class SiteSetupAdmin(admin.ModelAdmin):
+    readonly_fields = 'meta_diaria',
+
     def has_add_permission(self, request: HttpRequest) -> bool:
         return not SiteSetup.objects.exists()

@@ -159,6 +159,35 @@ class SiteSetup(models.Model):
                                        blank=True, null=True, help_text=help_text_logo)
     texto_rodape = models.TextField("Texto do Rodapé", blank=True, null=True)
 
+    primeiro_dia_mes = models.DateField("Primeiro Dia do Mês", default='2000-01-01',  # type:ignore
+                                        auto_now=False, auto_now_add=False)
+    primeiro_dia_util_mes = models.DateField("Primeiro Dia Util do Mês", default='2000-01-01',  # type:ignore
+                                             auto_now=False, auto_now_add=False)
+    ultimo_dia_mes = models.DateField("Ultimo Dia do Mês", default='2000-01-01',  # type:ignore
+                                      auto_now=False, auto_now_add=False)
+    primeiro_dia_util_proximo_mes = models.DateField("Primeiro Dia Util do Proximo Mês",
+                                                     default='2000-01-01',  # type:ignore
+                                                     auto_now=False, auto_now_add=False)
+    meta_mes = models.DecimalField("Meta do Mês", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
+    dias_uteis_mes = models.DecimalField("Dias Uteis no Mês", default=0.00,  # type:ignore
+                                         max_digits=5, decimal_places=2)
+    meta_diaria = models.DecimalField("Meta Diaria", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
+    despesa_administrativa_fixa = models.DecimalField("Despesa Administrativa Fixa %", default=0.00,  # type:ignore
+                                                      max_digits=5, decimal_places=2)
+    rentabilidade_verde = models.DecimalField("Rentabilidade Verde %", default=0.00,   # type:ignore
+                                              max_digits=5, decimal_places=2)
+    rentabilidade_amarela = models.DecimalField("Rentabilidade Amarela %", default=0.00,  # type:ignore
+                                                max_digits=5, decimal_places=2)
+    rentabilidade_vermelha = models.DecimalField("Rentabilidade Vermelha %", default=0.00,  # type:ignore
+                                                 max_digits=5, decimal_places=2)
+
+    def clean(self) -> None:
+        if self.dias_uteis_mes == 0:
+            self.meta_diaria = 0
+        else:
+            self.meta_diaria = self.meta_mes / self.dias_uteis_mes
+        return super().clean()
+
     def save(self, *args, **kwargs) -> None:
         favicon_anterior = self.favicon.name
         logo_cabecalho_anterior = self.logo_cabecalho.name

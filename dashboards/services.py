@@ -136,7 +136,8 @@ def rentabilidade_pedidos_dia() -> float:
 
     resultado = executar(sql)
 
-    if not resultado[0][0]:
+    # não consegui identificar o porque, não esta retornado [(none,),] e sim [], indice [0][0] não funciona
+    if not resultado:
         return 0.00
 
     return float(resultado[0][0])

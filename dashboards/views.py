@@ -41,7 +41,7 @@ def vendas_tv(request):
     DATA_HORA_ATUAL = data_hora_atual()
 
     # TODO: confere pedido
-    # TODO: tabela de parametros com as datas, despesa fixa e meta total
+    # TODO: tabela de parametros com as datas, despesa fixa meta total, etc
     # TODO: separar codigo SQL em comum (LFRETE interno, por exemplo)
 
     dados = {
