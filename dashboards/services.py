@@ -1,4 +1,4 @@
-from utils.oracle.conectar import executar
+from utils.oracle.conectar import executar, executar_com_cabecalho
 
 
 def pedidos_dia(primeiro_dia_util_proximo_mes: str) -> float:
@@ -437,3 +437,18 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
     }
 
     return dicionario
+
+
+def confere_pedidos(carteira: str = '%%') -> list | None:
+    """Confere possiveis erros dos pedidos em aberto (seleção armazenada no ID 2186)"""
+    sql = "SELECT SELECAO FROM COPLAS.SELECOES WHERE CHAVE = 2186"
+
+    sql = executar(sql)
+    sql = sql[0][0].format(carteira=carteira)
+
+    resultado = executar_com_cabecalho(sql)
+
+    if not resultado:
+        return []
+
+    return resultado

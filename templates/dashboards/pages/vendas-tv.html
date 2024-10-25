@@ -2,6 +2,21 @@
 
 {% block conteudo %}
 
+    {% if dados.confere_pedidos %}
+        <section class="principal principal-escuro">
+            <div class="dashboard-vendas-conteudo dashboard-vendas-conteudo-escuro">
+                <div class="moldura-vermelha-dashboard div-dashboard-erros">
+                    <div class="div-dashboard">
+                        <p class="fonte-vermelho">ERROS</p>
+                    </div>
+                    {% for pedido in dados.confere_pedidos %}
+                        <p><span class="fonte-verde">{{ pedido.PEDIDO }} - {{ pedido.CONSULTOR }}</span> - {{ pedido.ERRO }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
     <section class="principal">
         <div class="dashboard-vendas-conteudo">
 

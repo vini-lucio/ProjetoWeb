@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from .services import (pedidos_dia, conversao_de_orcamentos, pedidos_mes, rentabilidade_pedidos_dia,
-                       rentabilidade_pedidos_mes)
+                       rentabilidade_pedidos_mes, confere_pedidos)
 from utils.data_hora_atual import data_hora_atual
 from utils.cor_rentabilidade import cor_rentabilidade_css, falta_mudar_cor_mes
 from utils.site_setup import get_site_setup
@@ -51,7 +51,8 @@ def vendas_tv(request):
 
     DATA_HORA_ATUAL = data_hora_atual()
 
-    # TODO: confere pedido
+    CONFERE_PEDIDOS = confere_pedidos()
+
     # TODO: separar codigo SQL em comum (LFRETE interno, por exemplo)
 
     dados = {
@@ -74,6 +75,7 @@ def vendas_tv(request):
         'falta_mudar_cor_mes_valor_rentabilidade': FALTA_MUDAR_COR_MES_VALOR_RENTABILIDADE,
         'falta_mudar_cor_mes_porcentagem': FALTA_MUDAR_COR_MES_PORCENTAGEM,
         'falta_mudar_cor_mes_cor': FALTA_MUDAR_COR_MES_COR,
+        'confere_pedidos': CONFERE_PEDIDOS,
     }
 
     contexto = {'titulo_pagina': titulo_pagina, 'dados': dados}

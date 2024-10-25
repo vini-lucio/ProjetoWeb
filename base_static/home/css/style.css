@@ -455,6 +455,10 @@ textarea:focus {
     margin: 0 auto;
 }
 
+.dashboard-vendas-conteudo-escuro {
+    color: var(--branco);
+}
+
 .div-dashboard {
     width: fit-content;
     text-align: center;
@@ -486,6 +490,30 @@ textarea:focus {
     text-align: center;
     align-content: center;
     justify-content: center;
+}
+
+.moldura-vermelha-dashboard {
+    padding: 2rem;
+    border: var(--tamanho-borda-icones) solid var(--vermelho-escuro);
+    border-radius: 1.5rem;
+    width: fit-content;
+    text-align: center;
+    align-content: center;
+    justify-content: center;
+}
+
+.div-dashboard-erros {
+    width: fit-content;
+    text-align: left;
+    align-content: center;
+    justify-content: center;
+    margin: 0rem auto;
+}
+
+.div-dashboard-erros p {
+    font-size: var(--tamanho-fonte-p-dashboard);
+    line-height: var(--tamanho-linha-p-dashboard);
+    padding: 0 0.5rem;
 }
 
 .grid-dashboard {
