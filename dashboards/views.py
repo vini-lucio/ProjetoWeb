@@ -54,6 +54,7 @@ def vendas_tv(request):
     CONFERE_PEDIDOS = confere_pedidos()
 
     # TODO: separar codigo SQL em comum (LFRETE interno, por exemplo)
+    # TODO: agenda ACTs
 
     dados = {
         'meta_diaria': META_DIARIA,

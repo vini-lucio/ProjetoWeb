@@ -5,13 +5,13 @@
     </head>
     <body>
 
-        {% include "dashboards/partials/_cabecalho.html" %}
+        {% comment %} {% include "dashboards/partials/_cabecalho.html" %} {% endcomment %}
 
         {% block conteudo %}{% endblock conteudo %}
         
         {% include "dashboards/partials/_paginacao.html" %}
 
-        {% include "dashboards/partials/_rodape.html" %}
+        {% comment %} {% include "dashboards/partials/_rodape.html" %} {% endcomment %}
 
         <a href="#"><div class="botao-div topo">⇧</div></a>
         

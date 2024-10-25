@@ -4,7 +4,7 @@ from django.utils.text import slugify
 from utils.imagens import redimensionar_imagem
 from django_summernote.models import AbstractAttachment
 from django.db.models import Q
-from utils.converter import converter_data_django_para_str_ddmmyyyy
+from utils.converter import converter_data_django_para_str_ddmmyyyy, converter_data_django_para_dia_semana
 
 
 class PostAttachment(AbstractAttachment):
@@ -253,3 +253,52 @@ class SiteSetup(models.Model):
 
     def __str__(self) -> str:
         return "Site Setup"
+
+
+class AssistentesTecnicos(models.Model):
+    class Meta:
+        verbose_name = 'Assistente Tecnico'
+        verbose_name_plural = 'Assistentes Tecnicos'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['nome',],
+                name='assistente_unique_nome',
+                violation_error_message="Nome é campo unico"
+            ),
+        ]
+
+    status_assitentes = {
+        'ativo': 'Ativo',
+        'inativo': 'Inativo',
+    }
+
+    nome = models.CharField("Nome", max_length=30)
+    status = models.CharField("Status", max_length=30, choices=status_assitentes, default='ativo')  # type:ignore
+
+    def __str__(self) -> str:
+        return self.nome
+
+
+class AssistentesTecnicosAgenda(models.Model):
+    class Meta:
+        verbose_name = 'Agenda VEC'
+        verbose_name_plural = 'Agenda VEC'
+        ordering = '-data',
+        constraints = [
+            models.UniqueConstraint(
+                fields=['data', 'assistente_tecnico',],
+                name='agenda_unique_data_assistente',
+                violation_error_message="Assistente Tecnico e Data são unicos dentro da agenda"
+            ),
+        ]
+
+    data = models.DateField("Data", auto_now=False, auto_now_add=False)
+    assistente_tecnico = models.ForeignKey(AssistentesTecnicos, verbose_name="Assistente Tecnico",
+                                           on_delete=models.PROTECT)
+    agenda = models.CharField("Agenda", max_length=50)
+
+    @property
+    def data_dia_semana(self):
+        return converter_data_django_para_dia_semana(self.data)
+
+    data_dia_semana.fget.short_description = 'Dia da Semana'  # type:ignore
