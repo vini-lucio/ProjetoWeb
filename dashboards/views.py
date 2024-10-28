@@ -3,7 +3,7 @@ from .services import (pedidos_dia, conversao_de_orcamentos, pedidos_mes, rentab
                        rentabilidade_pedidos_mes, confere_pedidos)
 from utils.data_hora_atual import data_hora_atual
 from utils.cor_rentabilidade import cor_rentabilidade_css, falta_mudar_cor_mes
-from utils.site_setup import get_site_setup
+from utils.site_setup import get_site_setup, get_assistentes_tecnicos, get_assistentes_tecnicos_agenda
 
 
 def vendas_tv(request):
@@ -53,8 +53,10 @@ def vendas_tv(request):
 
     CONFERE_PEDIDOS = confere_pedidos()
 
+    ASSISTENTES_TECNICOS = get_assistentes_tecnicos()
+    AGENDA_VEC = get_assistentes_tecnicos_agenda()
+
     # TODO: separar codigo SQL em comum (LFRETE interno, por exemplo)
-    # TODO: agenda ACTs
 
     dados = {
         'meta_diaria': META_DIARIA,
@@ -77,6 +79,8 @@ def vendas_tv(request):
         'falta_mudar_cor_mes_porcentagem': FALTA_MUDAR_COR_MES_PORCENTAGEM,
         'falta_mudar_cor_mes_cor': FALTA_MUDAR_COR_MES_COR,
         'confere_pedidos': CONFERE_PEDIDOS,
+        'assistentes_tecnicos': ASSISTENTES_TECNICOS,
+        'agenda_vec': AGENDA_VEC,
     }
 
     contexto = {'titulo_pagina': titulo_pagina, 'dados': dados}

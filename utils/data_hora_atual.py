@@ -6,3 +6,7 @@ def data_hora_atual() -> str:
     data_hora_atual = datetime.now()
     data_hora_atual_formatado = data_hora_atual.strftime("%d/%m/%y %H:%M:%S")
     return data_hora_atual_formatado
+
+
+def hoje():
+    return datetime.today().date()

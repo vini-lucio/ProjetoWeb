@@ -22,7 +22,7 @@
 
             <div class="grid-dashboard-2">
 
-                <div class="moldura-verde-dashboard grid-dashboard">
+                <div class="moldura-verde-dashboard grid-dashboard" style="{% if dados.porcentagem_meta_dia >= 100 %}border-color:var(--azul-escuro){% endif %}">
 
                     <div>
                         <div class="div-dashboard">
@@ -47,11 +47,11 @@
 
                     <div>
                         <div class="div-dashboard">
-                            <p class="fonte-verde">Conversão de Orçamentos*</p>
+                            <p class="fonte-verde">Conversão de Orç.*</p>
                             <p>{{ dados.conversao_de_orcamentos }}%</p>
                             <p class="fonte-muito-pequena-dashboard">* Ultimos 90 dias</p>
 
-                            <p class="fonte-verde">Faltam Orçamentos Dia**</p>
+                            <p class="fonte-verde">Faltam Orç. Dia**</p>
                             <p>R$ {{ dados.faltam_abrir_orcamentos_dia }}</p>
                             <p class="fonte-muito-pequena-dashboard">** Novos orçamentos para bater a meta do dia</p>
                         </div>
@@ -59,7 +59,7 @@
 
                 </div>
 
-                <div class="moldura-verde-dashboard grid-dashboard">
+                <div class="moldura-verde-dashboard grid-dashboard" style="{% if dados.porcentagem_meta_dia >= 100 %}border-color:var(--azul-escuro){% endif %}">
 
                     <div>
                         <div class="div-dashboard">
@@ -84,6 +84,23 @@
 
                 </div>
 
+                {% if dados.agenda_vec %}
+                    <div class="moldura-verde-dashboard grid-dashboard grid-dashboard-largura-maxima">
+                        {% for assistente_tecnico in dados.assistentes_tecnicos %}
+                            <div class="div-dashboard-agenda">
+                                <p class="fonte-verde">{{ assistente_tecnico.nome }}</p>
+                                <div class="div-dashboard-agenda-dias">
+                                    {% for agenda in dados.agenda_vec %}
+                                        {% if assistente_tecnico == agenda.assistente_tecnico %}
+                                                <p><span class="fonte-verde">{{ agenda.data | date:"d/m/Y" }} {{ agenda.data | date:"D" }}</span> {{ agenda.agenda }}</p>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
             </div>
 
             <div class="moldura-verde-dashboard div-dashboard">
@@ -95,6 +112,7 @@
             </div>
 
         </div>
+
     </section>
 
     {% comment %} O estilo --largura-grafico:33rem não carrega direito no safari, usar em pixel ou script que reaplica depois de um timeout {% endcomment %}

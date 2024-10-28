@@ -302,3 +302,6 @@ class AssistentesTecnicosAgenda(models.Model):
         return converter_data_django_para_dia_semana(self.data)
 
     data_dia_semana.fget.short_description = 'Dia da Semana'  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.data} - {self.assistente_tecnico}'
