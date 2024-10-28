@@ -446,13 +446,14 @@ textarea:focus {
 }
 
 .dashboard-vendas-conteudo {
-    padding: 2rem;
+    padding: 0.5rem;
     color: var(--azul-escuro);
     text-align: center;
     align-content: center;
     justify-content: center;
     min-width: 36rem;
     margin: 0 auto;
+    font-weight: bold;
 }
 
 .dashboard-vendas-conteudo-escuro {
@@ -464,13 +465,13 @@ textarea:focus {
     text-align: center;
     align-content: center;
     justify-content: center;
-    margin: 2rem auto;
+    margin: 0.5rem auto;
 }
 
 .div-dashboard p,
 .div-dashboard-agenda p {
-    font-size: var(--tamanho-fonte-p-dashboard);
-    line-height: var(--tamanho-linha-p-dashboard);
+    font-size: var(--tamanho-fonte-p-dashboard-pequeno);
+    line-height: var(--tamanho-linha-p-dashboard-pequeno);
     padding: 0 0.5rem;
 }
 
@@ -479,7 +480,7 @@ textarea:focus {
     text-align: center;
     align-content: center;
     justify-content: center;
-    margin: 1rem auto;
+    margin: 0.5rem auto;
 }
 
 .div-dashboard-agenda-dias {
@@ -487,13 +488,13 @@ textarea:focus {
     text-align: center;
     align-content: center;
     justify-content: center;
-    margin: 1rem auto;
+    margin: 0.5rem auto;
 }
 
 .div-dashboard-agenda-dias p {
-    text-align: left;
+    text-align: center;
     font-size: var(--tamanho-fonte-p);
-    line-height: var(--tamanho-linha-p-dashboard-pequeno);
+    line-height: var(--tamanho-linha-p);
     padding: 0 0.5rem;
 }
 
@@ -507,7 +508,7 @@ textarea:focus {
 }
 
 .moldura-verde-dashboard {
-    padding: 2rem;
+    padding: 0.5rem;
     border: var(--tamanho-borda-icones) solid var(--verde-claro);
     border-radius: 1.5rem;
     width: fit-content;
@@ -543,17 +544,17 @@ textarea:focus {
 .grid-dashboard {
     display: flex;
     flex-wrap: wrap;
-    gap: 2rem;
+    gap: 0.5rem;
 }
 
 .grid-dashboard-largura-maxima {
-    max-width: 37.5rem;
+    max-width: 36rem;
 }
 
 .grid-dashboard-2 {
     display: flex;
     flex-wrap: wrap;
-    gap: 2rem;
+    gap: 0.5rem;
     margin: 0 auto;
     text-align: center;
     align-content: center;
@@ -577,7 +578,7 @@ textarea:focus {
     }
 }
 
-@media (max-width: 1570px) {
+@media (max-width: 1356px) {
     .grid-dashboard {
         display: block;
     }
