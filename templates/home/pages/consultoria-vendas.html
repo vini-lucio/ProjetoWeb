@@ -12,7 +12,29 @@
             <div class="link-conteudo">
                 <div class="grid-simples">
                     {% for home_link in home_links %}
-                        {% if home_link.tamanho_botao == 'consultoria' %}
+                        {% if home_link.tamanho_botao == 'consultoria' and home_link.url_externo != 'tabela-precos/' %}
+                            {% if home_link.link_externo %}
+                                <a href="{{ home_link.url_externo }}">
+                            {% else %}
+                                <a href="{% url "home:home_link" home_link.slug %}">
+                            {% endif %}
+                                    <div class="botao-div">
+                                        <p>{{ home_link.titulo }}</p>
+                                    </div>
+                                </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="titulo">
+                <h1>Consultoria de Vendas</h1>
+            </div>
+
+            <div class="link-conteudo">
+                <div class="grid-simples">
+                    {% for home_link in home_links %}
+                        {% if home_link.url_externo == 'tabela-precos/' %}
                             {% if home_link.link_externo %}
                                 <a href="{{ home_link.url_externo }}">
                             {% else %}
@@ -29,10 +51,6 @@
 
             {% for home_link in home_links %}
                 {% if home_link.url_externo == 'consultoria-vendas/' %}
-
-                    <div class="titulo">
-                        <h1>Consultoria de Vendas</h1>
-                    </div>
 
                     <div class="link-conteudo">
                         {{ home_link.conteudo | safe }}

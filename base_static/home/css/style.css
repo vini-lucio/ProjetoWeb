@@ -1,5 +1,6 @@
 :root {
     --azul-escuro: rgb(0, 50, 105);
+    --azul-escuro-2: rgb(95, 144, 196);
     --verde-claro: rgb(189, 198, 56);
     --verde-escuro: rgb(52, 114, 0);
     --cinza-claro: rgb(238, 238, 238);
@@ -16,6 +17,7 @@
 
     --tamanho-fonte-p: 2rem;
     --tamanho-linha-p: 2.5rem;
+    --tamanho-linha-tabela-p: 3rem;
 
     --tamanho-fonte-p-grande: 3rem;
 
@@ -123,6 +125,11 @@ textarea:focus {
 
 .principal-escuro {
     background-color: var(--azul-escuro);
+    color: var(--branco);
+}
+
+.principal-escuro-2 {
+    background-color: var(--azul-escuro-2);
     color: var(--branco);
 }
 
@@ -565,6 +572,29 @@ textarea:focus {
     text-align: center;
     align-content: center;
     justify-content: center;
+}
+
+.tabela-preco {
+    padding: 2rem;
+    color: var(--azul-escuro);
+    text-align: center;
+    align-content: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.tabela-preco table {
+    margin: 0 auto;
+    font-size: var(--tamanho-fonte-p);
+    line-height: var(--tamanho-linha-tabela-p);
+    border-collapse: collapse;
+}
+
+.tabela-preco table,
+.tabela-preco th,
+.tabela-preco td,
+.tabela-preco tr {
+    border: none;
 }
 
 @media (max-width: 570px) {

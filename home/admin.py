@@ -43,7 +43,7 @@ class AssistentesTecnicosAdmin(admin.ModelAdmin):
 
 @admin.register(AssistentesTecnicosAgenda)
 class AssistentesTecnicosAgendaAdmin(admin.ModelAdmin):
-    list_display = 'id', 'data', 'data_dia_semana', 'assistente_tecnico', 'agenda',
-    list_display_links = 'data', 'assistente_tecnico', 'agenda',
+    list_display = 'id', 'data_as_ddmmyyyy', 'data_dia_semana', 'assistente_tecnico', 'agenda',
+    list_display_links = 'data_as_ddmmyyyy', 'assistente_tecnico', 'agenda',
     ordering = '-data', 'assistente_tecnico',
     list_filter = 'assistente_tecnico',

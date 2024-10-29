@@ -298,10 +298,16 @@ class AssistentesTecnicosAgenda(models.Model):
     agenda = models.CharField("Agenda", max_length=50)
 
     @property
+    def data_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data)
+
+    data_as_ddmmyyyy.fget.short_description = 'Data'  # type:ignore
+
+    @property
     def data_dia_semana(self):
         return converter_data_django_para_dia_semana(self.data)
 
     data_dia_semana.fget.short_description = 'Dia da Semana'  # type:ignore
 
     def __str__(self) -> str:
-        return f'{self.data} - {self.assistente_tecnico}'
+        return f'{self.data_as_ddmmyyyy} - {self.assistente_tecnico}'

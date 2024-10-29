@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.views.generic import ListView, DetailView
 from home.models import HomeLinks
 from django.db.models import Q
+from .services import get_tabela_precos
 
 
 class IndexListView(ListView):
@@ -59,3 +60,13 @@ def calculo_quimicos(request):
 def calculo_niveladores(request):
     titulo_pagina = 'Calculo Niveladores de Piso'
     return render(request, 'home/pages/calculo-niveladores.html', {'titulo_pagina': titulo_pagina})
+
+
+def tabela_precos(request):
+    titulo_pagina = 'Tabela de Preços'
+
+    tabela = get_tabela_precos()
+
+    contexto = {'titulo_pagina': titulo_pagina, 'tabela': tabela}
+
+    return render(request, 'home/pages/tabela-precos.html', contexto)

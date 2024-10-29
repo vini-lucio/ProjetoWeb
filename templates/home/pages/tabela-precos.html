@@ -1,0 +1,40 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="titulo">
+            <h1>{{ titulo_pagina }}</h1>
+        </div>
+
+        <div class="tabela-preco">
+            <table>
+                <tr>
+                    <th>ESTOQUE</th>
+                    <th>CODIGO</th>
+                    <th>PREÇO</th>
+                    <th></th>
+                    <th>IPI</th>
+                    <th>EMBALAGEM</th>
+                    <th>KG</th>
+                    <th></th>
+                </tr>
+                {% for produto in tabela %}
+                    <tr class="{% cycle 'principal-escuro-2' '' %}">
+                        <td>{% if produto.C %}{{ produto.C }}{% endif %}</td>
+                        <td>{{ produto.CODIGO }}</td>
+                        <td>{{ produto.PRECO_TABELA | floatformat:"2" }}</td>
+                        <td>{{ produto.UNIDADE }}</td>
+                        <td>{{ produto.IPI | floatformat:"2" }}%</td>
+                        <td>{{ produto.MULTIPLICIDADE | floatformat:"3" }}</td>
+                        <td>{{ produto.PESO_LIQUIDO | floatformat:"4" }}</td>
+                        <td>{{ produto.UNIDADE_PESO }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+    </section>
+
+{% endblock conteudo %}
