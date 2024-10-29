@@ -548,7 +548,7 @@ textarea:focus {
 }
 
 .grid-dashboard-largura-maxima {
-    max-width: 36rem;
+    max-width: 35rem;
 }
 
 .grid-dashboard-2 {
@@ -578,7 +578,7 @@ textarea:focus {
     }
 }
 
-@media (max-width: 1356px) {
+@media (max-width: 1349px) {
     .grid-dashboard {
         display: block;
     }

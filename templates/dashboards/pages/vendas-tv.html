@@ -92,7 +92,7 @@
                                 <div class="div-dashboard-agenda-dias">
                                     {% for agenda in dados.agenda_vec %}
                                         {% if assistente_tecnico == agenda.assistente_tecnico %}
-                                                <p><span class="fonte-verde">{{ agenda.data | date:"d/m/Y" }} {{ agenda.data | date:"D" }}</span> {{ agenda.agenda }}</p>
+                                                <p><span class="fonte-verde">{{ agenda.data | date:"d/m" }} {{ agenda.data | date:"D" }}</span> {{ agenda.agenda }}</p>
                                         {% endif %}
                                     {% endfor %}
                                 </div>
