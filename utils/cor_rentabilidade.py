@@ -15,12 +15,12 @@ def cor_rentabilidade_css(rentabilidade: float) -> str:
     """Retorna o nome da variavel do css referente a cor da rentabilidade"""
 
     if rentabilidade >= verde:
-        return '--verde-escuro'
+        return '--verde-rentabilidade'
     if rentabilidade >= amarelo:
-        return '--amarelo-escuro'
+        return '--amarelo-rentabilidade'
     if rentabilidade >= vermelho:
-        return '--vermelho-escuro'
-    return '--roxo-escuro'
+        return '--vermelho-rentabilidade'
+    return '--roxo-rentabilidade'
 
 
 def falta_mudar_cor_mes(mc_mes: float, total_mes: float, rentabilidade_mes: float) -> tuple[float, float, float, str]:

@@ -55,6 +55,8 @@ class DashBoardVendas():
 
         self.CONFERE_PEDIDOS = confere_pedidos()
 
+        # TODO: confere transportadora atende cidade de entrega
+
     def get_dados(self):
         dados = {
             'meta_diaria': self.META_DIARIA,

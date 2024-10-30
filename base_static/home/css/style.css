@@ -1,14 +1,20 @@
 :root {
     --azul-escuro: rgb(0, 50, 105);
-    --azul-escuro-2: rgb(95, 144, 196);
+    --azul-escuro-2: hsl(211, 100%, 15%);
+    --azul-claro: rgb(95, 144, 196);
+
     --verde-claro: rgb(189, 198, 56);
-    --verde-escuro: rgb(52, 114, 0);
+
     --cinza-claro: rgb(238, 238, 238);
     --cinza-escuro: rgb(106, 115, 113);
+
     --branco: rgb(255, 255, 255);
-    --vermelho-escuro: rgb(222, 28, 2);
-    --amarelo-escuro: rgb(239, 213, 0);
-    --roxo-escuro: rgb(119, 0, 127);
+
+    --verde-rentabilidade: hsl(95.2, 100%, 35%);
+    --vermelho-rentabilidade: rgb(222, 28, 2);
+    --amarelo-rentabilidade: rgb(239, 213, 0);
+    --roxo-rentabilidade: hsl(280, 100%, 40%);
+    --roxo-rentabilidade-2: hsl(293, 100%, 50%);
 
     --tamanho-borda-icones: 0.2rem;
 
@@ -130,6 +136,11 @@ textarea:focus {
 
 .principal-escuro-2 {
     background-color: var(--azul-escuro-2);
+    color: var(--branco);
+}
+
+.principal-azul-claro {
+    background-color: var(--azul-claro);
     color: var(--branco);
 }
 
@@ -460,7 +471,7 @@ textarea:focus {
     justify-content: center;
     min-width: 36rem;
     margin: 0 auto;
-    font-weight: bold;
+    /* font-weight: bold; */
 }
 
 .dashboard-vendas-conteudo-escuro {

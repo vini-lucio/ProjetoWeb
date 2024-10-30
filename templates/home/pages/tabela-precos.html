@@ -21,7 +21,7 @@
                     <th></th>
                 </tr>
                 {% for produto in tabela %}
-                    <tr class="{% cycle 'principal-escuro-2' '' %}">
+                    <tr class="{% cycle 'principal-azul-claro' '' %}">
                         <td>{% if produto.C %}{{ produto.C }}{% endif %}</td>
                         <td>{{ produto.CODIGO }}</td>
                         <td>{{ produto.PRECO_TABELA | floatformat:"2" }}</td>
