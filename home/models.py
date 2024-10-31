@@ -331,3 +331,28 @@ class Jobs(models.Model):
 
     def __str__(self) -> str:
         return self.descricao
+
+
+class Paises(models.Model):
+    class Meta:
+        verbose_name = 'País'
+        verbose_name_plural = 'Países'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['nome',],
+                name='paises_unique_nome',
+                violation_error_message="Nome é unico em Países"
+            ),
+            models.UniqueConstraint(
+                fields=['chave_analysis',],
+                name='paises_unique_chave_analysis',
+                violation_error_message="Chave Analysis é unico em Países"
+            ),
+        ]
+
+    chave_analysis = models.IntegerField("ID Analysis")
+    nome = models.CharField("Descrição", max_length=30)
+    chave_migracao = models.IntegerField("Chave Migração", null=True)
+
+    def __str__(self) -> str:
+        return self.nome
