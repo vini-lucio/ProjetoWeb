@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.http import HttpRequest
-from home.models import HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda
+from home.models import HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda, Jobs
 from django_summernote.admin import SummernoteModelAdmin
 
 
@@ -47,3 +47,12 @@ class AssistentesTecnicosAgendaAdmin(admin.ModelAdmin):
     list_display_links = 'data_as_ddmmyyyy', 'assistente_tecnico', 'agenda',
     ordering = '-data', 'assistente_tecnico',
     list_filter = 'assistente_tecnico',
+
+
+@admin.register(Jobs)
+class JobsAdmin(admin.ModelAdmin):
+    list_display = 'id', 'descricao', 'status',
+    list_display_links = 'id', 'descricao', 'status',
+    ordering = 'descricao',
+    search_fields = 'descricao',
+    readonly_fields = 'chave_migracao',

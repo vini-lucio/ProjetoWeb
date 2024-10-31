@@ -5,6 +5,11 @@ from django.db.models import Q
 from .services import get_tabela_precos
 
 
+def migracao(request):
+    titulo_pagina = 'Migração'
+    return render(request, 'home/base.html', {'titulo_pagina': titulo_pagina})
+
+
 class IndexListView(ListView):
     model = HomeLinks
     template_name = 'home/pages/index.html'

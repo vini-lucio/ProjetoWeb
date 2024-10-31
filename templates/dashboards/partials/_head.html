@@ -2,8 +2,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-{% comment %} refresh na pagina de 15 minutos {% endcomment %}
-<meta http-equiv="refresh" content="900">
+{% comment %} refresh na pagina de 15 minutos (5 minutos se tiver erro) {% endcomment %}
+{% if dados.confere_pedidos %}
+    <meta http-equiv="refresh" content="300">
+{% else %}
+    <meta http-equiv="refresh" content="900">
+{% endif %}
 
 <link rel="stylesheet" href="{% static "home/css/style.css" %}">
 {% if site_setup.favicon %}

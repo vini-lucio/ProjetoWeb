@@ -5,6 +5,7 @@ from utils.imagens import redimensionar_imagem
 from django_summernote.models import AbstractAttachment
 from django.db.models import Q
 from utils.converter import converter_data_django_para_str_ddmmyyyy, converter_data_django_para_dia_semana
+from utils.choices import status_ativo_inativo
 
 
 class PostAttachment(AbstractAttachment):
@@ -267,10 +268,7 @@ class AssistentesTecnicos(models.Model):
             ),
         ]
 
-    status_assitentes = {
-        'ativo': 'Ativo',
-        'inativo': 'Inativo',
-    }
+    status_assitentes = status_ativo_inativo
 
     nome = models.CharField("Nome", max_length=30)
     status = models.CharField("Status", max_length=30, choices=status_assitentes, default='ativo')  # type:ignore
@@ -311,3 +309,25 @@ class AssistentesTecnicosAgenda(models.Model):
 
     def __str__(self) -> str:
         return f'{self.data_as_ddmmyyyy} - {self.assistente_tecnico}'
+
+
+class Jobs(models.Model):
+    class Meta:
+        verbose_name = 'Job'
+        verbose_name_plural = 'Jobs'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='jobs_unique_descricao',
+                violation_error_message="Descrição é unica em Jobs"
+            ),
+        ]
+
+    status_jobs = status_ativo_inativo
+
+    descricao = models.CharField("Descrição", max_length=30)
+    chave_migracao = models.IntegerField("Chave Migração", null=True)
+    status = models.CharField("Status", max_length=30, choices=status_jobs, default='ativo')  # type:ignore
+
+    def __str__(self) -> str:
+        return self.descricao

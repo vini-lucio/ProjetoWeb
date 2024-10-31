@@ -22,7 +22,7 @@
 
             <div class="grid-dashboard-2">
 
-                <div class="moldura-verde-dashboard grid-dashboard principal-escuro-2" style="{% if dados.porcentagem_meta_dia >= 100 %}border-color:var(--roxo-rentabilidade-2){% endif %}">
+                <div class="moldura-verde-dashboard grid-dashboard principal-escuro-2" style="{% if dados.porcentagem_meta_dia >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
 
                     <div>
                         <div class="div-dashboard">
@@ -59,7 +59,7 @@
 
                 </div>
 
-                <div class="moldura-verde-dashboard grid-dashboard principal-escuro-2" style="{% if dados.porcentagem_meta_mes >= 100 %}border-color:var(--roxo-rentabilidade-2){% endif %}">
+                <div class="moldura-verde-dashboard grid-dashboard principal-escuro-2" style="{% if dados.porcentagem_meta_mes >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
 
                     <div>
                         <div class="div-dashboard">
@@ -103,7 +103,7 @@
 
             </div>
 
-            <div class="moldura-verde-dashboard div-dashboard principal-escuro-2">
+            <div class="div-dashboard principal-escuro">
                 <p>Atualizado em: {{ dados.data_hora_atual }}</p>
             </div>
 
