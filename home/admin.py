@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.http import HttpRequest
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
-                         Jobs, Paises, Estados)
+                         Jobs, Paises, Estados, Cidades)
 from django_summernote.admin import SummernoteModelAdmin
 
 
@@ -74,4 +74,13 @@ class EstadosAdmin(admin.ModelAdmin):
     list_display_links = 'id', 'uf', 'sigla',
     ordering = 'uf',
     search_fields = 'uf', 'sigla',
+    readonly_fields = 'chave_migracao',
+
+
+@admin.register(Cidades)
+class CidadesAdmin(admin.ModelAdmin):
+    list_display = 'id', 'nome', 'estado',
+    list_display_links = 'id', 'estado', 'nome',
+    ordering = 'nome',
+    search_fields = 'nome', 'estado__uf',
     readonly_fields = 'chave_migracao',

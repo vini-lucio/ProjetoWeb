@@ -387,3 +387,24 @@ class Estados(models.Model):
 
     def __str__(self) -> str:
         return self.uf
+
+
+class Cidades(models.Model):
+    class Meta:
+        verbose_name = 'Cidade'
+        verbose_name_plural = 'Cidades'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['chave_analysis',],
+                name='cidades_unique_chave_analysis',
+                violation_error_message="Chave Analysis é unico em Cidades"
+            ),
+        ]
+
+    chave_analysis = models.IntegerField("ID Analysis")
+    estado = models.ForeignKey(Estados, verbose_name="Estado", on_delete=models.PROTECT)
+    nome = models.CharField("Nome", max_length=70)
+    chave_migracao = models.IntegerField("Chave Migração", null=True)
+
+    def __str__(self) -> str:
+        return self.nome
