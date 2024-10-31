@@ -1,9 +1,8 @@
 import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
-
 # ########### alterar model do import #########################################
-from home.models import Jobs
+from home.models import Estados
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent
 origem = BASE_DIR / '__localcode' / 'migracao' / 'migrar.json'
@@ -18,10 +17,12 @@ class Command(BaseCommand):
 
         for item in dados:
             # ########### alterar model do import #############################
-            instancia = Jobs(
+            instancia = Estados(
                 # ########### alterar campos json vs model ####################
-                descricao=item['descricao'],
                 chave_migracao=item['chave_migracao'],
+                chave_analysis=item['chave_analysis'],
+                uf=item['uf'],
+                sigla=item['sigla'],
             )
             instancia.full_clean()
             instancia.save()

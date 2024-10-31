@@ -351,8 +351,39 @@ class Paises(models.Model):
         ]
 
     chave_analysis = models.IntegerField("ID Analysis")
-    nome = models.CharField("Descrição", max_length=30)
+    nome = models.CharField("Nome", max_length=30)
     chave_migracao = models.IntegerField("Chave Migração", null=True)
 
     def __str__(self) -> str:
         return self.nome
+
+
+class Estados(models.Model):
+    class Meta:
+        verbose_name = 'Estado'
+        verbose_name_plural = 'Estados'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['uf',],
+                name='estados_unique_uf',
+                violation_error_message="UF é unico em Estados"
+            ),
+            models.UniqueConstraint(
+                fields=['chave_analysis',],
+                name='estados_unique_chave_analysis',
+                violation_error_message="Chave Analysis é unico em Estados"
+            ),
+            models.UniqueConstraint(
+                fields=['sigla',],
+                name='estados_unique_sigla',
+                violation_error_message="Sigla é unico em Estados"
+            ),
+        ]
+
+    chave_analysis = models.IntegerField("ID Analysis")
+    uf = models.CharField("UF", max_length=30)
+    sigla = models.CharField("Sigla", max_length=2)
+    chave_migracao = models.IntegerField("Chave Migração", null=True)
+
+    def __str__(self) -> str:
+        return self.uf
