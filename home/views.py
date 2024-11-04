@@ -6,10 +6,11 @@ from home.models import HomeLinks
 from django.db.models import Q
 from .services import get_tabela_precos, migrar_cidades
 from .forms import Confirmacao
+from django.contrib.auth.decorators import user_passes_test
 
 
+@user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
 def migracao(request):
-    # TODO: forçar logado superuser
     titulo_pagina = 'Migração'
 
     if request.method == 'POST':
