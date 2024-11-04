@@ -1,13 +1,29 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.contrib import messages
 from django.views.generic import ListView, DetailView
 from home.models import HomeLinks
 from django.db.models import Q
-from .services import get_tabela_precos
+from .services import get_tabela_precos, migrar_cidades
+from .forms import Confirmacao
 
 
 def migracao(request):
+    # TODO: forçar logado superuser
     titulo_pagina = 'Migração'
-    return render(request, 'home/base.html', {'titulo_pagina': titulo_pagina})
+
+    if request.method == 'POST':
+        formulario = Confirmacao(request.POST)
+        if formulario.is_valid() and formulario.cleaned_data['confirma']:
+            migrar_cidades()
+            messages.success(request, "Migração de cidades concluída!")
+            return redirect(reverse('home:migracao'))
+
+    formulario = Confirmacao()
+
+    contexto = {'titulo_pagina': titulo_pagina, 'formulario': formulario, }
+
+    return render(request, 'home/pages/migracao.html', contexto)
 
 
 class IndexListView(ListView):

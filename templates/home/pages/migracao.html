@@ -1,0 +1,28 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="titulo">
+            <h1>{{ titulo_pagina }}</h1>
+        </div>
+
+        <div class="link-conteudo">
+            <div class="grid-simples">
+                <form method="POST" action="{% url "home:migracao" %}">
+                    {% csrf_token %}
+                    {{ formulario.as_p }}
+                    <button class="botao" type="submit">Atualizar Cadastro de Cidades</button>
+                    {% if messages %}
+                        {% for mensagem in messages %}
+                            <p>{{ mensagem }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

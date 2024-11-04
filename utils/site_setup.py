@@ -1,4 +1,4 @@
-from home.models import SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgenda, Estados
+from home.models import SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgenda, Estados, Cidades
 from utils.data_hora_atual import hoje
 
 
@@ -16,3 +16,7 @@ def get_assistentes_tecnicos_agenda():
 
 def get_estados():
     return Estados.objects
+
+
+def get_cidades():
+    return Cidades.objects

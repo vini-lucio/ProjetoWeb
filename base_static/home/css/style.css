@@ -81,6 +81,15 @@ button,
     padding: 0 0.5rem;
 }
 
+input[type=checkbox] {
+    width: var(--tamanho-fonte-p);
+    height: var(--tamanho-fonte-p);
+}
+
+form p {
+    padding: 0.5rem 0.5rem;
+}
+
 input,
 textarea {
     color: var(--azul-escuro);

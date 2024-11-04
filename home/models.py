@@ -326,7 +326,7 @@ class Jobs(models.Model):
     status_jobs = status_ativo_inativo
 
     descricao = models.CharField("Descrição", max_length=30)
-    chave_migracao = models.IntegerField("Chave Migração", null=True)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
     status = models.CharField("Status", max_length=30, choices=status_jobs, default='ativo')  # type:ignore
 
     def __str__(self) -> str:
@@ -352,7 +352,7 @@ class Paises(models.Model):
 
     chave_analysis = models.IntegerField("ID Analysis")
     nome = models.CharField("Nome", max_length=30)
-    chave_migracao = models.IntegerField("Chave Migração", null=True)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     def __str__(self) -> str:
         return self.nome
@@ -383,7 +383,7 @@ class Estados(models.Model):
     chave_analysis = models.IntegerField("ID Analysis")
     uf = models.CharField("UF", max_length=30)
     sigla = models.CharField("Sigla", max_length=2)
-    chave_migracao = models.IntegerField("Chave Migração", null=True)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     def __str__(self) -> str:
         return self.uf
@@ -404,7 +404,7 @@ class Cidades(models.Model):
     chave_analysis = models.IntegerField("ID Analysis")
     estado = models.ForeignKey(Estados, verbose_name="Estado", on_delete=models.PROTECT)
     nome = models.CharField("Nome", max_length=70)
-    chave_migracao = models.IntegerField("Chave Migração", null=True)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     def __str__(self) -> str:
         return self.nome
