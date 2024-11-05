@@ -2,15 +2,15 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 # ########### alterar model do import #########################################
-from home.models import Cidades
+from rh.models import Cbo
 # ########### alterar/comentar get do import ##################################
-from utils.site_setup import get_estados
+# from utils.site_setup import get_estados
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent
 origem = BASE_DIR / '__localcode' / 'migracao' / 'migrar.json'
 
 # ########### alterar/comentar get e for ######################################
-estrangeiro = get_estados()
+# estrangeiro = get_estados()
 
 
 class Command(BaseCommand):
@@ -22,14 +22,13 @@ class Command(BaseCommand):
 
         for item in dados:
             # ########### alterar/comentar chave estrangeira ##################
-            fk_verdadeira = estrangeiro.filter(chave_migracao=item['estado']).first()
+            # fk_verdadeira = estrangeiro.filter(chave_migracao=item['estado']).first()
             # ########### alterar model do import #############################
-            instancia = Cidades(
+            instancia = Cbo(
                 # ########### alterar campos json vs model e chave estrangeira
                 chave_migracao=item['chave_migracao'],
-                chave_analysis=item['chave_analysis'],
-                estado=fk_verdadeira,
-                nome=item['nome'],
+                numero=item['numero'],
+                descricao=item['descricao'],
             )
             instancia.full_clean()
             instancia.save()

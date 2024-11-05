@@ -1,5 +1,4 @@
 from django.db import models
-# from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from utils.imagens import redimensionar_imagem
 from django_summernote.models import AbstractAttachment
