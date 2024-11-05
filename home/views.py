@@ -5,7 +5,7 @@ from django.views.generic import ListView, DetailView
 from home.models import HomeLinks
 from django.db.models import Q
 from .services import get_tabela_precos, migrar_cidades
-from .forms import Confirmacao
+from .forms import ConfirmacaoMigrarCidades
 from django.contrib.auth.decorators import user_passes_test
 
 
@@ -14,13 +14,13 @@ def migracao(request):
     titulo_pagina = 'Migração'
 
     if request.method == 'POST':
-        formulario = Confirmacao(request.POST)
+        formulario = ConfirmacaoMigrarCidades(request.POST)
         if formulario.is_valid() and formulario.cleaned_data['confirma']:
             migrar_cidades()
             messages.success(request, "Migração de cidades concluída!")
             return redirect(reverse('home:migracao'))
 
-    formulario = Confirmacao()
+    formulario = ConfirmacaoMigrarCidades()
 
     contexto = {'titulo_pagina': titulo_pagina, 'formulario': formulario, }
 

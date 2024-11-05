@@ -13,7 +13,7 @@
                 <form method="POST" action="{% url "home:migracao" %}">
                     {% csrf_token %}
                     {{ formulario.as_p }}
-                    <button class="botao" type="submit">Atualizar Cadastro de Cidades</button>
+                    <button id="migrar-cidades" onclick="mudarTextoCidades()" class="botao" type="submit">Atualizar Cadastro de Cidades</button>
                     {% if messages %}
                         {% for mensagem in messages %}
                             <p>{{ mensagem }}</p>
@@ -24,5 +24,15 @@
         </div>
 
     </section>
+
+    <script>
+        function mudarTextoCidades() {
+            var checkbox = document.getElementById("confirma-migrar-cidades");
+            var button = document.getElementById("migrar-cidades");
+            if (checkbox.checked) {
+                button.innerText = "Aguarde...";
+            }
+        }
+    </script>
 
 {% endblock conteudo %}
