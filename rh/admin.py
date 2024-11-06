@@ -2,7 +2,7 @@ from typing import Any
 from django.contrib import admin
 from django.forms import ModelForm
 from django.http import HttpRequest
-from rh.models import Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos
+from rh.models import Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores
 
 
 @admin.register(Cbo)
@@ -64,6 +64,15 @@ class TransporteTiposAdmin(admin.ModelAdmin):
 class DependentesTiposAdmin(admin.ModelAdmin):
     list_display = 'id', 'descricao',
     list_display_links = 'id', 'descricao',
+    ordering = 'descricao',
+    search_fields = 'descricao',
+    readonly_fields = 'chave_migracao',
+
+
+@admin.register(Setores)
+class SetoresAdmin(admin.ModelAdmin):
+    list_display = 'id', 'descricao', 'plano_contas',
+    list_display_links = 'id', 'descricao', 'plano_contas',
     ordering = 'descricao',
     search_fields = 'descricao',
     readonly_fields = 'chave_migracao',

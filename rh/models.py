@@ -146,3 +146,32 @@ class DependentesTipos(models.Model):
 
     def __str__(self) -> str:
         return self.descricao
+
+
+class Setores(models.Model):
+    class Meta:
+        verbose_name = 'Setor'
+        verbose_name_plural = 'Setores'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='setores_unique_descricao',
+                violation_error_message="Descrição é unico em Setores"
+            ),
+        ]
+
+    plano_conta = {
+        'MK': 'MK - Adm., Logistica, Comercial, etc',
+        'CP': 'CP - Produção, Manutenção, etc',
+        'MK/CP': 'MK/CP - Compras, Limpeza, etc',
+    }
+
+    help_text_plano_contas = "Pedir ajuda se tiver duvida em escolher, este campo interfere diretamente no custo dos produtos"
+
+    descricao = models.CharField("Descrição", max_length=50)
+    plano_contas = models.CharField("Plano de Contas", max_length=5, choices=plano_conta,  # type: ignore
+                                    help_text=help_text_plano_contas)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    def __str__(self) -> str:
+        return self.descricao

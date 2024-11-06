@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 # ########### alterar model do import #########################################
-from rh.models import TransporteTipos
+from rh.models import Setores
 # ########### alterar/comentar get do import ##################################
 # from utils.site_setup import get_jobs
 
@@ -24,11 +24,12 @@ class Command(BaseCommand):
             # ########### alterar/comentar chave estrangeira ##################
             # fk_verdadeira = estrangeiro.filter(chave_migracao=item['job']).first()
             # ########### alterar model do import #############################
-            instancia = TransporteTipos(
+            instancia = Setores(
                 # ########### alterar campos json vs model e chave estrangeira
                 # ########### usar str() em float #############################
                 chave_migracao=item['chave_migracao'],
                 descricao=item['descricao'],
+                plano_contas=item['plano_contas'],
             )
             instancia.full_clean()
             instancia.save()
