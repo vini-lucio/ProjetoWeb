@@ -24,6 +24,12 @@ class HomeLinksAdmin(SummernoteModelAdmin):
     search_fields = 'tamanho_botao', 'titulo',
     inlines = HomeLinksDocumentosInLine,
 
+    # override do get_inlines para não mostrar na inclusão
+    def get_inlines(self, request, obj):
+        if obj:
+            return super().get_inlines(request, obj)
+        return []
+
 
 @admin.register(SiteSetup)
 class SiteSetupAdmin(admin.ModelAdmin):

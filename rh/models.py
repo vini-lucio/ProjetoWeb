@@ -110,6 +110,25 @@ class TransporteLinhas(models.Model):
         return self.descricao
 
 
+class TransporteTipos(models.Model):
+    class Meta:
+        verbose_name = 'Transporte Tipo'
+        verbose_name_plural = 'Transporte Tipos'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='transportetipos_unique_descricao',
+                violation_error_message="Descrição é unico em Transporte Tipos"
+            ),
+        ]
+
+    descricao = models.CharField("Descrição", max_length=50)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    def __str__(self) -> str:
+        return self.descricao
+
+
 class DependentesTipos(models.Model):
     class Meta:
         verbose_name = 'Dependentes Tipo'
