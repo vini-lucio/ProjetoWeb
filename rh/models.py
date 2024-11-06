@@ -89,3 +89,22 @@ class Escolaridades(models.Model):
 
     def __str__(self) -> str:
         return self.descricao
+
+
+class TransporteLinhas(models.Model):
+    class Meta:
+        verbose_name = 'Transporte Linha'
+        verbose_name_plural = 'Transporte Linhas'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='transportelinhas_unique_descricao',
+                violation_error_message="Descrição é unico em Transporte Linhas"
+            ),
+        ]
+
+    descricao = models.CharField("Descrição", max_length=50)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    def __str__(self) -> str:
+        return self.descricao
