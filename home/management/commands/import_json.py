@@ -2,15 +2,15 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 # ########### alterar model do import #########################################
-from rh.models import Setores
+from rh.models import Funcoes
 # ########### alterar/comentar get do import ##################################
-# from utils.site_setup import get_jobs
+from utils.site_setup import get_cbo
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent
 origem = BASE_DIR / '__localcode' / 'migracao' / 'migrar.json'
 
 # ########### alterar/comentar get ############################################
-# estrangeiro = get_jobs()
+estrangeiro = get_cbo()
 
 
 class Command(BaseCommand):
@@ -22,14 +22,14 @@ class Command(BaseCommand):
 
         for item in dados:
             # ########### alterar/comentar chave estrangeira ##################
-            # fk_verdadeira = estrangeiro.filter(chave_migracao=item['job']).first()
+            fk_verdadeira = estrangeiro.filter(chave_migracao=item['cbo']).first()
             # ########### alterar model do import #############################
-            instancia = Setores(
+            instancia = Funcoes(
                 # ########### alterar campos json vs model e chave estrangeira
                 # ########### usar str() em float #############################
                 chave_migracao=item['chave_migracao'],
+                cbo=fk_verdadeira,
                 descricao=item['descricao'],
-                plano_contas=item['plano_contas'],
             )
             instancia.full_clean()
             instancia.save()

@@ -1,4 +1,5 @@
 from home.models import SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgenda, Estados, Cidades, Jobs
+from rh.models import Cbo
 from utils.data_hora_atual import hoje
 
 
@@ -24,3 +25,7 @@ def get_cidades():
 
 def get_jobs():
     return Jobs.objects
+
+
+def get_cbo():
+    return Cbo.objects

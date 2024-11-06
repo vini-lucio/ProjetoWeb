@@ -175,3 +175,23 @@ class Setores(models.Model):
 
     def __str__(self) -> str:
         return self.descricao
+
+
+class Funcoes(models.Model):
+    class Meta:
+        verbose_name = 'Função'
+        verbose_name_plural = 'Funções'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='funcoes_unique_descricao',
+                violation_error_message="Descrição é unico em Funções"
+            ),
+        ]
+
+    cbo = models.ForeignKey(Cbo, verbose_name="CBO", on_delete=models.PROTECT)
+    descricao = models.CharField("Descrição", max_length=70)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    def __str__(self) -> str:
+        return self.descricao
