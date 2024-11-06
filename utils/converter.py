@@ -7,6 +7,12 @@ def converter_data_django_para_datetime(data_converter) -> datetime:
     return data
 
 
+def converter_hora_django_para_datetime(hora_converter) -> datetime:
+    string = str(hora_converter)
+    hora = datetime.strptime(string, '%H:%M:%S')
+    return hora
+
+
 def converter_data_django_para_str_ddmmyyyy(data_converter) -> str:
     data = converter_data_django_para_datetime(data_converter)
     data_formatada = data.strftime('%d/%m/%Y')
@@ -26,3 +32,9 @@ def converter_data_django_para_dia_semana(data_converter) -> str:
     }
     data_formatada = dias_semana[data.strftime('%A')]
     return data_formatada
+
+
+def converter_hora_django_para_str_hh24mm(hora_converter) -> str:
+    hora = converter_hora_django_para_datetime(hora_converter)
+    hora_formatada = hora.strftime('%H:%M')
+    return hora_formatada

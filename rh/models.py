@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import Q
 from home.models import Jobs
 from utils.base_models import BaseLogModel
-from utils.converter import converter_data_django_para_str_ddmmyyyy
+from utils.converter import converter_data_django_para_str_ddmmyyyy, converter_hora_django_para_str_hh24mm
 
 
 class Cbo(models.Model):
@@ -195,3 +195,54 @@ class Funcoes(models.Model):
 
     def __str__(self) -> str:
         return self.descricao
+
+
+class Horarios(models.Model):
+    class Meta:
+        verbose_name = 'Horario'
+        verbose_name_plural = 'Horarios'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['inicio', 'intervalo_inicio', 'intervalo_fim', 'fim', 'sexta_fim',],
+                name='horarios_unique_horario',
+                violation_error_message="Horario é unico em Horarios"
+            ),
+        ]
+
+    inicio = models.TimeField("Inicio", auto_now=False, auto_now_add=False)
+    intervalo_inicio = models.TimeField("Intervalo Inicio", auto_now=False, auto_now_add=False)
+    intervalo_fim = models.TimeField("Intervalo Fim", auto_now=False, auto_now_add=False)
+    fim = models.TimeField("Fim", auto_now=False, auto_now_add=False)
+    sexta_fim = models.TimeField("Sexta Fim", auto_now=False, auto_now_add=False)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    @property
+    def horario(self):
+        h_inicio = converter_hora_django_para_str_hh24mm(self.inicio)
+        h_intervalo_inicio = converter_hora_django_para_str_hh24mm(self.intervalo_inicio)
+        h_intervalo_fim = converter_hora_django_para_str_hh24mm(self.intervalo_fim)
+        h_fim = converter_hora_django_para_str_hh24mm(self.fim)
+        h_sexta_fim = converter_hora_django_para_str_hh24mm(self.sexta_fim)
+        return f'Horario: {h_inicio} - {h_fim} Sexta: {h_sexta_fim}. Intervalo: {h_intervalo_inicio} - {h_intervalo_fim}'
+
+    horario.fget.short_description = 'Horario'  # type:ignore
+
+    @property
+    def horario_inicio_fim_sexta(self):
+        h_inicio = converter_hora_django_para_str_hh24mm(self.inicio)
+        h_fim = converter_hora_django_para_str_hh24mm(self.fim)
+        h_sexta_fim = converter_hora_django_para_str_hh24mm(self.sexta_fim)
+        return f'{h_inicio} - {h_fim} / Sexta: {h_sexta_fim}'
+
+    horario_inicio_fim_sexta.fget.short_description = 'Horario Inicio - Fim / Sexta'  # type:ignore
+
+    @property
+    def intervalo_inicio_fim(self):
+        h_intervalo_inicio = converter_hora_django_para_str_hh24mm(self.intervalo_inicio)
+        h_intervalo_fim = converter_hora_django_para_str_hh24mm(self.intervalo_fim)
+        return f'{h_intervalo_inicio} - {h_intervalo_fim}'
+
+    intervalo_inicio_fim.fget.short_description = 'Intervalo Inicio - Fim'  # type:ignore
+
+    def __str__(self) -> str:
+        return self.horario

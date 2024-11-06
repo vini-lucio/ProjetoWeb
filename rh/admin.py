@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.forms import ModelForm
 from django.http import HttpRequest
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
-                       Funcoes)
+                       Funcoes, Horarios)
 
 
 @admin.register(Cbo)
@@ -85,4 +85,13 @@ class FuncoesAdmin(admin.ModelAdmin):
     list_display_links = 'id', 'descricao',
     ordering = 'descricao',
     search_fields = 'descricao',
+    readonly_fields = 'chave_migracao',
+
+
+@admin.register(Horarios)
+class HorariosAdmin(admin.ModelAdmin):
+    list_display = 'id', 'horario_inicio_fim_sexta', 'intervalo_inicio_fim',
+    list_display_links = 'id', 'horario_inicio_fim_sexta', 'intervalo_inicio_fim',
+    ordering = 'inicio', 'intervalo_inicio', 'intervalo_fim', 'fim', 'sexta_fim'
+    search_fields = 'horario',
     readonly_fields = 'chave_migracao',
