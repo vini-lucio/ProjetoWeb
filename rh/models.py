@@ -70,3 +70,22 @@ class Dissidios(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.job} - {self.data_as_ddmmyyyy}'
+
+
+class Escolaridades(models.Model):
+    class Meta:
+        verbose_name = 'Escolaridade'
+        verbose_name_plural = 'Escolaridades'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='escolaridades_unique_descricao',
+                violation_error_message="Descrição é unico em Escolaridades"
+            ),
+        ]
+
+    descricao = models.CharField("Descrição", max_length=70)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    def __str__(self) -> str:
+        return self.descricao

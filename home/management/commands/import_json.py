@@ -2,15 +2,15 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 # ########### alterar model do import #########################################
-from rh.models import Dissidios
+from rh.models import Escolaridades
 # ########### alterar/comentar get do import ##################################
-from utils.site_setup import get_jobs
+# from utils.site_setup import get_jobs
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent
 origem = BASE_DIR / '__localcode' / 'migracao' / 'migrar.json'
 
 # ########### alterar/comentar get ############################################
-estrangeiro = get_jobs()
+# estrangeiro = get_jobs()
 
 
 class Command(BaseCommand):
@@ -22,17 +22,13 @@ class Command(BaseCommand):
 
         for item in dados:
             # ########### alterar/comentar chave estrangeira ##################
-            fk_verdadeira = estrangeiro.filter(chave_migracao=item['job']).first()
+            # fk_verdadeira = estrangeiro.filter(chave_migracao=item['job']).first()
             # ########### alterar model do import #############################
-            instancia = Dissidios(
+            instancia = Escolaridades(
                 # ########### alterar campos json vs model e chave estrangeira
                 # ########### usar str() em float #############################
                 chave_migracao=item['chave_migracao'],
-                job=fk_verdadeira,
-                data=item['data'],
-                dissidio_real=str(item['dissidio_real']),
-                dissidio_adicional=str(item['dissidio_adicional']),
-                aplicado=item['aplicado'],
+                descricao=item['descricao'],
             )
             instancia.full_clean()
             instancia.save()

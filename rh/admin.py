@@ -2,7 +2,7 @@ from typing import Any
 from django.contrib import admin
 from django.forms import ModelForm
 from django.http import HttpRequest
-from rh.models import Cbo, Dissidios
+from rh.models import Cbo, Dissidios, Escolaridades
 
 
 @admin.register(Cbo)
@@ -31,3 +31,12 @@ class DissidiosAdmin(admin.ModelAdmin):
             obj.atualizado_por = request.user
         obj.save()
         return super().save_model(request, obj, form, change)
+
+
+@admin.register(Escolaridades)
+class EscolaridadesAdmin(admin.ModelAdmin):
+    list_display = 'id', 'descricao',
+    list_display_links = 'id', 'descricao',
+    ordering = 'descricao',
+    search_fields = 'descricao',
+    readonly_fields = 'chave_migracao',
