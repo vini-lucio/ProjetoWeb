@@ -138,7 +138,8 @@ class HomeLinksDocumentos(models.Model):
             ),
         ]
 
-    home_link = models.ForeignKey(HomeLinks, verbose_name="Home Link", on_delete=models.CASCADE)
+    home_link = models.ForeignKey(HomeLinks, verbose_name="Home Link", on_delete=models.CASCADE,
+                                  related_name="%(class)s")
     nome = models.CharField("Nome Documento", max_length=50)
     documento = models.FileField("Documento", upload_to='home/link_documento/%Y/%m/')
 
@@ -291,7 +292,7 @@ class AssistentesTecnicosAgenda(models.Model):
 
     data = models.DateField("Data", auto_now=False, auto_now_add=False)
     assistente_tecnico = models.ForeignKey(AssistentesTecnicos, verbose_name="Assistente Tecnico",
-                                           on_delete=models.PROTECT)
+                                           on_delete=models.PROTECT, related_name="%(class)s")
     agenda = models.CharField("Agenda", max_length=50)
 
     @property
@@ -401,9 +402,27 @@ class Cidades(models.Model):
         ]
 
     chave_analysis = models.IntegerField("ID Analysis")
-    estado = models.ForeignKey(Estados, verbose_name="Estado", on_delete=models.PROTECT)
+    estado = models.ForeignKey(Estados, verbose_name="Estado", on_delete=models.PROTECT, related_name="%(class)s")
     nome = models.CharField("Nome", max_length=70)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    def __str__(self) -> str:
+        return self.nome
+
+
+class Bancos(models.Model):
+    class Meta:
+        verbose_name = 'Banco'
+        verbose_name_plural = 'Bancos'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['nome',],
+                name='bancos_unique_nome',
+                violation_error_message="Nome é unico em Banco"
+            ),
+        ]
+
+    nome = models.CharField("Nome", max_length=50)
 
     def __str__(self) -> str:
         return self.nome
