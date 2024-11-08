@@ -160,7 +160,6 @@ class SiteSetup(models.Model):
     logo_cabecalho = models.ImageField("Logo", upload_to='home/logo/%Y/%m/',
                                        blank=True, null=True, help_text=help_text_logo)
     texto_rodape = models.TextField("Texto do Rodapé", blank=True, null=True)
-
     primeiro_dia_mes = models.DateField("Primeiro Dia do Mês", default='2000-01-01',  # type:ignore
                                         auto_now=False, auto_now_add=False)
     primeiro_dia_util_mes = models.DateField("Primeiro Dia Util do Mês", default='2000-01-01',  # type:ignore
@@ -407,7 +406,7 @@ class Cidades(models.Model):
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     def __str__(self) -> str:
-        return self.nome
+        return f'{self.nome} - {self.estado.sigla}'
 
 
 class Bancos(models.Model):

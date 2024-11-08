@@ -1,7 +1,8 @@
 from django.db import models
 from django.db.models import Q
-from home.models import Jobs  # , Cidades, Estados, Paises
-# from utils.imagens import redimensionar_imagem
+from django.utils.safestring import mark_safe
+from home.models import Jobs, Cidades, Estados, Paises, Bancos
+from utils.imagens import redimensionar_imagem
 from utils.base_models import BaseLogModel
 from utils.converter import converter_data_django_para_str_ddmmyyyy, converter_hora_django_para_str_hh24mm
 
@@ -249,173 +250,175 @@ class Horarios(models.Model):
         return self.horario
 
 
-# class Funcionarios(BaseLogModel):
-#     class Meta:
-#         verbose_name = 'Funcionario'
-#         verbose_name_plural = 'Funcionarios'
-#         constraints = [
-#             models.UniqueConstraint(
-#                 fields=['job', 'registro',],
-#                 name='funcionarios_unique_registro',
-#                 violation_error_message="Job e Registro são unicos em Funcionarios"
-#             ),
-#             # models.CheckConstraint(
-#             #     check=Q(dissidio_real__gte=0),
-#             #     name='dissidios_check_dissidio_real',
-#             #     violation_error_message="Dissidio Real precisa ser maior ou igual a 0"
-#             # ),
-#             # models.CheckConstraint(
-#             #     check=Q(dissidio_adicional__gte=0),
-#             #     name='dissidios_check_dissidio_adicional',
-#             #     violation_error_message="Dissidio Adicional precisa ser maior ou igual a 0"
-#             # ),
-#         ]
+class Funcionarios(BaseLogModel):
+    class Meta:
+        verbose_name = 'Funcionario'
+        verbose_name_plural = 'Funcionarios'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['job', 'registro',],
+                name='funcionarios_unique_registro',
+                violation_error_message="Job e Registro são unicos em Funcionarios"
+            ),
+        ]
 
-#     sexos = {
-#         'MASCULINO': 'Masculino',
-#         'FEMININO': 'Feminino',
-#         'OUTROS': 'Outros',
-#     }
+    sexos = {
+        'MASCULINO': 'Masculino',
+        'FEMININO': 'Feminino',
+        'OUTROS': 'Outros',
+    }
 
-#     estados_civis = {
-#         'CASADO': 'Casado',
-#         'SOLTEIRO': 'Solteiro',
-#         'DIVORCIADO': 'Divorciado',
-#         'VIUVO': 'Viuvo',
-#         'UNIAO ESTAVEL': 'União Estavel',
-#     }
+    estados_civis = {
+        'CASADO': 'Casado',
+        'SOLTEIRO': 'Solteiro',
+        'DIVORCIADO': 'Divorciado',
+        'VIUVO': 'Viuvo',
+        'UNIAO ESTAVEL': 'União Estavel',
+    }
 
-#     cnh_categorias = {
-#         'A': 'A',
-#         'B': 'B',
-#         'C': 'C',
-#         'D': 'D',
-#         'E': 'E',
-#         'AB': 'AB',
-#         'AC': 'AC',
-#         'AD': 'AD',
-#         'AE': 'AE',
-#         'ACC': 'ACC',
-#     }
+    cnh_categorias = {
+        'A': 'A',
+        'B': 'B',
+        'C': 'C',
+        'D': 'D',
+        'E': 'E',
+        'AB': 'AB',
+        'AC': 'AC',
+        'AD': 'AD',
+        'AE': 'AE',
+        'ACC': 'ACC',
+    }
 
-#     certidao_tipos = {
-#         'NASCIMENTO': 'Nascimento',
-#         'CASAMENTO': 'Casamento',
-#     }
+    certidao_tipos = {
+        'NASCIMENTO': 'Nascimento',
+        'CASAMENTO': 'Casamento',
+    }
 
-#     escolaridades_status = {
-#         'CURSANDO': 'Cursando',
-#         'INCOMPLETO': 'Incompleto',
-#         'COMPLETO': 'Completo',
-#     }
+    escolaridades_status = {
+        'CURSANDO': 'Cursando',
+        'INCOMPLETO': 'Incompleto',
+        'COMPLETO': 'Completo',
+    }
 
-#     help_text_foto = (
-#         "A imagem será redimensionada proporcionalmente ao incluir nova imagem para ter no maximo 500px de largura"
-#     )
+    exames_tipos = {
+        'ADMISSIONAL': 'Admissional',
+        'PERIODICO': 'Periodico',
+        'MUDANCA DE FUNCAO': 'Mudança de Função',
+    }
 
-#     job = models.ForeignKey(Jobs, verbose_name="Job", on_delete=models.PROTECT, related_name="%(class)s")
-#     registro = models.IntegerField("Registro")
-#     data_entrada = models.DateField("Data Entrada", auto_now=False, auto_now_add=False)
-#     data_saida = models.DateField("Data Saida", auto_now=False, auto_now_add=False, null=True, blank=True)
-#     data_inicio_experiencia = models.DateField("Data Inicio Experiencia", auto_now=False, auto_now_add=False,
-#                                                null=True, blank=True)
-#     data_fim_experiencia = models.DateField("Data Fim Experiencia", auto_now=False, auto_now_add=False,
-#                                             null=True, blank=True)
-#     data_inicio_prorrogacao = models.DateField("Data Inicio Prorrogacao", auto_now=False, auto_now_add=False,
-#                                                null=True, blank=True)
-#     data_fim_prorrogacao = models.DateField("Data Fim Prorrogacao", auto_now=False, auto_now_add=False,
-#                                             null=True, blank=True)
-#     foto = models.ImageField("Foto", upload_to="rh/funcionarios/%Y/%m/", null=True, blank=True,
-#                              help_text=help_text_foto)
-#     nome = models.CharField("Nome", max_length=100)
-#     endereco = models.CharField("Endereço", max_length=100)
-#     numero = models.CharField("Numero", max_length=30)
-#     complemento = models.CharField("Complemento", max_length=30, null=True, blank=True)
-#     cep = models.CharField("CEP", max_length=9)
-#     bairro = models.CharField("Bairro", max_length=70)
-#     cidade = models.ForeignKey(Cidades, verbose_name="Cidade", on_delete=models.PROTECT,
-#                                related_name="%(class)s_cidade")
-#     uf = models.ForeignKey(Estados, verbose_name="Estado", on_delete=models.PROTECT, related_name="%(class)s_uf")
-#     pais = models.ForeignKey(Paises, verbose_name="País", on_delete=models.PROTECT, related_name="%(class)s_pais")
-#     data_nascimento = models.DateField("Data Nascimento", auto_now=False, auto_now_add=False)
-#     cidade_nascimento = models.ForeignKey(Cidades, verbose_name="Cidade Nascimento", on_delete=models.PROTECT,
-#                                           related_name="%(class)s_cidade_nascimento")
-#     uf_nascimento = models.ForeignKey(Estados, verbose_name="Estado Nascimento", on_delete=models.PROTECT,
-#                                       related_name="%(class)s_uf_nascimento")
-#     pais_nascimento = models.ForeignKey(Paises, verbose_name="País Nascimento", on_delete=models.PROTECT,
-#                                         related_name="%(class)s_pais_nascimento")
-#     sexo = models.CharField("Sexo", max_length=10, choices=sexos)  # type:ignore
-#     estado_civil = models.CharField("Estado Civil", max_length=20, choices=estados_civis)  # type:ignore
-#     fone_1 = models.CharField("Telefone 1", max_length=30)
-#     fone_2 = models.CharField("Telefone 2", max_length=30, null=True, blank=True)
-#     fone_recado = models.CharField("Telefone Recado", max_length=30, null=True, blank=True)
-#     email = models.EmailField("e-mail", max_length=254, null=True, blank=True)
-#     rg = models.CharField("RG", max_length=20)
-#     rg_orgao_emissor = models.CharField("RG Orgão Emissor", max_length=10, null=True, blank=True)
-#     cpf = models.CharField("CPF", max_length=14)
-#     pis = models.CharField("PIS", max_length=14, null=True, blank=True)
-#     carteira_profissional = models.CharField("Carteira Profissional", max_length=10, null=True, blank=True)
-#     carteira_profissional_serie = models.CharField("Carteira Profissional Serie", max_length=5, null=True, blank=True)
-#     titulo_eleitoral = models.CharField("Titutlo Eleitoral", max_length=15, null=True, blank=True)
-#     titulo_eleitoral_zona = models.CharField("Titutlo Eleitoral Zona", max_length=5, null=True, blank=True)
-#     titulo_eleitoral_sessao = models.CharField("Titutlo Eleitoral Sessao", max_length=5, null=True, blank=True)
-#     certificado_militar = models.CharField("Certificado Militar", max_length=15, null=True, blank=True)
-#     cnh = models.CharField("CNH", max_length=11, null=True, blank=True)
-#     cnh_categoria = models.CharField("CNH Categoria", max_length=5, null=True, blank=True,
-#                                      choices=cnh_categorias)  # type:ignore
-#     cnh_data_emissao = models.DateField("CNH Data Emissão", auto_now=False, auto_now_add=False, null=True, blank=True)
-#     cnh_data_vencimento = models.DateField("CNH Data Vencimento", auto_now=False, auto_now_add=False, null=True,
-#                                            blank=True)
-#     certidao_tipo = models.CharField("Certidão Tipo", max_length=10, null=True, blank=True,
-#                                      choices=certidao_tipos)  # type:ignore
-#     certidao_data_emissao = models.DateField("Certidão Data Emissão", auto_now=False, auto_now_add=False, null=True,
-#                                              blank=True)
-#     certidao_termo_matricula = models.CharField("Certidão Termo / Matricula", max_length=32, null=True, blank=True)
-#     certidao_livro = models.CharField("Certidão Livro", max_length=5, null=True, blank=True)
-#     certidao_folha = models.CharField("Certidão Folha", max_length=5, null=True, blank=True)
-#     escolaridade = models.ForeignKey(Escolaridades, verbose_name="Escolaridade", on_delete=models.PROTECT,
-#                                      related_name="%(class)s")
-#     escolaridade_status = models.CharField("Escolaridade Status", max_length=20, null=True, blank=True,
-#                                            choices=escolaridades_status)  # type:ignore
+    contas_tipos = {
+        'CORRENTE': 'Corrente',
+        'POUPANCA': 'Poupança',
+        'SALARIO': 'Salario',
+    }
 
-#     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+    help_text_foto = (
+        "A imagem será redimensionada proporcionalmente ao incluir nova imagem para ter no maximo 500px de largura"
+    )
 
-#     @property
-#     def status(self):
-#         if not self.data_saida:
-#             return "Inativo"
-#         return "Ativo"
+    job = models.ForeignKey(Jobs, verbose_name="Job", on_delete=models.PROTECT, related_name="%(class)s")
+    registro = models.IntegerField("Registro")
+    data_entrada = models.DateField("Data Entrada", auto_now=False, auto_now_add=False)
+    data_saida = models.DateField("Data Saida", auto_now=False, auto_now_add=False, null=True, blank=True)
+    data_inicio_experiencia = models.DateField("Data Inicio Experiencia", auto_now=False, auto_now_add=False,
+                                               null=True, blank=True)
+    data_fim_experiencia = models.DateField("Data Fim Experiencia", auto_now=False, auto_now_add=False,
+                                            null=True, blank=True)
+    data_inicio_prorrogacao = models.DateField("Data Inicio Prorrogacao", auto_now=False, auto_now_add=False,
+                                               null=True, blank=True)
+    data_fim_prorrogacao = models.DateField("Data Fim Prorrogacao", auto_now=False, auto_now_add=False,
+                                            null=True, blank=True)
+    foto = models.ImageField("Foto", upload_to="rh/funcionarios/%Y/%m/", null=True, blank=True,
+                             help_text=help_text_foto)
+    nome = models.CharField("Nome", max_length=100)
+    endereco = models.CharField("Endereço", max_length=100)
+    numero = models.CharField("Numero", max_length=30)
+    complemento = models.CharField("Complemento", max_length=30, null=True, blank=True)
+    cep = models.CharField("CEP", max_length=9)
+    bairro = models.CharField("Bairro", max_length=70)
+    cidade = models.ForeignKey(Cidades, verbose_name="Cidade", on_delete=models.PROTECT,
+                               related_name="%(class)s_cidade")
+    uf = models.ForeignKey(Estados, verbose_name="Estado", on_delete=models.PROTECT, related_name="%(class)s_uf")
+    pais = models.ForeignKey(Paises, verbose_name="País", on_delete=models.PROTECT, related_name="%(class)s_pais")
+    data_nascimento = models.DateField("Data Nascimento", auto_now=False, auto_now_add=False)
+    cidade_nascimento = models.ForeignKey(Cidades, verbose_name="Cidade Nascimento", on_delete=models.PROTECT,
+                                          related_name="%(class)s_cidade_nascimento")
+    uf_nascimento = models.ForeignKey(Estados, verbose_name="Estado Nascimento", on_delete=models.PROTECT,
+                                      related_name="%(class)s_uf_nascimento")
+    pais_nascimento = models.ForeignKey(Paises, verbose_name="País Nascimento", on_delete=models.PROTECT,
+                                        related_name="%(class)s_pais_nascimento")
+    sexo = models.CharField("Sexo", max_length=10, choices=sexos)  # type:ignore
+    estado_civil = models.CharField("Estado Civil", max_length=20, choices=estados_civis)  # type:ignore
+    fone_1 = models.CharField("Telefone 1", max_length=30)
+    fone_2 = models.CharField("Telefone 2", max_length=30, null=True, blank=True)
+    fone_recado = models.CharField("Telefone Recado", max_length=30, null=True, blank=True)
+    email = models.EmailField("e-mail", max_length=254, null=True, blank=True)
+    rg = models.CharField("RG", max_length=20)
+    rg_orgao_emissor = models.CharField("RG Orgão Emissor", max_length=10, null=True, blank=True)
+    cpf = models.CharField("CPF", max_length=14)
+    pis = models.CharField("PIS", max_length=14, null=True, blank=True)
+    carteira_profissional = models.CharField("Carteira Profissional", max_length=10, null=True, blank=True)
+    carteira_profissional_serie = models.CharField("Carteira Profissional Serie", max_length=5, null=True, blank=True)
+    titulo_eleitoral = models.CharField("Titutlo Eleitoral", max_length=15, null=True, blank=True)
+    titulo_eleitoral_zona = models.CharField("Titutlo Eleitoral Zona", max_length=5, null=True, blank=True)
+    titulo_eleitoral_sessao = models.CharField("Titutlo Eleitoral Sessao", max_length=5, null=True, blank=True)
+    certificado_militar = models.CharField("Certificado Militar", max_length=15, null=True, blank=True)
+    cnh = models.CharField("CNH", max_length=20, null=True, blank=True)
+    cnh_categoria = models.CharField("CNH Categoria", max_length=5, null=True, blank=True,
+                                     choices=cnh_categorias)  # type:ignore
+    cnh_data_emissao = models.DateField("CNH Data Emissão", auto_now=False, auto_now_add=False, null=True, blank=True)
+    cnh_data_vencimento = models.DateField("CNH Data Vencimento", auto_now=False, auto_now_add=False, null=True,
+                                           blank=True)
+    certidao_tipo = models.CharField("Certidão Tipo", max_length=10, null=True, blank=True,
+                                     choices=certidao_tipos)  # type:ignore
+    certidao_data_emissao = models.DateField("Certidão Data Emissão", auto_now=False, auto_now_add=False, null=True,
+                                             blank=True)
+    certidao_termo_matricula = models.CharField("Certidão Termo / Matricula", max_length=32, null=True, blank=True)
+    certidao_livro = models.CharField("Certidão Livro", max_length=5, null=True, blank=True)
+    certidao_folha = models.CharField("Certidão Folha", max_length=5, null=True, blank=True)
+    escolaridade = models.ForeignKey(Escolaridades, verbose_name="Escolaridade", on_delete=models.PROTECT,
+                                     related_name="%(class)s")
+    escolaridade_status = models.CharField("Escolaridade Status", max_length=20, null=True, blank=True,
+                                           choices=escolaridades_status)  # type:ignore
+    data_ultimo_exame = models.DateField("Data Ultimo Exame", auto_now=False, auto_now_add=False, null=True,
+                                         blank=True)
+    exame_tipo = models.CharField("Exame Tipo", max_length=20, null=True, blank=True,
+                                  choices=exames_tipos)  # type:ignore
+    exame_observacoes = models.CharField("Exame Observações", max_length=100, null=True, blank=True)
+    banco = models.ForeignKey(Bancos, verbose_name="Banco", on_delete=models.PROTECT, related_name="%(class)s",
+                              null=True, blank=True)
+    agencia = models.CharField("Agencia", max_length=10, null=True, blank=True)
+    conta = models.CharField("Conta", max_length=10, null=True, blank=True)
+    conta_tipo = models.CharField("Conta Tipo", max_length=10, null=True, blank=True,
+                                  choices=contas_tipos)  # type:ignore
+    observacoes_gerais = models.TextField("Observações Gerais", null=True, blank=True)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
-#     status.fget.short_description = 'Status'  # type:ignore
+    @property
+    def status(self):
+        if self.data_saida:
+            return "Inativo"
+        return "Ativo"
 
-#     def save(self, *args, **kwargs) -> None:
-#         foto_anteior = self.foto.name
-#         super_save = super().save(*args, **kwargs)
+    status.fget.short_description = 'Status'  # type:ignore
 
-#         if self.foto and self.foto.name != foto_anteior:
-#             if self.foto.width > 500:
-#                 largura = 500
-#                 redimensionar_imagem(self.foto, largura)
+    def image_tag(self):
+        if self.foto:
+            return mark_safe(f'<img src="{self.foto.url}"/>')
+        return "Sem foto"
 
-#         return super_save
+    image_tag.short_description = 'Visualização Foto'
 
-#     def __str__(self) -> str:
-#         return self.nome
+    def save(self, *args, **kwargs) -> None:
+        foto_anteior = self.foto.name
+        super_save = super().save(*args, **kwargs)
 
-# 	DATA_ULTIMO_EXAME		DATE,
-# 	TIPO_EXAME			VARCHAR(17),
-# 	OBSERVACOES_EXAME		VARCHAR(70),
-# 	OBSERVACOES			VARCHAR(140),
-# 	BANCO				VARCHAR(50),
-# 	AGENCIA				VARCHAR(10),
-# 	CONTA				VARCHAR(10),
-# 	TIPO_CONTA			VARCHAR(10),
+        if self.foto and self.foto.name != foto_anteior:
+            if self.foto.width > 500:
+                largura = 500
+                redimensionar_imagem(self.foto, largura)
 
-# ALTER TABLE FUNCIONARIOS ADD
-# 	CONSTRAINT CK_FUNCIONARIOS_BANCO CHECK (BANCO IN ('BRADESCO', 'SANTANDER', 'ITAU', 'CAIXA', 'BANCO DO BRASIL'));
+        return super_save
 
-# ALTER TABLE FUNCIONARIOS ADD
-# 	CONSTRAINT CK_FUNCIONARIOS_TIPO_CONTA CHECK (TIPO_CONTA IN ('CORRENTE', 'POUPANCA', 'SALARIO'));
-
-# ALTER TABLE FUNCIONARIOS ADD
-# 	CONSTRAINT CK_FUNCIONARIOS_TIPO_EXAME CHECK (TIPO_EXAME IN ('ADMISSIONAL', 'PERIODICO', 'MUDANCA DE FUNCAO'));
+    def __str__(self) -> str:
+        return self.nome

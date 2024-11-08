@@ -3,6 +3,7 @@ from django.http import HttpRequest
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
                          Jobs, Paises, Estados, Cidades, Bancos)
 from django_summernote.admin import SummernoteModelAdmin
+from utils.base_models import BaseModelAdminRedRequired
 
 
 class HomeLinksDocumentosInLine(admin.TabularInline):
@@ -32,7 +33,7 @@ class HomeLinksAdmin(SummernoteModelAdmin):
 
 
 @admin.register(SiteSetup)
-class SiteSetupAdmin(admin.ModelAdmin):
+class SiteSetupAdmin(BaseModelAdminRedRequired):
     readonly_fields = 'meta_diaria',
 
     def has_add_permission(self, request: HttpRequest) -> bool:
@@ -40,7 +41,7 @@ class SiteSetupAdmin(admin.ModelAdmin):
 
 
 @admin.register(AssistentesTecnicos)
-class AssistentesTecnicosAdmin(admin.ModelAdmin):
+class AssistentesTecnicosAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'nome', 'status',
     list_display_links = 'nome',
     list_editable = 'status',
@@ -49,7 +50,7 @@ class AssistentesTecnicosAdmin(admin.ModelAdmin):
 
 
 @admin.register(AssistentesTecnicosAgenda)
-class AssistentesTecnicosAgendaAdmin(admin.ModelAdmin):
+class AssistentesTecnicosAgendaAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'data_as_ddmmyyyy', 'data_dia_semana', 'assistente_tecnico', 'agenda',
     list_display_links = 'data_as_ddmmyyyy', 'assistente_tecnico', 'agenda',
     ordering = '-data', 'assistente_tecnico',
@@ -57,7 +58,7 @@ class AssistentesTecnicosAgendaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Jobs)
-class JobsAdmin(admin.ModelAdmin):
+class JobsAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'descricao', 'status',
     list_display_links = 'id', 'descricao', 'status',
     ordering = 'descricao',
@@ -66,7 +67,7 @@ class JobsAdmin(admin.ModelAdmin):
 
 
 @admin.register(Paises)
-class PaisesAdmin(admin.ModelAdmin):
+class PaisesAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'nome',
     list_display_links = 'id', 'nome',
     ordering = 'nome',
@@ -75,7 +76,7 @@ class PaisesAdmin(admin.ModelAdmin):
 
 
 @admin.register(Estados)
-class EstadosAdmin(admin.ModelAdmin):
+class EstadosAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'uf', 'sigla',
     list_display_links = 'id', 'uf', 'sigla',
     ordering = 'uf',
@@ -84,16 +85,16 @@ class EstadosAdmin(admin.ModelAdmin):
 
 
 @admin.register(Cidades)
-class CidadesAdmin(admin.ModelAdmin):
+class CidadesAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'nome', 'estado',
     list_display_links = 'id', 'estado', 'nome',
     ordering = 'nome',
-    search_fields = 'nome', 'estado__uf',
+    search_fields = 'nome',
     readonly_fields = 'chave_migracao',
 
 
 @admin.register(Bancos)
-class BancosAdmin(admin.ModelAdmin):
+class BancosAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'nome',
     list_display_links = 'id', 'nome',
     ordering = 'nome',
