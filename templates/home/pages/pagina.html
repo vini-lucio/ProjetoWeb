@@ -8,10 +8,10 @@
             <h1>{{ home_link.titulo }}</h1>
         </div>
 
-        {% if home_link.homelinksdocumentos_set.all %}
+        {% if home_link.homelinksdocumentos.all %}
             <div class="link-conteudo">
                 <div class="grid-simples">
-                    {% for documento in home_link.homelinksdocumentos_set.all %}
+                    {% for documento in home_link.homelinksdocumentos.all %}
                         <a target="_blanck" href="{{ documento.documento.url }}"><div class="botao-div">{{ documento.nome }}</div></a>
                     {% endfor %}
                 </div>
