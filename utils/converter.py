@@ -14,6 +14,8 @@ def converter_hora_django_para_datetime(hora_converter) -> datetime:
 
 
 def converter_data_django_para_str_ddmmyyyy(data_converter) -> str:
+    if not data_converter:
+        return ''
     data = converter_data_django_para_datetime(data_converter)
     data_formatada = data.strftime('%d/%m/%Y')
     return data_formatada

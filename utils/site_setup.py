@@ -1,5 +1,5 @@
 from home.models import SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgenda, Estados, Cidades, Jobs, Paises, Bancos
-from rh.models import Cbo, Escolaridades
+from rh.models import Cbo, Escolaridades, Funcionarios
 from utils.data_hora_atual import hoje
 
 
@@ -41,3 +41,7 @@ def get_paises():
 
 def get_bancos():
     return Bancos.objects
+
+
+def get_funcionarios():
+    return Funcionarios.objects

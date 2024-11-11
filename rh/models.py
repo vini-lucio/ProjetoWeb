@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.utils.safestring import mark_safe
+from django.core.exceptions import ValidationError
 from home.models import Jobs, Cidades, Estados, Paises, Bancos
 from utils.imagens import redimensionar_imagem
 from utils.base_models import BaseLogModel
@@ -421,4 +422,51 @@ class Funcionarios(BaseLogModel):
         return super_save
 
     def __str__(self) -> str:
-        return self.nome
+        return f'{self.nome} - {self.status}'
+
+
+class Afastamentos(BaseLogModel):
+    class Meta:
+        verbose_name = 'Afastamento'
+        verbose_name_plural = 'Afastamentos'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['funcionario', 'data_afastamento',],
+                name='afastamentos_unique_afastamento',
+                violation_error_message="Afastamento é unico em Afastamentos por Funcionario"
+            ),
+        ]
+
+    funcionario = models.ForeignKey(Funcionarios, verbose_name="Funcionario", on_delete=models.PROTECT,
+                                    related_name="%(class)s")
+    data_afastamento = models.DateField("Data Afastamento", auto_now=False, auto_now_add=False)
+    data_previsao_retorno = models.DateField("Data Previsão Reterno", auto_now=False, auto_now_add=False, null=True,
+                                             blank=True)
+    data_retorno = models.DateField("Data Retorno", auto_now=False, auto_now_add=False, null=True, blank=True)
+    motivo = models.CharField("Motivo", max_length=100)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    @property
+    def data_afastamento_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_afastamento)
+
+    data_afastamento_as_ddmmyyyy.fget.short_description = 'Data Afastamento'  # type:ignore
+
+    @property
+    def data_retorno_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_retorno)
+
+    data_retorno_as_ddmmyyyy.fget.short_description = 'Data Retorno'  # type:ignore
+
+    def clean(self) -> None:
+        super_clean = super().clean()
+        if not self.data_retorno:
+            afastamentos_em_aberto = Afastamentos.objects.filter(
+                funcionario=self.funcionario, data_retorno__isnull=True).exclude(id=self.pk).count()
+            if afastamentos_em_aberto >= 1:
+                raise ValidationError(
+                    {'data_retorno': "Só é possivel ter um afastamento em aberto por funcionario"})  # type:ignore
+        return super_clean
+
+    def __str__(self) -> str:
+        return f'{self.funcionario} - Afastamento: {self.data_afastamento_as_ddmmyyyy}'

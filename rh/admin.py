@@ -1,13 +1,13 @@
 from django.contrib import admin
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
-                       Funcoes, Horarios, Funcionarios)
+                       Funcoes, Horarios, Funcionarios, Afastamentos)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
 
 
 @admin.register(Cbo)
 class CboAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'numero', 'descricao',
-    list_display_links = 'id', 'numero', 'descricao',
+    list_display_links = list_display
     ordering = 'descricao',
     search_fields = 'numero', 'descricao',
     readonly_fields = 'chave_migracao',
@@ -26,7 +26,7 @@ class DissidiosAdmin(BaseModelAdminRedRequiredLog):
 @admin.register(Escolaridades)
 class EscolaridadesAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'descricao',
-    list_display_links = 'id', 'descricao',
+    list_display_links = list_display
     ordering = 'descricao',
     search_fields = 'descricao',
     readonly_fields = 'chave_migracao',
@@ -35,7 +35,7 @@ class EscolaridadesAdmin(BaseModelAdminRedRequired):
 @admin.register(TransporteLinhas)
 class TransporteLinhasAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'descricao',
-    list_display_links = 'id', 'descricao',
+    list_display_links = list_display
     ordering = 'descricao',
     search_fields = 'descricao',
     readonly_fields = 'chave_migracao',
@@ -44,7 +44,7 @@ class TransporteLinhasAdmin(BaseModelAdminRedRequired):
 @admin.register(TransporteTipos)
 class TransporteTiposAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'descricao',
-    list_display_links = 'id', 'descricao',
+    list_display_links = list_display
     ordering = 'descricao',
     search_fields = 'descricao',
     readonly_fields = 'chave_migracao',
@@ -53,7 +53,7 @@ class TransporteTiposAdmin(BaseModelAdminRedRequired):
 @admin.register(DependentesTipos)
 class DependentesTiposAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'descricao',
-    list_display_links = 'id', 'descricao',
+    list_display_links = list_display
     ordering = 'descricao',
     search_fields = 'descricao',
     readonly_fields = 'chave_migracao',
@@ -62,7 +62,7 @@ class DependentesTiposAdmin(BaseModelAdminRedRequired):
 @admin.register(Setores)
 class SetoresAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'descricao', 'plano_contas',
-    list_display_links = 'id', 'descricao', 'plano_contas',
+    list_display_links = list_display
     ordering = 'descricao',
     search_fields = 'descricao',
     readonly_fields = 'chave_migracao',
@@ -71,7 +71,7 @@ class SetoresAdmin(BaseModelAdminRedRequired):
 @admin.register(Funcoes)
 class FuncoesAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'descricao',
-    list_display_links = 'id', 'descricao',
+    list_display_links = list_display
     ordering = 'descricao',
     search_fields = 'descricao',
     readonly_fields = 'chave_migracao',
@@ -80,7 +80,7 @@ class FuncoesAdmin(BaseModelAdminRedRequired):
 @admin.register(Horarios)
 class HorariosAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'horario_inicio_fim_sexta', 'intervalo_inicio_fim',
-    list_display_links = 'id', 'horario_inicio_fim_sexta', 'intervalo_inicio_fim',
+    list_display_links = list_display
     ordering = 'inicio', 'intervalo_inicio', 'intervalo_fim', 'fim', 'sexta_fim'
     search_fields = 'horario',
     readonly_fields = 'chave_migracao',
@@ -89,7 +89,7 @@ class HorariosAdmin(BaseModelAdminRedRequired):
 @admin.register(Funcionarios)
 class FuncionariosAdmin(BaseModelAdminRedRequiredLog):
     list_display = 'id', 'job', 'registro', 'nome', 'status',
-    list_display_links = 'id', 'job', 'registro', 'nome', 'status',
+    list_display_links = list_display
     ordering = 'nome',
     list_filter = 'job', 'data_saida',
     search_fields = 'nome',
@@ -148,3 +148,14 @@ class FuncionariosAdmin(BaseModelAdminRedRequiredLog):
             ),
         }),
     )
+
+
+@admin.register(Afastamentos)
+class AfastamentosAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'funcionario', 'data_afastamento_as_ddmmyyyy', 'data_retorno_as_ddmmyyyy', 'motivo',
+    list_display_links = list_display
+    ordering = '-id',
+    list_filter = 'data_retorno',
+    search_fields = 'funcionario',
+    readonly_fields = 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+    autocomplete_fields = 'funcionario',

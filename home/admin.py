@@ -43,8 +43,7 @@ class SiteSetupAdmin(BaseModelAdminRedRequired):
 @admin.register(AssistentesTecnicos)
 class AssistentesTecnicosAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'nome', 'status',
-    list_display_links = 'nome',
-    list_editable = 'status',
+    list_display_links = list_display
     ordering = 'nome',
     search_fields = 'nome',
 
@@ -52,7 +51,7 @@ class AssistentesTecnicosAdmin(BaseModelAdminRedRequired):
 @admin.register(AssistentesTecnicosAgenda)
 class AssistentesTecnicosAgendaAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'data_as_ddmmyyyy', 'data_dia_semana', 'assistente_tecnico', 'agenda',
-    list_display_links = 'data_as_ddmmyyyy', 'assistente_tecnico', 'agenda',
+    list_display_links = list_display
     ordering = '-data', 'assistente_tecnico',
     list_filter = 'assistente_tecnico',
 
@@ -60,7 +59,7 @@ class AssistentesTecnicosAgendaAdmin(BaseModelAdminRedRequired):
 @admin.register(Jobs)
 class JobsAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'descricao', 'status',
-    list_display_links = 'id', 'descricao', 'status',
+    list_display_links = list_display
     ordering = 'descricao',
     search_fields = 'descricao',
     readonly_fields = 'chave_migracao',
@@ -69,7 +68,7 @@ class JobsAdmin(BaseModelAdminRedRequired):
 @admin.register(Paises)
 class PaisesAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'nome',
-    list_display_links = 'id', 'nome',
+    list_display_links = list_display
     ordering = 'nome',
     search_fields = 'nome',
     readonly_fields = 'chave_migracao',
@@ -78,7 +77,7 @@ class PaisesAdmin(BaseModelAdminRedRequired):
 @admin.register(Estados)
 class EstadosAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'uf', 'sigla',
-    list_display_links = 'id', 'uf', 'sigla',
+    list_display_links = list_display
     ordering = 'uf',
     search_fields = 'uf', 'sigla',
     readonly_fields = 'chave_migracao',
@@ -87,7 +86,7 @@ class EstadosAdmin(BaseModelAdminRedRequired):
 @admin.register(Cidades)
 class CidadesAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'nome', 'estado',
-    list_display_links = 'id', 'estado', 'nome',
+    list_display_links = list_display
     ordering = 'nome',
     search_fields = 'nome',
     readonly_fields = 'chave_migracao',
@@ -96,6 +95,6 @@ class CidadesAdmin(BaseModelAdminRedRequired):
 @admin.register(Bancos)
 class BancosAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'nome',
-    list_display_links = 'id', 'nome',
+    list_display_links = list_display
     ordering = 'nome',
     search_fields = 'nome',
