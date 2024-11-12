@@ -599,3 +599,50 @@ class Cipa(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.funcionario} - {self.integrante_cipa_inicio_as_ddmmyyyy} - Estabilidade até: {self.estabilidade_fim_as_ddmmyyyy}'
+
+
+class ValeTransportes(BaseLogModel):
+    class Meta:
+        verbose_name = 'Vale Transporte'
+        verbose_name_plural = 'Vale Transportes'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['linha', 'tipo',],
+                name='valetransportes_unique_valetransporte',
+                violation_error_message="Linha e Tipo são unicos em Vale Transportes"
+            ),
+            models.CheckConstraint(
+                check=Q(valor_unitario__gt=0),
+                name='valetransportes_check_valor_unitario',
+                violation_error_message="Valor Unitario precisa ser maior que 0"
+            ),
+            models.CheckConstraint(
+                check=Q(quantidade_por_dia__gt=0),
+                name='valetransportes_check_quantidade_por_dia',
+                violation_error_message="Quantidade por Dia precisa ser maior que 0"
+            ),
+            models.CheckConstraint(
+                check=Q(dias__gt=0),
+                name='valetransportes_check_dias',
+                violation_error_message="Dias precisa ser maior que 0"
+            ),
+        ]
+
+    linha = models.ForeignKey(TransporteLinhas, verbose_name="Linha", on_delete=models.PROTECT,
+                              related_name="%(class)s")
+    tipo = models.ForeignKey(TransporteTipos, verbose_name="Tipo", on_delete=models.PROTECT, related_name="%(class)s")
+    valor_unitario = models.DecimalField("Valor Unitario R$", max_digits=10, decimal_places=2,
+                                         default=0)  # type:ignore
+    quantidade_por_dia = models.DecimalField("Quantidade por Dia", max_digits=3, decimal_places=0,
+                                             default=0)  # type:ignore
+    dias = models.DecimalField("Dias", max_digits=3, decimal_places=0, default=0)  # type:ignore
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    @property
+    def valor_total(self):
+        return self.valor_unitario * self.quantidade_por_dia * self.dias
+
+    valor_total.fget.short_description = 'Valor Total R$'  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.linha} - {self.tipo}'

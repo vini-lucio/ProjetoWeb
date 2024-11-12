@@ -1,6 +1,7 @@
 from django.contrib import admin
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
-                       Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa)
+                       Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa,
+                       ValeTransportes)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
 
 
@@ -189,3 +190,12 @@ class CipaAdmin(BaseModelAdminRedRequiredLog):
     search_fields = 'funcionario__nome',
     readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
     autocomplete_fields = 'funcionario',
+
+
+@admin.register(ValeTransportes)
+class ValeTransportesAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'linha', 'tipo', 'valor_total',
+    list_display_links = list_display
+    ordering = 'linha', 'tipo',
+    search_fields = 'linha__descricao', 'tipo__descricao',
+    readonly_fields = 'valor_total', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
