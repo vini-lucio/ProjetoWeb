@@ -559,3 +559,43 @@ class HorariosFuncionarios(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.funcionario} - {self.horario}'
+
+
+class Cipa(BaseLogModel):
+    class Meta:
+        verbose_name = 'CIPA'
+        verbose_name_plural = 'CIPA'
+
+    funcionario = models.ForeignKey(Funcionarios, verbose_name="Funcionario", on_delete=models.PROTECT,
+                                    related_name="%(class)s")
+    integrante_cipa_inicio = models.DateField("Integrante CIPA Inicio", auto_now=False, auto_now_add=False)
+    integrante_cipa_fim = models.DateField("Integrante CIPA Fim", auto_now=False, auto_now_add=False)
+    estabilidade_inicio = models.DateField("Estabilidade Inicio", auto_now=False, auto_now_add=False)
+    estabilidade_fim = models.DateField("Estabilidade Fim", auto_now=False, auto_now_add=False)
+
+    @property
+    def integrante_cipa_inicio_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.integrante_cipa_inicio)
+
+    integrante_cipa_inicio_as_ddmmyyyy.fget.short_description = 'Integrante CIPA Inicio'  # type:ignore
+
+    @property
+    def integrante_cipa_fim_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.integrante_cipa_fim)
+
+    integrante_cipa_fim_as_ddmmyyyy.fget.short_description = 'Integrante CIPA Fim'  # type:ignore
+
+    @property
+    def estabilidade_inicio_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.estabilidade_inicio)
+
+    estabilidade_inicio_as_ddmmyyyy.fget.short_description = 'Estabilidade Inicio'  # type:ignore
+
+    @property
+    def estabilidade_fim_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.estabilidade_fim)
+
+    estabilidade_fim_as_ddmmyyyy.fget.short_description = 'Estabilidade Fim'  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.funcionario} - {self.integrante_cipa_inicio_as_ddmmyyyy} - Estabilidade até: {self.estabilidade_fim_as_ddmmyyyy}'

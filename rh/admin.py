@@ -1,6 +1,6 @@
 from django.contrib import admin
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
-                       Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios)
+                       Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
 
 
@@ -174,6 +174,16 @@ class DependentesAdmin(BaseModelAdminRedRequiredLog):
 @admin.register(HorariosFuncionarios)
 class HorariosFuncionariosAdmin(BaseModelAdminRedRequiredLog):
     list_display = 'id', 'funcionario', 'horario', 'data_inicio_as_ddmmyyyy', 'data_fim_as_ddmmyyyy',
+    list_display_links = list_display
+    ordering = 'funcionario', '-id',
+    search_fields = 'funcionario__nome',
+    readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+    autocomplete_fields = 'funcionario',
+
+
+@admin.register(Cipa)
+class CipaAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'funcionario', 'integrante_cipa_inicio_as_ddmmyyyy', 'estabilidade_fim_as_ddmmyyyy',
     list_display_links = list_display
     ordering = 'funcionario', '-id',
     search_fields = 'funcionario__nome',
