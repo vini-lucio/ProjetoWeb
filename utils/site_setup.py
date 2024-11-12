@@ -1,5 +1,5 @@
 from home.models import SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgenda, Estados, Cidades, Jobs, Paises, Bancos
-from rh.models import Cbo, Escolaridades, Funcionarios, DependentesTipos
+from rh.models import Cbo, Escolaridades, Funcionarios, DependentesTipos, Horarios
 from utils.data_hora_atual import hoje
 
 
@@ -49,3 +49,7 @@ def get_funcionarios():
 
 def get_dependentes_tipos():
     return DependentesTipos.objects
+
+
+def get_horarios():
+    return Horarios.objects

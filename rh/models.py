@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.utils.safestring import mark_safe
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from home.models import Jobs, Cidades, Estados, Paises, Bancos
 from utils.imagens import redimensionar_imagem
 from utils.base_models import BaseLogModel
@@ -458,12 +458,17 @@ class Afastamentos(BaseLogModel):
 
     def clean(self) -> None:
         super_clean = super().clean()
-        if not self.data_retorno:
-            afastamentos_em_aberto = Afastamentos.objects.filter(
-                funcionario=self.funcionario, data_retorno__isnull=True).exclude(id=self.pk).count()
-            if afastamentos_em_aberto >= 1:
-                raise ValidationError(
-                    {'data_retorno': "Só é possivel ter um afastamento em aberto por funcionario"})  # type:ignore
+
+        try:
+            if not self.data_retorno:
+                afastamentos_em_aberto = Afastamentos.objects.filter(
+                    funcionario=self.funcionario, data_retorno__isnull=True).exclude(id=self.pk).count()
+                if afastamentos_em_aberto >= 1:
+                    raise ValidationError(
+                        {'data_retorno': "Só é possivel ter um afastamento em aberto por funcionario"})  # type:ignore
+        except ObjectDoesNotExist:
+            raise ValidationError({'funcionario': "Funcionario é obrigatorio"})  # type:ignore
+
         return super_clean
 
     def __str__(self) -> str:
@@ -505,3 +510,52 @@ class Dependentes(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.funcionario} - {self.nome}'
+
+
+class HorariosFuncionarios(BaseLogModel):
+    class Meta:
+        verbose_name = 'Horario Funcionario'
+        verbose_name_plural = 'Horarios Funcionario'
+
+    dias_horarios = {
+        'SEGUNDA A SABADO, DOMINGO LIVRE': 'Segunda a sabado, domingo livre',
+        'SEGUNDA A SEXTA, SABADO E DOMINGO LIVRE': 'Srgunda a sexta, sabado e domingo livre',
+        'SEGUNDA A SEXTA E SABADO ALTERNADO, DOMINGO LIVRE': 'Segunda a sexta e sabado alternado, domingo livre',
+    }
+
+    funcionario = models.ForeignKey(Funcionarios, verbose_name="Funcionario", on_delete=models.PROTECT,
+                                    related_name="%(class)s")
+    horario = models.ForeignKey(Horarios, verbose_name="Horario", on_delete=models.PROTECT, related_name="%(class)s")
+    dias = models.CharField("Dias", max_length=50, choices=dias_horarios)  # type:ignore
+    data_inicio = models.DateField("Data Inicio", auto_now=False, auto_now_add=False)
+    data_fim = models.DateField("Data Fim", auto_now=False, auto_now_add=False, null=True, blank=True)
+
+    @property
+    def data_inicio_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_inicio)
+
+    data_inicio_as_ddmmyyyy.fget.short_description = 'Data Inicio'  # type:ignore
+
+    @property
+    def data_fim_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_fim)
+
+    data_fim_as_ddmmyyyy.fget.short_description = 'Data Fim'  # type:ignore
+
+    def clean(self) -> None:
+        super_clean = super().clean()
+
+        try:
+            if not self.data_fim:
+                horarios_em_aberto = HorariosFuncionarios.objects.filter(
+                    funcionario=self.funcionario, data_fim__isnull=True).exclude(id=self.pk).count()
+                if horarios_em_aberto >= 1:
+                    raise ValidationError(
+                        {'data_fim': "Só é possivel ter um horario em aberto por funcionario"})  # type:ignore
+        except ObjectDoesNotExist:
+            raise ValidationError({'funcionario': "Funcionario é obrigatorio"})  # type:ignore
+
+        return super_clean
+
+    def __str__(self) -> str:
+        return f'{self.funcionario} - {self.horario}'
