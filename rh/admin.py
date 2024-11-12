@@ -1,6 +1,6 @@
 from django.contrib import admin
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
-                       Funcoes, Horarios, Funcionarios, Afastamentos)
+                       Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
 
 
@@ -156,6 +156,16 @@ class AfastamentosAdmin(BaseModelAdminRedRequiredLog):
     list_display_links = list_display
     ordering = '-id',
     list_filter = 'data_retorno',
-    search_fields = 'funcionario',
+    search_fields = 'funcionario__nome',
+    readonly_fields = 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+    autocomplete_fields = 'funcionario',
+
+
+@admin.register(Dependentes)
+class DependentesAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'funcionario', 'nome', 'dependente_tipo',
+    list_display_links = list_display
+    ordering = 'funcionario', 'nome',
+    search_fields = 'funcionario__nome', 'nome',
     readonly_fields = 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
     autocomplete_fields = 'funcionario',

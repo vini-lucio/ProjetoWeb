@@ -6,6 +6,7 @@ from home.models import Jobs, Cidades, Estados, Paises, Bancos
 from utils.imagens import redimensionar_imagem
 from utils.base_models import BaseLogModel
 from utils.converter import converter_data_django_para_str_ddmmyyyy, converter_hora_django_para_str_hh24mm
+from utils.choices import certidao_tipos
 
 
 class Cbo(models.Model):
@@ -290,10 +291,7 @@ class Funcionarios(BaseLogModel):
         'ACC': 'ACC',
     }
 
-    certidao_tipos = {
-        'NASCIMENTO': 'Nascimento',
-        'CASAMENTO': 'Casamento',
-    }
+    certidao_tipos_funcionarios = certidao_tipos
 
     escolaridades_status = {
         'CURSANDO': 'Cursando',
@@ -371,7 +369,7 @@ class Funcionarios(BaseLogModel):
     cnh_data_vencimento = models.DateField("CNH Data Vencimento", auto_now=False, auto_now_add=False, null=True,
                                            blank=True)
     certidao_tipo = models.CharField("Certidão Tipo", max_length=10, null=True, blank=True,
-                                     choices=certidao_tipos)  # type:ignore
+                                     choices=certidao_tipos_funcionarios)  # type:ignore
     certidao_data_emissao = models.DateField("Certidão Data Emissão", auto_now=False, auto_now_add=False, null=True,
                                              blank=True)
     certidao_termo_matricula = models.CharField("Certidão Termo / Matricula", max_length=32, null=True, blank=True)
@@ -440,7 +438,7 @@ class Afastamentos(BaseLogModel):
     funcionario = models.ForeignKey(Funcionarios, verbose_name="Funcionario", on_delete=models.PROTECT,
                                     related_name="%(class)s")
     data_afastamento = models.DateField("Data Afastamento", auto_now=False, auto_now_add=False)
-    data_previsao_retorno = models.DateField("Data Previsão Reterno", auto_now=False, auto_now_add=False, null=True,
+    data_previsao_retorno = models.DateField("Data Previsão Retorno", auto_now=False, auto_now_add=False, null=True,
                                              blank=True)
     data_retorno = models.DateField("Data Retorno", auto_now=False, auto_now_add=False, null=True, blank=True)
     motivo = models.CharField("Motivo", max_length=100)
@@ -470,3 +468,40 @@ class Afastamentos(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.funcionario} - Afastamento: {self.data_afastamento_as_ddmmyyyy}'
+
+
+class Dependentes(BaseLogModel):
+    class Meta:
+        verbose_name = 'Dependente'
+        verbose_name_plural = 'Dependentes'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['funcionario', 'dependente_tipo', 'nome',],
+                name='dependentes_unique_dependente',
+                violation_error_message="Nome e Tipo são unicos em Dependentes por Funcionario"
+            ),
+        ]
+
+    certidao_tipos_dependentes = certidao_tipos
+
+    funcionario = models.ForeignKey(Funcionarios, verbose_name="Funcionario", on_delete=models.PROTECT,
+                                    related_name="%(class)s")
+    dependente_tipo = models.ForeignKey(DependentesTipos, verbose_name="Dependente Tipo", on_delete=models.PROTECT,
+                                        related_name="%(class)s")
+    nome = models.CharField("Nome", max_length=100)
+    data_nascimento = models.DateField("Data Nascimento", auto_now=False, auto_now_add=False, null=True, blank=True)
+    rg = models.CharField("RG", max_length=20, null=True, blank=True)
+    cpf = models.CharField("CPF", max_length=14, null=True, blank=True)
+    certidao_tipo = models.CharField("Certidão Tipo", max_length=10, null=True, blank=True,
+                                     choices=certidao_tipos_dependentes)  # type:ignore
+    certidao_data_emissao = models.DateField("Certidão Data Emissão", auto_now=False, auto_now_add=False, null=True,
+                                             blank=True)
+    certidao_termo_matricula = models.CharField("Certidão Termo / Matricula", max_length=32, null=True, blank=True)
+    certidao_livro = models.CharField("Certidão Livro", max_length=5, null=True, blank=True)
+    certidao_folha = models.CharField("Certidão Folha", max_length=5, null=True, blank=True)
+    dependente_ir = models.BooleanField("Dependente IR", default=False)
+    observacoes = models.CharField("Observações", max_length=100, null=True, blank=True)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f'{self.funcionario} - {self.nome}'
