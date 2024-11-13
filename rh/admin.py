@@ -1,7 +1,7 @@
 from django.contrib import admin
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
                        Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa,
-                       ValeTransportes)
+                       ValeTransportes, ValeTransportesFuncionarios)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
 
 
@@ -194,8 +194,20 @@ class CipaAdmin(BaseModelAdminRedRequiredLog):
 
 @admin.register(ValeTransportes)
 class ValeTransportesAdmin(BaseModelAdminRedRequiredLog):
-    list_display = 'id', 'linha', 'tipo', 'valor_total',
+    list_display = 'id', 'linha', 'tipo', 'valor_unitario', 'quantidade_por_dia', 'dias', 'valor_total',
     list_display_links = list_display
     ordering = 'linha', 'tipo',
     search_fields = 'linha__descricao', 'tipo__descricao',
     readonly_fields = 'valor_total', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+
+
+@admin.register(ValeTransportesFuncionarios)
+class ValeTransportesFuncionariosAdmin(BaseModelAdminRedRequiredLog):
+    list_display = ('id', 'funcionario', 'vale_transporte', 'valor_unitario', 'quantidade_por_dia', 'dias',
+                    'valor_total',)
+    list_display_links = list_display
+    ordering = 'funcionario', 'vale_transporte',
+    search_fields = 'funcionario__nome',
+    readonly_fields = ('valor_unitario', 'valor_total', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por',
+                       'atualizado_em',)
+    autocomplete_fields = 'funcionario',

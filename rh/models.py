@@ -628,14 +628,17 @@ class ValeTransportes(BaseLogModel):
             ),
         ]
 
+    help_text_aviso = "Atenção! Alterar esse campo alterará todos os funcionarios ativos com essa linha e tipo"
+
     linha = models.ForeignKey(TransporteLinhas, verbose_name="Linha", on_delete=models.PROTECT,
                               related_name="%(class)s")
     tipo = models.ForeignKey(TransporteTipos, verbose_name="Tipo", on_delete=models.PROTECT, related_name="%(class)s")
     valor_unitario = models.DecimalField("Valor Unitario R$", max_digits=10, decimal_places=2,
-                                         default=0)  # type:ignore
+                                         default=0, help_text=help_text_aviso)  # type:ignore
     quantidade_por_dia = models.DecimalField("Quantidade por Dia", max_digits=3, decimal_places=0,
-                                             default=0)  # type:ignore
-    dias = models.DecimalField("Dias", max_digits=3, decimal_places=0, default=0)  # type:ignore
+                                             default=0, help_text=help_text_aviso)  # type:ignore
+    dias = models.DecimalField("Dias", max_digits=3, decimal_places=0,
+                               default=0, help_text=help_text_aviso)  # type:ignore
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     @property
@@ -644,5 +647,71 @@ class ValeTransportes(BaseLogModel):
 
     valor_total.fget.short_description = 'Valor Total R$'  # type:ignore
 
+    def save(self, *args, **kwargs) -> None:
+        super_save = super().save(*args, **kwargs)
+
+        self.valetransportesfuncionarios.update(  # type:ignore
+            quantidade_por_dia=self.quantidade_por_dia, dias=self.dias)
+
+        return super_save
+
     def __str__(self) -> str:
         return f'{self.linha} - {self.tipo}'
+
+
+class ValeTransportesFuncionarios(BaseLogModel):
+    class Meta:
+        verbose_name = 'Vale Transporte Funcionario'
+        verbose_name_plural = 'Vale Transportes Funcionarios'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['funcionario', 'vale_transporte',],
+                name='valetransportesfuncionarios_unique_valetransporte',
+                violation_error_message="Vale Transporte é unico em Vale Transportes de Funcionarios"
+            ),
+            models.CheckConstraint(
+                check=Q(quantidade_por_dia__gte=0),
+                name='valetransportesfuncionarios_check_quantidade_por_dia',
+                violation_error_message="Quantidade por Dia precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(dias__gte=0),
+                name='valetransportesfuncionarios_check_dias',
+                violation_error_message="Dias precisa ser maior ou igual a 0"
+            ),
+        ]
+
+    help_text_quantidade_por_dia = "Preencher 0 para usar a quantidade por dia do vale transporte"
+    help_text_dias = "Preencher 0 para usar os dias do vale transporte"
+
+    funcionario = models.ForeignKey(Funcionarios, verbose_name="Funcionario", on_delete=models.PROTECT,
+                                    related_name="%(class)s")
+    vale_transporte = models.ForeignKey(ValeTransportes, verbose_name="Vale Transporte", on_delete=models.PROTECT,
+                                        related_name="%(class)s")
+    quantidade_por_dia = models.DecimalField("Quantidade por Dia", max_digits=3, decimal_places=0,
+                                             default=0, help_text=help_text_quantidade_por_dia)  # type:ignore
+    dias = models.DecimalField("Dias", max_digits=3, decimal_places=0,
+                               default=0, help_text=help_text_dias)  # type:ignore
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    @property
+    def valor_unitario(self):
+        return self.vale_transporte.valor_unitario
+
+    valor_unitario.fget.short_description = 'Valor Unitario R$'  # type:ignore
+
+    @property
+    def valor_total(self):
+        return self.vale_transporte.valor_unitario * self.quantidade_por_dia * self.dias
+
+    valor_total.fget.short_description = 'Valor Total R$'  # type:ignore
+
+    def save(self, *args, **kwargs) -> None:
+        if self.quantidade_por_dia == 0:
+            self.quantidade_por_dia = self.vale_transporte.quantidade_por_dia
+        if self.dias == 0:
+            self.dias = self.vale_transporte.dias
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f'{self.funcionario} - {self.vale_transporte}'
