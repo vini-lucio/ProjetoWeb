@@ -1,7 +1,7 @@
 from django.contrib import admin
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
                        Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa,
-                       ValeTransportes, ValeTransportesFuncionarios)
+                       ValeTransportes, ValeTransportesFuncionarios, Ferias)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
 
 
@@ -22,6 +22,24 @@ class DissidiosAdmin(BaseModelAdminRedRequiredLog):
     list_filter = 'job',
     readonly_fields = ('dissidio_total', 'chave_migracao', 'aplicado', 'criado_por', 'criado_em', 'atualizado_por',
                        'atualizado_em',)
+
+    fieldsets = (
+        (None, {
+            "fields": (
+                'job', 'data', 'observacoes',
+            ),
+        }),
+        ('Dissidio', {
+            "fields": (
+                'dissidio_real', 'dissidio_adicional', 'dissidio_total', 'aplicado',
+            ),
+        }),
+        ('Logs', {
+            "fields": (
+                'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em', 'chave_migracao',
+            ),
+        }),
+    )
 
 
 @admin.register(Escolaridades)
@@ -211,3 +229,39 @@ class ValeTransportesFuncionariosAdmin(BaseModelAdminRedRequiredLog):
     readonly_fields = ('valor_unitario', 'valor_total', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por',
                        'atualizado_em',)
     autocomplete_fields = 'funcionario',
+
+
+@admin.register(Ferias)
+class FeriasAdmin(BaseModelAdminRedRequiredLog):
+    list_display = ('id', 'funcionario', 'periodo_trabalhado_inicio_as_ddmmyyyy', 'periodo_trabalhado_fim_as_ddmmyyyy',
+                    'dias_ferias', 'periodo_descanso_inicio_as_ddmmyyyy', 'periodo_descanso_fim_as_ddmmyyyy')
+    list_display_links = list_display
+    ordering = 'funcionario', '-periodo_descanso_inicio', '-id'
+    search_fields = 'funcionario__nome',
+    readonly_fields = ('periodo_descanso_fim_as_ddmmyyyy', 'periodo_abono_inicio_as_ddmmyyyy',
+                       'periodo_abono_fim_as_ddmmyyyy', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por',
+                       'atualizado_em',)
+    autocomplete_fields = 'funcionario',
+
+    fieldsets = (
+        (None, {
+            "fields": (
+                'funcionario', 'periodo_trabalhado_inicio', 'periodo_trabalhado_fim', 'antecipar_13', 'observacoes',
+            ),
+        }),
+        ('Ferias', {
+            "fields": (
+                'dias_ferias', 'dias_desconsiderar', 'periodo_descanso_inicio', 'periodo_descanso_fim_as_ddmmyyyy',
+            ),
+        }),
+        ('Abono', {
+            "fields": (
+                'dias_abono', 'antecipar_abono', 'periodo_abono_inicio_as_ddmmyyyy', 'periodo_abono_fim_as_ddmmyyyy',
+            ),
+        }),
+        ('Logs', {
+            'fields': (
+                'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em', 'chave_migracao',
+            ),
+        }),
+    )

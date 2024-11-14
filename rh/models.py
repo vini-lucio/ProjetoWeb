@@ -5,7 +5,9 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from home.models import Jobs, Cidades, Estados, Paises, Bancos
 from utils.imagens import redimensionar_imagem
 from utils.base_models import BaseLogModel
-from utils.converter import converter_data_django_para_str_ddmmyyyy, converter_hora_django_para_str_hh24mm
+from utils.converter import (converter_data_django_para_str_ddmmyyyy, converter_hora_django_para_str_hh24mm,
+                             somar_dias_django_para_str_ddmmyyyy)
+from utils.conferir_alteracao import campo_django_mudou
 from utils.choices import certidao_tipos
 
 
@@ -648,10 +650,13 @@ class ValeTransportes(BaseLogModel):
     valor_total.fget.short_description = 'Valor Total R$'  # type:ignore
 
     def save(self, *args, **kwargs) -> None:
+        mudou = campo_django_mudou(ValeTransportes, self, quantidade_por_dia=self.quantidade_por_dia, dias=self.dias)
+
         super_save = super().save(*args, **kwargs)
 
-        self.valetransportesfuncionarios.update(  # type:ignore
-            quantidade_por_dia=self.quantidade_por_dia, dias=self.dias)
+        if mudou:
+            self.valetransportesfuncionarios.update(  # type:ignore
+                quantidade_por_dia=self.quantidade_por_dia, dias=self.dias)
 
         return super_save
 
@@ -715,3 +720,106 @@ class ValeTransportesFuncionarios(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.funcionario} - {self.vale_transporte}'
+
+
+class Ferias(BaseLogModel):
+    class Meta:
+        verbose_name = 'Ferias'
+        verbose_name_plural = 'Ferias'
+        constraints = [
+            models.CheckConstraint(
+                check=Q(dias_ferias__gt=0),
+                name='ferias_check_dias_ferias',
+                violation_error_message="Dias de Ferias precisa ser maior que 0"
+            ),
+            models.CheckConstraint(
+                check=Q(dias_desconsiderar__gte=0),
+                name='ferias_check_dias_desconsiderar',
+                violation_error_message="Dias Desconsiderar precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(dias_abono__gte=0),
+                name='ferias_check_dias_abono',
+                violation_error_message="Dias Abono precisa ser maior ou igual a 0"
+            ),
+        ]
+
+    funcionario = models.ForeignKey(Funcionarios, verbose_name="Funcionario", on_delete=models.PROTECT,
+                                    related_name="%(class)s")
+    periodo_trabalhado_inicio = models.DateField("Periodo Trabalhado Inicio", auto_now=False, auto_now_add=False)
+    periodo_trabalhado_fim = models.DateField("Periodo Trabalhado Fim", auto_now=False, auto_now_add=False)
+    dias_ferias = models.DecimalField("Dias de Ferias", max_digits=2, decimal_places=0, default=0)  # type:ignore
+    dias_desconsiderar = models.DecimalField("Dias Desconsiderar", max_digits=2, decimal_places=0,
+                                             default=0)  # type:ignore
+    dias_abono = models.DecimalField("Dias Abono", max_digits=2, decimal_places=0, default=0)  # type:ignore
+    antecipar_abono = models.BooleanField("Antecipar Abono", default=False)
+    antecipar_13 = models.BooleanField("Antecipar 1ª parcela 13º", default=False)
+    periodo_descanso_inicio = models.DateField("Periodo Descanso Inicio", auto_now=False, auto_now_add=False,
+                                               null=True, blank=True)
+    observacoes = models.CharField("Observações", max_length=100, null=True, blank=True)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    @property
+    def periodo_trabalhado_inicio_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.periodo_trabalhado_inicio)
+
+    periodo_trabalhado_inicio_as_ddmmyyyy.fget.short_description = 'Periodo Trabalhado Inicio'  # type:ignore
+
+    @property
+    def periodo_trabalhado_fim_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.periodo_trabalhado_fim)
+
+    periodo_trabalhado_fim_as_ddmmyyyy.fget.short_description = 'Periodo Trabalhado Fim'  # type:ignore
+
+    @property
+    def periodo_descanso_inicio_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.periodo_descanso_inicio)
+
+    periodo_descanso_inicio_as_ddmmyyyy.fget.short_description = 'Periodo Descanso Inicio'  # type:ignore
+
+    @property
+    def periodo_descanso_fim_as_ddmmyyyy(self):
+        return somar_dias_django_para_str_ddmmyyyy(self.periodo_descanso_inicio,
+                                                   self.dias_ferias + self.dias_desconsiderar - 1)
+
+    periodo_descanso_fim_as_ddmmyyyy.fget.short_description = 'Periodo Descanso Fim'  # type:ignore
+
+    @property
+    def periodo_abono_inicio_as_ddmmyyyy(self):
+        if self.dias_abono == 0:
+            return ''
+        if self.antecipar_abono:
+            return somar_dias_django_para_str_ddmmyyyy(self.periodo_descanso_inicio, self.dias_abono * (-1))
+        return somar_dias_django_para_str_ddmmyyyy(self.periodo_descanso_inicio,
+                                                   self.dias_ferias + self.dias_desconsiderar)
+
+    periodo_abono_inicio_as_ddmmyyyy.fget.short_description = 'Periodo Abono Inicio'  # type:ignore
+
+    @property
+    def periodo_abono_fim_as_ddmmyyyy(self):
+        if self.dias_abono == 0:
+            return ''
+        if self.antecipar_abono:
+            return somar_dias_django_para_str_ddmmyyyy(self.periodo_descanso_inicio, -1)
+        return somar_dias_django_para_str_ddmmyyyy(self.periodo_descanso_inicio,
+                                                   self.dias_ferias + self.dias_desconsiderar + self.dias_abono - 1)
+
+    periodo_abono_fim_as_ddmmyyyy.fget.short_description = 'Periodo Abono Fim'  # type:ignore
+
+    def clean(self) -> None:
+        super_clean = super().clean()
+
+        try:
+            if not self.periodo_descanso_inicio:
+                ferias_em_aberto = Ferias.objects.filter(
+                    funcionario=self.funcionario, periodo_descanso_inicio__isnull=True).exclude(id=self.pk).count()
+                if ferias_em_aberto >= 1:
+                    raise ValidationError(
+                        {'periodo_descanso_inicio': "Só é possivel ter uma ferias em aberto por funcionario"})  # type:ignore
+        except ObjectDoesNotExist:
+            raise ValidationError({'funcionario': "Funcionario é obrigatorio"})  # type:ignore
+
+        return super_clean
+
+    def __str__(self) -> str:
+        return f'{self.funcionario} - Férias: {self.periodo_descanso_inicio_as_ddmmyyyy} - {self.periodo_descanso_fim_as_ddmmyyyy}'

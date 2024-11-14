@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def converter_data_django_para_datetime(data_converter) -> datetime:
@@ -19,6 +19,16 @@ def converter_data_django_para_str_ddmmyyyy(data_converter) -> str:
     data = converter_data_django_para_datetime(data_converter)
     data_formatada = data.strftime('%d/%m/%Y')
     return data_formatada
+
+
+def somar_dias_django_para_str_ddmmyyyy(data_somar, dias_somar=0) -> str:
+    if not data_somar:
+        return ''
+    data = converter_data_django_para_datetime(data_somar)
+    dias = float(dias_somar)
+    nova_data = data + timedelta(days=dias)
+    nova_data_formatada = nova_data.strftime('%d/%m/%Y')
+    return nova_data_formatada
 
 
 def converter_data_django_para_dia_semana(data_converter) -> str:
