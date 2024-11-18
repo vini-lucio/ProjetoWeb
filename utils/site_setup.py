@@ -1,6 +1,6 @@
 from home.models import SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgenda, Estados, Cidades, Jobs, Paises, Bancos
 from rh.models import (Cbo, Escolaridades, Funcionarios, DependentesTipos, Horarios, TransporteLinhas, TransporteTipos,
-                       ValeTransportes)
+                       ValeTransportes, Setores, Funcoes)
 from utils.data_hora_atual import hoje
 
 
@@ -66,3 +66,11 @@ def get_transporte_tipos():
 
 def get_vale_transportes():
     return ValeTransportes.objects
+
+
+def get_setores():
+    return Setores.objects
+
+
+def get_funcoes():
+    return Funcoes.objects

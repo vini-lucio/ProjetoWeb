@@ -2,15 +2,17 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 # ########### alterar model do import #########################################
-from rh.models import Ferias
+from rh.models import Salarios
 # ########### alterar/comentar get do import ##################################
-from utils.site_setup import get_funcionarios
+from utils.site_setup import get_funcionarios, get_setores, get_funcoes
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent
 origem = BASE_DIR / '__localcode' / 'migracao' / 'migrar.json'
 
 # ########### alterar/comentar get ############################################
 estrangeiro_funcionario = get_funcionarios()
+estrangeiro_setor = get_setores()
+estrangeiro_funcao = get_funcoes()
 
 
 class Command(BaseCommand):
@@ -23,21 +25,24 @@ class Command(BaseCommand):
         for item in dados:
             # ########### alterar/comentar chave estrangeira ##################
             fk_verdadeira_funcionario = estrangeiro_funcionario.filter(chave_migracao=item['funcionario']).first()
+            fk_verdadeira_setor = estrangeiro_setor.filter(chave_migracao=item['setor']).first()
+            fk_verdadeira_funcao = estrangeiro_funcao.filter(chave_migracao=item['funcao']).first()
             # ########### alterar/comentar chave estrangeira obrigatoria ######
             if fk_verdadeira_funcionario:
                 # ########### alterar model do import #########################
-                instancia = Ferias(
+                instancia = Salarios(
                     # ######## alterar campos json vs model e chave estrangeira
                     chave_migracao=item['chave_migracao'],
                     funcionario=fk_verdadeira_funcionario,
-                    periodo_trabalhado_inicio=item['periodo_trabalhado_inicio'],
-                    periodo_trabalhado_fim=item['periodo_trabalhado_fim'],
-                    dias_ferias=item['dias_ferias'],
-                    dias_desconsiderar=item['dias_desconsiderar'],
-                    antecipar_abono=item['antecipar_abono'],
-                    dias_abono=item['dias_abono'],
-                    antecipar_13=item['antecipar_13'],
-                    periodo_descanso_inicio=item['periodo_descanso_inicio'],
+                    setor=fk_verdadeira_setor,
+                    funcao=fk_verdadeira_funcao,
+                    data=item['data'],
+                    modalidade=item['modalidade'],
+                    salario=str(item['salario']),
+                    motivo=item['motivo'],
+                    comissao_carteira=str(item['comissao_carteira']),
+                    comissao_dupla=str(item['comissao_dupla']),
+                    comissao_geral=str(item['comissao_geral']),
                     observacoes=item['observacoes'],
                     # ######## usar str() em float ############################
                 )

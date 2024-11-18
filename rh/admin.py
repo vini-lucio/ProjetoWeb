@@ -1,7 +1,7 @@
 from django.contrib import admin
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
                        Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa,
-                       ValeTransportes, ValeTransportesFuncionarios, Ferias)
+                       ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
 
 
@@ -20,7 +20,7 @@ class DissidiosAdmin(BaseModelAdminRedRequiredLog):
     list_display_links = 'id', 'job', 'data_as_ddmmyyyy', 'dissidio_total',
     ordering = '-data', 'job',
     list_filter = 'job',
-    readonly_fields = ('dissidio_total', 'chave_migracao', 'aplicado', 'criado_por', 'criado_em', 'atualizado_por',
+    readonly_fields = ('aplicado', 'dissidio_total', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por',
                        'atualizado_em',)
 
     fieldsets = (
@@ -40,6 +40,16 @@ class DissidiosAdmin(BaseModelAdminRedRequiredLog):
             ),
         }),
     )
+
+    def get_readonly_fields(self, request, obj):
+        campos = super().get_readonly_fields(request, obj)
+
+        if not obj or obj.aplicado:
+            return campos
+
+        campos = list(campos)
+        campos.remove('aplicado')
+        return campos
 
 
 @admin.register(Escolaridades)
@@ -265,3 +275,14 @@ class FeriasAdmin(BaseModelAdminRedRequiredLog):
             ),
         }),
     )
+
+
+@admin.register(Salarios)
+class SalariosAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'funcionario', 'data_as_ddmmyyyy', 'salario', 'salario_convertido', 'motivo',
+    list_display_links = list_display
+    ordering = 'funcionario', '-data',
+    search_fields = 'funcionario__nome',
+    readonly_fields = ('salario_convertido', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por',
+                       'atualizado_em',)
+    autocomplete_fields = 'funcionario',

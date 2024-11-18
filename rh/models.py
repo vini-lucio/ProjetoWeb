@@ -9,6 +9,7 @@ from utils.converter import (converter_data_django_para_str_ddmmyyyy, converter_
                              somar_dias_django_para_str_ddmmyyyy)
 from utils.conferir_alteracao import campo_django_mudou
 from utils.choices import certidao_tipos
+from .services import get_funcionarios_salarios_atuais
 
 
 class Cbo(models.Model):
@@ -53,13 +54,15 @@ class Dissidios(BaseLogModel):
             ),
         ]
 
+    help_text_aplicado = "ATENÇÃO, APLICAR DISSIDIO É IRREVERSIVEL!"
+
     job = models.ForeignKey(Jobs, verbose_name="Job", on_delete=models.PROTECT, related_name="%(class)s")
     data = models.DateField("Data", auto_now=False, auto_now_add=False)
     dissidio_real = models.DecimalField("Dissidio Real %", max_digits=5, decimal_places=2, default=0.00)  # type:ignore
     dissidio_adicional = models.DecimalField("Dissidio Adicional %", max_digits=5, decimal_places=2,
                                              default=0.00)  # type:ignore
     observacoes = models.CharField("Observações", max_length=300, null=True, blank=True)
-    aplicado = models.BooleanField("Dissidio Aplicado?", default=False)
+    aplicado = models.BooleanField("Dissidio Aplicado?", default=False, help_text=help_text_aplicado)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     @property
@@ -73,6 +76,38 @@ class Dissidios(BaseLogModel):
         return self.dissidio_real + self.dissidio_adicional
 
     dissidio_total.fget.short_description = 'Dissidio Total %'  # type:ignore
+
+    def save(self, *args, **kwargs) -> None:
+        aplicar_dissidio = campo_django_mudou(Dissidios, self, aplicado=self.aplicado)
+
+        super_save = super().save(*args, **kwargs)
+
+        if aplicar_dissidio:
+            salarios_atuais = get_funcionarios_salarios_atuais(
+                self.job.funcionarios, somente_ativos=True)  # type:ignore
+            for salario_atual in salarios_atuais:
+                dados = salario_atual.get_dados()
+                novo_salario = float(dados['salario'] * (1 + (self.dissidio_total / 100)))
+                novo_salario = round(novo_salario, 2)
+                instancia = Salarios(
+                    funcionario=dados['funcionario'],
+                    setor=dados['setor'],
+                    funcao=dados['funcao'],
+                    data=self.data,
+                    modalidade=dados['modalidade'],
+                    salario=str(novo_salario),
+                    motivo='DISSIDIO',
+                    comissao_carteira=dados['comissao_carteira'],
+                    comissao_dupla=dados['comissao_dupla'],
+                    comissao_geral=dados['comissao_geral'],
+                    observacoes=f'DISSIDIO {self.dissidio_total}%',
+                    criado_por=self.atualizado_por,
+                    atualizado_por=self.atualizado_por,
+                )
+                instancia.full_clean()
+                instancia.save()
+
+        return super_save
 
     def __str__(self) -> str:
         return f'{self.job} - {self.data_as_ddmmyyyy}'
@@ -823,3 +858,104 @@ class Ferias(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.funcionario} - Férias: {self.periodo_descanso_inicio_as_ddmmyyyy} - {self.periodo_descanso_fim_as_ddmmyyyy}'
+
+
+class Salarios(BaseLogModel):
+    class Meta:
+        verbose_name = 'Salario'
+        verbose_name_plural = 'Salarios'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['funcionario', 'data',],
+                name='salarios_unique_data',
+                violation_error_message="Data é unico em Salarios de Funcionarios"
+            ),
+            models.CheckConstraint(
+                check=Q(salario__gt=0),
+                name='salarios_check_salario',
+                violation_error_message="Salario precisa ser maior que 0"
+            ),
+            models.CheckConstraint(
+                check=Q(comissao_carteira__gte=0),
+                name='salarios_check_comissao_carteira',
+                violation_error_message="Comissão Carteira precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(comissao_dupla__gte=0),
+                name='salarios_check_comissao_dupla',
+                violation_error_message="Comissão Dupla precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(comissao_geral__gte=0),
+                name='salarios_check_comissao_geral',
+                violation_error_message="Comissão Geral precisa ser maior ou igual a 0"
+            ),
+        ]
+
+    modalidades = {
+        'HORISTA': 'Horista',
+        'MENSALISTA': 'Mensalista',
+    }
+
+    motivos = {
+        'ADMISSAO': 'Admissão',
+        'DISSIDIO': 'Dissidio',
+        'OUTROS': 'Outros',
+        'PROMOCAO EXTRA FUNCAO': 'Promoção Extra Função',
+        'PROMOCAO INTRA FUNCAO': 'Promoção Intra Função',
+        'REALINHAMENTO COM O MERCADO': 'Realinhamento com o mercado',
+        'AJUSTE DE FUNCAO': 'Ajuste de Função',
+    }
+
+    help_text_motivo = (
+        "Promoção Intra Função: Usado somente para alteração na comissão. "
+        "Promoção Extra Função: Usado para alteração de cargo. "
+    )
+
+    funcionario = models.ForeignKey(Funcionarios, verbose_name="Funcionario", on_delete=models.PROTECT,
+                                    related_name="%(class)s")
+    setor = models.ForeignKey(Setores, verbose_name="Setor", on_delete=models.PROTECT, related_name="%(class)s")
+    funcao = models.ForeignKey(Funcoes, verbose_name="Função", on_delete=models.PROTECT, related_name="%(class)s")
+    data = models.DateField("Data", auto_now=False, auto_now_add=False)
+    modalidade = models.CharField("Modalidade", max_length=20, choices=modalidades)  # type:ignore
+    salario = models.DecimalField("Salario R$", max_digits=10, decimal_places=2, default=0)  # type:ignore
+    motivo = models.CharField("Motivo", max_length=30, choices=motivos, help_text=help_text_motivo)  # type:ignore
+    comissao_carteira = models.DecimalField("Comissão Carteira %", max_digits=7, decimal_places=4,
+                                            default=0)  # type:ignore
+    comissao_dupla = models.DecimalField("Comissão Dupla %", max_digits=7, decimal_places=4, default=0)  # type:ignore
+    comissao_geral = models.DecimalField("Comissão Geral %", max_digits=7, decimal_places=4, default=0)  # type:ignore
+    observacoes = models.CharField("Observações", max_length=100, null=True, blank=True)
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    @property
+    def data_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data)
+
+    data_as_ddmmyyyy.fget.short_description = 'Data'  # type:ignore
+
+    @property
+    def salario_convertido(self):
+        if self.modalidade == 'HORISTA':
+            return self.salario * 220
+        return self.salario
+
+    salario_convertido.fget.short_description = 'Salario Convertido (*220h)'  # type:ignore
+
+    def get_dados(self):
+        dados = {
+            'funcionario': self.funcionario,
+            'setor': self.setor,
+            'funcao': self.funcao,
+            'data': self.data,
+            'modalidade': self.modalidade,
+            'salario': self.salario,
+            'motivo': self.motivo,
+            'comissao_carteira': self.comissao_carteira,
+            'comissao_dupla': self.comissao_dupla,
+            'comissao_geral': self.comissao_geral,
+            'observacoes': self.observacoes,
+        }
+        return dados
+
+    def __str__(self) -> str:
+        return f'{self.funcionario} - Salario: {self.salario}'
