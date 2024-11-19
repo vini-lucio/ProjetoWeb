@@ -9,6 +9,7 @@ from utils.converter import (converter_data_django_para_str_ddmmyyyy, converter_
                              somar_dias_django_para_str_ddmmyyyy)
 from utils.conferir_alteracao import campo_django_mudou
 from utils.choices import certidao_tipos
+from utils.data_hora_atual import hoje
 from .services import get_funcionarios_salarios_atuais
 
 
@@ -456,6 +457,10 @@ class Funcionarios(BaseLogModel):
 
         return super_save
 
+    @classmethod
+    def filter_ativos(cls):
+        return cls.objects.filter(data_saida__isnull=True)
+
     def __str__(self) -> str:
         return f'{self.nome} - {self.status}'
 
@@ -488,6 +493,12 @@ class Afastamentos(BaseLogModel):
     data_afastamento_as_ddmmyyyy.fget.short_description = 'Data Afastamento'  # type:ignore
 
     @property
+    def data_previsao_retorno_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_previsao_retorno)
+
+    data_previsao_retorno_as_ddmmyyyy.fget.short_description = 'Data Previsão Retorno'  # type:ignore
+
+    @property
     def data_retorno_as_ddmmyyyy(self):
         return converter_data_django_para_str_ddmmyyyy(self.data_retorno)
 
@@ -507,6 +518,10 @@ class Afastamentos(BaseLogModel):
             raise ValidationError({'funcionario': "Funcionario é obrigatorio"})  # type:ignore
 
         return super_clean
+
+    @classmethod
+    def filter_em_aberto(cls):
+        return cls.objects.filter(data_retorno__isnull=True)
 
     def __str__(self) -> str:
         return f'{self.funcionario} - Afastamento: {self.data_afastamento_as_ddmmyyyy}'
@@ -545,6 +560,12 @@ class Dependentes(BaseLogModel):
     observacoes = models.CharField("Observações", max_length=100, null=True, blank=True)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
+    @property
+    def data_nascimento_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_nascimento)
+
+    data_nascimento_as_ddmmyyyy.fget.short_description = 'Data Nascimento'  # type:ignore
+
     def __str__(self) -> str:
         return f'{self.funcionario} - {self.nome}'
 
@@ -556,7 +577,7 @@ class HorariosFuncionarios(BaseLogModel):
 
     dias_horarios = {
         'SEGUNDA A SABADO, DOMINGO LIVRE': 'Segunda a sabado, domingo livre',
-        'SEGUNDA A SEXTA, SABADO E DOMINGO LIVRE': 'Srgunda a sexta, sabado e domingo livre',
+        'SEGUNDA A SEXTA, SABADO E DOMINGO LIVRE': 'Segunda a sexta, sabado e domingo livre',
         'SEGUNDA A SEXTA E SABADO ALTERNADO, DOMINGO LIVRE': 'Segunda a sexta e sabado alternado, domingo livre',
     }
 
@@ -593,6 +614,10 @@ class HorariosFuncionarios(BaseLogModel):
             raise ValidationError({'funcionario': "Funcionario é obrigatorio"})  # type:ignore
 
         return super_clean
+
+    @classmethod
+    def filter_atual(cls):
+        return cls.objects.filter(data_fim__isnull=True)
 
     def __str__(self) -> str:
         return f'{self.funcionario} - {self.horario}'
@@ -633,6 +658,10 @@ class Cipa(BaseLogModel):
         return converter_data_django_para_str_ddmmyyyy(self.estabilidade_fim)
 
     estabilidade_fim_as_ddmmyyyy.fget.short_description = 'Estabilidade Fim'  # type:ignore
+
+    @classmethod
+    def filter_membro_com_estabilidade(cls):
+        return cls.objects.filter(Q(integrante_cipa_inicio__lte=hoje()) & Q(estabilidade_fim__gte=hoje()))
 
     def __str__(self) -> str:
         return f'{self.funcionario} - {self.integrante_cipa_inicio_as_ddmmyyyy} - Estabilidade até: {self.estabilidade_fim_as_ddmmyyyy}'
@@ -856,6 +885,10 @@ class Ferias(BaseLogModel):
 
         return super_clean
 
+    @classmethod
+    def filter_em_aberto(cls):
+        return cls.objects.filter(periodo_descanso_inicio__isnull=True)
+
     def __str__(self) -> str:
         return f'{self.funcionario} - Férias: {self.periodo_descanso_inicio_as_ddmmyyyy} - {self.periodo_descanso_fim_as_ddmmyyyy}'
 
@@ -956,6 +989,15 @@ class Salarios(BaseLogModel):
             'observacoes': self.observacoes,
         }
         return dados
+
+    @classmethod
+    def filter_atual(cls, funcionario: Funcionarios):
+        func = Funcionarios.objects.filter(pk=funcionario.pk)
+        salario_atual = get_funcionarios_salarios_atuais(func, somente_ativos=False)
+        if salario_atual:
+            salario_atual = salario_atual[0]
+            return cls.objects.filter(pk=salario_atual.pk)
+        return cls.objects.filter(funcionario=funcionario)
 
     def __str__(self) -> str:
         return f'{self.funcionario} - Salario: {self.salario}'

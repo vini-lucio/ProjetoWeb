@@ -1,4 +1,8 @@
+from typing import Any
 from django.contrib import admin
+from django.db.models.query import QuerySet
+from django.forms.models import BaseInlineFormSet
+from django.http import HttpRequest
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
                        Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa,
                        ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios)
@@ -115,6 +119,146 @@ class HorariosAdmin(BaseModelAdminRedRequired):
     readonly_fields = 'chave_migracao',
 
 
+class AfastamentosInLine(admin.TabularInline):
+    model = Afastamentos
+    extra = 0
+    verbose_name = "Afastamento Em Aberto do Funcionario"
+    verbose_name_plural = "Afastamentos Em Aberto do Funcionario"
+    fields = 'data_afastamento_as_ddmmyyyy', 'data_previsao_retorno_as_ddmmyyyy', 'motivo',
+    readonly_fields = fields
+    can_delete = False
+
+    def has_add_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def has_change_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
+        # queryset = super().get_queryset(request)
+        return Afastamentos.filter_em_aberto()
+
+
+class CipaInLine(admin.TabularInline):
+    model = Cipa
+    extra = 0
+    verbose_name = "Membro da CIPA com estabilidade"
+    verbose_name_plural = "Membro da CIPA com estabilidade"
+    fields = 'integrante_cipa_inicio_as_ddmmyyyy', 'estabilidade_fim_as_ddmmyyyy',
+    readonly_fields = fields
+    can_delete = False
+
+    def has_add_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def has_change_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
+        # queryset = super().get_queryset(request)
+        return Cipa.filter_membro_com_estabilidade()
+
+
+class DependentesInLine(admin.TabularInline):
+    model = Dependentes
+    extra = 0
+    verbose_name = "Dependente do Funcionario"
+    verbose_name_plural = "Dependentes do Funcionario"
+    fields = 'dependente_tipo', 'nome', 'data_nascimento_as_ddmmyyyy', 'dependente_ir',
+    readonly_fields = fields
+    can_delete = False
+
+    def has_add_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def has_change_permission(self, *args, **kwargs) -> bool:
+        return False
+
+
+class FeriasInLine(admin.TabularInline):
+    model = Ferias
+    extra = 0
+    verbose_name = "Ferias Em Aberto do Funcionario"
+    verbose_name_plural = "Ferias Em Aberto do Funcionario"
+    fields = 'periodo_trabalhado_inicio_as_ddmmyyyy', 'periodo_trabalhado_fim_as_ddmmyyyy', 'dias_ferias',
+    readonly_fields = fields
+    can_delete = False
+
+    def has_add_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def has_change_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
+        # queryset = super().get_queryset(request)
+        return Ferias.filter_em_aberto()
+
+
+class HorariosFuncionariosInLine(admin.TabularInline):
+    model = HorariosFuncionarios
+    extra = 0
+    verbose_name = "Horario Atual do Funcionario"
+    verbose_name_plural = "Horario Atual do Funcionario"
+    fields = 'horario', 'dias', 'data_inicio_as_ddmmyyyy',
+    readonly_fields = fields
+    can_delete = False
+
+    def has_add_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def has_change_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
+        # queryset = super().get_queryset(request)
+        return HorariosFuncionarios.filter_atual()
+
+
+class ValeTransportesFuncionariosInLine(admin.TabularInline):
+    model = ValeTransportesFuncionarios
+    extra = 0
+    verbose_name = "Vale Transporte do Funcionario"
+    verbose_name_plural = "Vale Transportes do Funcionario"
+    fields = 'vale_transporte', 'quantidade_por_dia', 'dias', 'valor_unitario', 'valor_total'
+    readonly_fields = fields
+    can_delete = False
+
+    def has_add_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def has_change_permission(self, *args, **kwargs) -> bool:
+        return False
+
+
+class SalariosInLine(admin.TabularInline):
+    model = Salarios
+    extra = 0
+    verbose_name = "Salario Atual do Funcionario"
+    verbose_name_plural = "Salario Atual do Funcionario"
+    fields = ('data_as_ddmmyyyy', 'salario', 'salario_convertido', 'motivo', 'comissao_carteira', 'comissao_dupla',
+              'comissao_geral',)
+    readonly_fields = fields
+    can_delete = False
+
+    def has_add_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def has_change_permission(self, *args, **kwargs) -> bool:
+        return False
+
+    def get_formset(self, request: HttpRequest, obj: Any | None = ..., **kwargs: Any) -> type[BaseInlineFormSet]:
+        formset = super().get_formset(request, obj, **kwargs)
+        self.parent_obj = obj
+        return formset
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
+        queryset = super().get_queryset(request)
+        if self.parent_obj:
+            return Salarios.filter_atual(funcionario=self.parent_obj)
+        return queryset
+
+
 @admin.register(Funcionarios)
 class FuncionariosAdmin(BaseModelAdminRedRequiredLog):
     list_display = 'id', 'job', 'registro', 'nome', 'status',
@@ -125,6 +269,8 @@ class FuncionariosAdmin(BaseModelAdminRedRequiredLog):
     readonly_fields = 'image_tag', 'status', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
     autocomplete_fields = ('job', 'cidade', 'uf', 'pais', 'cidade_nascimento', 'uf_nascimento', 'pais_nascimento',
                            'escolaridade', 'banco')
+    inlines = (AfastamentosInLine, CipaInLine, DependentesInLine, FeriasInLine, HorariosFuncionariosInLine,
+               ValeTransportesFuncionariosInLine, SalariosInLine)
     fieldsets = (
         (None, {
             'fields': (
@@ -177,6 +323,11 @@ class FuncionariosAdmin(BaseModelAdminRedRequiredLog):
             ),
         }),
     )
+
+    def get_inlines(self, request, obj):
+        if obj:
+            return super().get_inlines(request, obj)
+        return []
 
 
 @admin.register(Afastamentos)
