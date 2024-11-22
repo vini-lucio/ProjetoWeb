@@ -50,25 +50,27 @@ class Aniversariantes(models.Model):
         return f'{self.job} - {self.nome} - {self.data_nascimento}'
 
 
-# class Filhos12Anos(models.Model):
-#     class Meta:
-#         managed = False
-#         db_table = 'rh_filhos_12_anos_view'
-#         verbose_name = 'Relatorio Filhos até 12 Anos'
-#         verbose_name_plural = 'Relatorio Filhos até 12 Anos'
+class Dependentes(models.Model):
+    class Meta:
+        managed = False
+        db_table = 'rh_dependentes_view'
+        verbose_name = 'Relatorio Dependente'
+        verbose_name_plural = 'Relatorio Dependentes'
 
-#     id = models.IntegerField(primary_key=True)
-#     job = models.CharField("Job", max_length=30, null=True, blank=True)
-#     nome = models.CharField("Nome", max_length=100, null=True, blank=True)
-#     nome_dependente = models.CharField("Nome Dependente", max_length=100, null=True, blank=True)
-#     data_nascimento = models.DateField("Data Nascimento", auto_now=False, auto_now_add=False, null=True, blank=True)
-#     idade = models.DecimalField("Idade", max_digits=5, decimal_places=2, null=True, blank=True)
+    id = models.IntegerField(primary_key=True)
+    job = models.CharField("Job", max_length=30, null=True, blank=True)
+    nome = models.CharField("Nome", max_length=100, null=True, blank=True)
+    sexo = models.CharField("Sexo", max_length=10, null=True, blank=True)
+    nome_dependente = models.CharField("Nome Dependente", max_length=100, null=True, blank=True)
+    data_nascimento = models.DateField("Data Nascimento", auto_now=False, auto_now_add=False, null=True, blank=True)
+    idade = models.DecimalField("Idade", max_digits=5, decimal_places=2, null=True, blank=True)
+    crianca = models.BooleanField("Criança", null=True, blank=True)
 
-#     @property
-#     def data_nascimento_as_ddmmyyyy(self):
-#         return converter_data_django_para_str_ddmmyyyy(self.data_nascimento)
+    @property
+    def data_nascimento_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_nascimento)
 
-#     data_nascimento_as_ddmmyyyy.fget.short_description = 'Data Nascimento'  # type:ignore
+    data_nascimento_as_ddmmyyyy.fget.short_description = 'Data Nascimento'  # type:ignore
 
-#     def __str__(self) -> str:
-#         return f'{self.job} - {self.nome} - {self.nome_dependente}'
+    def __str__(self) -> str:
+        return f'{self.job} - {self.nome} - {self.nome_dependente}'
