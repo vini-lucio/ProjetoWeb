@@ -25,3 +25,26 @@ class Admissoes(models.Model):
 
     def __str__(self) -> str:
         return f'{self.job} - {self.nome} - {self.data_entrada} - {self.tempo_casa_anos} anos'
+
+
+class Aniversariantes(models.Model):
+    class Meta:
+        managed = False
+        db_table = 'rh_aniversariantes_view'
+        verbose_name = 'Relatorio Aniversariante'
+        verbose_name_plural = 'Relatorio Aniversariantes'
+
+    id = models.IntegerField(primary_key=True)
+    job = models.CharField("Job", max_length=30, null=True, blank=True)
+    nome = models.CharField("Nome", max_length=100, null=True, blank=True)
+    mes_nascimento = models.DecimalField("Mes Nascimento", max_digits=2, decimal_places=0, null=True, blank=True)
+    data_nascimento = models.DateField("Data Nascimento", auto_now=False, auto_now_add=False, null=True, blank=True)
+
+    @property
+    def data_nascimento_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_nascimento)
+
+    data_nascimento_as_ddmmyyyy.fget.short_description = 'Data Nascimento'  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.job} - {self.nome} - {self.data_nascimento}'

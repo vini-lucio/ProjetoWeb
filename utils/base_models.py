@@ -44,6 +44,9 @@ class BaseModelAdminRedRequiredLog(BaseModelAdminRedRequired):
 
 
 class BaseViewAdmin(admin.ModelAdmin):
+    class Meta:
+        abstract = True
+
     def has_add_permission(self, request: HttpRequest) -> bool:
         # return super().has_add_permission(request)
         return False
