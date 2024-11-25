@@ -1,5 +1,6 @@
 from django.contrib import admin
-from rh_relatorios.models import Admissoes, Aniversariantes, Dependentes, FuncionariosListagem
+from rh_relatorios.models import (Admissoes, Aniversariantes, Dependentes, FuncionariosListagem,
+                                  FuncionariosSalarioFuncaoAtual)
 from utils.base_models import BaseViewAdmin, ExportarXlsxMixIn
 
 
@@ -53,3 +54,18 @@ class FuncionariosListagemAdmin(BaseViewAdmin, ExportarXlsxMixIn):
     actions = 'exportar_excel',
 
     campos_exportar = 'job', 'nome', 'funcao', 'sexo', 'data_nascimento', 'rg', 'membro_cipa',
+
+
+@admin.register(FuncionariosSalarioFuncaoAtual)
+class FuncionariosSalarioFuncaoAtualAdmin(BaseViewAdmin, ExportarXlsxMixIn):
+    list_display = ('job', 'nome', 'data_entrada_as_ddmmyyyy', 'funcao', 'salario', 'salario_convertido',
+                    'comissao_carteira', 'comissao_dupla', 'comissao_geral', )
+    list_display_links = list_display
+    list_filter = 'job',
+    ordering = 'job', 'nome',
+    search_fields = 'nome',
+    fields = list_display
+    actions = 'exportar_excel',
+
+    campos_exportar = ('job', 'nome', 'data_entrada', 'funcao', 'salario', 'salario_convertido', 'comissao_carteira',
+                       'comissao_dupla', 'comissao_geral', )

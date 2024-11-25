@@ -100,3 +100,31 @@ class FuncionariosListagem(models.Model):
 
     def __str__(self) -> str:
         return f'{self.job} - {self.nome}'
+
+
+class FuncionariosSalarioFuncaoAtual(models.Model):
+    class Meta:
+        managed = False
+        db_table = 'rh_salario_funcao_atual_view'
+        verbose_name = 'Relatorio Funcionario Salario Função Atual'
+        verbose_name_plural = 'Relatorio Funcionarios Salario Função Atual'
+
+    id = models.IntegerField(primary_key=True)
+    job = models.CharField("Job", max_length=30, null=True, blank=True)
+    nome = models.CharField("Nome", max_length=100, null=True, blank=True)
+    data_entrada = models.DateField("Data Nascimento", auto_now=False, auto_now_add=False, null=True, blank=True)
+    funcao = models.CharField("Função", max_length=70, null=True, blank=True)
+    salario = models.DecimalField("Salario", max_digits=10, decimal_places=2)
+    salario_convertido = models.DecimalField("Salario Convertido (*220h)", max_digits=10, decimal_places=2)
+    comissao_carteira = models.DecimalField("Comissão Carteira %", max_digits=7, decimal_places=4)
+    comissao_dupla = models.DecimalField("Comissão Dupla %", max_digits=7, decimal_places=4)
+    comissao_geral = models.DecimalField("Comissão Geral %", max_digits=7, decimal_places=4)
+
+    @property
+    def data_entrada_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_entrada)
+
+    data_entrada_as_ddmmyyyy.fget.short_description = 'Data Entrada'  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.job} - {self.nome} - R$ {self.salario} (*22h {self.salario_convertido})'
