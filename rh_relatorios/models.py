@@ -106,8 +106,8 @@ class FuncionariosSalarioFuncaoAtual(models.Model):
     class Meta:
         managed = False
         db_table = 'rh_salario_funcao_atual_view'
-        verbose_name = 'Relatorio Funcionario Salario Função Atual'
-        verbose_name_plural = 'Relatorio Funcionarios Salario Função Atual'
+        verbose_name = 'Relatorio Salario Função Atual de Funcionarios'
+        verbose_name_plural = 'Relatorio Salario Função Atual de Funcionarios'
 
     id = models.IntegerField(primary_key=True)
     job = models.CharField("Job", max_length=30, null=True, blank=True)
@@ -134,8 +134,8 @@ class FuncionariosHistoricoSalarios(models.Model):
     class Meta:
         managed = False
         db_table = 'rh_historico_salarios_view'
-        verbose_name = 'Relatorio Funcionario Historico de Salarios'
-        verbose_name_plural = 'Relatorio Funcionarios Historico de Salarios'
+        verbose_name = 'Relatorio Historico de Salarios de Funcionarios'
+        verbose_name_plural = 'Relatorio Historico de Salarios de Funcionarios'
 
     id = models.IntegerField(primary_key=True)
     job = models.CharField("Job", max_length=30, null=True, blank=True)
@@ -167,3 +167,24 @@ class FuncionariosHistoricoSalarios(models.Model):
 
     def __str__(self) -> str:
         return f'{self.job} - {self.nome} - R$ {self.salario} (*220h {self.salario_convertido})'
+
+
+class FuncionariosQuadroHorarios(models.Model):
+    class Meta:
+        managed = False
+        db_table = 'rh_quadro_horarios_view'
+        verbose_name = 'Quadro de Horarios de Funcionarios'
+        verbose_name_plural = 'Quadro de Horarios de Funcionarios'
+
+    id = models.IntegerField(primary_key=True)
+    job = models.CharField("Job", max_length=30, null=True, blank=True)
+    registro = models.IntegerField("Registro", null=True, blank=True)
+    nome = models.CharField("Nome", max_length=100, null=True, blank=True)
+    carteira_profissional = models.CharField("Carteira Profissional", max_length=10, null=True, blank=True)
+    setor = models.CharField("Setor", max_length=50, null=True, blank=True)
+    funcao = models.CharField("Função", max_length=70, null=True, blank=True)
+    horario = models.CharField("Horario", max_length=20, null=True, blank=True)
+    almoco = models.CharField("Almoço", max_length=20, null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f'{self.job} - {self.nome} - Horario: {self.horario} - Almoço: {self.almoco})'
