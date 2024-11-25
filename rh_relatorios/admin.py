@@ -1,6 +1,6 @@
 from django.contrib import admin
 from rh_relatorios.models import (Admissoes, Aniversariantes, Dependentes, FuncionariosListagem,
-                                  FuncionariosSalarioFuncaoAtual)
+                                  FuncionariosSalarioFuncaoAtual, FuncionariosHistoricoSalarios)
 from utils.base_models import BaseViewAdmin, ExportarXlsxMixIn
 
 
@@ -69,3 +69,21 @@ class FuncionariosSalarioFuncaoAtualAdmin(BaseViewAdmin, ExportarXlsxMixIn):
 
     campos_exportar = ('job', 'nome', 'data_entrada', 'funcao', 'salario', 'salario_convertido', 'comissao_carteira',
                        'comissao_dupla', 'comissao_geral', )
+
+
+@admin.register(FuncionariosHistoricoSalarios)
+class FuncionariosHistoricoSalariosAdmin(BaseViewAdmin, ExportarXlsxMixIn):
+    list_display = ('job', 'nome', 'data_salario_as_ddmmyyyy', 'salario', 'salario_convertido', 'motivo',
+                    'comissao_carteira', 'comissao_dupla', 'comissao_geral', )
+    list_display_links = list_display
+    list_filter = 'job', 'setor',
+    ordering = 'job', 'nome', '-data_salario',
+    search_fields = 'nome',
+    fields = ('job', 'nome', 'data_entrada_as_ddmmyyyy', 'data_salario_as_ddmmyyyy', 'setor', 'funcao', 'motivo',
+              'modalidade', 'salario', 'salario_convertido', 'comissao_carteira', 'comissao_dupla',
+              'comissao_geral', 'observacoes',)
+    actions = 'exportar_excel',
+
+    campos_exportar = ('job', 'nome', 'data_entrada', 'data_salario', 'setor', 'funcao', 'motivo', 'modalidade',
+                       'salario', 'salario_convertido', 'comissao_carteira', 'comissao_dupla', 'comissao_geral',
+                       'observacoes',)

@@ -127,4 +127,43 @@ class FuncionariosSalarioFuncaoAtual(models.Model):
     data_entrada_as_ddmmyyyy.fget.short_description = 'Data Entrada'  # type:ignore
 
     def __str__(self) -> str:
-        return f'{self.job} - {self.nome} - R$ {self.salario} (*22h {self.salario_convertido})'
+        return f'{self.job} - {self.nome} - R$ {self.salario} (*220h {self.salario_convertido})'
+
+
+class FuncionariosHistoricoSalarios(models.Model):
+    class Meta:
+        managed = False
+        db_table = 'rh_historico_salarios_view'
+        verbose_name = 'Relatorio Funcionario Historico de Salarios'
+        verbose_name_plural = 'Relatorio Funcionarios Historico de Salarios'
+
+    id = models.IntegerField(primary_key=True)
+    job = models.CharField("Job", max_length=30, null=True, blank=True)
+    nome = models.CharField("Nome", max_length=100, null=True, blank=True)
+    data_entrada = models.DateField("Data Nascimento", auto_now=False, auto_now_add=False, null=True, blank=True)
+    data_salario = models.DateField("Data Salario", auto_now=False, auto_now_add=False, null=True, blank=True)
+    setor = models.CharField("Setor", max_length=50, null=True, blank=True)
+    funcao = models.CharField("Função", max_length=70, null=True, blank=True)
+    motivo = models.CharField("Motivo", max_length=30, null=True, blank=True)
+    modalidade = models.CharField("Modalidade", max_length=20, null=True, blank=True)
+    salario = models.DecimalField("Salario", max_digits=10, decimal_places=2)
+    salario_convertido = models.DecimalField("Salario Convertido (*220h)", max_digits=10, decimal_places=2)
+    comissao_carteira = models.DecimalField("Comissão Carteira %", max_digits=7, decimal_places=4)
+    comissao_dupla = models.DecimalField("Comissão Dupla %", max_digits=7, decimal_places=4)
+    comissao_geral = models.DecimalField("Comissão Geral %", max_digits=7, decimal_places=4)
+    observacoes = models.CharField("Observações", max_length=100, null=True, blank=True)
+
+    @property
+    def data_entrada_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_entrada)
+
+    data_entrada_as_ddmmyyyy.fget.short_description = 'Data Entrada'  # type:ignore
+
+    @property
+    def data_salario_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_salario)
+
+    data_salario_as_ddmmyyyy.fget.short_description = 'Data Salario'  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.job} - {self.nome} - R$ {self.salario} (*220h {self.salario_convertido})'
