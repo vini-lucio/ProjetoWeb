@@ -74,3 +74,29 @@ class Dependentes(models.Model):
 
     def __str__(self) -> str:
         return f'{self.job} - {self.nome} - {self.nome_dependente}'
+
+
+class FuncionariosListagem(models.Model):
+    class Meta:
+        managed = False
+        db_table = 'rh_listagem_funcionarios_view'
+        verbose_name = 'Listagem Funcionario'
+        verbose_name_plural = 'Listagem Funcionarios'
+
+    id = models.IntegerField(primary_key=True)
+    job = models.CharField("Job", max_length=30, null=True, blank=True)
+    nome = models.CharField("Nome", max_length=100, null=True, blank=True)
+    funcao = models.CharField("Função", max_length=70, null=True, blank=True)
+    sexo = models.CharField("Sexo", max_length=10, null=True, blank=True)
+    data_nascimento = models.DateField("Data Nascimento", auto_now=False, auto_now_add=False, null=True, blank=True)
+    rg = models.CharField("RG", max_length=20, null=True, blank=True)
+    membro_cipa = models.BooleanField("Membro CIPA", null=True, blank=True)
+
+    @property
+    def data_nascimento_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data_nascimento)
+
+    data_nascimento_as_ddmmyyyy.fget.short_description = 'Data Nascimento'  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.job} - {self.nome}'
