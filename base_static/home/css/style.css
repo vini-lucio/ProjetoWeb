@@ -73,8 +73,10 @@ h2 {
 p,
 label,
 input,
+select,
 textarea,
 button,
+table,
 .botao-div {
     font-size: var(--tamanho-fonte-p);
     line-height: var(--tamanho-linha-p);
@@ -91,6 +93,7 @@ form p {
 }
 
 input,
+select,
 textarea {
     color: var(--azul-escuro);
     outline: none;
@@ -98,6 +101,7 @@ textarea {
 }
 
 input:focus,
+select:focus,
 textarea:focus {
     box-shadow: 0 0 0.5rem 0.2rem var(--verde-claro);
 }
@@ -316,6 +320,10 @@ textarea:focus {
     gap: 0.5rem;
     width: fit-content;
     margin: 0 auto;
+}
+
+.alinhar-direta {
+    text-align: right;
 }
 
 .grid-2col-numero2 {
@@ -619,6 +627,40 @@ textarea:focus {
     border: none;
 }
 
+.tabela-simples {
+    padding: 2rem;
+    color: var(--azul-escuro);
+    text-align: center;
+    align-content: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.tabela-simples table {
+    margin: 0 auto;
+    border-collapse: collapse;
+}
+
+.tabela-simples table,
+.tabela-simples th,
+.tabela-simples td,
+.tabela-simples tr {
+    border: none;
+}
+
+.tabela-simples td,
+.tabela-simples th {
+    padding: 0rem 1rem;
+}
+
+.linha-pontilhada::after {
+    content: "";
+    display: block;
+    width: 100%;
+    border-bottom: 1px dotted var(--azul-escuro);
+    margin-top: 10px;
+}
+
 @media (max-width: 570px) {
     .grid-2col-numero {
         grid-template-columns: auto;
@@ -633,5 +675,27 @@ textarea:focus {
 @media (max-width: 1349px) {
     .grid-dashboard {
         display: block;
+    }
+}
+
+@media print {
+    html {
+        font-size: 50%;
+    }
+
+    header,
+    footer,
+    form,
+    .titulo,
+    .topo {
+        display: none;
+    }
+
+    .principal {
+        background-color: var(--branco);
+    }
+
+    .nao-quebrar-impressao {
+        page-break-inside: avoid;
     }
 }

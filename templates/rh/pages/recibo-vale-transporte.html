@@ -1,0 +1,65 @@
+{% extends "rh/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Recibo Vale Transporte</h1>
+            </div>
+
+            <form method="get">
+                <div class="grid-simples link-conteudo alinhar-direta">
+                    {{ formulario.as_p }}
+                </div>
+                <button class="botao" type="submit">Gerar Recibos</button>
+            </form>
+
+            <div class="grid-simples">
+                {% for recibo_vale_transporte in recibos_vale_transporte %}
+                    {% if recibo_vale_transporte.valetransportesfuncionarios.all %}
+                        <div class="link-conteudo linha-pontilhada nao-quebrar-impressao">
+
+                            <p>
+                                Eu, {{ recibo_vale_transporte.nome }}, CPF: {{ recibo_vale_transporte.cpf }},
+                                Matricula: {{ recibo_vale_transporte.registro }},
+                                declaro ter recebido de {{ recibo_vale_transporte.job.razao_social }},
+                                CNPJ: {{ recibo_vale_transporte.job.cnpj }}, os vales transportes abaixo relacionados,
+                                destinados a minha locomoção para o trabalho durante o periodo de: {{ data_inicio | date:"d/m/Y" }} à {{ data_fim | date:"d/m/Y" }}
+                            </p>
+
+                            <div class="tabela-simples">
+                                <table>
+                                    <tr>
+                                        <th>Condução</th>
+                                        <th>Quantidade/dia</th>
+                                        <th>Valor Unitario</th>
+                                        <th>Valor Total</th>
+                                    </tr>
+                                    {% for vale_transporte in recibo_vale_transporte.valetransportesfuncionarios.all %}
+                                        <tr>
+                                            <td>{{ vale_transporte.vale_transporte }}</td>
+                                            <td>{{ vale_transporte.quantidade_por_dia }}</td>
+                                            <td>R$ {{ vale_transporte.valor_unitario }}</td>
+                                            <td>R$ {{ vale_transporte.valor_total }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </table>
+                            </div>
+
+                            <p>Valor total dos vales recebido: R$ {{ recibo_vale_transporte.valor_total_vale_transportes }}</p>
+                            <br><br>
+                            <p>_______________________________________________________________________</p>
+                            <p>{{ recibo_vale_transporte.nome }}, Mauá, {{ data_assinatura | date:"d/m/Y" }}</p>
+
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+        </div>
+        
+    </section>
+
+{% endblock conteudo %}

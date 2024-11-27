@@ -325,6 +325,8 @@ class Jobs(models.Model):
     status_jobs = status_ativo_inativo
 
     descricao = models.CharField("Descrição", max_length=30)
+    razao_social = models.CharField("Razão Social", max_length=100, null=True, blank=True)
+    cnpj = models.CharField("CNPJ", max_length=20, null=True, blank=True)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
     status = models.CharField("Status", max_length=30, choices=status_jobs, default='ativo')  # type:ignore
 

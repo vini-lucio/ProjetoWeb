@@ -1,0 +1,21 @@
+{% extends "rh/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>RH</h1>
+            </div>
+        </div>
+
+        <div class="link-conteudo">
+            <div class="grid-simples">
+                <a href="{% url "rh:recibo-vale-transporte" %}"><div class="botao-div">Recibo Vale Transporte</div></a>
+            </div>
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

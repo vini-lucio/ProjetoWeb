@@ -439,6 +439,19 @@ class Funcionarios(BaseLogModel):
 
     status.fget.short_description = 'Status'  # type:ignore
 
+    @property
+    def valor_total_vale_transportes(self):
+        vales = self.valetransportesfuncionarios.all()  # type:ignore
+        total = 0
+
+        if not vales:
+            return total
+
+        for vale in vales:
+            total += vale.valor_total
+
+        return total
+
     def image_tag(self):
         if self.foto:
             return mark_safe(f'<img src="{self.foto.url}"/>')
@@ -781,6 +794,10 @@ class ValeTransportesFuncionarios(BaseLogModel):
         if self.dias == 0:
             self.dias = self.vale_transporte.dias
         return super().save(*args, **kwargs)
+
+    @classmethod
+    def filter_ativos(cls):
+        return cls.objects.filter(funcionario__data_saida__isnull=True)
 
     def __str__(self) -> str:
         return f'{self.funcionario} - {self.vale_transporte}'
