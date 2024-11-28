@@ -1,0 +1,62 @@
+{% extends "rh/base.html" %}
+{% load tz %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Solicitação de Ferias</h1>
+            </div>
+
+            <div class="link-conteudo">
+                <p>{{ solicitacao_ferias.funcionario.nome }}</p>
+                <div class="grid centralizar">
+                    <p>Registro: {{ solicitacao_ferias.funcionario.registro }}</p>
+                    <p>Data Solicitação: {% now "d/m/Y" %}</p>
+                    <p>Periodo Aquisitivo: {{ solicitacao_ferias.periodo_trabalhado_inicio_as_ddmmyyyy }} - {{ solicitacao_ferias.periodo_trabalhado_fim_as_ddmmyyyy }}</p>
+                </div>
+                <div class="grid centralizar">
+                    <p>Dias Descanso: {{ solicitacao_ferias.dias_ferias }}</p>
+                    <p>Periodo Descanso: {{ solicitacao_ferias.periodo_descanso_inicio_as_ddmmyyyy }} a {{ solicitacao_ferias.periodo_descanso_fim_as_ddmmyyyy }}</p>
+                </div>
+                <div class="grid centralizar">
+                    <p>Dias Abono: {{ solicitacao_ferias.dias_abono }}</p>
+                    <p>Periodo Abono: {{ solicitacao_ferias.periodo_abono_inicio_as_ddmmyyyy }} a {{ solicitacao_ferias.periodo_abono_fim_as_ddmmyyyy }}</p>
+                </div>
+                <div class="grid centralizar">
+                    <p class="linha-continua-acima">De acordo: {{ solicitacao_ferias.funcionario.nome }}</p>
+                </div>
+                <div class="grid centralizar linha-continua-acima linha-continua">
+                    <p>Antecipação do 13º Salario: <span class="fonte-vermelho">{% if solicitacao_ferias.antecipar_13 %}SIM{% else %}NÃO{% endif %}</span></p>
+                    <p>
+                        Eu, {{ solicitacao_ferias.funcionario.nome }}, venho por meio desta, solicitar junto com as férias, 
+                        a antecipação da 1ª parcela do 13º salário de acordo com a convenção coletiva. (Obedecendo o 
+                        pedido com 30 dias de antecedência) (Lei nº 4.749, de 12.08.65 - DOU ao 13.08.65 e Decreto nº 
+                        57.155 de 03.11.65 - DOU de 04.11.65)
+                    </p>
+                    <div class="grid centralizar">
+                        <p class="linha-continua-acima">Ciente, <span class="fonte-vermelho">se for optante</span>: {{ solicitacao_ferias.funcionario.nome }}</p>
+                    </div>
+                </div>
+                <div class="grid centralizar">
+                    <p>Gestor(a): _____________________________</p>
+                    <p>DP / RH: _____________________________</p>
+                    <p>Data: _____________________________</p>
+                </div>
+                <div class="alinhar-esquerda">
+                    <p>Observações:</p>
+                    <p>- Lançar no ponto eletronico e premio</p>
+                    <p>- Os colaboradores que são comissionados só poderão sair de ferias a partir da segunda semana do mês desejado</p>
+                    <p>- Não serão computados os dias de refeição, vale transporte e adicional noturno nos dias de descanso</p>
+                    <p>- Ferias parceladas, sendo 1º periodo não pode ser inferior a 14 dias, e os demais não podem ser inferiores a 5 dias</p>
+                    <p class="fonte-vermelho">- ANTECIPAR 13º: Ressaltamos que o adiantamento somente será possivel quando o periodo de ferias do empregado ocorrer entre os meses de fevereiro e novembro</p>
+                </div>
+            </div>
+            
+        </div>
+        
+    </section>
+
+{% endblock conteudo %}

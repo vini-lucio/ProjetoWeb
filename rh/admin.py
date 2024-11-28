@@ -401,7 +401,7 @@ class FeriasAdmin(BaseModelAdminRedRequiredLog):
     search_fields = 'funcionario__nome',
     readonly_fields = ('periodo_descanso_fim_as_ddmmyyyy', 'periodo_abono_inicio_as_ddmmyyyy',
                        'periodo_abono_fim_as_ddmmyyyy', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por',
-                       'atualizado_em',)
+                       'atualizado_em', 'link_solicitacao_ferias')
     autocomplete_fields = 'funcionario',
 
     fieldsets = (
@@ -412,7 +412,7 @@ class FeriasAdmin(BaseModelAdminRedRequiredLog):
         }),
         ('Ferias', {
             "fields": (
-                'dias_ferias', 'dias_desconsiderar', 'periodo_descanso_inicio', 'periodo_descanso_fim_as_ddmmyyyy',
+                'dias_ferias', 'dias_desconsiderar', 'periodo_descanso_inicio', 'periodo_descanso_fim_as_ddmmyyyy', 'link_solicitacao_ferias',
             ),
         }),
         ('Abono', {

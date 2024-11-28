@@ -842,6 +842,11 @@ class Ferias(BaseLogModel):
     observacoes = models.CharField("Observações", max_length=100, null=True, blank=True)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
+    def link_solicitacao_ferias(self):
+        return mark_safe(f'<a href="/rh/solicitacao-ferias/{self.pk}" target="_blank">Visualizar</a>')
+
+    link_solicitacao_ferias.short_description = 'Formulario de solicitação de ferias'
+
     @property
     def periodo_trabalhado_inicio_as_ddmmyyyy(self):
         return converter_data_django_para_str_ddmmyyyy(self.periodo_trabalhado_inicio)

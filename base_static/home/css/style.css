@@ -330,6 +330,12 @@ textarea:focus {
     text-align: left;
 }
 
+.centralizar {
+    text-align: center;
+    align-content: center;
+    justify-content: center;
+}
+
 .grid-2col-numero2 {
     display: grid;
     grid-template-columns: max-content auto;
@@ -666,6 +672,14 @@ textarea:focus {
 }
 
 .linha-continua::after {
+    content: "";
+    display: block;
+    width: 100%;
+    border-bottom: 1px solid var(--azul-escuro);
+    margin-top: 10px;
+}
+
+.linha-continua-acima::before {
     content: "";
     display: block;
     width: 100%;

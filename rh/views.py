@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.views.generic import ListView
+from django.views.generic import ListView, DetailView
 from django.utils.decorators import method_decorator
 from rh.models import Funcionarios, Ferias
 from rh.forms import ReciboValeTransporteForm, FeriasEmAbertoForm
@@ -59,7 +59,7 @@ class FeriasEmAbertoListView(ListView):
     model = Ferias
     template_name = 'rh/pages/ferias-em-aberto.html'
     context_object_name = 'ferias_em_aberto'
-    ordering = 'funcionario',
+    ordering = 'funcionario__nome',
     queryset = Ferias.filter_em_aberto()
 
     def get_context_data(self, **kwargs):
@@ -91,3 +91,16 @@ class FeriasEmAbertoListView(ListView):
                 queryset = queryset.filter(funcionario__in=[salario.funcionario for salario in salarios])
 
         return queryset
+
+
+@method_decorator(user_passes_test(lambda usuario: usuario.has_perm('rh.view_ferias'), login_url='/admin/login/'), name='dispatch')
+class SolicitacaoFeriasDetailView(DetailView):
+    model = Ferias
+    template_name = 'rh/pages/solicitacao-ferias.html'
+    context_object_name = 'solicitacao_ferias'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        titulo_pagina = f'{self.get_object().funcionario.nome}'  # type: ignore
+        context.update({'titulo_pagina': f'RH - Solicitação de Ferias {titulo_pagina}'})
+        return context
