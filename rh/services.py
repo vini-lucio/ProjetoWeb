@@ -6,6 +6,7 @@ def get_funcionarios_ativos(funcionarios):
 
 
 def get_funcionarios_salarios_atuais(funcionarios, somente_ativos=True):
+    # ################ essa função funciona, mas usar model de FuncionariosSalarioFuncaoAtual
     if somente_ativos:
         funcionarios = get_funcionarios_ativos(funcionarios)
     funcionarios_com_maior_data = funcionarios.annotate(maior_data=Max("salarios__data"))

@@ -1,5 +1,6 @@
 from django.db import models
 from utils.converter import converter_data_django_para_str_ddmmyyyy
+from rh.models import Funcionarios
 
 
 class Admissoes(models.Model):
@@ -110,9 +111,12 @@ class FuncionariosSalarioFuncaoAtual(models.Model):
         verbose_name_plural = 'Relatorio Salario Função Atual de Funcionarios'
 
     id = models.IntegerField(primary_key=True)
+    funcionario = models.ForeignKey(Funcionarios, db_column='funcionario_id', verbose_name="Funcionario",
+                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
     job = models.CharField("Job", max_length=30, null=True, blank=True)
     nome = models.CharField("Nome", max_length=100, null=True, blank=True)
     data_entrada = models.DateField("Data Nascimento", auto_now=False, auto_now_add=False, null=True, blank=True)
+    setor = models.CharField("Setor", max_length=50, null=True, blank=True)
     funcao = models.CharField("Função", max_length=70, null=True, blank=True)
     salario = models.DecimalField("Salario", max_digits=10, decimal_places=2)
     salario_convertido = models.DecimalField("Salario Convertido (*220h)", max_digits=10, decimal_places=2)

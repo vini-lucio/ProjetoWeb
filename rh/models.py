@@ -84,6 +84,7 @@ class Dissidios(BaseLogModel):
         super_save = super().save(*args, **kwargs)
 
         if aplicar_dissidio:
+            # ################ essa função funciona, mas usar model de FuncionariosSalarioFuncaoAtual
             salarios_atuais = get_funcionarios_salarios_atuais(
                 self.job.funcionarios, somente_ativos=True)  # type:ignore
             for salario_atual in salarios_atuais:
@@ -194,6 +195,7 @@ class Setores(models.Model):
     class Meta:
         verbose_name = 'Setor'
         verbose_name_plural = 'Setores'
+        ordering = 'descricao',
         constraints = [
             models.UniqueConstraint(
                 fields=['descricao',],
@@ -887,6 +889,18 @@ class Ferias(BaseLogModel):
 
     periodo_abono_fim_as_ddmmyyyy.fget.short_description = 'Periodo Abono Fim'  # type:ignore
 
+    @property
+    def primeira_a_vencer_as_ddmmyyyy(self):
+        return somar_dias_django_para_str_ddmmyyyy(self.periodo_trabalhado_fim, 1)
+
+    primeira_a_vencer_as_ddmmyyyy.fget.short_description = '1ª a Vencer'  # type:ignore
+
+    @property
+    def ultimo_prazo_as_ddmmyyyy(self):
+        return somar_dias_django_para_str_ddmmyyyy(self.periodo_trabalhado_fim, 335)
+
+    ultimo_prazo_as_ddmmyyyy.fget.short_description = 'Ultimo Prazo'  # type:ignore
+
     def clean(self) -> None:
         super_clean = super().clean()
 
@@ -1010,6 +1024,7 @@ class Salarios(BaseLogModel):
     @classmethod
     def filter_atual(cls, funcionario: Funcionarios):
         func = Funcionarios.objects.filter(pk=funcionario.pk)
+        # ################ essa função funciona, mas usar model de FuncionariosSalarioFuncaoAtual
         salario_atual = get_funcionarios_salarios_atuais(func, somente_ativos=False)
         if salario_atual:
             salario_atual = salario_atual[0]

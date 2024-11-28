@@ -326,6 +326,10 @@ textarea:focus {
     text-align: right;
 }
 
+.alinhar-esquerda {
+    text-align: left;
+}
+
 .grid-2col-numero2 {
     display: grid;
     grid-template-columns: max-content auto;
@@ -661,6 +665,14 @@ textarea:focus {
     margin-top: 10px;
 }
 
+.linha-continua::after {
+    content: "";
+    display: block;
+    width: 100%;
+    border-bottom: 1px solid var(--azul-escuro);
+    margin-top: 10px;
+}
+
 @media (max-width: 570px) {
     .grid-2col-numero {
         grid-template-columns: auto;
@@ -680,13 +692,13 @@ textarea:focus {
 
 @media print {
     html {
-        font-size: 50%;
+        font-size: 40%;
     }
 
+    /* .titulo, */
     header,
     footer,
     form,
-    .titulo,
     .topo {
         display: none;
     }

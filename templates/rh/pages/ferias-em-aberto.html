@@ -1,0 +1,64 @@
+{% extends "rh/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Ferias Em Aberto</h1>
+            </div>
+
+            <form method="get">
+                <div class="grid-simples link-conteudo">
+                    {{ formulario.as_p }}
+                </div>
+                <button class="botao" type="submit">Gerar Relatorio</button>
+            </form>
+
+            <div class="grid-simples">
+                {% for ferias_funcionario in ferias_em_aberto %}
+                    <div class="grid link-conteudo linha-pontilhada nao-quebrar-impressao">
+                        <p>{{ ferias_funcionario.funcionario.nome }}</p>
+                        <p>Periodo Aquisitivo: {{ ferias_funcionario.periodo_trabalhado_inicio_as_ddmmyyyy }} - {{ ferias_funcionario.periodo_trabalhado_fim_as_ddmmyyyy }}</p>
+                        <p>1ª a Vencer: {{ ferias_funcionario.primeira_a_vencer_as_ddmmyyyy }}</p>
+                        <p>Saldo: {{ ferias_funcionario.dias_ferias }} dias</p>
+                        <p class="fonte-vermelho">Ultimo Prazo: {{ ferias_funcionario.ultimo_prazo_as_ddmmyyyy }}</p>
+                        <p class="azul-negrito">Previsão: ____/____/____</p>
+                        <p class="azul-negrito">Parcelar Ferias (opção no final): ____</p>
+                        <p class="azul-negrito">Antecipar 13º: (   ) Sim   (   ) Não</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% if ferias_em_aberto %}
+                <div class="nao-quebrar-impressao">
+                    <div class="linha-continua">
+                        <p class="azul-negrito"></p>
+                    </div>
+                    <div class="linha-continua alinhar-esquerda">
+                        <p class="azul-negrito">30 dias em haver:</p>
+                        <p>A: 30 dias direto</p>
+                        <p>B: 20 dias descanso + 10 dias abono (vendido)</p>
+                        <p>C: 15 dias descanso + 15 dias em haver</p>
+                        <p>D: 20 dias descanso + 10 dias em haver</p>
+                    </div>
+                    <div class="linha-continua alinhar-esquerda">
+                        <p class="azul-negrito">20 dias em haver:</p>
+                        <p>E: 20 dias direto</p>
+                        <p>F: 14 dias descanso + 6 dias abono (vendido)</p>
+                        <p>G: 14 dias descanso + 6 dias em haver</p>
+                    </div>
+                    <div class="linha-continua alinhar-esquerda">
+                        <p class="azul-negrito">15 dias em haver:</p>
+                        <p>H: 15 dias direto</p>
+                        <p>I: 10 dias descanso + 5 dias em haver</p>
+                    </div>
+                </div>
+            {% endif %}
+            
+        </div>
+        
+    </section>
+
+{% endblock conteudo %}

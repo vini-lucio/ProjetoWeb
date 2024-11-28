@@ -1,6 +1,7 @@
 from django import forms
 from django.forms.widgets import DateInput
 from home.models import Jobs
+from rh.models import Setores
 
 
 class ReciboValeTransporteForm (forms.Form):
@@ -10,3 +11,11 @@ class ReciboValeTransporteForm (forms.Form):
     fim = forms.DateField(label="Periodo Fim", widget=DateInput(attrs={'type': 'date'}))
     assinatura = forms.DateField(label="Data Assinatura", widget=DateInput(attrs={'type': 'date'}))
     job = forms.ModelChoiceField(jobs, label="Job")
+
+
+class FeriasEmAbertoForm (forms.Form):
+    jobs = Jobs.objects.all()
+    setores = Setores.objects.all()
+
+    job = forms.ModelChoiceField(jobs, label="Job")
+    setor = forms.ModelChoiceField(setores, label="Setor")
