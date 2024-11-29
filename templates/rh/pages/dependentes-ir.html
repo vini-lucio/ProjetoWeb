@@ -1,0 +1,76 @@
+{% extends "rh/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Dependentes IR</h1>
+            </div>
+
+            <form method="get">
+                <div class="grid-simples link-conteudo">
+                    {{ formulario.as_p }}
+                </div>
+                <button class="botao" type="submit">Gerar Relatorio</button>
+            </form>
+
+            <div class="grid-simples">
+                {% for funcionario in dependentes_ir %}
+                    <div class="link-conteudo linha-pontilhada nao-quebrar-impressao">
+
+                        <p class="azul-negrito">Declaração de Encargos de Familia para Fins de Imposto de Renda</p>
+
+                        <div class="link-conteudo grid-simples">
+                            <p>Empregador: {{ funcionario.job.razao_social }}</p>
+                            <p>Declarante: {{ funcionario.nome }}, CPF: {{ funcionario.cpf }}, estado civil: {{ funcionario.estado_civil }}</p>
+                            <p>
+                                Endereço: {{ funcionario.endereco }}, {{ funcionario.numero }}, 
+                                {% if funcionario.complemento %}{{ funcionario.complemento }}, {% endif %}
+                                {{ funcionario.bairro }}, {{ funcionario.cidade }} - {{ funcionario.cep }}
+                            </p>
+                        </div>
+
+                        <p>Para Fins da legislação do imposto de renda, declaro que são meus dependentes as pessoas abaixo relacionadas:</p>
+
+                        <div class="tabela-simples">
+                            <table>
+                                <tr>
+                                    <th>Dependente</th>
+                                    <th>Relação de Dependencia</th>
+                                    <th>Data de Nascimento</th>
+                                </tr>
+                                {% for dependente in funcionario.dependentes.all %}
+                                    {% if dependente.dependente_ir %}
+                                        <tr>
+                                            <td>{{ dependente.nome }}</td>
+                                            <td>{{ dependente.dependente_tipo }}</td>
+                                            <td>{{ dependente.data_nascimento | date:"d/m/Y" }}</td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </table>
+                        </div>
+
+                        <p>
+                            Ciente da proibição da dedução de um mesmo dependente por ambos os pais, declaro, sob as 
+                            penas da lei, que as informações aqui prestadas são verdadeiras e de minha inteira 
+                            responsabilidade, não cabendo a V. Sª. (fonte pagadora) nenhuma responsabilidade perante a 
+                            fiscalização.
+                        </p>
+
+                        <br><br>
+                        <div class="link-conteudo grid-simples">
+                            <p class="linha-continua-acima">{{ funcionario.nome }}, Mauá, {{ data_assinatura | date:"d/m/Y" }}</p>
+                        </div>
+
+                    </div>
+                {% endfor %}
+            </div>
+
+        </div>
+        
+    </section>
+
+{% endblock conteudo %}

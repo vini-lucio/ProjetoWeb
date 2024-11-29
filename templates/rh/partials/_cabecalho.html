@@ -1,4 +1,7 @@
 <header class="cabecalho">
     <div>
+        {% if site_setup.logo_cabecalho %}
+            <a href="{% url "home:index" %}"><img class="logo-img" src="{{ site_setup.logo_cabecalho.url }}" alt=""></a>
+        {% endif %}
     </div>
 </header>

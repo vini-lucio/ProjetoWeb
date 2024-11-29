@@ -575,6 +575,10 @@ class Dependentes(BaseLogModel):
     observacoes = models.CharField("Observações", max_length=100, null=True, blank=True)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
+    @classmethod
+    def filter_dependente_ir(cls):
+        return cls.objects.filter(dependente_ir=True)
+
     @property
     def data_nascimento_as_ddmmyyyy(self):
         return converter_data_django_para_str_ddmmyyyy(self.data_nascimento)

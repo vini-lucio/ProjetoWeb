@@ -2,8 +2,8 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.generic import ListView, DetailView
 from django.utils.decorators import method_decorator
-from rh.models import Funcionarios, Ferias
-from rh.forms import ReciboValeTransporteForm, FeriasEmAbertoForm
+from rh.models import Funcionarios, Ferias, Dependentes
+from rh.forms import ReciboValeTransporteForm, FeriasEmAbertoForm, DependentesIrForm
 from rh_relatorios.models import FuncionariosSalarioFuncaoAtual
 
 
@@ -104,3 +104,44 @@ class SolicitacaoFeriasDetailView(DetailView):
         titulo_pagina = f'{self.get_object().funcionario.nome}'  # type: ignore
         context.update({'titulo_pagina': f'RH - Solicitação de Ferias {titulo_pagina}'})
         return context
+
+
+@method_decorator(user_passes_test(lambda usuario: usuario.has_perm('rh.view_dependentes'), login_url='/admin/login/'), name='dispatch')
+class DependentesIrListView(ListView):
+    model = Funcionarios
+    template_name = 'rh/pages/dependentes-ir.html'
+    context_object_name = 'dependentes_ir'
+    ordering = 'job__descricao', 'nome',
+    queryset = Funcionarios.filter_ativos()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({'titulo_pagina': 'RH - Dependentes IR'})
+
+        if self.request.GET:
+            formulario = DependentesIrForm(self.request.GET)
+            context.update({'formulario': formulario})
+            if formulario.is_valid():
+                context.update({'data_assinatura': formulario.cleaned_data.get('assinatura')})
+        else:
+            context.update({'formulario': DependentesIrForm()})
+
+        return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        if not self.request.GET:
+            queryset = queryset.none()
+            return queryset
+
+        formulario = DependentesIrForm(self.request.GET)
+
+        if formulario.is_valid() and self.request.GET:
+            job = formulario.cleaned_data.get('job')
+            if job:
+                queryset = queryset.filter(job=job)
+                dependentes_ir = Dependentes.filter_dependente_ir()
+                queryset = queryset.filter(dependentes__in=[dependente for dependente in dependentes_ir]).distinct()
+
+        return queryset
