@@ -1,4 +1,4 @@
-from utils.oracle.conectar import executar, executar_com_cabecalho
+from utils.oracle.conectar import executar
 
 lfrete_pedidos = """
     SELECT
@@ -60,12 +60,10 @@ def pedidos_dia(primeiro_dia_util_proximo_mes: str) -> float:
             -- hoje
             PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
             -- primeiro dia util proximo mes
-            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
+            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
     """
 
-    sql = sql.format(primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
-
-    resultado = executar(sql)
+    resultado = executar(sql, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     if not resultado[0][0]:
         return 0.00
@@ -78,7 +76,7 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
     sql = """
         SELECT
             -- despesa administrativa (ultima subtração)
-            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - {despesa_administrativa_fixa} AS RENTABILIDADE
+            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - :despesa_administrativa_fixa AS RENTABILIDADE
 
         FROM
             (
@@ -111,7 +109,7 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
                                     -- hoje
                                     PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
                                     -- primeiro dia util do proximo mes
-                                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
+                                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
                             )
                     ) LFRETE,
                     COPLAS.VENDEDORES,
@@ -130,7 +128,7 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
                     -- hoje
                     PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
                     -- primeiro dia util do proximo mes
-                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
+                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
 
                 GROUP BY
                     LFRETE.MC_SEM_FRETE,
@@ -140,10 +138,10 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
             )
     """
 
-    sql = sql.format(lfrete=lfrete_pedidos, despesa_administrativa_fixa=despesa_administrativa_fixa,
-                     primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
+    sql = sql.format(lfrete=lfrete_pedidos)
 
-    resultado = executar(sql)
+    resultado = executar(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
+                         primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     # não consegui identificar o porque, não esta retornado [(none,),] e sim [], indice [0][0] não funciona
     if not resultado:
@@ -154,6 +152,7 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
 
 def conversao_de_orcamentos():
     """Taxa de conversão de orçamentos com valor comercial dos ultimos 90 dias, ignorando orçamentos oportunidade"""
+    # TODO: incluir versão nova da conversão de orçamentos
     sql = """
         SELECT
             ROUND(SUM(CASE WHEN ORCAMENTOS_ITENS.STATUS='FECHADO' THEN (ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END ELSE 0 END) / SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) * 100, 2) AS CONVERSAO
@@ -204,9 +203,9 @@ def pedidos_mes(primeiro_dia_mes: str, primeiro_dia_util_mes: str,
                     PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
 
                     -- primeiro dia do mes
-                    NOTAS.DATA_EMISSAO >= TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
+                    NOTAS.DATA_EMISSAO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
                     -- ultimo dia do mes
-                    NOTAS.DATA_EMISSAO <= TO_DATE('{ultimo_dia_mes}','DD-MM-YYYY')
+                    NOTAS.DATA_EMISSAO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY')
             ) DEVOLUCOES,
             COPLAS.PRODUTOS,
             COPLAS.PEDIDOS,
@@ -220,19 +219,19 @@ def pedidos_mes(primeiro_dia_mes: str, primeiro_dia_util_mes: str,
             (
                 (
                     -- primeiro dia do mes
-                    PEDIDOS.DATA_PEDIDO < TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
+                    PEDIDOS.DATA_PEDIDO < TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
                     -- primeiro dia util do mes
-                    PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE('{primeiro_dia_util_mes}','DD-MM-YYYY') AND
+                    PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE(:primeiro_dia_util_mes,'DD-MM-YYYY') AND
                     -- primeiro dia util do proximo mes
-                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
+                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
                 ) OR
                 (
                     -- primeiro dia do mes
-                    PEDIDOS.DATA_PEDIDO >= TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
+                    PEDIDOS.DATA_PEDIDO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
                     -- ultimo dia do mes
-                    PEDIDOS.DATA_PEDIDO <= TO_DATE('{ultimo_dia_mes}','DD-MM-YYYY') AND
+                    PEDIDOS.DATA_PEDIDO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY') AND
                     -- primeiro dia util do proximo mes
-                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
+                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
                 )
             )
 
@@ -240,10 +239,8 @@ def pedidos_mes(primeiro_dia_mes: str, primeiro_dia_util_mes: str,
             DEVOLUCOES.TOTAL
     """
 
-    sql = sql.format(primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
-                     ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
-
-    resultado = executar(sql)
+    resultado = executar(sql, primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
+                         ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     if not resultado[0][0]:
         return 0.00
@@ -261,7 +258,7 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
             TOTAL_MES,
 
             -- despesa administrativa (ultima subtração)
-            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - {despesa_administrativa_fixa} AS RENTABILIDADE
+            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - :despesa_administrativa_fixa AS RENTABILIDADE
 
         FROM
             (
@@ -310,9 +307,9 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
                             PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
 
                             -- primeiro dia do mes
-                            NOTAS.DATA_EMISSAO >= TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
+                            NOTAS.DATA_EMISSAO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
                             -- ultimo dia do mes
-                            NOTAS.DATA_EMISSAO <= TO_DATE('{ultimo_dia_mes}','DD-MM-YYYY')
+                            NOTAS.DATA_EMISSAO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY')
                     ) DEVOLUCOES,
                     (
                         SELECT
@@ -328,19 +325,19 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
                                     (
                                         (
                                             -- primeiro dia do mes
-                                            PEDIDOS.DATA_PEDIDO < TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
+                                            PEDIDOS.DATA_PEDIDO < TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
                                             -- primeiro dia util do mes
-                                            PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE('{primeiro_dia_util_mes}','DD-MM-YYYY') AND
+                                            PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE(:primeiro_dia_util_mes,'DD-MM-YYYY') AND
                                             -- primeiro dia util do proximo mes
-                                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
+                                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
                                         ) OR
                                         (
                                             -- primeiro dia do mes
-                                            PEDIDOS.DATA_PEDIDO >= TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
+                                            PEDIDOS.DATA_PEDIDO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
                                             -- ultimo dia do mes
-                                            PEDIDOS.DATA_PEDIDO <= TO_DATE('{ultimo_dia_mes}','DD-MM-YYYY') AND
+                                            PEDIDOS.DATA_PEDIDO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY') AND
                                             -- primeiro dia util do proximo mes
-                                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
+                                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
                                         )
                                     )
                             )
@@ -361,19 +358,19 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
                     (
                         (
                             -- primeiro dia do mes
-                            PEDIDOS.DATA_PEDIDO < TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
+                            PEDIDOS.DATA_PEDIDO < TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
                             -- primeiro dia util do mes
-                            PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE('{primeiro_dia_util_mes}','DD-MM-YYYY') AND
+                            PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE(:primeiro_dia_util_mes,'DD-MM-YYYY') AND
                             -- primeiro dia util do proximo mes
-                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
+                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
                         ) OR
                         (
                             -- primeiro dia do mes
-                            PEDIDOS.DATA_PEDIDO >= TO_DATE('{primeiro_dia_mes}','DD-MM-YYYY') AND
+                            PEDIDOS.DATA_PEDIDO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
                             -- ultimo dia do mes
-                            PEDIDOS.DATA_PEDIDO <= TO_DATE('{ultimo_dia_mes}','DD-MM-YYYY') AND
+                            PEDIDOS.DATA_PEDIDO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY') AND
                             -- primeiro dia util do proximo mes
-                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE('{primeiro_dia_util_proximo_mes}','DD-MM-YYYY')
+                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
                         )
                     )
 
@@ -393,11 +390,11 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
             )
     """
 
-    sql = sql.format(lfrete=lfrete_pedidos, despesa_administrativa_fixa=despesa_administrativa_fixa,
-                     primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
-                     ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
+    sql = sql.format(lfrete=lfrete_pedidos)
 
-    resultado = executar(sql)
+    resultado = executar(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
+                         primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
+                         ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     mc_mes = 0.0 if not resultado[0][0] else resultado[0][0]
     total_mes_sem_converter_moeda = 0.0 if not resultado[0][1] else resultado[0][1]
@@ -417,9 +414,9 @@ def confere_pedidos(carteira: str = '%%') -> list | None:
     sql = "SELECT SELECAO FROM COPLAS.SELECOES WHERE CHAVE = 2186"
 
     sql = executar(sql)
-    sql = sql[0][0].format(carteira=carteira)
+    sql = sql[0][0]
 
-    resultado = executar_com_cabecalho(sql)
+    resultado = executar(sql, exportar_cabecalho=True, carteira=carteira)
 
     if not resultado:
         return []

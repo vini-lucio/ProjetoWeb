@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.views.generic import ListView, DetailView
 from home.models import HomeLinks
 from django.db.models import Q
-from .services import get_tabela_precos, migrar_cidades
+from .services import get_tabela_precos, migrar_cidades  # , totalizar_funcionarios_mes
 from .forms import ConfirmacaoMigrarCidades
 from django.contrib.auth.decorators import user_passes_test
 
@@ -23,6 +23,8 @@ def migracao(request):
     formulario = ConfirmacaoMigrarCidades()
 
     contexto = {'titulo_pagina': titulo_pagina, 'formulario': formulario, }
+
+    # totalizar_funcionarios_mes(11, 2024)
 
     return render(request, 'home/pages/migracao.html', contexto)
 

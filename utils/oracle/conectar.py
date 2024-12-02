@@ -26,24 +26,14 @@ def conectar() -> oracledb.Connection:
     return connection
 
 
-def executar(sql: str) -> list:
-    """Conecta e executa um SQL no banco de dados Oracle"""
+def executar(sql: str, exportar_cabecalho: bool = False, **kwargs) -> list:
+    """Conecta e executa um SQL no banco de dados Oracle. Passar placeholders do SQL em kwargs placeholder: valor"""
     connection = conectar()
     with connection.cursor() as cursor:
-        cursor.execute(sql)
-        resultado = cursor.fetchall()
-    connection.close()
-    return resultado
-
-
-def executar_com_cabecalho(sql: str) -> list:
-    """Conecta e executa um SQL no banco de dados Oracle e retorna com o cabeçalho das colunas em uma lista de dicionarios"""
-    connection = conectar()
-    with connection.cursor() as cursor:
-        cursor.execute(sql)
+        cursor.execute(sql, kwargs)
         resultado = cursor.fetchall()
 
-        if resultado:
+        if resultado and exportar_cabecalho:
             cabecalho = [cabecalho[0] for cabecalho in cursor.description]
             resultado = [dict(zip(cabecalho, linha)) for linha in resultado]
 
