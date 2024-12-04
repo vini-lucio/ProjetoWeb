@@ -1,9 +1,14 @@
 from django.contrib import admin
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
-                         Jobs, Paises, Estados, Cidades, Bancos)
+                         Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import BaseModelAdminRedRequired
+from utils.exportar_excel import arquivo_excel
+import home.services as services
+import os
+import zipfile
+import tempfile
 
 
 class HomeLinksDocumentosInLine(admin.TabularInline):
@@ -35,6 +40,41 @@ class HomeLinksAdmin(SummernoteModelAdmin):
 @admin.register(SiteSetup)
 class SiteSetupAdmin(BaseModelAdminRedRequired):
     readonly_fields = 'meta_diaria',
+
+    fieldsets = (
+        ('Dados Site', {
+            "fields": (
+                'favicon', 'logo_cabecalho', 'texto_rodape',
+            ),
+        }),
+        ('Dados Mês', {
+            "fields": (
+                'primeiro_dia_mes', 'primeiro_dia_util_mes', 'ultimo_dia_mes', 'primeiro_dia_util_proximo_mes',
+                'despesa_administrativa_fixa',
+            ),
+        }),
+        ('Meta Mês', {
+            "fields": (
+                'meta_mes', 'dias_uteis_mes', 'meta_diaria',
+            ),
+        }),
+        ('Meta Rentabilidade', {
+            "fields": (
+                'rentabilidade_verde', 'rentabilidade_amarela', 'rentabilidade_vermelha',
+            ),
+        }),
+        ('Atualizações Dados Ano', {
+            "fields": (
+                'atualizacoes_ano', 'atualizacoes_ano_inicio', 'atualizacoes_ano_fim', 'atualizacoes_data_ano_inicio',
+                'atualizacoes_data_ano_fim',
+            ),
+        }),
+        ('Atualizações Dados Mês', {
+            "fields": (
+                'atualizacoes_mes', 'atualizacoes_data_mes_inicio', 'atualizacoes_data_mes_fim',
+            ),
+        }),
+    )
 
     def has_add_permission(self, request: HttpRequest) -> bool:
         return not SiteSetup.objects.exists()
@@ -98,3 +138,50 @@ class BancosAdmin(BaseModelAdminRedRequired):
     list_display_links = list_display
     ordering = 'nome',
     search_fields = 'nome',
+
+
+@admin.register(Atualizacoes)
+class AtualizacoesAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'descricao',
+    list_display_links = list_display
+    ordering = 'descricao',
+    search_fields = 'descricao',
+    actions = 'exportar_atualizacoes',
+
+    campos_exportar = ['descricao', 'nome_funcao']
+
+    @admin.action(description="Exportar .XLSX Selecionados .ZIP")
+    def exportar_atualizacoes(self, request, queryset):
+        campos_exportar = [field for field in self.campos_exportar]
+
+        with tempfile.TemporaryDirectory() as pasta_temporaria:
+            caminhos_arquivos_compactar = []
+
+            for obj in queryset:
+                nome_arquivo = getattr(obj, campos_exportar[1])
+                funcao = getattr(services, getattr(obj, campos_exportar[1]))
+                resultado = funcao()
+
+                cabecalho = [cabecalho for cabecalho in resultado[0].keys()]
+
+                conteudo = []
+                for registro in resultado:
+                    linha = [valor for chave, valor in registro.items()]
+                    conteudo.append(linha)
+
+                workbook = arquivo_excel(conteudo, cabecalho)
+
+                caminho_arquivo_excel = os.path.join(pasta_temporaria, f'{nome_arquivo}.xlsx')
+                workbook.save(caminho_arquivo_excel)  # type:ignore
+                caminhos_arquivos_compactar.append(caminho_arquivo_excel)
+
+            caminho_arquivo_zip = os.path.join(pasta_temporaria, 'atualizacoes.zip')
+            with zipfile.ZipFile(caminho_arquivo_zip, 'w') as arquivo_zip:
+                for caminho_arquivo_compactar in caminhos_arquivos_compactar:
+                    arquivo_zip.write(caminho_arquivo_compactar, os.path.basename(caminho_arquivo_compactar))
+
+            with open(caminho_arquivo_zip, 'rb') as arquivo_zip:
+                response = HttpResponse(arquivo_zip.read(), content_type='application/zip')
+                response['Content-Disposition'] = 'attachment; filename=atualizacoes.zip'
+
+        return response

@@ -1,4 +1,4 @@
-from utils.oracle.conectar import executar
+from utils.oracle.conectar import executar_oracle
 
 lfrete_pedidos = """
     SELECT
@@ -63,7 +63,7 @@ def pedidos_dia(primeiro_dia_util_proximo_mes: str) -> float:
             PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
     """
 
-    resultado = executar(sql, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
+    resultado = executar_oracle(sql, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     if not resultado[0][0]:
         return 0.00
@@ -140,8 +140,8 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
 
     sql = sql.format(lfrete=lfrete_pedidos)
 
-    resultado = executar(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
-                         primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
+    resultado = executar_oracle(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
+                                primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     # não consegui identificar o porque, não esta retornado [(none,),] e sim [], indice [0][0] não funciona
     if not resultado:
@@ -168,7 +168,7 @@ def conversao_de_orcamentos():
             ORCAMENTOS.DATA_PEDIDO >= SYSDATE - 90
     """
 
-    resultado = executar(sql)
+    resultado = executar_oracle(sql)
 
     if not resultado[0][0]:
         return 0.00
@@ -239,8 +239,8 @@ def pedidos_mes(primeiro_dia_mes: str, primeiro_dia_util_mes: str,
             DEVOLUCOES.TOTAL
     """
 
-    resultado = executar(sql, primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
-                         ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
+    resultado = executar_oracle(sql, primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
+                                ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     if not resultado[0][0]:
         return 0.00
@@ -392,9 +392,9 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
 
     sql = sql.format(lfrete=lfrete_pedidos)
 
-    resultado = executar(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
-                         primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
-                         ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
+    resultado = executar_oracle(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
+                                primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
+                                ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     mc_mes = 0.0 if not resultado[0][0] else resultado[0][0]
     total_mes_sem_converter_moeda = 0.0 if not resultado[0][1] else resultado[0][1]
@@ -413,10 +413,10 @@ def confere_pedidos(carteira: str = '%%') -> list | None:
     """Confere possiveis erros dos pedidos em aberto (seleção armazenada no ID 2186)"""
     sql = "SELECT SELECAO FROM COPLAS.SELECOES WHERE CHAVE = 2186"
 
-    sql = executar(sql)
+    sql = executar_oracle(sql)
     sql = sql[0][0]
 
-    resultado = executar(sql, exportar_cabecalho=True, carteira=carteira)
+    resultado = executar_oracle(sql, exportar_cabecalho=True, carteira=carteira)
 
     if not resultado:
         return []

@@ -1,11 +1,16 @@
-from utils.oracle.conectar import executar
+from utils.oracle.conectar import executar_oracle
+from utils.conectar_database_django import executar_django
 from home.models import Cidades
-from utils.site_setup import get_cidades, get_estados
-from django.db import connection
+from utils.site_setup import get_cidades, get_estados, get_site_setup
 
 
-def totalizar_funcionarios_mes(mes: int, ano: int):
-    """Totaliza a quantidade de funcionarios ativos do ano informado mes a mes de janeiro até o mes informado"""
+def totalizar_funcionarios_ano_mes_a_mes():
+    """Totaliza a quantidade de funcionarios ativos do ano informado em site setup mes a mes de janeiro até o mes informado"""
+    site_setup = get_site_setup()
+    if site_setup:
+        mes = site_setup.atualizacoes_mes
+        ano = site_setup.atualizacoes_ano
+
     sql = """
         SELECT
             periodo.mes,
@@ -14,18 +19,18 @@ def totalizar_funcionarios_mes(mes: int, ano: int):
         FROM
             rh_funcionarios,
             (
-                SELECT 12 AS mes, {ano} + 12 / 12.00 AS anomes UNION ALL
-                SELECT 11 AS mes, {ano} + 11 / 12.00 AS anomes UNION ALL
-                SELECT 10 AS mes, {ano} + 10 / 12.00 AS anomes UNION ALL
-                SELECT 9 AS mes, {ano} + 9 / 12.00 AS anomes UNION ALL
-                SELECT 8 AS mes, {ano} + 8 / 12.00 AS anomes UNION ALL
-                SELECT 7 AS mes, {ano} + 7 / 12.00 AS anomes UNION ALL
-                SELECT 6 AS mes, {ano} + 6 / 12.00 AS anomes UNION ALL
-                SELECT 5 AS mes, {ano} + 5 / 12.00 AS anomes UNION ALL
-                SELECT 4 AS mes, {ano} + 4 / 12.00 AS anomes UNION ALL
-                SELECT 3 AS mes, {ano} + 3 / 12.00 AS anomes UNION ALL
-                SELECT 2 AS mes, {ano} + 2 / 12.00 AS anomes UNION ALL
-                SELECT 1 AS mes, {ano} + 1 / 12.00 AS anomes
+                SELECT 12 AS mes, %(ano)s + 12 / 12.00 AS anomes UNION ALL
+                SELECT 11 AS mes, %(ano)s + 11 / 12.00 AS anomes UNION ALL
+                SELECT 10 AS mes, %(ano)s + 10 / 12.00 AS anomes UNION ALL
+                SELECT 9 AS mes, %(ano)s + 9 / 12.00 AS anomes UNION ALL
+                SELECT 8 AS mes, %(ano)s + 8 / 12.00 AS anomes UNION ALL
+                SELECT 7 AS mes, %(ano)s + 7 / 12.00 AS anomes UNION ALL
+                SELECT 6 AS mes, %(ano)s + 6 / 12.00 AS anomes UNION ALL
+                SELECT 5 AS mes, %(ano)s + 5 / 12.00 AS anomes UNION ALL
+                SELECT 4 AS mes, %(ano)s + 4 / 12.00 AS anomes UNION ALL
+                SELECT 3 AS mes, %(ano)s + 3 / 12.00 AS anomes UNION ALL
+                SELECT 2 AS mes, %(ano)s + 2 / 12.00 AS anomes UNION ALL
+                SELECT 1 AS mes, %(ano)s + 1 / 12.00 AS anomes
             ) periodo
 
         WHERE
@@ -36,7 +41,7 @@ def totalizar_funcionarios_mes(mes: int, ano: int):
                 EXTRACT(YEAR FROM rh_funcionarios.data_saida) + EXTRACT(MONTH FROM rh_funcionarios.data_saida) / 12.00 > periodo.anomes
             ) AND
 
-            periodo.mes<={mes}
+            periodo.mes <= %(mes)s
 
         GROUP BY
             periodo.mes
@@ -44,12 +49,31 @@ def totalizar_funcionarios_mes(mes: int, ano: int):
         ORDER BY
             periodo.mes
     """
-    sql = sql.format(ano=ano, mes=mes)  # colocar os placeholders no cursor
-    with connection.cursor() as cursor:
-        cursor.execute(sql)
-        resultado = cursor.fetchall()
 
-    print(resultado)
+    resultado = executar_django(sql, exportar_cabecalho=True, ano=ano, mes=mes)
+
+    if not resultado:
+        return []
+
+    return resultado
+
+
+def rateio_salario_adm_cp_ano_mes_a_mes():
+    """Totaliza a proporção dos salarios de custo de produção com o resto, dos funcionarios ativos do ano informado em site setup mes a mes de janeiro até o mes informado"""
+    site_setup = get_site_setup()
+    if site_setup:
+        mes = site_setup.atualizacoes_mes
+        ano = site_setup.atualizacoes_ano
+
+    sql = """
+        SELECT * FROM rateio_salario_adm_cp_ano_mes_a_mes (%(ano)s, %(mes)s)
+    """
+
+    resultado = executar_django(sql, exportar_cabecalho=True, ano=ano, mes=mes)
+
+    if not resultado:
+        return []
+
     return resultado
 
 
@@ -102,7 +126,7 @@ def get_tabela_precos() -> list | None:
             PRODUTOS.CODIGO
     """
 
-    resultado = executar(sql, exportar_cabecalho=True)
+    resultado = executar_oracle(sql, exportar_cabecalho=True)
 
     if not resultado:
         return []
@@ -122,7 +146,7 @@ def get_cidades_base() -> list | None:
             COPLAS.FAIXAS_CEP
     """
 
-    resultado = executar(sql, exportar_cabecalho=True)
+    resultado = executar_oracle(sql, exportar_cabecalho=True)
 
     if not resultado:
         return []

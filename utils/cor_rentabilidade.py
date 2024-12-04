@@ -1,11 +1,4 @@
-from utils.site_setup import get_site_setup
-
-SITE_SETUP = get_site_setup()
-if SITE_SETUP:
-    verde = SITE_SETUP.rentabilidade_verde_as_float
-    amarelo = SITE_SETUP.rentabilidade_amarela_as_float
-    vermelho = SITE_SETUP.rentabilidade_vermelha_as_float
-    despesa_adm = SITE_SETUP.despesa_administrativa_fixa_as_float
+from utils.site_setup import get_cores_rentabilidade
 
 sugestao_rentabilidade_a_menos = -1.99
 sugestao_rentabilidade_a_mais = 3.0
@@ -13,6 +6,10 @@ sugestao_rentabilidade_a_mais = 3.0
 
 def cor_rentabilidade_css(rentabilidade: float) -> str:
     """Retorna o nome da variavel do css referente a cor da rentabilidade"""
+    cores = get_cores_rentabilidade()
+    verde = cores['verde']
+    amarelo = cores['amarelo']
+    vermelho = cores['vermelho']
 
     if rentabilidade >= verde:
         return '--verde-rentabilidade'
@@ -25,6 +22,11 @@ def cor_rentabilidade_css(rentabilidade: float) -> str:
 
 def falta_mudar_cor_mes(mc_mes: float, total_mes: float, rentabilidade_mes: float) -> tuple[float, float, float, str]:
     """Retorna quanto precisa vender [0] em uma determinada rentabilidade [1] para mudar de cor, a porcentagem de quanto falta [2] e a cor que vai mudar [3]"""
+    cores = get_cores_rentabilidade()
+    verde = cores['verde']
+    amarelo = cores['amarelo']
+    vermelho = cores['vermelho']
+    despesa_adm = cores['despesa_adm']
 
     if rentabilidade_mes >= verde:
         falta_valor = (((verde - 0.01) + despesa_adm) * total_mes - 100 * mc_mes) / sugestao_rentabilidade_a_menos

@@ -26,7 +26,7 @@ def conectar() -> oracledb.Connection:
     return connection
 
 
-def executar(sql: str, exportar_cabecalho: bool = False, **kwargs) -> list:
+def executar_oracle(sql: str, exportar_cabecalho: bool = False, **kwargs) -> list:
     """Conecta e executa um SQL no banco de dados Oracle. Passar placeholders do SQL em kwargs placeholder: valor"""
     connection = conectar()
     with connection.cursor() as cursor:

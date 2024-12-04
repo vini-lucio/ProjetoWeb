@@ -8,6 +8,20 @@ def get_site_setup():
     return SiteSetup.objects.order_by('-id').first()
 
 
+def get_cores_rentabilidade():
+    SITE_SETUP = get_site_setup()
+
+    if not SITE_SETUP:
+        return {}
+
+    verde = SITE_SETUP.rentabilidade_verde_as_float
+    amarelo = SITE_SETUP.rentabilidade_amarela_as_float
+    vermelho = SITE_SETUP.rentabilidade_vermelha_as_float
+    despesa_adm = SITE_SETUP.despesa_administrativa_fixa_as_float
+
+    return {'verde': verde, 'amarelo': amarelo, 'vermelho': vermelho, 'despesa_adm': despesa_adm}
+
+
 def get_assistentes_tecnicos():
     return AssistentesTecnicos.objects.filter(status='ativo').order_by('nome')
 

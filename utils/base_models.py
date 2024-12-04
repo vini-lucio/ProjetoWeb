@@ -3,8 +3,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
-import csv
-import openpyxl
+from utils.exportar_excel import arquivo_excel
 
 User = get_user_model()
 
@@ -60,26 +59,6 @@ class BaseViewAdmin(admin.ModelAdmin):
         return False
 
 
-class ExportarCsvMixIn:
-    # TODO: ajustar exportação dos formatos corretamente
-    def exportar_csv(self, request, queryset):
-        meta = self.model._meta  # type:ignore
-        campos = [field.name for field in meta.fields]
-
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
-
-        writer = csv.writer(response)
-
-        writer.writerow(campos)
-        for obj in queryset:
-            writer.writerow([getattr(obj, field) for field in campos])
-
-        return response
-
-    exportar_csv.short_description = "Exportar .CSV Selecionados"
-
-
 class ExportarXlsxMixIn:
     campos_exportar = []
 
@@ -91,22 +70,19 @@ class ExportarXlsxMixIn:
         )
         response['Content-Disposition'] = 'attachment; filename={}.xlsx'.format(meta)
 
-        workbook = openpyxl.Workbook()
-        worksheet = workbook.active
-        if worksheet:
-            # worksheet.title = "Book Author View"
+        if self.campos_exportar:  # type:ignore
+            cabecalho = [field for field in self.campos_exportar]  # type:ignore
+        else:
+            cabecalho = [field for field in self.list_display]  # type:ignore
 
-            # colunas = [field.name for field in meta.fields]
-            if self.campos_exportar:  # type:ignore
-                colunas = [field for field in self.campos_exportar]  # type:ignore
-            else:
-                colunas = [field for field in self.list_display]  # type:ignore
-            worksheet.append(colunas)
+        conteudo = []
+        for obj in queryset:
+            linha = [getattr(obj, field) for field in cabecalho]
+            conteudo.append(linha)
 
-            for obj in queryset:
-                worksheet.append([getattr(obj, field) for field in colunas])
+        workbook = arquivo_excel(conteudo, cabecalho)
+        workbook.save(response)  # type:ignore
 
-            workbook.save(response)  # type:ignore
         return response
 
     exportar_excel.short_description = "Exportar .XLSX Selecionados"

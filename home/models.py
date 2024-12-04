@@ -181,6 +181,18 @@ class SiteSetup(models.Model):
                                                 max_digits=5, decimal_places=2)
     rentabilidade_vermelha = models.DecimalField("Rentabilidade Vermelha %", default=0.00,  # type:ignore
                                                  max_digits=5, decimal_places=2)
+    atualizacoes_ano = models.IntegerField("Ano", default=2000)
+    atualizacoes_ano_inicio = models.IntegerField("Ano Inicio", default=2000)
+    atualizacoes_ano_fim = models.IntegerField("Ano Fim", default=2001)
+    atualizacoes_data_ano_inicio = models.DateField("Data Ano Inicio", default='2000-01-01',  # type:ignore
+                                                    auto_now=False, auto_now_add=False)
+    atualizacoes_data_ano_fim = models.DateField("Data Ano Fim", default='2000-12-31',  # type:ignore
+                                                 auto_now=False, auto_now_add=False)
+    atualizacoes_mes = models.IntegerField("Mês", default=1)
+    atualizacoes_data_mes_inicio = models.DateField("Data Mês Inicio", default='2000-01-01',  # type:ignore
+                                                    auto_now=False, auto_now_add=False)
+    atualizacoes_data_mes_fim = models.DateField("Data Mês Fim", default='2000-01-31',  # type:ignore
+                                                 auto_now=False, auto_now_add=False)
 
     @property
     def primeiro_dia_mes_as_ddmmyyyy(self):
@@ -427,3 +439,23 @@ class Bancos(models.Model):
 
     def __str__(self) -> str:
         return self.nome
+
+
+class Atualizacoes(models.Model):
+    class Meta:
+        verbose_name = 'Atualização'
+        verbose_name_plural = 'Atualizações'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='atualizacoes_unique_descricao',
+                violation_error_message="Descrição é campo unico"
+            ),
+        ]
+
+    descricao = models.CharField("Descrição", max_length=100)
+    nome_funcao = models.CharField("Nome Função", max_length=200)
+    observacoes = models.CharField("Observações", max_length=300, blank=True, null=True)
+
+    def __str__(self) -> str:
+        return self.descricao
