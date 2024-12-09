@@ -211,6 +211,22 @@ class SiteSetup(models.Model):
         return converter_data_django_para_str_ddmmyyyy(self.primeiro_dia_util_proximo_mes)
 
     @property
+    def atualizacoes_data_ano_inicio_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.atualizacoes_data_ano_inicio)
+
+    @property
+    def atualizacoes_data_ano_fim_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.atualizacoes_data_ano_fim)
+
+    @property
+    def atualizacoes_data_mes_inicio_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.atualizacoes_data_mes_inicio)
+
+    @property
+    def atualizacoes_data_mes_fim_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.atualizacoes_data_mes_fim)
+
+    @property
     def meta_mes_as_float(self):
         return float(self.meta_mes)
 
