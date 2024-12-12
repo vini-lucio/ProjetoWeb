@@ -20,6 +20,9 @@
                 {% for recibo_vale_transporte in recibos_vale_transporte %}
                     {% if recibo_vale_transporte.valetransportesfuncionarios.all %}
                         <div class="link-conteudo linha-pontilhada nao-quebrar-impressao">
+                            <div>
+                                <h2>Recibo Vale Transporte</h2>
+                            </div>
 
                             <p>
                                 Eu, {{ recibo_vale_transporte.nome }}, CPF: {{ recibo_vale_transporte.cpf }},

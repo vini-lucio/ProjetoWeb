@@ -199,7 +199,8 @@ textarea:focus {
 }
 
 .icones-comunicados {
-    border: var(--tamanho-borda-icones) solid var(--vermelho-escuro);
+    /* border: var(--tamanho-borda-icones) solid var(--vermelho-escuro); */
+    border: none;
     box-shadow: none;
     max-width: calc(111.6rem + 2 * var(--tamanho-borda-icones));
     width: auto;

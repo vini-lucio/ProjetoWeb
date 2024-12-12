@@ -2,6 +2,683 @@ from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
 from home.models import Cidades
 from utils.site_setup import get_cidades, get_estados, get_site_setup
+from utils.lfrete import notas as lfrete_notas
+
+
+def peso_faturado_abc_ano_mes_a_mes():
+    """Totaliza o peso faturado por classe ABC (todas as notas com CFOP de baixa de estoque) do periodo informado em
+    site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
+            ROUND(SUM(NOTAS_ITENS.QUANTIDADE * PRODUTOS.PESO_LIQUIDO), 2) AS PESO_FAT_KG,
+            ROUND(SUM(CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN NOTAS_ITENS.QUANTIDADE * PRODUTOS.PESO_LIQUIDO ELSE 0 END), 2) AS PESO_FAT_KG_A,
+            ROUND(SUM(CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN NOTAS_ITENS.QUANTIDADE * PRODUTOS.PESO_LIQUIDO ELSE 0 END), 2) AS PESO_FAT_KG_B,
+            ROUND(SUM(CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN NOTAS_ITENS.QUANTIDADE * PRODUTOS.PESO_LIQUIDO ELSE 0 END), 2) AS PESO_FAT_KG_C
+
+        FROM
+            COPLAS.NOTAS,
+            COPLAS.NOTAS_ITENS,
+            COPLAS.PRODUTOS
+
+        WHERE
+            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
+            PRODUTOS.CHAVE_FAMILIA = 7766 AND
+            NOTAS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE BAIXA_ESTOQUE = 'SIM' AND CHAVE NOT IN (8791, 10077)) AND
+
+            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
+            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+
+        GROUP BY
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
+
+        ORDER BY
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def peso_estoque_abc_ano_mes_a_mes():
+    """Totaliza o peso do estoque por classe ABC do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        mes = site_setup.atualizacoes_mes
+        ano = site_setup.atualizacoes_ano
+
+    sql = """
+        SELECT
+            ULTIMA_MOVIMENTACAO.MES,
+            ROUND(SUM(MOVESTOQUE.SALDO_ESTOQUE * PRODUTOS.PESO_LIQUIDO), 2) AS PESO_ESTOQUE_KG,
+            ROUND(SUM(CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN MOVESTOQUE.SALDO_ESTOQUE * PRODUTOS.PESO_LIQUIDO ELSE 0 END), 2) AS PESO_ESTOQUE_KG_A,
+            ROUND(SUM(CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN MOVESTOQUE.SALDO_ESTOQUE * PRODUTOS.PESO_LIQUIDO ELSE 0 END), 2) AS PESO_ESTOQUE_KG_B,
+            ROUND(SUM(CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN MOVESTOQUE.SALDO_ESTOQUE * PRODUTOS.PESO_LIQUIDO ELSE 0 END), 2) AS PESO_ESTOQUE_KG_C
+
+        FROM
+            COPLAS.MOVESTOQUE,
+            COPLAS.PRODUTOS,
+            (
+                SELECT
+                    PERIODO.MES,
+                    MAX(MOVESTOQUE.CHAVE) ULTIMA_MOVIMENTACAO
+
+                FROM
+                    COPLAS.MOVESTOQUE,
+                    (
+                        SELECT 12 AS MES, :ano + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 11 AS MES, :ano + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 10 AS MES, :ano + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 9 AS MES, :ano + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 8 AS MES, :ano + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 7 AS MES, :ano + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 6 AS MES, :ano + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 5 AS MES, :ano + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 4 AS MES, :ano + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 3 AS MES, :ano + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 2 AS MES, :ano + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 1 AS MES, :ano + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL
+                    ) PERIODO
+
+                WHERE
+                    EXTRACT(YEAR FROM MOVESTOQUE.DATA_MOV) + EXTRACT(MONTH FROM MOVESTOQUE.DATA_MOV) / 12.00 + EXTRACT(DAY FROM MOVESTOQUE.DATA_MOV) / 365.00 < PERIODO.ANOMESDIA AND
+                    EXISTS(SELECT PRODUTOS.CPROD FROM COPLAS.PRODUTOS WHERE PRODUTOS.CHAVE_FAMILIA = 7766 AND PRODUTOS.CPROD = MOVESTOQUE.CHAVE_PRODUTO) AND
+
+                    PERIODO.MES <= :mes
+
+                GROUP BY
+                    PERIODO.MES,
+                    MOVESTOQUE.CHAVE_PRODUTO
+            ) ULTIMA_MOVIMENTACAO
+
+        WHERE
+            ULTIMA_MOVIMENTACAO.ULTIMA_MOVIMENTACAO = MOVESTOQUE.CHAVE AND
+            PRODUTOS.CPROD = MOVESTOQUE.CHAVE_PRODUTO AND
+            PRODUTOS.CHAVE_FAMILIA = 7766
+
+        GROUP BY
+            ULTIMA_MOVIMENTACAO.MES
+
+        ORDER BY
+            ULTIMA_MOVIMENTACAO.MES
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes)
+
+    return resultado
+
+
+def setups_dia_ano_mes_a_mes():
+    """Totaliza a media de setups por dia do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO) AS MES,
+            ROUND(COUNT(APONTAMENTOS_PARADAS.CHAVE) / COUNT(DISTINCT EXTRACT(DAY FROM APONTAMENTOS_PARADAS.INICIO)), 0) AS SETUPS_DIA
+
+        FROM
+            COPLAS.PARADAS,
+            COPLAS.APONTAMENTOS_PARADAS
+
+        WHERE
+            PARADAS.CHAVE = APONTAMENTOS_PARADAS.CHAVE_PARADA AND
+            PARADAS.DESCRICAO = 'SET-UP' AND
+
+            TRUNC(APONTAMENTOS_PARADAS.INICIO) >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
+            TRUNC(APONTAMENTOS_PARADAS.INICIO) <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
+
+        GROUP BY
+            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO)
+
+        ORDER BY
+            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def horas_improdutivas_ano_mes_a_mes():
+    """Totaliza as horas improdutivas do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO) AS MES,
+            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('SET-UP') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS SETUP,
+            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('MANUTENCAO DE MOLDE', 'FALTA DE OPCAO DE MOLDE') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS MOLDE,
+            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('MANUTENCAO DE MAQUINA CORRETIVA') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS MAQUINA,
+            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('OUTROS') AND APONTAMENTOS_PARADAS.OBSERVACOES LIKE '%CHIL%' THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS CHILLER,
+            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('FALTA DE ENERGIA ELETRICA') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS ENERGIA,
+            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('PROBLEMAS PIOVAN') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS PIOVAN,
+            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('MANUTENCAO DE GELADEIRA', 'MATERIA PRIMA') OR PARADAS.DESCRICAO IN ('OUTROS') AND APONTAMENTOS_PARADAS.OBSERVACOES NOT LIKE '%CHIL%' THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS OUTROS,
+            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('PARADA ESTRATEGICA') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS PARADA_ESTRATEGICA
+
+        FROM
+            COPLAS.PARADAS,
+            COPLAS.APONTAMENTOS_PARADAS
+
+        WHERE
+            PARADAS.CHAVE = APONTAMENTOS_PARADAS.CHAVE_PARADA AND
+
+            APONTAMENTOS_PARADAS.INICIO >= TO_DATE(:data_ano_inicio, 'DD-MM-YY') AND
+            APONTAMENTOS_PARADAS.INICIO <= TO_DATE(:data_ano_fim, 'DD-MM-YY')
+
+        GROUP BY
+            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO)
+
+        ORDER BY
+            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def inadimplencia_detalhe_ano_mes_a_mes():
+    """Totaliza a inadimplencia detalhada por cliente do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            INAD.MES,
+            INAD.NOMERED AS CLIENTE,
+            INAD.EM_ABERTO,
+            INAD.EM_ABERTO_MES,
+            ROUND(INAD.EM_ABERTO / INAD.EM_ABERTO_MES * 100, 2) AS EM_ABERTO_PORCENTO_MES
+
+        FROM
+            (
+                SELECT
+                    EXTRACT(MONTH FROM RECEBER.DATAVENCIMENTO) AS MES,
+                    CLIENTES.NOMERED,
+                    SUM(RECEBER.VALORTOTAL - RECEBER.ABATIMENTOS_DEVOLUCOES - RECEBER.ABATIMENTOS_OUTROS - COALESCE(RECEBER.DESCONTOS, 0)) AS EM_ABERTO,
+                    SUM(SUM(RECEBER.VALORTOTAL - RECEBER.ABATIMENTOS_DEVOLUCOES - RECEBER.ABATIMENTOS_OUTROS - COALESCE(RECEBER.DESCONTOS, 0))) OVER (PARTITION BY EXTRACT(MONTH FROM RECEBER.DATAVENCIMENTO)) AS EM_ABERTO_MES
+
+                FROM
+                    COPLAS.RECEBER,
+                    COPLAS.CLIENTES
+
+                WHERE
+                    RECEBER.CODCLI = CLIENTES.CODCLI AND
+                    RECEBER.CONDICAO = 'EM ABERTO' AND
+
+                    RECEBER.DATAVENCIMENTO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
+                    RECEBER.DATAVENCIMENTO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+
+                GROUP BY
+                    EXTRACT(MONTH FROM RECEBER.DATAVENCIMENTO),
+                    CLIENTES.NOMERED
+
+                HAVING
+                    SUM(RECEBER.VALORTOTAL - RECEBER.ABATIMENTOS_DEVOLUCOES - RECEBER.ABATIMENTOS_OUTROS - COALESCE(RECEBER.DESCONTOS, 0)) > 0
+            ) INAD
+
+        ORDER BY
+            INAD.MES,
+            EM_ABERTO_PORCENTO_MES DESC
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def inadimplencia_ano_mes_a_mes():
+    """Totaliza a inadimplencia do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM RECEBER.DATAVENCIMENTO) AS MES,
+            SUM(RECEBER.VALORTOTAL - RECEBER.ABATIMENTOS_DEVOLUCOES - RECEBER.ABATIMENTOS_OUTROS - COALESCE(RECEBER.DESCONTOS, 0)) AS TOTAL_A_RECEBER,
+            SUM(CASE WHEN RECEBER.CONDICAO = 'LIQUIDADO' THEN RECEBER.VALORRECEBIDO ELSE 0 END) AS LIQUIDADO,
+            SUM(CASE WHEN RECEBER.CONDICAO = 'EM ABERTO' THEN RECEBER.VALORTOTAL - RECEBER.ABATIMENTOS_DEVOLUCOES - RECEBER.ABATIMENTOS_OUTROS - COALESCE(RECEBER.DESCONTOS, 0) ELSE 0 END) AS EM_ABERTO,
+            SUM(CASE WHEN RECEBER.CONDICAO = 'EM ABERTO' AND RECEBER.CARTEIRACOBRANCA = 'COB SIMPLES' THEN RECEBER.VALORTOTAL - RECEBER.ABATIMENTOS_DEVOLUCOES - RECEBER.ABATIMENTOS_OUTROS - COALESCE(RECEBER.DESCONTOS, 0) ELSE 0 END) AS EM_COBRANCA,
+            SUM(CASE WHEN RECEBER.CONDICAO = 'EM ABERTO' AND RECEBER.CARTEIRACOBRANCA = 'EM CARTORIO' THEN RECEBER.VALORTOTAL - RECEBER.ABATIMENTOS_DEVOLUCOES - RECEBER.ABATIMENTOS_OUTROS - COALESCE(RECEBER.DESCONTOS, 0) ELSE 0 END) AS EM_CARTORIO
+
+        FROM
+            COPLAS.RECEBER
+
+        WHERE
+            RECEBER.DATAVENCIMENTO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
+            RECEBER.DATAVENCIMENTO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+
+        GROUP BY
+            EXTRACT(MONTH FROM RECEBER.DATAVENCIMENTO)
+
+        ORDER BY
+            EXTRACT(MONTH FROM RECEBER.DATAVENCIMENTO)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def lucro_ano_mes_a_mes():
+    """Totaliza o lucro do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
+            ROUND(LFRETE.MC_SEM_FRETE / SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)) * 100, 2) AS LUCRO_TOTAL,
+            ROUND(LFRETE.MC_SEM_FRETE_PP / SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END) * 100, 2) AS LUCRO_PP,
+            ROUND(LFRETE.MC_SEM_FRETE_PT / SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END) * 100, 2) AS LUCRO_PT,
+            ROUND(LFRETE.MC_SEM_FRETE_PQ / SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END) * 100, 2) AS LUCRO_PQ
+
+        FROM
+            (
+                SELECT
+                    CHAVE_NOTA,
+                    SUM(PESO_LIQUIDO) AS PESO_LIQUIDO
+
+                FROM
+                    COPLAS.NOTAS_ITENS
+
+                GROUP BY
+                    CHAVE_NOTA
+            ) NOTAS_PESO_LIQUIDO,
+            COPLAS.NOTAS,
+            COPLAS.NOTAS_ITENS,
+            COPLAS.PRODUTOS,
+            (
+                SELECT
+                    MES,
+                    ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE,
+                    ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7766 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PP,
+                    ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7767 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PT,
+                    ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PQ
+
+                FROM
+                    (
+                        {lfrete_notas} AND
+
+                            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
+                            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
+                    ) LFRETE
+
+                GROUP BY
+                    MES
+            ) LFRETE
+
+        WHERE
+            NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = LFRETE.MES AND
+            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
+            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
+            NOTAS.VALOR_COMERCIAL = 'SIM' AND
+
+            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
+            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+
+        GROUP BY
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO),
+            LFRETE.MC_SEM_FRETE,
+            LFRETE.MC_SEM_FRETE_PP,
+            LFRETE.MC_SEM_FRETE_PT,
+            LFRETE.MC_SEM_FRETE_PQ
+
+        ORDER BY
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
+    """
+
+    sql = sql.format(lfrete_notas=lfrete_notas)
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def peso_embalado_produto_proprio_ano_mes_a_mes():
+    """Totaliza o peso embalado de produto proprio do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM APONTAMENTOS.INICIO) AS MES,
+            ROUND(SUM(APONTAMENTOS.PRODUCAO_LIQUIDA * PRODUTOS.PESO_LIQUIDO), 4) AS EMBALADO_KG
+
+        FROM
+            COPLAS.PRODUTOS,
+            COPLAS.PROCESSOS_OPERACOES,
+            COPLAS.PROCESSOS,
+            COPLAS.APONTAMENTOS,
+            COPLAS.ORDENS
+
+        WHERE
+            ORDENS.CHAVE = APONTAMENTOS.CHAVE_ORDEM AND
+            ORDENS.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
+            PROCESSOS_OPERACOES.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
+            PRODUTOS.CPROD = ORDENS.CHAVE_PRODUTO AND
+            APONTAMENTOS.CHAVE_SETOR = 12 AND
+            PROCESSOS_OPERACOES.CHAVE_SETOR = 12 AND
+            PRODUTOS.CHAVE_FAMILIA = 7766 AND
+
+            TRUNC(APONTAMENTOS.INICIO) >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
+            TRUNC(APONTAMENTOS.INICIO) <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
+
+        GROUP BY
+            EXTRACT(MONTH FROM APONTAMENTOS.INICIO)
+
+        ORDER BY
+            EXTRACT(MONTH FROM APONTAMENTOS.INICIO)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def peso_materia_prima_produto_proprio_detalhe_ano_mes_a_mes():
+    """Totaliza o peso da materia prima de produto proprio detalhado do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        mes = site_setup.atualizacoes_mes
+        ano = site_setup.atualizacoes_ano
+
+    sql = """
+        SELECT
+            ULTIMA_MOVIMENTACAO.MES,
+            MATERIAIS.CODIGO,
+            SUM(MOVESTOQUE.SALDO_ESTOQUE * MATERIAIS.PESO_LIQUIDO) / 1000 AS PESO_MP_ESTOQUE_TON
+
+        FROM
+            COPLAS.MOVESTOQUE,
+            (
+                SELECT DISTINCT
+                    MATERIAIS.CPROD,
+                    MATERIAIS.CODIGO,
+                    MATERIAIS.PESO_LIQUIDO
+
+                FROM
+                    COPLAS.PRODUTOS MATERIAIS,
+                    COPLAS.PRODUTOS,
+                    COPLAS.PROCESSOS_MATERIAIS,
+                    COPLAS.PROCESSOS
+
+                WHERE
+                    PROCESSOS_MATERIAIS.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
+                    PROCESSOS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
+                    MATERIAIS.CPROD = PROCESSOS_MATERIAIS.CHAVE_MATERIAL AND
+                    PRODUTOS.CHAVE_FAMILIA = 7766 AND
+                    MATERIAIS.CHAVE_GRUPO = 8273
+            ) MATERIAIS,
+            (
+                SELECT
+                    PERIODO.MES,
+                    MAX(MOVESTOQUE.CHAVE) AS ULTIMA_MOVIMENTACAO
+
+                FROM
+                    COPLAS.MOVESTOQUE,
+                    (
+                        SELECT 12 AS MES, :ano + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 11 AS MES, :ano + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 10 AS MES, :ano + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 9 AS MES, :ano + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 8 AS MES, :ano + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 7 AS MES, :ano + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 6 AS MES, :ano + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 5 AS MES, :ano + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 4 AS MES, :ano + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 3 AS MES, :ano + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 2 AS MES, :ano + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 1 AS MES, :ano + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL
+                    ) PERIODO
+
+                WHERE
+                    EXTRACT(YEAR FROM MOVESTOQUE.DATA_MOV) + EXTRACT(MONTH FROM MOVESTOQUE.DATA_MOV) / 12.00 + EXTRACT(DAY FROM MOVESTOQUE.DATA_MOV) / 365.00 < PERIODO.ANOMESDIA AND
+                    EXISTS(SELECT PRODUTOS.CPROD FROM COPLAS.PRODUTOS WHERE PRODUTOS.CHAVE_GRUPO = 8273 AND PRODUTOS.CPROD = MOVESTOQUE.CHAVE_PRODUTO) AND
+
+                    PERIODO.MES <= :mes
+
+                GROUP BY
+                    PERIODO.MES,
+                    MOVESTOQUE.CHAVE_PRODUTO
+            ) ULTIMA_MOVIMENTACAO
+
+        WHERE
+            ULTIMA_MOVIMENTACAO.ULTIMA_MOVIMENTACAO = MOVESTOQUE.CHAVE AND
+            MATERIAIS.CPROD = MOVESTOQUE.CHAVE_PRODUTO AND
+            MOVESTOQUE.SALDO_ESTOQUE != 0
+
+        GROUP BY
+            ULTIMA_MOVIMENTACAO.MES,
+            MATERIAIS.CODIGO
+
+        ORDER BY
+            ULTIMA_MOVIMENTACAO.MES,
+            MATERIAIS.CODIGO
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes)
+
+    return resultado
+
+
+def peso_materia_prima_produto_proprio_ano_mes_a_mes():
+    """Totaliza o peso da materia prima de produto proprio do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        mes = site_setup.atualizacoes_mes
+        ano = site_setup.atualizacoes_ano
+
+    sql = """
+        SELECT
+            ULTIMA_MOVIMENTACAO.MES,
+            SUM(MOVESTOQUE.SALDO_ESTOQUE * MATERIAIS.PESO_LIQUIDO) AS PESO_MP_ESTOQUE_KG
+
+        FROM
+            COPLAS.MOVESTOQUE,
+            (
+                SELECT DISTINCT
+                    MATERIAIS.CPROD,
+                    MATERIAIS.PESO_LIQUIDO
+
+                FROM
+                    COPLAS.PRODUTOS MATERIAIS,
+                    COPLAS.PRODUTOS,
+                    COPLAS.PROCESSOS_MATERIAIS,
+                    COPLAS.PROCESSOS
+
+                WHERE
+                    PROCESSOS_MATERIAIS.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
+                    PROCESSOS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
+                    MATERIAIS.CPROD = PROCESSOS_MATERIAIS.CHAVE_MATERIAL AND
+                    PRODUTOS.CHAVE_FAMILIA = 7766 AND
+                    MATERIAIS.CHAVE_GRUPO = 8273
+            ) MATERIAIS,
+            (
+                SELECT
+                    PERIODO.MES,
+                    MAX(MOVESTOQUE.CHAVE) AS ULTIMA_MOVIMENTACAO
+
+                FROM
+                    COPLAS.MOVESTOQUE,
+                    (
+                        SELECT 12 AS MES, :ano + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 11 AS MES, :ano + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 10 AS MES, :ano + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 9 AS MES, :ano + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 8 AS MES, :ano + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 7 AS MES, :ano + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 6 AS MES, :ano + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 5 AS MES, :ano + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 4 AS MES, :ano + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 3 AS MES, :ano + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 2 AS MES, :ano + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 1 AS MES, :ano + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL
+                    ) PERIODO
+
+                WHERE
+                    EXTRACT(YEAR FROM MOVESTOQUE.DATA_MOV) + EXTRACT(MONTH FROM MOVESTOQUE.DATA_MOV) / 12.00 + EXTRACT(DAY FROM MOVESTOQUE.DATA_MOV) / 365.00 < PERIODO.ANOMESDIA AND
+                    EXISTS(SELECT PRODUTOS.CPROD FROM COPLAS.PRODUTOS WHERE PRODUTOS.CHAVE_GRUPO = 8273 AND PRODUTOS.CPROD = MOVESTOQUE.CHAVE_PRODUTO) AND
+
+                    PERIODO.MES <= :mes
+
+                GROUP BY
+                    PERIODO.MES,
+                    MOVESTOQUE.CHAVE_PRODUTO
+            ) ULTIMA_MOVIMENTACAO
+
+        WHERE
+            ULTIMA_MOVIMENTACAO.ULTIMA_MOVIMENTACAO = MOVESTOQUE.CHAVE AND
+            MATERIAIS.CPROD = MOVESTOQUE.CHAVE_PRODUTO
+
+        GROUP BY
+            ULTIMA_MOVIMENTACAO.MES
+
+        ORDER BY
+            ULTIMA_MOVIMENTACAO.MES
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes)
+
+    return resultado
+
+
+def peso_faturado_produto_proprio_ano_mes_a_mes():
+    """Totaliza o peso faturado de produto proprio (todas as notas com CFOP de baixa de estoque) do periodo informado
+    em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
+            SUM(NOTAS_ITENS.PESO_LIQUIDO * CASE WHEN NOTAS.ESPECIE = 'E' THEN (-1) ELSE 1 END) AS PESO_KG
+
+        FROM
+            COPLAS.PRODUTOS,
+            COPLAS.NOTAS_ITENS,
+            COPLAS.NOTAS
+
+        WHERE
+            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
+            PRODUTOS.CHAVE_FAMILIA = 7766 AND
+            NOTAS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE BAIXA_ESTOQUE = 'SIM' AND CHAVE NOT IN (8791, 10077)) AND
+
+            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
+            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+
+        GROUP BY
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
+
+        ORDER BY
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def peso_estoque_produto_proprio_ano_mes_a_mes():
+    """Totaliza o peso do estoque de produto proprio do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        mes = site_setup.atualizacoes_mes
+        ano = site_setup.atualizacoes_ano
+
+    sql = """
+        SELECT
+            ULTIMA_MOVIMENTACAO.MES,
+            SUM(MOVESTOQUE.SALDO_ESTOQUE * PRODUTOS.PESO_LIQUIDO) AS PESO_ESTOQUE_KG
+
+        FROM
+            COPLAS.MOVESTOQUE,
+            COPLAS.PRODUTOS,
+            (
+                SELECT
+                    PERIODO.MES,
+                    MAX(MOVESTOQUE.CHAVE) AS ULTIMA_MOVIMENTACAO
+
+                FROM
+                    COPLAS.PRODUTOS,
+                    COPLAS.MOVESTOQUE,
+                    (
+                        SELECT 12 AS MES, :ano + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 11 AS MES, :ano + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 10 AS MES, :ano + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 9 AS MES, :ano + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 8 AS MES, :ano + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 7 AS MES, :ano + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 6 AS MES, :ano + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 5 AS MES, :ano + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 4 AS MES, :ano + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 3 AS MES, :ano + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 2 AS MES, :ano + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                        SELECT 1 AS MES, :ano + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL
+                    ) PERIODO
+
+                WHERE
+                    PRODUTOS.CPROD = MOVESTOQUE.CHAVE_PRODUTO AND
+                    PRODUTOS.CHAVE_FAMILIA = 7766 AND
+                    EXTRACT(YEAR FROM MOVESTOQUE.DATA_MOV) + EXTRACT(MONTH FROM MOVESTOQUE.DATA_MOV) / 12.00 + EXTRACT(DAY FROM MOVESTOQUE.DATA_MOV) / 365.00 < PERIODO.ANOMESDIA AND
+
+                    PERIODO.MES <= :mes
+
+                GROUP BY
+                    PERIODO.MES,
+                    PRODUTOS.CPROD
+            ) ULTIMA_MOVIMENTACAO
+
+        WHERE
+            MOVESTOQUE.CHAVE = ULTIMA_MOVIMENTACAO.ULTIMA_MOVIMENTACAO AND
+            PRODUTOS.CPROD = MOVESTOQUE.CHAVE_PRODUTO AND
+            PRODUTOS.CHAVE_FAMILIA = 7766
+
+        GROUP BY
+            ULTIMA_MOVIMENTACAO.MES
+
+        ORDER BY
+            ULTIMA_MOVIMENTACAO.MES
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes)
+
+    return resultado
 
 
 def insvestimento_retiradas_ano_mes_a_mes():
@@ -84,9 +761,6 @@ def insvestimento_retiradas_ano_mes_a_mes():
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
 
-    if not resultado:
-        return []
-
     return resultado
 
 
@@ -146,9 +820,6 @@ def imposto_faturado_ano_mes_a_mes():
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
 
-    if not resultado:
-        return []
-
     return resultado
 
 
@@ -201,9 +872,6 @@ def faturado_mercadorias_ano_mes_a_mes():
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
 
-    if not resultado:
-        return []
-
     return resultado
 
 
@@ -243,9 +911,6 @@ def faturado_bruto_ano_mes_a_mes():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
-
-    if not resultado:
-        return []
 
     return resultado
 
@@ -296,9 +961,6 @@ def despesa_variavel_ano_mes_a_mes():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
-
-    if not resultado:
-        return []
 
     return resultado
 
@@ -395,9 +1057,6 @@ def despesa_operacional_ano_mes_a_mes():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
-
-    if not resultado:
-        return []
 
     return resultado
 
@@ -502,9 +1161,6 @@ def custo_materia_prima_faturada_ano_mes_a_mes():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
-
-    if not resultado:
-        return []
 
     return resultado
 
@@ -802,9 +1458,6 @@ def ativo_operacional_produto_acabado_ano_mes_a_mes():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
-
-    if not resultado:
-        return []
 
     return resultado
 
@@ -1167,9 +1820,6 @@ def ativo_operacional_materia_prima_ano_mes_a_mes():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes)
 
-    if not resultado:
-        return []
-
     return resultado
 
 
@@ -1205,9 +1855,6 @@ def horas_produtivas_ano_mes_a_mes():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
-
-    if not resultado:
-        return []
 
     return resultado
 
@@ -1257,9 +1904,6 @@ def frete_cif_ano_mes_a_mes():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
-
-    if not resultado:
-        return []
 
     return resultado
 
@@ -1389,9 +2033,6 @@ def financeiro_ano_mes_a_mes():
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
 
-    if not resultado:
-        return []
-
     return resultado
 
 
@@ -1514,9 +2155,6 @@ def financeiro_geral_ano_mes_a_mes():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
-
-    if not resultado:
-        return []
 
     return resultado
 
@@ -1734,9 +2372,6 @@ def receitas_despesas_ano_mes_a_mes_12_meses():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes)
 
-    if not resultado:
-        return []
-
     return resultado
 
 
@@ -1784,9 +2419,6 @@ def minutos_produtivos_ano_mes_a_mes_12_meses():
     """
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes)
-
-    if not resultado:
-        return []
 
     return resultado
 
@@ -1900,9 +2532,6 @@ def contas_estrategicas_ano_mes_a_mes():
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
 
-    if not resultado:
-        return []
-
     return resultado
 
 
@@ -1954,9 +2583,6 @@ def totalizar_funcionarios_ano_mes_a_mes():
 
     resultado = executar_django(sql, exportar_cabecalho=True, ano=ano, mes=mes)
 
-    if not resultado:
-        return []
-
     return resultado
 
 
@@ -1973,9 +2599,6 @@ def rateio_salario_adm_cp_ano_mes_a_mes():
     """
 
     resultado = executar_django(sql, exportar_cabecalho=True, ano=ano, mes=mes)
-
-    if not resultado:
-        return []
 
     return resultado
 
@@ -2031,9 +2654,6 @@ def get_tabela_precos() -> list | None:
 
     resultado = executar_oracle(sql, exportar_cabecalho=True)
 
-    if not resultado:
-        return []
-
     return resultado
 
 
@@ -2050,9 +2670,6 @@ def get_cidades_base() -> list | None:
     """
 
     resultado = executar_oracle(sql, exportar_cabecalho=True)
-
-    if not resultado:
-        return []
 
     return resultado
 
