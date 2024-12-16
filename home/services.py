@@ -5,6 +5,390 @@ from utils.site_setup import get_cidades, get_estados, get_site_setup
 from utils.lfrete import notas as lfrete_notas
 
 
+def i4ref_terceirizacao_ano_mes_a_mes():
+    """Totaliza o valor da terceirização do 4REF do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        ano_inicio = site_setup.atualizacoes_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) AS MES,
+            EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO) AS ANO,
+            PLANO_DE_CONTAS.CONTA,
+            ROUND(SUM(CASE WHEN PAGAR.CODFOR = 19476 THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS O3,
+            ROUND(SUM(CASE WHEN PAGAR.CODFOR != 19476 THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS NC4
+
+        FROM
+            COPLAS.PAGAR,
+            COPLAS.PAGAR_PLANOCONTA,
+            COPLAS.PAGAR_CENTRORESULTADO,
+            COPLAS.PAGAR_JOB,
+            COPLAS.PLANO_DE_CONTAS
+
+        WHERE
+            PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
+            PAGAR.CHAVE = PAGAR_PLANOCONTA.CHAVE_PAGAR AND
+            PAGAR.CHAVE = PAGAR_CENTRORESULTADO.CHAVE_PAGAR AND
+            PAGAR.CHAVE = PAGAR_JOB.CHAVE_PAGAR AND
+            PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
+            PAGAR_JOB.CHAVE_JOB IN (22, 24) AND
+            PLANO_DE_CONTAS.CONTA LIKE '2.01.03.%' AND
+
+            EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO) >= :ano_inicio AND
+            PAGAR.DATALIQUIDACAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+
+        GROUP BY
+            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO),
+            EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO),
+            PLANO_DE_CONTAS.CONTA
+
+        ORDER BY
+            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO),
+            EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO),
+            PLANO_DE_CONTAS.CONTA
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, ano_inicio=ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def i4ref_imposto_vendido_ano_mes_a_mes():
+    """Totaliza o valor do imposto vendido do 4REF do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        ano_inicio = site_setup.atualizacoes_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS ANO,
+            ROUND(SUM(NOTAS_ITENS.VALOR_IPI_COM_FRETE), 2) AS IPI,
+            ROUND(SUM(NOTAS_ITENS.ICMS_SUBSTITUICAO_VALOR), 2) AS ST,
+            ROUND(SUM(NOTAS_ITENS.ANALISE_ICMS), 2) AS ICMS,
+            ROUND(SUM(NOTAS_ITENS.ANALISE_PIS), 2) AS PIS,
+            ROUND(SUM(NOTAS_ITENS.ANALISE_COFINS), 2) AS COFINS,
+            ROUND(SUM(NOTAS_ITENS.ANALISE_CONTRIBUICAO), 2) AS IRPJ_CSLL,
+            ROUND(SUM(NOTAS_ITENS.ANALISE_ICMS_PARTILHA), 2) AS ICMS_PARTILHA
+
+        FROM
+            COPLAS.NOTAS,
+            COPLAS.NOTAS_ITENS,
+            COPLAS.PRODUTOS
+
+        WHERE
+            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
+            NOTAS_ITENS.CHAVE_NOTA = NOTAS.CHAVE AND
+            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
+            NOTAS.VALOR_COMERCIAL = 'SIM' AND
+
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) >= :ano_inicio AND
+            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+
+        GROUP BY
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO),
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO)
+
+        ORDER BY
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, ano_inicio=ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def i4ref_faturado_bruto_ano_mes_a_mes():
+    """Totaliza o valor do faturamento bruto do 4REF do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        ano_inicio = site_setup.atualizacoes_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS ANO,
+            ROUND(SUM(NOTAS_ITENS.VALOR_CONTABIL), 2) AS FATURADO
+
+        FROM
+            COPLAS.NOTAS,
+            COPLAS.NOTAS_ITENS,
+            COPLAS.PRODUTOS
+
+        WHERE
+            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
+            NOTAS.VALOR_COMERCIAL = 'SIM' AND
+            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
+
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) >= :ano_inicio AND
+            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+
+        GROUP BY
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO),
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO)
+
+        ORDER BY
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, ano_inicio=ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def i4ref_custo_materia_prima_vendido_ano_mes_a_mes():
+    """Totaliza o valor do custo das materias primas vendidas do 4REF do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        ano = site_setup.atualizacoes_ano
+        ano_inicio = site_setup.atualizacoes_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS ANO,
+            SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END) AS CUSTO_MP_PP,
+            SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END) AS CUSTO_MP_PT,
+            SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END) AS CUSTO_MP_PQ,
+            SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 AND PRODUTOS.CHAVE_MARCA = 181 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END) AS CUSTO_MP_PT_NC4,
+            SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 AND PRODUTOS.CHAVE_MARCA != 181 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END) AS CUSTO_MP_PT_SEM_NC4
+
+        FROM
+            COPLAS.NOTAS,
+            COPLAS.NOTAS_ITENS,
+            COPLAS.PRODUTOS,
+            (
+                SELECT
+                    ULTIMO_CUSTO.MES,
+                    ULTIMO_CUSTO.ANO,
+                    PROCESSOS.CHAVE_PRODUTO,
+                    SUM(PROCESSOS_MATERIAIS.QUANTIDADE * CUSTOS_PRODUTOS_LOG.CUSTOT_NOVO) AS CUSTO_MP
+
+                FROM
+                    COPLAS.PROCESSOS,
+                    COPLAS.PROCESSOS_MATERIAIS,
+                    COPLAS.PRODUTOS MATERIAIS,
+                    COPLAS.CUSTOS_PRODUTOS_LOG,
+                    (
+                        SELECT
+                            PERIODO.MES,
+                            PERIODO.ANO,
+                            MAX(CUSTOS_PRODUTOS_LOG.CHAVE) AS ULTIMO_CUSTO
+
+                        FROM
+                            COPLAS.CUSTOS_PRODUTOS_LOG,
+                            (
+                                SELECT 12 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 11 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 10 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 9 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 8 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 7 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 6 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 5 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 4 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 3 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 2 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 1 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+
+                                SELECT 12 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 11 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 10 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 9 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 8 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 7 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 6 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 5 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 4 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 3 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 2 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 1 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+
+                                SELECT 12 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 11 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 10 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 9 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 8 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 7 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 6 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 5 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 4 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 3 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 2 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 1 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+
+                                SELECT 12 AS MES, :ano AS ANO, :ano + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 11 AS MES, :ano AS ANO, :ano + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 10 AS MES, :ano AS ANO, :ano + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 9 AS MES, :ano AS ANO, :ano + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 8 AS MES, :ano AS ANO, :ano + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 7 AS MES, :ano AS ANO, :ano + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 6 AS MES, :ano AS ANO, :ano + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 5 AS MES, :ano AS ANO, :ano + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 4 AS MES, :ano AS ANO, :ano + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 3 AS MES, :ano AS ANO, :ano + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 2 AS MES, :ano AS ANO, :ano + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+                                SELECT 1 AS MES, :ano AS ANO, :ano + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL
+                            ) PERIODO
+
+                        WHERE
+                            CUSTOS_PRODUTOS_LOG.CUSTOT_NOVO > 0 AND
+                            CUSTOS_PRODUTOS_LOG.CHAVE_JOB = 22 AND
+                            EXTRACT(YEAR FROM CUSTOS_PRODUTOS_LOG.DATA) + EXTRACT(MONTH FROM CUSTOS_PRODUTOS_LOG.DATA) / 12.00 + EXTRACT(DAY FROM CUSTOS_PRODUTOS_LOG.DATA) / 365.00 < PERIODO.ANOMESDIA
+
+                        GROUP BY
+                            PERIODO.MES,
+                            PERIODO.ANO,
+                            CUSTOS_PRODUTOS_LOG.CHAVE_PRODUTO
+                    ) ULTIMO_CUSTO
+
+                WHERE
+                    CUSTOS_PRODUTOS_LOG.CHAVE_PRODUTO = MATERIAIS.CPROD AND
+                    CUSTOS_PRODUTOS_LOG.CHAVE = ULTIMO_CUSTO.ULTIMO_CUSTO AND
+                    PROCESSOS.CHAVE = PROCESSOS_MATERIAIS.CHAVE_PROCESSO AND
+                    PROCESSOS_MATERIAIS.CHAVE_MATERIAL = MATERIAIS.CPROD AND
+                    PROCESSOS.PADRAO = 'SIM' AND
+                    CUSTOS_PRODUTOS_LOG.CHAVE_JOB = 22
+
+                GROUP BY
+                    ULTIMO_CUSTO.MES,
+                    ULTIMO_CUSTO.ANO,
+                    PROCESSOS.CHAVE_PRODUTO
+            ) CUSTO_MP
+
+        WHERE
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = CUSTO_MP.MES AND
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = CUSTO_MP.ANO AND
+            PRODUTOS.CPROD = CUSTO_MP.CHAVE_PRODUTO AND
+            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
+            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+            NOTAS.VALOR_COMERCIAL = 'SIM' AND
+            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
+
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) >= :ano_inicio AND
+            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+
+        GROUP BY
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
+
+        ORDER BY
+            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),
+            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, ano_inicio=ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
+def i4ref_ano_mes_a_mes():
+    """Totaliza o valor das contas do 4REF do periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        ano_inicio = site_setup.atualizacoes_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            REF4.MES,
+            REF4.ANO,
+            REF4.CONTA,
+            SUM(REF4.REF4) * (-1) AS REF4
+
+        FROM
+            (
+                SELECT
+                    EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) AS MES,
+                    EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO) AS ANO,
+                    PLANO_DE_CONTAS.CONTA,
+                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.02.02.%' AND PAGAR_CENTRORESULTADO.CHAVE_CENTRO = 47 THEN 0 ELSE PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 END), 2) AS REF4
+
+                FROM
+                    COPLAS.PAGAR,
+                    COPLAS.PAGAR_PLANOCONTA,
+                    COPLAS.PAGAR_CENTRORESULTADO,
+                    COPLAS.PAGAR_JOB,
+                    COPLAS.PLANO_DE_CONTAS
+
+                WHERE
+                    PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
+                    PAGAR.CHAVE = PAGAR_PLANOCONTA.CHAVE_PAGAR AND
+                    PAGAR.CHAVE = PAGAR_CENTRORESULTADO.CHAVE_PAGAR AND
+                    PAGAR.CHAVE = PAGAR_JOB.CHAVE_PAGAR AND
+                    PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
+                    PAGAR_JOB.CHAVE_JOB IN (22, 24) AND
+
+                    EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO) >= :ano_inicio AND
+                    PAGAR.DATALIQUIDACAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+
+                GROUP BY
+                    EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO),
+                    EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO),
+                    PLANO_DE_CONTAS.CONTA
+
+                UNION ALL
+
+                SELECT
+                    EXTRACT(MONTH FROM MOVBAN.DATA) AS MES,
+                    EXTRACT(YEAR FROM MOVBAN.DATA) AS ANO,
+                    PLANO_DE_CONTAS.CONTA,
+                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.02.02.%' AND MOVBAN_CENTRORESULTADO.CHAVE_CENTRO = 47 THEN 0 ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END * CASE WHEN MOVBAN.TIPO = 'D' THEN 1 ELSE (-1) END), 2) AS REF4
+
+                FROM
+                    COPLAS.MOVBAN,
+                    COPLAS.MOVBAN_PLANOCONTA,
+                    COPLAS.MOVBAN_CENTRORESULTADO,
+                    COPLAS.MOVBAN_JOB,
+                    COPLAS.PLANO_DE_CONTAS
+
+                WHERE
+                    MOVBAN_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
+                    MOVBAN.CHAVE = MOVBAN_PLANOCONTA.CHAVE_MOVBAN AND
+                    MOVBAN.CHAVE = MOVBAN_CENTRORESULTADO.CHAVE_MOVBAN AND
+                    MOVBAN.CHAVE = MOVBAN_JOB.CHAVE_MOVBAN AND
+                    MOVBAN.AUTOMATICO = 'NAO' AND
+                    MOVBAN_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
+                    MOVBAN_JOB.CHAVE_JOB IN (22, 24) AND
+
+                    EXTRACT(YEAR FROM MOVBAN.DATA) >= :ano_inicio AND
+                    MOVBAN.DATA <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+
+                GROUP BY
+                    EXTRACT(MONTH FROM MOVBAN.DATA),
+                    EXTRACT(YEAR FROM MOVBAN.DATA),
+                    PLANO_DE_CONTAS.CONTA
+            ) REF4
+
+        GROUP BY
+            REF4.MES,
+            REF4.ANO,
+            REF4.CONTA
+
+        ORDER BY
+            REF4.MES,
+            REF4.ANO,
+            REF4.CONTA
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, ano_inicio=ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
 def exportacoes_ano_mes_a_mes():
     """Totaliza o valor de exportações no periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -452,6 +836,9 @@ def vec_antes_depois_visita_ano_mes_a_mes():
             ORCAMENTOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM')
 
         GROUP BY
+            GRUPOS_VISITAS.MES
+
+        ORDER BY
             GRUPOS_VISITAS.MES
     """
 
