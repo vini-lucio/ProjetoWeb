@@ -28,6 +28,11 @@ class BaseModelAdminRedRequired(admin.ModelAdmin):
         css = {'all': ('admin/css/style.css',)}
 
 
+class AdminRedRequiredMixIn:
+    class Media:
+        css = {'all': ('admin/css/style.css',)}
+
+
 class BaseModelAdminRedRequiredLog(BaseModelAdminRedRequired):
     class Meta:
         abstract = True
@@ -40,6 +45,17 @@ class BaseModelAdminRedRequiredLog(BaseModelAdminRedRequired):
             obj.atualizado_por = request.user
         obj.save()
         return super().save_model(request, obj, form, change)
+
+
+class AdminLogMixIn:
+    def save_model(self, request, obj, form, change) -> None:
+        if not obj.pk:
+            obj.criado_por = request.user
+            obj.atualizado_por = request.user
+        if change:
+            obj.atualizado_por = request.user
+        obj.save()
+        return super().save_model(request, obj, form, change)  # type:ignore
 
 
 class BaseViewAdmin(admin.ModelAdmin):

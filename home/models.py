@@ -2,7 +2,8 @@ from django.db import models
 from django.utils.text import slugify
 from utils.imagens import redimensionar_imagem
 from django_summernote.models import AbstractAttachment
-from django.db.models import Q
+from django.db.models import Q, Max
+from utils.base_models import BaseLogModel
 from utils.converter import converter_data_django_para_str_ddmmyyyy, converter_data_django_para_dia_semana
 from utils.choices import status_ativo_inativo
 
@@ -475,3 +476,93 @@ class Atualizacoes(models.Model):
 
     def __str__(self) -> str:
         return self.descricao
+
+
+class ProdutosModelosTags(models.Model):
+    class Meta:
+        verbose_name = 'Produtos Modelos Tag'
+        verbose_name_plural = 'Produtos Modelos Tags'
+        ordering = 'descricao',
+        constraints = [
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='tags_unique_descricao',
+                violation_error_message="Descrição é campo unico"
+            ),
+        ]
+
+    descricao = models.CharField("Descrição", max_length=100)
+    slug = models.SlugField("Slug", blank=True, null=True)
+
+    def save(self, *args, **kwargs) -> None:
+        if not self.slug == slugify(self.descricao):
+            self.slug = slugify(self.descricao)
+
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.descricao
+
+
+class ProdutosModelos(BaseLogModel):
+    class Meta:
+        verbose_name = 'Produtos Modelo'
+        verbose_name_plural = 'Produtos Modelos'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='modelos_unique_descricao',
+                violation_error_message="Descrição é campo unico"
+            ),
+        ]
+
+    help_text_imagem = "A imagem será redimensionada proporcionalmente para 300 px de largura"
+
+    descricao = models.CharField("Descrição", max_length=100)
+    imagem = models.ImageField("Imagem Principal", upload_to='home/produtos_modelos/%Y/%m/', blank=True, null=True,
+                               help_text=help_text_imagem)
+    tags = models.ManyToManyField(ProdutosModelosTags, verbose_name="Tags", related_name="%(class)s", blank=True,
+                                  default='')
+    slug = models.SlugField("Slug", blank=True, null=True)
+
+    def save(self, *args, **kwargs) -> None:
+        if not self.slug == slugify(self.descricao):
+            self.slug = slugify(self.descricao)
+
+        imagem_anterior = self.imagem.name
+
+        super_save = super().save(*args, **kwargs)
+
+        if self.imagem and self.imagem.name != imagem_anterior:
+            largura = 300
+            altura = None
+            redimensionar_imagem(self.imagem, largura, altura)
+
+        return super_save
+
+    def __str__(self) -> str:
+        return self.descricao
+
+
+class ProdutosModelosTopicos(BaseLogModel):
+    class Meta:
+        verbose_name = 'Produtos Modelos Topico'
+        verbose_name_plural = 'Produtos Modelos Topicos'
+        ordering = 'ordem',
+
+    modelo = models.ForeignKey(ProdutosModelos, verbose_name="Modelo", on_delete=models.PROTECT,
+                               related_name="%(class)s")
+    titulo = models.CharField("Titulo", max_length=100)
+    conteudo = models.TextField("Conteudo")
+    ordem = models.IntegerField("Ordem", default=10)
+
+    def save(self, *args, **kwargs) -> None:
+        if not self.pk:
+            modelo = ProdutosModelosTopicos.objects.filter(modelo=self.modelo)
+            ultima_ordem = modelo.aggregate(Max('ordem'))['ordem__max']
+            if ultima_ordem:
+                self.ordem = ultima_ordem + 10
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.titulo

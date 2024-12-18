@@ -1,0 +1,60 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="flex">
+            <div class="titulo">
+                <h1>{{ produtos_modelo.descricao }}</h1>
+            </div>
+
+            {% if produtos_modelo.imagem %}
+                <div>
+                    <img loading="lazy" src="{{ produtos_modelo.imagem.url }}">
+                </div>
+            {% endif %}
+        </div>
+
+        {% comment %} <div class="link-conteudo">
+            <div class="alinhar-esquerda">
+                <h2 class="titulo-2 fonte-verde">Medidas</h2>
+                <p>teste</p>
+                <p>teste</p>
+                <p>teste</p>
+            </div>
+        </div> {% endcomment %}
+
+        {% if produtos_modelo.produtosmodelostopicos.all %}
+            {% for topico in produtos_modelo.produtosmodelostopicos.all %}
+                <div class="link-conteudo">
+                    <div class="alinhar-esquerda">
+                        <h2 class="titulo-2 fonte-verde">{{ topico.titulo }}</h2>
+                        <p>{{ topico.conteudo | safe }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if produtos_modelo.tags %}
+            <div class="link-conteudo grid">
+                {% for tags in produtos_modelo.tags.all %}
+                    <div class="tag">{{ tags.descricao | safe }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if sugestoes %}
+            <div class="link-conteudo">
+                <div class="alinhar-esquerda">
+                    <h2 class="titulo-2 fonte-verde">Sugestões</h2>
+                    {% for sugestao in sugestoes %}
+                        <p>{{ sugestao.descricao }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+    </section>
+
+{% endblock conteudo %}

@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
-                         Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes)
+                         Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
+                         ProdutosModelosTags)
 from django_summernote.admin import SummernoteModelAdmin
-from utils.base_models import BaseModelAdminRedRequired
+from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
+                               AdminLogMixIn)
 from utils.exportar_excel import arquivo_excel
 import home.services as services
 import os
@@ -19,7 +21,7 @@ class HomeLinksDocumentosInLine(admin.TabularInline):
 
 
 @admin.register(HomeLinks)
-class HomeLinksAdmin(SummernoteModelAdmin):
+class HomeLinksAdmin(AdminRedRequiredMixIn, SummernoteModelAdmin):
     # class HomeLinksAdmin(admin.ModelAdmin):
     summernote_fields = 'conteudo',
     list_display = 'id', 'titulo', 'tamanho_botao', 'ordem', 'visivel',
@@ -185,3 +187,33 @@ class AtualizacoesAdmin(BaseModelAdminRedRequired):
                 response['Content-Disposition'] = 'attachment; filename=atualizacoes.zip'
 
         return response
+
+
+@admin.register(ProdutosModelos)
+class ProdutosModelosAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'descricao',
+    list_display_links = list_display
+    ordering = 'descricao',
+    search_fields = 'descricao',
+    readonly_fields = 'slug', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+    autocomplete_fields = 'tags',
+
+
+@admin.register(ProdutosModelosTopicos)
+class ProdutosModelosTopicosAdmin(AdminRedRequiredMixIn, AdminLogMixIn, SummernoteModelAdmin):
+    summernote_fields = 'conteudo',
+    list_display = 'id', 'modelo', 'titulo', 'ordem',
+    list_display_links = 'id', 'modelo', 'titulo',
+    list_editable = 'ordem',
+    ordering = 'modelo__descricao', 'ordem', 'titulo',
+    search_fields = 'modelo__descricao', 'titulo',
+    readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+
+
+@admin.register(ProdutosModelosTags)
+class ProdutosModelosTagsAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'descricao',
+    list_display_links = list_display
+    ordering = 'descricao',
+    search_fields = 'descricao',
+    readonly_fields = 'slug',

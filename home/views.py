@@ -2,11 +2,12 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.contrib import messages
 from django.views.generic import ListView, DetailView
-from home.models import HomeLinks
+from home.models import HomeLinks, ProdutosModelos
 from django.db.models import Q
 from .services import get_tabela_precos, migrar_cidades
 from .forms import ConfirmacaoMigrarCidades
 from django.contrib.auth.decorators import user_passes_test
+from collections import Counter
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
@@ -92,3 +93,41 @@ def tabela_precos(request):
     contexto = {'titulo_pagina': titulo_pagina, 'tabela': tabela}
 
     return render(request, 'home/pages/tabela-precos.html', contexto)
+
+
+class ProdutosModelosListView(ListView):
+    model = ProdutosModelos
+    template_name = 'home/pages/produtos_modelos.html'
+    context_object_name = 'produtos_modelos'
+    ordering = 'id',
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({'titulo_pagina': 'Produtos Modelos'})
+        return context
+
+
+class ProdutosModelosDetailView(DetailView):
+    model = ProdutosModelos
+    template_name = 'home/pages/produtos_modelo.html'
+    context_object_name = 'produtos_modelo'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        titulo_pagina = f'{self.get_object().descricao}'  # type: ignore
+
+        modelo = self.get_object()
+        tags = modelo.tags.all()  # type: ignore
+
+        sugestoes = []
+        for tag in tags:
+            modelos_com_tag = ProdutosModelos.objects.filter(tags=tag).exclude(pk=modelo.pk)
+            [sugestoes.append(modelo) for modelo in modelos_com_tag]
+        contagem = Counter(sugestoes).most_common()
+
+        sugestoes_ordenadas = []
+        for modelo, tags_encontradas in contagem:
+            sugestoes_ordenadas.append(modelo)
+
+        context.update({'titulo_pagina': titulo_pagina, 'sugestoes': sugestoes_ordenadas})
+        return context

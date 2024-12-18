@@ -4,15 +4,20 @@ from PIL import Image
 
 
 def redimensionar_imagem(imagem_django, largura_px: int | None = None, altura_px: int | None = None,
-                         otimizar=True, qualidade=100):
+                         otimizar=True, qualidade=100, obrigar_largura=True):
     """
     Se somente a largura for enviada a altura será redimensionada proporcionalmente e vice versa.
     Quando largura e altura for None, será redimensionado proporcionalmente para ter no maximo 1200px de largura.
+    Obrigar largura False não redimensiona se a largura original for menor que a enviada.
     """
     caminho_imagem = Path(settings.MEDIA_ROOT / imagem_django.name).resolve()
     imagem_pillow = Image.open(caminho_imagem)
 
     largura_original, altura_original = imagem_pillow.size
+
+    if not obrigar_largura:
+        if largura_px:
+            largura_px = None if largura_original <= largura_px else largura_px
 
     if largura_px and not altura_px:
         largura_nova = largura_px

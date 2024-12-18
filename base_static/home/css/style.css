@@ -22,6 +22,7 @@
 
     --tamanho-fonte-h1: 5rem;
     --tamanho-fonte-h2: 4rem;
+    --tamanho-fonte-h3: 3rem;
 
     --tamanho-fonte-p: 2rem;
     --tamanho-linha-p: 2.5rem;
@@ -30,6 +31,7 @@
     --tamanho-fonte-p-grande: 3rem;
 
     --tamanho-fonte-p-pequeno: 1.5rem;
+    --tamanho-linha-p-pequeno: 2rem;
 
     --tamanho-fonte-p-dashboard: 3.5rem;
     --tamanho-linha-p-dashboard: 4rem;
@@ -70,6 +72,10 @@ h2 {
     font-size: var(--tamanho-fonte-h2);
 }
 
+h3 {
+    font-size: var(--tamanho-fonte-h3);
+}
+
 p,
 label,
 input,
@@ -77,6 +83,7 @@ select,
 textarea,
 button,
 table,
+li,
 .botao-div {
     font-size: var(--tamanho-fonte-p);
     line-height: var(--tamanho-linha-p);
@@ -171,6 +178,25 @@ textarea:focus {
     flex-wrap: wrap;
     margin: 0 auto;
     gap: 1rem;
+}
+
+.flex {
+    padding: 2rem;
+    display: flex;
+    /* flex-wrap: wrap; */
+    margin: 0 auto;
+    max-width: 120rem;
+}
+
+.flex div {
+    width: 100%;
+    align-content: center;
+    text-align: center;
+    justify-content: center;
+}
+
+.teste {
+    width: 100%;
 }
 
 .grid-icones-pequenos {
@@ -269,6 +295,12 @@ textarea:focus {
     color: var(--verde-claro);
     text-align: center;
     text-transform: uppercase;
+}
+
+.titulo-2 {
+    color: var(--verde-claro);
+    text-transform: uppercase;
+    font-weight: lighter;
 }
 
 .link-conteudo {
@@ -412,6 +444,23 @@ textarea:focus {
 .botao-escuro:hover {
     background: var(--azul-escuro);
     color: var(--branco);
+}
+
+.tag {
+    padding: 0.5rem;
+    border: var(--tamanho-borda-icones) solid var(--verde-claro);
+    border-radius: 1rem;
+    background: var(--azul-escuro);
+    color: var(--branco);
+    cursor: pointer;
+    transition: all 200ms ease-in-out;
+    font-size: var(--tamanho-fonte-p-pequeno);
+    line-height: var(--tamanho-linha-p-pequeno);
+}
+
+.tag:hover {
+    background: var(--verde-claro);
+    color: var(--azul-escuro);
 }
 
 .topo {
@@ -686,6 +735,12 @@ textarea:focus {
     width: 100%;
     border-bottom: 1px solid var(--azul-escuro);
     margin-top: 10px;
+}
+
+iframe {
+    width: 100%;
+    max-width: 56rem;
+    height: calc(56rem * 0.5625);
 }
 
 @media (max-width: 570px) {

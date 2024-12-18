@@ -1,0 +1,21 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="titulo">
+            <h1>Modelos</h1>
+        </div>
+
+        <div class="link-conteudo">
+            {% for modelo in produtos_modelos %}
+                <div class="grid-simples">
+                    <h2><a href="{% url "home:produtos-modelo" modelo.id %}">{{ modelo.descricao }}</a></h2>
+                </div>
+            {% endfor %}
+        </div>
+
+    </section>
+
+{% endblock conteudo %}
