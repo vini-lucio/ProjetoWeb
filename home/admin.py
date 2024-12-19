@@ -194,7 +194,7 @@ class ProdutosModelosAdmin(BaseModelAdminRedRequiredLog):
     list_display = 'id', 'descricao',
     list_display_links = list_display
     ordering = 'descricao',
-    search_fields = 'descricao',
+    search_fields = 'descricao', 'tags__descricao',
     readonly_fields = 'slug', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
     autocomplete_fields = 'tags',
 
@@ -208,6 +208,7 @@ class ProdutosModelosTopicosAdmin(AdminRedRequiredMixIn, AdminLogMixIn, Summerno
     ordering = 'modelo__descricao', 'ordem', 'titulo',
     search_fields = 'modelo__descricao', 'titulo',
     readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+    autocomplete_fields = 'modelo',
 
 
 @admin.register(ProdutosModelosTags)

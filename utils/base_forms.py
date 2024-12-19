@@ -16,3 +16,7 @@ class FormPeriodoInicioFimMixIn(forms.Form):
 
 class FormDataAssinaturaMixIn(forms.Form):
     assinatura = forms.DateField(label="Data Assinatura", widget=DateInput(attrs={'type': 'date'}))
+
+
+class FormPesquisarMixIn(forms.Form):
+    pesquisar = forms.CharField(label="Pesquisar", max_length=300)

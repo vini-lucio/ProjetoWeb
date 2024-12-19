@@ -16,6 +16,17 @@
             {% endif %}
         </div>
 
+        {% if produtos_modelo.url_site %}
+            <div class="link-conteudo alinhar-esquerda">
+                <div class="grid-simples" style="margin: 0;">
+                    <a id="link" href="{{ produtos_modelo.url_site }}" target="_blank">
+                        <h2 class="titulo-2 fonte-verde">Link do Site</h2>
+                    </a>
+                    <p id="copiar" class="cursor-pointer" onclick="copiarLink()">Copiar Link</p>
+                </div>
+            </div>
+        {% endif %}
+
         {% comment %} <div class="link-conteudo">
             <div class="alinhar-esquerda">
                 <h2 class="titulo-2 fonte-verde">Medidas</h2>
@@ -39,22 +50,48 @@
         {% if produtos_modelo.tags %}
             <div class="link-conteudo grid">
                 {% for tags in produtos_modelo.tags.all %}
-                    <div class="tag">{{ tags.descricao | safe }}</div>
-                {% endfor %}
+                    <a href="{% url "home:produtos-modelos" %}?pesquisar={{ tags.descricao }}">
+                        <div class="tag">{{ tags.descricao }}</div>
+                    </a>
+                    {% endfor %}
             </div>
         {% endif %}
 
         {% if sugestoes %}
-            <div class="link-conteudo">
-                <div class="alinhar-esquerda">
-                    <h2 class="titulo-2 fonte-verde">Sugestões</h2>
+            <div class="link-conteudo alinhar-esquerda">
+                <h2 class="titulo-2 fonte-verde">Sugestões</h2>
+                <div class="grid">
                     {% for sugestao in sugestoes %}
-                        <p>{{ sugestao.descricao }}</p>
+                        <div class="botao-div-2">
+                            <div>
+                                <a href="{% url "home:produtos-modelo" sugestao.id %}">
+                                    {% if sugestao.imagem %}
+                                        <div>
+                                            <img loading="lazy" src="{{ sugestao.imagem.url }}">
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        {{ sugestao.descricao }}
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
                     {% endfor %}
                 </div>
             </div>
         {% endif %}
 
     </section>
+
+    <a href="{% url "home:produtos-modelos" %}"><div class="botao-div voltar">⇦</div></a>
+
+    <script>
+        function copiarLink() {
+            var copiar = document.getElementById("link");
+            navigator.clipboard.writeText(copiar.href);
+            var copiado = document.getElementById("copiar");
+            copiado.innerText = "Copiar Link - Copiado!"
+          }
+    </script>
 
 {% endblock conteudo %}

@@ -4,16 +4,38 @@
 
     <section class="principal">
 
-        <div class="titulo">
-            <h1>Modelos</h1>
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Modelos</h1>
+            </div>
+
+            <form method="get">
+                <div class="grid-simples link-conteudo alinhar-direta">
+                    {{ formulario.as_p }}
+                </div>
+                <button class="botao" type="submit">Pesquisar</button>
+            </form>
         </div>
 
-        <div class="link-conteudo">
-            {% for modelo in produtos_modelos %}
-                <div class="grid-simples">
-                    <h2><a href="{% url "home:produtos-modelo" modelo.id %}">{{ modelo.descricao }}</a></h2>
-                </div>
-            {% endfor %}
+        <div class="link-conteudo alinhar-esquerda">
+            <div class="grid">
+                {% for modelo in produtos_modelos %}
+                    <div class="botao-div-2">
+                        <div>
+                            <a href="{% url "home:produtos-modelo" modelo.id %}">
+                                {% if modelo.imagem %}
+                                    <div>
+                                        <img loading="lazy" src="{{ modelo.imagem.url }}">
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    {{ modelo.descricao }}
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
         </div>
 
     </section>

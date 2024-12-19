@@ -84,7 +84,8 @@ textarea,
 button,
 table,
 li,
-.botao-div {
+.botao-div,
+.botao-div-2 {
     font-size: var(--tamanho-fonte-p);
     line-height: var(--tamanho-linha-p);
     padding: 0 0.5rem;
@@ -183,13 +184,14 @@ textarea:focus {
 .flex {
     padding: 2rem;
     display: flex;
-    /* flex-wrap: wrap; */
+    flex-wrap: wrap;
     margin: 0 auto;
     max-width: 120rem;
 }
 
 .flex div {
-    width: 100%;
+    /* width: 100%; */
+    flex: 1;
     align-content: center;
     text-align: center;
     justify-content: center;
@@ -420,8 +422,13 @@ textarea:focus {
     color: var(--cinza-claro);
 }
 
+.cursor-pointer {
+    cursor: pointer;
+}
+
 .botao,
-.botao-div {
+.botao-div,
+.botao-div-2 {
     padding: 1rem;
     border: var(--tamanho-borda-icones) solid var(--verde-claro);
     background: var(--azul-escuro);
@@ -430,11 +437,29 @@ textarea:focus {
     transition: all 200ms ease-in-out;
 }
 
+.botao-div-2 {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: 21rem;
+    height: 23rem;
+    margin: 0 auto;
+}
+
+.botao-div-2 img {
+    border: none;
+    max-width: 18rem;
+    max-height: 18rem;
+}
+
 .botao-escuro {
     background: var(--verde-claro);
     color: var(--azul-escuro);
 }
 
+/* .botao-div-2:hover, */
 .botao:hover,
 .botao-div:hover {
     background: var(--verde-claro);
@@ -467,6 +492,19 @@ textarea:focus {
     position: fixed;
     bottom: 2rem;
     right: 2rem;
+    width: 6rem;
+    height: 6rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    font-size: var(--tamanho-fonte-p-grande);
+}
+
+.voltar {
+    position: fixed;
+    bottom: 2rem;
+    left: 2rem;
     width: 6rem;
     height: 6rem;
     display: flex;
@@ -769,7 +807,8 @@ iframe {
     header,
     footer,
     form,
-    .topo {
+    .topo,
+    .voltar {
         display: none;
     }
 

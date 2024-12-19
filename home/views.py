@@ -3,7 +3,9 @@ from django.urls import reverse
 from django.contrib import messages
 from django.views.generic import ListView, DetailView
 from home.models import HomeLinks, ProdutosModelos
+from home.forms import PesquisarForm
 from django.db.models import Q
+from django.utils.text import slugify
 from .services import get_tabela_precos, migrar_cidades
 from .forms import ConfirmacaoMigrarCidades
 from django.contrib.auth.decorators import user_passes_test
@@ -101,9 +103,38 @@ class ProdutosModelosListView(ListView):
     context_object_name = 'produtos_modelos'
     ordering = 'id',
 
+    def get_queryset(self):
+        queryset = super().get_queryset().order_by('descricao')
+        resultado = queryset
+
+        if not self.request.GET:
+            queryset = queryset.none()
+            return queryset
+
+        formulario = PesquisarForm(self.request.GET)
+
+        if formulario.is_valid() and self.request.GET:
+            pesquisar = formulario.cleaned_data.get('pesquisar')
+            if pesquisar:
+                pesquisar = slugify(pesquisar)
+                resultado = queryset.filter(slug=pesquisar)
+                if not resultado.first():
+                    resultado = queryset.filter(tags__slug=pesquisar)
+                    if not resultado.first():
+                        resultado = queryset.filter(tags__slug__icontains=pesquisar)
+
+        return resultado
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update({'titulo_pagina': 'Produtos Modelos'})
+
+        if self.request.GET:
+            formulario = PesquisarForm(self.request.GET)
+        else:
+            formulario = PesquisarForm()
+
+        context.update({'formulario': formulario})
         return context
 
 

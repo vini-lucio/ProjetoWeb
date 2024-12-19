@@ -524,6 +524,7 @@ class ProdutosModelos(BaseLogModel):
     tags = models.ManyToManyField(ProdutosModelosTags, verbose_name="Tags", related_name="%(class)s", blank=True,
                                   default='')
     slug = models.SlugField("Slug", blank=True, null=True)
+    url_site = models.CharField("URL do Site", max_length=2048, blank=True, null=True)
 
     def save(self, *args, **kwargs) -> None:
         if not self.slug == slugify(self.descricao):
