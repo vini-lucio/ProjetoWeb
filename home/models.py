@@ -567,3 +567,28 @@ class ProdutosModelosTopicos(BaseLogModel):
 
     def __str__(self) -> str:
         return self.titulo
+
+
+class Unidades(models.Model):
+    class Meta:
+        verbose_name = 'Unidade'
+        verbose_name_plural = 'Unidades'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['chave_analysis',],
+                name='unidades_unique_chave_analysis',
+                violation_error_message="Chave Analysis é unico em Unidades"
+            ),
+            models.UniqueConstraint(
+                fields=['unidade',],
+                name='unidades_unique_unidade',
+                violation_error_message="Unidade é unico em Unidades"
+            ),
+        ]
+
+    chave_analysis = models.IntegerField("ID Analysis")
+    unidade = models.CharField("Unidade", max_length=6)
+    descricao = models.CharField("Descrição", max_length=20)
+
+    def __str__(self) -> str:
+        return f'{self.descricao}'

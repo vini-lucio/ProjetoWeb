@@ -1,4 +1,5 @@
-from home.models import SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgenda, Estados, Cidades, Jobs, Paises, Bancos
+from home.models import (SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgenda, Estados, Cidades, Jobs, Paises,
+                         Bancos, Unidades)
 from rh.models import (Cbo, Escolaridades, Funcionarios, DependentesTipos, Horarios, TransporteLinhas, TransporteTipos,
                        ValeTransportes, Setores, Funcoes)
 from utils.data_hora_atual import hoje
@@ -88,3 +89,7 @@ def get_setores():
 
 def get_funcoes():
     return Funcoes.objects
+
+
+def get_unidades():
+    return Unidades.objects

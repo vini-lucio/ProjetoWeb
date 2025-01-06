@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
-                         ProdutosModelosTags)
+                         ProdutosModelosTags, Unidades)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn)
@@ -218,3 +218,11 @@ class ProdutosModelosTagsAdmin(BaseModelAdminRedRequired):
     ordering = 'descricao',
     search_fields = 'descricao',
     readonly_fields = 'slug',
+
+
+@admin.register(Unidades)
+class UnidadesAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'unidade', 'descricao',
+    list_display_links = list_display
+    ordering = 'descricao',
+    search_fields = 'unidade', 'descricao',

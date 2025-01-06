@@ -6,8 +6,8 @@ from home.models import HomeLinks, ProdutosModelos
 from home.forms import PesquisarForm
 from django.db.models import Q
 from django.utils.text import slugify
-from .services import get_tabela_precos, migrar_cidades
-from .forms import ConfirmacaoMigrarCidades
+from .services import get_tabela_precos, migrar_cidades, migrar_unidades
+from .forms import ConfirmacaoMigrar
 from django.contrib.auth.decorators import user_passes_test
 from collections import Counter
 
@@ -15,17 +15,35 @@ from collections import Counter
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
 def migracao(request):
     titulo_pagina = 'Migração'
+    id_confirma_cidades = 'confirma-migrar-cidades'
+    id_confirma_unidades = 'confirma-migrar-unidades'
 
     if request.method == 'POST':
-        formulario = ConfirmacaoMigrarCidades(request.POST)
-        if formulario.is_valid() and formulario.cleaned_data['confirma']:
-            migrar_cidades()
-            messages.success(request, "Migração de cidades concluída!")
-            return redirect(reverse('home:migracao'))
+        if 'cidades-submit' in request.POST:
+            formulario_migrar_cidades = ConfirmacaoMigrar(request.POST, id_confirma=id_confirma_cidades)
+            if formulario_migrar_cidades.is_valid() and formulario_migrar_cidades.cleaned_data['confirma']:
+                migrar_cidades()
+                mensagem = "Migração de cidades concluída!"
+                extra_tags = 'cidades'
 
-    formulario = ConfirmacaoMigrarCidades()
+        elif 'unidades-submit' in request.POST:
+            formulario_migrar_unidades = ConfirmacaoMigrar(request.POST, id_confirma=id_confirma_unidades)
+            if formulario_migrar_unidades.is_valid() and formulario_migrar_unidades.cleaned_data['confirma']:
+                migrar_unidades()
+                mensagem = "Migração de unidades concluída!"
+                extra_tags = 'unidades'
 
-    contexto = {'titulo_pagina': titulo_pagina, 'formulario': formulario, }
+        messages.success(request, mensagem, extra_tags=extra_tags)
+        return redirect(reverse('home:migracao'))
+
+    formulario_migrar_cidades = ConfirmacaoMigrar(id_confirma=id_confirma_cidades)
+    formulario_migrar_unidades = ConfirmacaoMigrar(id_confirma=id_confirma_unidades)
+
+    contexto = {
+        'titulo_pagina': titulo_pagina,
+        'formulario_migrar_cidades': formulario_migrar_cidades,
+        'formulario_migrar_unidades': formulario_migrar_unidades,
+    }
 
     return render(request, 'home/pages/migracao.html', contexto)
 

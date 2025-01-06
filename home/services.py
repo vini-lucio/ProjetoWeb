@@ -1,7 +1,7 @@
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
-from home.models import Cidades
-from utils.site_setup import get_cidades, get_estados, get_site_setup
+from home.models import Cidades, Unidades
+from utils.site_setup import get_cidades, get_estados, get_site_setup, get_unidades
 from utils.lfrete import notas as lfrete_notas
 
 
@@ -3615,6 +3615,47 @@ def migrar_cidades():
                         'chave_analysis': cidade_base['CHAVE_ANALYSIS'],
                         'estado': estados_fk,
                         'nome': cidade_base['NOME'],
+                    }
+                )
+                instancia.full_clean()
+                instancia.save()
+
+
+def get_unidades_base() -> list | None:
+    """Retorna tabela de unidades atualizada"""
+    sql = """
+        SELECT
+            CHAVE AS CHAVE_ANALYSIS,
+            UNIDADE,
+            DESCRICAO
+
+        FROM
+            COPLAS.UNIDADES
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True)
+
+    return resultado
+
+
+def migrar_unidades():
+    """Atualiza cadastro de unidades de acordo com Analysis"""
+    unidades_base = get_unidades_base()
+    if unidades_base:
+        unidades = get_unidades()
+        for unidade_base in unidades_base:
+            unidade_conferir = unidades.filter(chave_analysis=unidade_base['CHAVE_ANALYSIS']).first()
+
+            if not unidade_conferir or \
+                    unidade_conferir.unidade != unidade_base['UNIDADE'] or \
+                    unidade_conferir.descricao != unidade_base['DESCRICAO']:
+
+                instancia, criado = Unidades.objects.update_or_create(
+                    chave_analysis=unidade_base['CHAVE_ANALYSIS'],
+                    defaults={
+                        'chave_analysis': unidade_base['CHAVE_ANALYSIS'],
+                        'unidade': unidade_base['UNIDADE'],
+                        'descricao': unidade_base['DESCRICAO'],
                     }
                 )
                 instancia.full_clean()

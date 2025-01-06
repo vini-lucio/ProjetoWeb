@@ -12,11 +12,30 @@
             <div class="grid-simples">
                 <form method="POST" action="{% url "home:migracao" %}">
                     {% csrf_token %}
-                    {{ formulario.as_p }}
-                    <button id="migrar-cidades" onclick="mudarTextoCidades()" class="botao" type="submit">Atualizar Cadastro de Cidades</button>
+                    {{ formulario_migrar_cidades.as_p }}
+                    <button id="migrar-cidades" name="cidades-submit" onclick="mudarTextoCidades()" class="botao" type="submit">Atualizar Cadastro de Cidades</button>
                     {% if messages %}
                         {% for mensagem in messages %}
-                            <p>{{ mensagem }}</p>
+                            {% if 'cidades' in mensagem.tags %}
+                                <p>{{ mensagem }}</p>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <div class="link-conteudo">
+            <div class="grid-simples">
+                <form method="POST" action="{% url "home:migracao" %}">
+                    {% csrf_token %}
+                    {{ formulario_migrar_unidades.as_p }}
+                    <button id="migrar-unidades" name="unidades-submit" onclick="mudarTextoUnidades()" class="botao" type="submit">Atualizar Cadastro de Unidades</button>
+                    {% if messages %}
+                        {% for mensagem in messages %}
+                            {% if 'unidades' in mensagem.tags %}
+                                <p>{{ mensagem }}</p>
+                            {% endif %}
                         {% endfor %}
                     {% endif %}
                 </form>
@@ -29,6 +48,14 @@
         function mudarTextoCidades() {
             var checkbox = document.getElementById("confirma-migrar-cidades");
             var button = document.getElementById("migrar-cidades");
+            if (checkbox.checked) {
+                button.innerText = "Aguarde...";
+            }
+        }
+
+        function mudarTextoUnidades() {
+            var checkbox = document.getElementById("confirma-migrar-unidades");
+            var button = document.getElementById("migrar-unidades");
             if (checkbox.checked) {
                 button.innerText = "Aguarde...";
             }
