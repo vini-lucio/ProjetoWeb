@@ -6,7 +6,7 @@ from home.models import HomeLinks, ProdutosModelos
 from home.forms import PesquisarForm
 from django.db.models import Q
 from django.utils.text import slugify
-from .services import get_tabela_precos, migrar_cidades, migrar_unidades
+from .services import get_tabela_precos, migrar_cidades, migrar_unidades, migrar_produtos
 from .forms import ConfirmacaoMigrar
 from django.contrib.auth.decorators import user_passes_test
 from collections import Counter
@@ -17,6 +17,7 @@ def migracao(request):
     titulo_pagina = 'Migração'
     id_confirma_cidades = 'confirma-migrar-cidades'
     id_confirma_unidades = 'confirma-migrar-unidades'
+    id_confirma_produtos = 'confirma-migrar-produtos'
 
     if request.method == 'POST':
         if 'cidades-submit' in request.POST:
@@ -25,6 +26,14 @@ def migracao(request):
                 migrar_cidades()
                 mensagem = "Migração de cidades concluída!"
                 extra_tags = 'cidades'
+
+        elif 'produtos-submit' in request.POST:
+            formulario_migrar_produtos = ConfirmacaoMigrar(request.POST, id_confirma=id_confirma_produtos)
+            if formulario_migrar_produtos.is_valid() and formulario_migrar_produtos.cleaned_data['confirma']:
+                migrar_unidades()
+                migrar_produtos()
+                mensagem = "Migração de produtos e unidades concluída!"
+                extra_tags = 'produtos'
 
         elif 'unidades-submit' in request.POST:
             formulario_migrar_unidades = ConfirmacaoMigrar(request.POST, id_confirma=id_confirma_unidades)
@@ -38,11 +47,13 @@ def migracao(request):
 
     formulario_migrar_cidades = ConfirmacaoMigrar(id_confirma=id_confirma_cidades)
     formulario_migrar_unidades = ConfirmacaoMigrar(id_confirma=id_confirma_unidades)
+    formulario_migrar_produtos = ConfirmacaoMigrar(id_confirma=id_confirma_produtos)
 
     contexto = {
         'titulo_pagina': titulo_pagina,
         'formulario_migrar_cidades': formulario_migrar_cidades,
         'formulario_migrar_unidades': formulario_migrar_unidades,
+        'formulario_migrar_produtos': formulario_migrar_produtos,
     }
 
     return render(request, 'home/pages/migracao.html', contexto)

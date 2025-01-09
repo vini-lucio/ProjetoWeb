@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
-                         ProdutosModelosTags, Unidades)
+                         ProdutosModelosTags, Unidades, Produtos)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn)
@@ -74,6 +74,11 @@ class SiteSetupAdmin(BaseModelAdminRedRequired):
         ('Atualizações Dados Mês', {
             "fields": (
                 'atualizacoes_mes', 'atualizacoes_data_mes_inicio', 'atualizacoes_data_mes_fim',
+            ),
+        }),
+        ('Volume Frete', {
+            "fields": (
+                'medida_volume_padrao_x', 'medida_volume_padrao_y', 'medida_volume_padrao_z',
             ),
         }),
     )
@@ -226,3 +231,56 @@ class UnidadesAdmin(BaseModelAdminRedRequired):
     list_display_links = list_display
     ordering = 'descricao',
     search_fields = 'unidade', 'descricao',
+
+
+@admin.register(Produtos)
+class ProdutosAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'nome', 'm3_volume', 'status',
+    list_display_links = list_display
+    ordering = 'nome',
+    search_fields = 'nome',
+    readonly_fields = []
+    autocomplete_fields = 'modelo',
+
+    def get_readonly_fields(self, request, obj):
+        campos = super().get_readonly_fields(request, obj)
+        campos = ['m3_volume', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',]
+        if obj:
+            if obj.medida_volume_padrao:
+                campos = ['m3_volume', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+                          'medida_volume_x', 'medida_volume_y', 'medida_volume_z',]
+        return campos
+
+    fieldsets = (
+        (None, {
+            "fields": (
+                'chave_analysis', 'modelo', 'nome', 'unidade', 'descricao', 'peso_liquido', 'peso_bruto', 'status',
+            ),
+        }),
+        ('Embalagem', {
+            "fields": (
+                'multiplicidade', 'tipo_embalagem', 'medida_embalagem_x', 'medida_embalagem_y', 'ean13',
+            ),
+        }),
+        ('Volume Frete', {
+            "fields": (
+                'quantidade_volume', 'medida_volume_padrao', 'medida_volume_x', 'medida_volume_y', 'medida_volume_z',
+                'm3_volume',
+            ),
+        }),
+        ('Produção', {
+            "fields": (
+                'aditivo_percentual',
+            ),
+        }),
+        ('Estoque', {
+            "fields": (
+                'prioridade',
+            ),
+        }),
+        ('Logs', {
+            "fields": (
+                'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em', 'chave_migracao',
+            ),
+        }),
+    )

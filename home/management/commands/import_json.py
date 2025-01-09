@@ -2,17 +2,15 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 # ########### alterar model do import #########################################
-from rh.models import Salarios
+from home.models import Produtos
 # ########### alterar/comentar get do import ##################################
-from utils.site_setup import get_funcionarios, get_setores, get_funcoes
+from utils.site_setup import get_unidades
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent
 origem = BASE_DIR / '__localcode' / 'migracao' / 'migrar.json'
 
 # ########### alterar/comentar get ############################################
-estrangeiro_funcionario = get_funcionarios()
-estrangeiro_setor = get_setores()
-estrangeiro_funcao = get_funcoes()
+estrangeiro_unidade = get_unidades()
 
 
 class Command(BaseCommand):
@@ -24,26 +22,33 @@ class Command(BaseCommand):
 
         for item in dados:
             # ########### alterar/comentar chave estrangeira ##################
-            fk_verdadeira_funcionario = estrangeiro_funcionario.filter(chave_migracao=item['funcionario']).first()
-            fk_verdadeira_setor = estrangeiro_setor.filter(chave_migracao=item['setor']).first()
-            fk_verdadeira_funcao = estrangeiro_funcao.filter(chave_migracao=item['funcao']).first()
+            fk_verdadeira_unidade = estrangeiro_unidade.filter(chave_analysis=item['unidade_analysis']).first()
             # ########### alterar/comentar chave estrangeira obrigatoria ######
-            if fk_verdadeira_funcionario:
+            if fk_verdadeira_unidade:
                 # ########### alterar model do import #########################
-                instancia = Salarios(
+                instancia = Produtos(
                     # ######## alterar campos json vs model e chave estrangeira
                     chave_migracao=item['chave_migracao'],
-                    funcionario=fk_verdadeira_funcionario,
-                    setor=fk_verdadeira_setor,
-                    funcao=fk_verdadeira_funcao,
-                    data=item['data'],
-                    modalidade=item['modalidade'],
-                    salario=str(item['salario']),
-                    motivo=item['motivo'],
-                    comissao_carteira=str(item['comissao_carteira']),
-                    comissao_dupla=str(item['comissao_dupla']),
-                    comissao_geral=str(item['comissao_geral']),
-                    observacoes=item['observacoes'],
+                    unidade=fk_verdadeira_unidade,
+                    chave_analysis=item['chave_analysis'],
+                    nome=item['nome'],
+                    descricao=item['descricao'],
+                    multiplicidade=str(item['multiplicidade']),
+                    tipo_embalagem=item['tipo_embalagem'],
+                    medida_embalagem_x=str(item['medida_embalagem_x']),
+                    medida_embalagem_y=str(item['medida_embalagem_y']),
+                    quantidade_volume=str(item['quantidade_volume']),
+                    medida_volume_padrao=item['medida_volume_padrao'],
+                    medida_volume_x=str(item['medida_volume_x']),
+                    medida_volume_y=str(item['medida_volume_y']),
+                    medida_volume_z=str(item['medida_volume_z']),
+                    m3_volume=str(item['m3_volume']),
+                    peso_liquido=str(item['peso_liquido']),
+                    peso_bruto=str(item['peso_bruto']),
+                    ean13=None if not item['ean13'] else int(float(item['ean13'])),
+                    status=item['status'],
+                    aditivo_percentual=str(item['aditivo_percentual']),
+                    prioridade=item['prioridade'],
                     # ######## usar str() em float ############################
                 )
                 instancia.full_clean()

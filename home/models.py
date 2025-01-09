@@ -194,6 +194,12 @@ class SiteSetup(models.Model):
                                                     auto_now=False, auto_now_add=False)
     atualizacoes_data_mes_fim = models.DateField("Data Mês Fim", default='2000-01-31',  # type:ignore
                                                  auto_now=False, auto_now_add=False)
+    medida_volume_padrao_x = models.DecimalField("Medida Volume Padrão X (m)", max_digits=5, decimal_places=2,
+                                                 default=0)  # type:ignore
+    medida_volume_padrao_y = models.DecimalField("Medida Volume Padrão Y (m)", max_digits=5, decimal_places=2,
+                                                 default=0)  # type:ignore
+    medida_volume_padrao_z = models.DecimalField("Medida Volume Padrão Z (m)", max_digits=5, decimal_places=2,
+                                                 default=0)  # type:ignore
 
     @property
     def primeiro_dia_mes_as_ddmmyyyy(self):
@@ -277,6 +283,14 @@ class SiteSetup(models.Model):
             largura = None
             altura = 100
             redimensionar_imagem(self.logo_cabecalho, largura, altura)
+
+        produtos_volume_padrao = Produtos.objects.filter(medida_volume_padrao=True)
+        for produto in produtos_volume_padrao:
+            produto.medida_volume_x = self.medida_volume_padrao_x
+            produto.medida_volume_y = self.medida_volume_padrao_y
+            produto.medida_volume_z = self.medida_volume_padrao_z
+            produto.full_clean()
+            produto.save()
 
         return super_save
 
@@ -592,3 +606,134 @@ class Unidades(models.Model):
 
     def __str__(self) -> str:
         return f'{self.descricao}'
+
+
+class Produtos(BaseLogModel):
+    class Meta:
+        verbose_name = 'Produto'
+        verbose_name_plural = 'Produtos'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['chave_analysis',],
+                name='produtos_unique_chave_analysis',
+                violation_error_message="Chave Analysis é campo unico"
+            ),
+            models.UniqueConstraint(
+                fields=['nome',],
+                name='produtos_unique_nome',
+                violation_error_message="Nome é campo unico"
+            ),
+            models.CheckConstraint(
+                check=Q(multiplicidade__gte=0),
+                name='produtos_check_multiplicidade',
+                violation_error_message="Multiplicidade precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(medida_embalagem_x__gte=0),
+                name='produtos_check_medida_embalagem_x',
+                violation_error_message="Medida Embalagem X precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(medida_embalagem_y__gte=0),
+                name='produtos_check_medida_embalagem_y',
+                violation_error_message="Medida Embalagem Y precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(quantidade_volume__gte=0),
+                name='produtos_check_quantidade_volume',
+                violation_error_message="Quantidade por Volume precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(medida_volume_x__gte=0),
+                name='produtos_check_medida_volume_x',
+                violation_error_message="Medida Volume X precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(medida_volume_y__gte=0),
+                name='produtos_check_medida_volume_y',
+                violation_error_message="Medida Volume Y precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(medida_volume_z__gte=0),
+                name='produtos_check_medida_volume_z',
+                violation_error_message="Medida Volume Z precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(m3_volume__gte=0),
+                name='produtos_check_m3_volume',
+                violation_error_message="m³ do Volume precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(aditivo_percentual__gte=0),
+                name='produtos_check_aditivo_percentual_0',
+                violation_error_message="Aditivo Percentual precisa ser maior ou igual a 0"
+            ),
+            models.CheckConstraint(
+                check=Q(aditivo_percentual__lte=100),
+                name='produtos_check_aditivo_percentual_100',
+                violation_error_message="Aditivo Percentual precisa ser menor ou igual a 100"
+            ),
+            models.CheckConstraint(
+                check=Q(prioridade__gte=0),
+                name='produtos_check_prioridade',
+                violation_error_message="Prioridade precisa ser maior ou igual a 0"
+            ),
+        ]
+
+    tipos_embalagem = {
+        'PLASTICO': 'Plastico',
+        'RAFIA': 'Rafia',
+        'OUTROS': 'Outros',
+    }
+
+    status_produtos = status_ativo_inativo
+
+    help_text_medida_volume_padrao = "Ao marcar esse campo será preenchido as medidas do volume de acordo com o definido em Site Setup"
+
+    chave_analysis = models.IntegerField("ID Analysis")
+    modelo = models.ForeignKey(ProdutosModelos, verbose_name="Modelo", on_delete=models.PROTECT,
+                               related_name="%(class)s", null=True, blank=True)
+    unidade = models.ForeignKey(Unidades, verbose_name="Unidade", on_delete=models.PROTECT, related_name="%(class)s")
+    nome = models.CharField("Nome", max_length=70)
+    descricao = models.CharField("Descrição", max_length=100)
+    multiplicidade = models.DecimalField("Multiplicidade", max_digits=8, decimal_places=4, default=0)  # type:ignore
+    tipo_embalagem = models.CharField("Tipo Embalagem", max_length=20, null=True, blank=True,
+                                      choices=tipos_embalagem)  # type:ignore
+    medida_embalagem_x = models.DecimalField("Medida Embalagem X (m)", max_digits=5, decimal_places=2,
+                                             default=0)  # type:ignore
+    medida_embalagem_y = models.DecimalField("Medida Embalagem Y (m)", max_digits=5, decimal_places=2,
+                                             default=0)  # type:ignore
+    quantidade_volume = models.DecimalField("Quantidade Por Volume", max_digits=10, decimal_places=4,
+                                            default=0)  # type:ignore
+    medida_volume_padrao = models.BooleanField("Medida Volume Padrão", default=False,
+                                               help_text=help_text_medida_volume_padrao)
+    medida_volume_x = models.DecimalField("Medida Volume X (m)", max_digits=5, decimal_places=2,
+                                          default=0)  # type:ignore
+    medida_volume_y = models.DecimalField("Medida Volume Y (m)", max_digits=5, decimal_places=2,
+                                          default=0)  # type:ignore
+    medida_volume_z = models.DecimalField("Medida Volume Z (m)", max_digits=5, decimal_places=2,
+                                          default=0)  # type:ignore
+    m3_volume = models.DecimalField("m³ do Volume", max_digits=7, decimal_places=4, default=0)  # type:ignore
+    peso_liquido = models.DecimalField("Peso Liquido (kg)", max_digits=8, decimal_places=4, default=0)  # type:ignore
+    peso_bruto = models.DecimalField("Peso Bruto (kg)", max_digits=8, decimal_places=4, default=0)  # type:ignore
+    ean13 = models.CharField("Codigo de Barras EAN13", max_length=13, null=True, blank=True)
+    status = models.CharField("Status", max_length=10, default='ativo', choices=status_produtos)  # type:ignore
+    aditivo_percentual = models.DecimalField("% Aditivo (cor)", max_digits=5, decimal_places=2,
+                                             default=0)  # type:ignore
+    prioridade = models.DecimalField("Prioridade", max_digits=4, decimal_places=0, default=0)  # type:ignore
+    chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    def save(self, *args, **kwargs) -> None:
+        if self.medida_volume_padrao:
+            site_setup = SiteSetup.objects.first()
+            if site_setup:
+                self.medida_volume_x = site_setup.medida_volume_padrao_x
+                self.medida_volume_y = site_setup.medida_volume_padrao_y
+                self.medida_volume_z = site_setup.medida_volume_padrao_z
+
+        self.m3_volume = self.medida_volume_x * self.medida_volume_y * self.medida_volume_z
+
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.nome

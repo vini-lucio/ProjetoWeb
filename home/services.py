@@ -1,7 +1,8 @@
+from decimal import Decimal
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
-from home.models import Cidades, Unidades
-from utils.site_setup import get_cidades, get_estados, get_site_setup, get_unidades
+from home.models import Cidades, Unidades, Produtos
+from utils.site_setup import get_cidades, get_estados, get_site_setup, get_unidades, get_produtos
 from utils.lfrete import notas as lfrete_notas
 
 
@@ -3658,5 +3659,70 @@ def migrar_unidades():
                         'descricao': unidade_base['DESCRICAO'],
                     }
                 )
+                instancia.full_clean()
+                instancia.save()
+
+
+def get_produtos_base() -> list | None:
+    """Retorna tabela de produtos atualizada"""
+    sql = """
+        SELECT
+            PRODUTOS.CPROD AS CHAVE_ANALYSIS,
+            PRODUTOS.CODIGO AS NOME,
+            PRODUTOS.CHAVE_UNIDADE AS CHAVE_ANALYSIS_UNIDADE,
+            PRODUTOS.DESCRICAO,
+            ROUND(PRODUTOS.PESO_LIQUIDO, 4) AS PESO_LIQUIDO,
+            ROUND(PRODUTOS.PESO_BRUTO, 4) AS PESO_BRUTO,
+            CASE PRODUTOS.FORA_DE_LINHA WHEN 'SIM' THEN 'inativo' ELSE 'ativo' END AS STATUS,
+            PRODUTOS.CODIGO_BARRA AS EAN13,
+            CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 1 WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 2 WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 3 ELSE 3 END AS PRIORIDADE
+
+        FROM
+            COPLAS.PRODUTOS
+
+        WHERE
+            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True)
+
+    return resultado
+
+
+def migrar_produtos():
+    """Atualiza cadastro de produtos de acordo com Analysis"""
+    produtos_base = get_produtos_base()
+    if produtos_base:
+        produtos = get_produtos()
+        unidades = get_unidades()
+        for produto_base in produtos_base:
+            produto_conferir = produtos.filter(chave_analysis=produto_base['CHAVE_ANALYSIS']).first()
+            unidade_conferir = unidades.filter(chave_analysis=produto_base['CHAVE_ANALYSIS_UNIDADE']).first()
+
+            if not produto_conferir or \
+                    produto_conferir.nome != produto_base['NOME'] or \
+                    produto_conferir.unidade != unidade_conferir or \
+                    produto_conferir.descricao != produto_base['DESCRICAO'] or \
+                    produto_conferir.peso_liquido != produto_base['PESO_LIQUIDO'] or \
+                    produto_conferir.peso_bruto != produto_base['PESO_BRUTO'] or \
+                    produto_conferir.status != produto_base['STATUS'] or \
+                    produto_conferir.ean13 != produto_base['EAN13'] or \
+                    produto_conferir.prioridade != produto_base['PRIORIDADE']:
+
+                instancia, criado = Produtos.objects.update_or_create(
+                    chave_analysis=produto_base['CHAVE_ANALYSIS'],
+                    defaults={
+                        'chave_analysis': produto_base['CHAVE_ANALYSIS'],
+                        'nome': produto_base['NOME'],
+                        'unidade': unidade_conferir,
+                        'descricao': produto_base['DESCRICAO'],
+                        'peso_liquido': str(produto_base['PESO_LIQUIDO']),
+                        'peso_bruto': str(produto_base['PESO_BRUTO']),
+                        'status': produto_base['STATUS'],
+                        'ean13': produto_base['EAN13'],
+                        'prioridade': produto_base['PRIORIDADE'],
+                    }
+                )
+                instancia.m3_volume = round(Decimal(instancia.m3_volume), 4)
                 instancia.full_clean()
                 instancia.save()

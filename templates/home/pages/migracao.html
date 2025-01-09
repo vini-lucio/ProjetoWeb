@@ -29,6 +29,23 @@
             <div class="grid-simples">
                 <form method="POST" action="{% url "home:migracao" %}">
                     {% csrf_token %}
+                    {{ formulario_migrar_produtos.as_p }}
+                    <button id="migrar-produtos" name="produtos-submit" onclick="mudarTextoProdutos()" class="botao" type="submit">Atualizar Cadastro de Produtos e Unidades</button>
+                    {% if messages %}
+                        {% for mensagem in messages %}
+                            {% if 'produtos' in mensagem.tags %}
+                                <p>{{ mensagem }}</p>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <div class="link-conteudo">
+            <div class="grid-simples">
+                <form method="POST" action="{% url "home:migracao" %}">
+                    {% csrf_token %}
                     {{ formulario_migrar_unidades.as_p }}
                     <button id="migrar-unidades" name="unidades-submit" onclick="mudarTextoUnidades()" class="botao" type="submit">Atualizar Cadastro de Unidades</button>
                     {% if messages %}
@@ -48,6 +65,14 @@
         function mudarTextoCidades() {
             var checkbox = document.getElementById("confirma-migrar-cidades");
             var button = document.getElementById("migrar-cidades");
+            if (checkbox.checked) {
+                button.innerText = "Aguarde...";
+            }
+        }
+
+        function mudarTextoProdutos() {
+            var checkbox = document.getElementById("confirma-migrar-produtos");
+            var button = document.getElementById("migrar-produtos");
             if (checkbox.checked) {
                 button.innerText = "Aguarde...";
             }
