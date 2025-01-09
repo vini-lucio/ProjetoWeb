@@ -76,7 +76,7 @@ class SiteSetupAdmin(BaseModelAdminRedRequired):
                 'atualizacoes_mes', 'atualizacoes_data_mes_inicio', 'atualizacoes_data_mes_fim',
             ),
         }),
-        ('Volume Frete', {
+        ('Volume Frete Padrão', {
             "fields": (
                 'medida_volume_padrao_x', 'medida_volume_padrao_y', 'medida_volume_padrao_z',
             ),

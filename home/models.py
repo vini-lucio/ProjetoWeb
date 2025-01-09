@@ -6,6 +6,7 @@ from django.db.models import Q, Max
 from utils.base_models import BaseLogModel
 from utils.converter import converter_data_django_para_str_ddmmyyyy, converter_data_django_para_dia_semana
 from utils.choices import status_ativo_inativo
+from utils.conferir_alteracao import campo_django_mudou
 
 
 class PostAttachment(AbstractAttachment):
@@ -272,6 +273,11 @@ class SiteSetup(models.Model):
         favicon_anterior = self.favicon.name
         logo_cabecalho_anterior = self.logo_cabecalho.name
 
+        medida_volume_padrao_mudou = campo_django_mudou(SiteSetup, self,
+                                                        medida_volume_padrao_x=self.medida_volume_padrao_x,
+                                                        medida_volume_padrao_y=self.medida_volume_padrao_y,
+                                                        medida_volume_padrao_z=self.medida_volume_padrao_z)
+
         super_save = super().save(*args, **kwargs)
 
         if self.favicon and self.favicon.name != favicon_anterior:
@@ -284,13 +290,14 @@ class SiteSetup(models.Model):
             altura = 100
             redimensionar_imagem(self.logo_cabecalho, largura, altura)
 
-        produtos_volume_padrao = Produtos.objects.filter(medida_volume_padrao=True)
-        for produto in produtos_volume_padrao:
-            produto.medida_volume_x = self.medida_volume_padrao_x
-            produto.medida_volume_y = self.medida_volume_padrao_y
-            produto.medida_volume_z = self.medida_volume_padrao_z
-            produto.full_clean()
-            produto.save()
+        if medida_volume_padrao_mudou:
+            produtos_volume_padrao = Produtos.objects.filter(medida_volume_padrao=True)
+            for produto in produtos_volume_padrao:
+                produto.medida_volume_x = self.medida_volume_padrao_x
+                produto.medida_volume_y = self.medida_volume_padrao_y
+                produto.medida_volume_z = self.medida_volume_padrao_z
+                produto.full_clean()
+                produto.save()
 
         return super_save
 

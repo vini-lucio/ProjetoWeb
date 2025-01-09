@@ -1,6 +1,6 @@
 def campo_django_mudou(model, instancia, **kwargs) -> bool:
     """Retorna True ou False se algum campo passado em kwargs mudou.
-    A chave do kwargs precisa ver o mesmo nome do campo"""
+    A chave do kwargs precisa ser o mesmo nome do campo"""
     anterior = model.objects.filter(pk=instancia.pk).first()
     if anterior:
         for chave_novo, valor_novo in kwargs.items():
