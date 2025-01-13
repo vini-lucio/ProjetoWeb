@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'dashboards',
     'rh',
     'rh_relatorios',
+    'frete',
     'django_summernote',
 ]
 
