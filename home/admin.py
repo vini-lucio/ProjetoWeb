@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
-                         ProdutosModelosTags, Unidades, Produtos)
+                         ProdutosModelosTags, Unidades, Produtos, EstadosIcms)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn)
@@ -121,6 +121,15 @@ class PaisesAdmin(BaseModelAdminRedRequired):
     readonly_fields = 'chave_migracao',
 
 
+class EstadosIcmsInLine(admin.TabularInline):
+    model = EstadosIcms
+    extra = 1
+    verbose_name = "Estado ICMS"
+    verbose_name_plural = "Estados ICMS"
+    fk_name = 'uf_origem'
+    ordering = 'uf_origem__sigla', 'uf_destino__sigla',
+
+
 @admin.register(Estados)
 class EstadosAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'uf', 'sigla',
@@ -128,6 +137,13 @@ class EstadosAdmin(BaseModelAdminRedRequired):
     ordering = 'uf',
     search_fields = 'uf', 'sigla',
     readonly_fields = 'chave_migracao',
+    inlines = EstadosIcmsInLine,
+
+    # override do get_inlines para não mostrar na inclusão
+    def get_inlines(self, request, obj):
+        if obj:
+            return super().get_inlines(request, obj)
+        return []
 
 
 @admin.register(Cidades)

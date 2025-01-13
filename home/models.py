@@ -440,6 +440,29 @@ class Estados(models.Model):
         return self.uf
 
 
+class EstadosIcms(models.Model):
+    class Meta:
+        verbose_name = 'Estado ICMS'
+        verbose_name_plural = 'Estados ICMS'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['uf_origem', 'uf_destino',],
+                name='estadosicms_unique_uf',
+                violation_error_message="UF Origem e Destino são unicos em Estados ICMS"
+            ),
+        ]
+
+    uf_origem = models.ForeignKey(Estados, verbose_name="UF Origem", on_delete=models.CASCADE,
+                                  related_name="%(class)s_uf_origem")
+    uf_destino = models.ForeignKey(Estados, verbose_name="UF Destino", on_delete=models.CASCADE,
+                                   related_name="%(class)s_uf_destino")
+    icms = models.DecimalField("ICMS %", max_digits=5, decimal_places=2, default=0)  # type: ignore
+    icms_frete = models.DecimalField("ICMS Frete %", max_digits=5, decimal_places=2, default=0)  # type: ignore
+
+    def __str__(self) -> str:
+        return f'{self.uf_origem.sigla} - {self.uf_destino.sigla}'
+
+
 class Cidades(models.Model):
     class Meta:
         verbose_name = 'Cidade'

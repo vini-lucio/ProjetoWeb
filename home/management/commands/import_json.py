@@ -2,15 +2,16 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 # ########### alterar model do import #########################################
-from frete.models import Transportadoras
+from home.models import EstadosIcms
 # ########### alterar/comentar get do import ##################################
-# from utils.site_setup import get_unidades
+from utils.site_setup import get_estados
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent
 origem = BASE_DIR / '__localcode' / 'migracao' / 'migrar.json'
 
 # ########### alterar/comentar get ############################################
-# estrangeiro_unidade = get_unidades()
+estrangeiro_uf_origem = get_estados()
+estrangeiro_uf_destino = get_estados()
 
 
 class Command(BaseCommand):
@@ -22,21 +23,21 @@ class Command(BaseCommand):
 
         for item in dados:
             # ########### alterar/comentar chave estrangeira ##################
-            # fk_verdadeira_unidade = estrangeiro_unidade.filter(chave_analysis=item['unidade_analysis']).first()
+            fk_verdadeira_uf_origem = estrangeiro_uf_origem.filter(chave_migracao=item['uf_origem']).first()
+            fk_verdadeira_uf_destino = estrangeiro_uf_destino.filter(chave_migracao=item['uf_destino']).first()
             # ########### alterar/comentar chave estrangeira obrigatoria ######
-            # if fk_verdadeira_unidade:
-            # ########### alterar model do import #########################
-            instancia = Transportadoras(
-                # ######## alterar campos json vs model e chave estrangeira
-                chave_migracao=item['chave_migracao'],
-                chave_analysis=item['chave_analysis'],
-                nome=item['nome'],
-                status=item['status'],
-                simples_nacional=item['simples_nacional'],
-                entrega_uf_diferente_faturamento=item['entrega_uf_diferente_faturamento'],
-            )
-            instancia.full_clean()
-            instancia.save()
+            if fk_verdadeira_uf_origem and fk_verdadeira_uf_destino:
+                # ########### alterar model do import #########################
+                instancia = EstadosIcms(
+                    # ######## alterar campos json vs model e chave estrangeira
+                    uf_origem=fk_verdadeira_uf_origem,
+                    uf_destino=fk_verdadeira_uf_destino,
+                    icms=str(item['icms']),
+                    icms_frete=str(item['icms_frete']),
+                    # ######## usar str() em float ############################
+                )
+                instancia.full_clean()
+                instancia.save()
 
         self.stdout.write(self.style.SUCCESS("Dados importados com sucesso"))
 
