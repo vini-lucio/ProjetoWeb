@@ -6,7 +6,8 @@ from home.models import HomeLinks, ProdutosModelos
 from home.forms import PesquisarForm
 from django.db.models import Q
 from django.utils.text import slugify
-from .services import get_tabela_precos, migrar_cidades, migrar_unidades, migrar_produtos
+from .services import (get_tabela_precos, migrar_cidades, migrar_unidades, migrar_produtos, migrar_estados,
+                       migrar_estados_icms)
 from .forms import ConfirmacaoMigrar
 from django.contrib.auth.decorators import user_passes_test
 from collections import Counter
@@ -23,8 +24,10 @@ def migracao(request):
         if 'cidades-submit' in request.POST:
             formulario_migrar_cidades = ConfirmacaoMigrar(request.POST, id_confirma=id_confirma_cidades)
             if formulario_migrar_cidades.is_valid() and formulario_migrar_cidades.cleaned_data['confirma']:
+                migrar_estados()
+                migrar_estados_icms()
                 migrar_cidades()
-                mensagem = "Migração de cidades concluída!"
+                mensagem = "Migração de estados e cidades concluída!"
                 extra_tags = 'cidades'
 
         elif 'produtos-submit' in request.POST:

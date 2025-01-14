@@ -1,8 +1,8 @@
 from decimal import Decimal
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
-from home.models import Cidades, Unidades, Produtos
-from utils.site_setup import get_cidades, get_estados, get_site_setup, get_unidades, get_produtos
+from home.models import Cidades, Unidades, Produtos, Estados, EstadosIcms
+from utils.site_setup import get_cidades, get_estados, get_site_setup, get_unidades, get_produtos, get_estados_icms
 from utils.lfrete import notas as lfrete_notas
 
 
@@ -3577,6 +3577,94 @@ def get_tabela_precos() -> list | None:
     resultado = executar_oracle(sql, exportar_cabecalho=True)
 
     return resultado
+
+
+def get_estados_base() -> list | None:
+    """Retorna tabela de estados atualizada"""
+    sql = """
+        SELECT
+            CHAVE AS CHAVE_ANALYSIS,
+            ESTADO AS UF,
+            SIGLA
+
+        FROM
+            COPLAS.ESTADOS
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True)
+
+    return resultado
+
+
+def migrar_estados():
+    """Atualiza cadastro de estados de acordo com Analysis"""
+    estados_base = get_estados_base()
+    if estados_base:
+        estados = get_estados()
+        for estado_base in estados_base:
+            estado_conferir = estados.filter(chave_analysis=estado_base['CHAVE_ANALYSIS']).first()
+
+            if not estado_conferir or \
+                    estado_conferir.uf != estado_base['UF'] or \
+                    estado_conferir.sigla != estado_base['SIGLA']:
+
+                instancia, criado = Estados.objects.update_or_create(
+                    chave_analysis=estado_base['CHAVE_ANALYSIS'],
+                    defaults={
+                        'chave_analysis': estado_base['CHAVE_ANALYSIS'],
+                        'uf': estado_base['UF'],
+                        'sigla': estado_base['SIGLA'],
+                    }
+                )
+                instancia.full_clean()
+                instancia.save()
+
+
+def get_estados_icms_base() -> list | None:
+    """Retorna tabela de estados icms atualizada"""
+    sql = """
+        SELECT
+            UF_EMITENTE AS CHAVE_UF_ORIGEM,
+            UF_DESTINO AS CHAVE_UF_DESTINO,
+            ALIQUOTA AS ICMS
+
+        FROM
+            COPLAS.MATRIZ_ICMS
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True)
+
+    return resultado
+
+
+def migrar_estados_icms():
+    """Atualiza cadastro de estados icms de acordo com Analysis"""
+    estados_icms_base = get_estados_icms_base()
+    if estados_icms_base:
+        estados_icms = get_estados_icms()
+        estados = get_estados()
+        for estado_icms_base in estados_icms_base:
+            estado_icms_conferir = estados_icms.filter(
+                uf_origem__chave_analysis=estado_icms_base['CHAVE_UF_ORIGEM'],
+                uf_destino__chave_analysis=estado_icms_base['CHAVE_UF_DESTINO'],
+            ).first()
+
+            if not estado_icms_conferir or \
+                    estado_icms_conferir.icms != estado_icms_base['ICMS']:
+
+                uf_origem_fk = estados.filter(chave_analysis=estado_icms_base['CHAVE_UF_ORIGEM']).first()
+                uf_destino_fk = estados.filter(chave_analysis=estado_icms_base['CHAVE_UF_DESTINO']).first()
+                instancia, criado = EstadosIcms.objects.update_or_create(
+                    uf_origem__chave_analysis=estado_icms_base['CHAVE_UF_ORIGEM'],
+                    uf_destino__chave_analysis=estado_icms_base['CHAVE_UF_DESTINO'],
+                    defaults={
+                        'uf_origem': uf_origem_fk,
+                        'uf_destino': uf_destino_fk,
+                        'icms': str(estado_icms_base['ICMS']),
+                    }
+                )
+                instancia.full_clean()
+                instancia.save()
 
 
 def get_cidades_base() -> list | None:

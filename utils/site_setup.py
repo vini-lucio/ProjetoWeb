@@ -1,5 +1,5 @@
 from home.models import (SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgenda, Estados, Cidades, Jobs, Paises,
-                         Bancos, Unidades, Produtos)
+                         Bancos, Unidades, Produtos, EstadosIcms)
 from rh.models import (Cbo, Escolaridades, Funcionarios, DependentesTipos, Horarios, TransporteLinhas, TransporteTipos,
                        ValeTransportes, Setores, Funcoes)
 from utils.data_hora_atual import hoje
@@ -97,3 +97,7 @@ def get_unidades():
 
 def get_produtos():
     return Produtos.objects
+
+
+def get_estados_icms():
+    return EstadosIcms.objects
