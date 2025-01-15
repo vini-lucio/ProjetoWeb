@@ -2,6 +2,7 @@ from home.models import (SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgen
                          Bancos, Unidades, Produtos, EstadosIcms)
 from rh.models import (Cbo, Escolaridades, Funcionarios, DependentesTipos, Horarios, TransporteLinhas, TransporteTipos,
                        ValeTransportes, Setores, Funcoes)
+from frete.models import Transportadoras
 from utils.data_hora_atual import hoje
 
 
@@ -101,3 +102,7 @@ def get_produtos():
 
 def get_estados_icms():
     return EstadosIcms.objects
+
+
+def get_transportadoras():
+    return Transportadoras.objects

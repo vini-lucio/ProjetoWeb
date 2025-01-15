@@ -1,5 +1,8 @@
 from django.contrib import admin
+from django.db.models import Value
+from django.db.models.query import QuerySet
 from django.http import HttpRequest, HttpResponse
+from django.db.models.functions import Concat
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
                          ProdutosModelosTags, Unidades, Produtos, EstadosIcms)
@@ -139,11 +142,23 @@ class EstadosAdmin(BaseModelAdminRedRequired):
     readonly_fields = 'chave_migracao',
     inlines = EstadosIcmsInLine,
 
-    # override do get_inlines para não mostrar na inclusão
     def get_inlines(self, request, obj):
         if obj:
             return super().get_inlines(request, obj)
         return []
+
+
+@admin.register(EstadosIcms)
+class EstadosIcmsAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'uf_origem', 'uf_destino', 'icms', 'icms_frete',
+    list_display_links = list_display
+    ordering = 'uf_origem__sigla', 'uf_destino__sigla',
+    search_fields = 'uf_origem__sigla', 'uf_destino__sigla', 'origem_destino',
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
+        queryset = super().get_queryset(request)
+        queryset = queryset.annotate(origem_destino=Concat('uf_origem__sigla', Value('-'), 'uf_destino__sigla'))
+        return queryset
 
 
 @admin.register(Cidades)

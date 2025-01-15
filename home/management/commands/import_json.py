@@ -2,16 +2,16 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 # ########### alterar model do import #########################################
-from home.models import EstadosIcms
+from frete.models import TransportadorasOrigemDestino
 # ########### alterar/comentar get do import ##################################
-from utils.site_setup import get_estados
+from utils.site_setup import get_estados_icms, get_transportadoras
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent
 origem = BASE_DIR / '__localcode' / 'migracao' / 'migrar.json'
 
 # ########### alterar/comentar get ############################################
-estrangeiro_uf_origem = get_estados()
-estrangeiro_uf_destino = get_estados()
+estrangeiro_transportadora = get_transportadoras()
+estrangeiro_estados_icms = get_estados_icms()
 
 
 class Command(BaseCommand):
@@ -23,17 +23,18 @@ class Command(BaseCommand):
 
         for item in dados:
             # ########### alterar/comentar chave estrangeira ##################
-            fk_verdadeira_uf_origem = estrangeiro_uf_origem.filter(chave_migracao=item['uf_origem']).first()
-            fk_verdadeira_uf_destino = estrangeiro_uf_destino.filter(chave_migracao=item['uf_destino']).first()
+            fk_transportadora = estrangeiro_transportadora.filter(nome=item['transportadora']).first()
+            fk_estado_icms = estrangeiro_estados_icms.filter(
+                uf_origem__sigla=item['origem'],
+                uf_destino__sigla=item['destino'],
+            ).first()
             # ########### alterar/comentar chave estrangeira obrigatoria ######
-            if fk_verdadeira_uf_origem and fk_verdadeira_uf_destino:
+            if fk_transportadora and fk_estado_icms:
                 # ########### alterar model do import #########################
-                instancia = EstadosIcms(
+                instancia = TransportadorasOrigemDestino(
                     # ######## alterar campos json vs model e chave estrangeira
-                    uf_origem=fk_verdadeira_uf_origem,
-                    uf_destino=fk_verdadeira_uf_destino,
-                    icms=str(item['icms']),
-                    icms_frete=str(item['icms_frete']),
+                    transportadora=fk_transportadora,
+                    estado_origem_destino=fk_estado_icms,
                     # ######## usar str() em float ############################
                 )
                 instancia.full_clean()

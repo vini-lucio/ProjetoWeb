@@ -1,5 +1,5 @@
 from django.contrib import admin
-from frete.models import Transportadoras
+from frete.models import Transportadoras, TransportadorasOrigemDestino
 from utils.base_models import BaseModelAdminRedRequiredLog
 
 
@@ -10,3 +10,13 @@ class TransportadorasAdmin(BaseModelAdminRedRequiredLog):
     ordering = 'nome',
     search_fields = 'nome',
     readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em', 'chave_migracao',
+
+
+@admin.register(TransportadorasOrigemDestino)
+class TransportadorasOrigemDestinoAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'transportadora', 'estado_origem_destino',
+    list_display_links = list_display
+    ordering = 'transportadora', 'estado_origem_destino',
+    search_fields = 'transportadora__nome',
+    readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+    autocomplete_fields = 'estado_origem_destino',

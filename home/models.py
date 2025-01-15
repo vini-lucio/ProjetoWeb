@@ -444,6 +444,7 @@ class EstadosIcms(models.Model):
     class Meta:
         verbose_name = 'Estado ICMS'
         verbose_name_plural = 'Estados ICMS'
+        ordering = 'uf_origem__sigla', 'uf_destino__sigla',
         constraints = [
             models.UniqueConstraint(
                 fields=['uf_origem', 'uf_destino',],
@@ -460,7 +461,7 @@ class EstadosIcms(models.Model):
     icms_frete = models.DecimalField("ICMS Frete %", max_digits=5, decimal_places=2, default=0)  # type: ignore
 
     def __str__(self) -> str:
-        return f'{self.uf_origem.sigla} - {self.uf_destino.sigla}'
+        return f'{self.uf_origem.sigla}-{self.uf_destino.sigla}'
 
 
 class Cidades(models.Model):
