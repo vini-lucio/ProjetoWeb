@@ -1,5 +1,6 @@
 from django.contrib import admin
-from frete.models import Transportadoras, TransportadorasOrigemDestino, TransportadorasRegioesValores
+from frete.models import (Transportadoras, TransportadorasOrigemDestino, TransportadorasRegioesValores,
+                          TransportadorasRegioesMargens)
 from utils.base_models import BaseModelAdminRedRequiredLog
 
 
@@ -22,6 +23,15 @@ class TransportadorasOrigemDestinoAdmin(BaseModelAdminRedRequiredLog):
     autocomplete_fields = 'estado_origem_destino',
 
 
+class TransportadorasRegioesMargensInLine(admin.TabularInline):
+    model = TransportadorasRegioesMargens
+    extra = 1
+    verbose_name = "Transportadora Região Margem"
+    verbose_name_plural = "Transportadora Região Margens"
+    ordering = 'ate_kg',
+    fields = 'ate_kg', 'valor',
+
+
 @admin.register(TransportadorasRegioesValores)
 class TransportadorasRegioesValoresAdmin(BaseModelAdminRedRequiredLog):
     list_display = 'id', 'transportadora_origem_destino', 'descricao', 'status',
@@ -30,6 +40,7 @@ class TransportadorasRegioesValoresAdmin(BaseModelAdminRedRequiredLog):
     search_fields = 'transportadora_origem_destino__transportadora__nome',
     readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
     autocomplete_fields = 'transportadora_origem_destino',
+    inlines = TransportadorasRegioesMargensInLine,
 
     fieldsets = (
         (None, {
@@ -94,3 +105,18 @@ class TransportadorasRegioesValoresAdmin(BaseModelAdminRedRequiredLog):
             ),
         }),
     )
+
+    def get_inlines(self, request, obj):
+        if obj:
+            return super().get_inlines(request, obj)
+        return []
+
+
+@admin.register(TransportadorasRegioesMargens)
+class TransportadorasRegioesMargensAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'transportadora_regiao_valor', 'ate_kg', 'valor',
+    list_display_links = list_display
+    ordering = 'transportadora_regiao_valor', 'ate_kg',
+    search_fields = 'transportadora_regiao_valor__transportadora_origem_destino__transportadora__nome',
+    readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+    autocomplete_fields = 'transportadora_regiao_valor',

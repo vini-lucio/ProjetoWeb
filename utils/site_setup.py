@@ -2,7 +2,7 @@ from home.models import (SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgen
                          Bancos, Unidades, Produtos, EstadosIcms)
 from rh.models import (Cbo, Escolaridades, Funcionarios, DependentesTipos, Horarios, TransporteLinhas, TransporteTipos,
                        ValeTransportes, Setores, Funcoes)
-from frete.models import Transportadoras, TransportadorasOrigemDestino
+from frete.models import Transportadoras, TransportadorasOrigemDestino, TransportadorasRegioesValores
 from utils.data_hora_atual import hoje
 
 
@@ -110,3 +110,7 @@ def get_transportadoras():
 
 def get_transportadoras_origem_destino():
     return TransportadorasOrigemDestino.objects
+
+
+def get_transportadoras_regioes_valores():
+    return TransportadorasRegioesValores.objects

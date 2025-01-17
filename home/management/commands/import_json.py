@@ -2,15 +2,21 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 # ########### alterar model do import #########################################
-from frete.models import TransportadorasRegioesValores
+from frete.models import TransportadorasRegioesMargens
 # ########### alterar/comentar get do import ##################################
-from utils.site_setup import get_transportadoras_origem_destino
+from utils.site_setup import (get_transportadoras_regioes_valores, get_transportadoras, get_estados, get_estados_icms,
+                              get_transportadoras_origem_destino)
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent
 origem = BASE_DIR / '__localcode' / 'migracao' / 'migrar.json'
 
 # ########### alterar/comentar get ############################################
-estrangeiro_transportadora_origem_destino = get_transportadoras_origem_destino()
+estrangeiro_transportadora_regiao_valores = get_transportadoras_regioes_valores()
+transportadoras = get_transportadoras()
+estados_origem = get_estados()
+estados_destino = get_estados()
+estados_origem_destino = get_estados_icms()
+transportadoras_origem_destino = get_transportadoras_origem_destino()
 
 
 class Command(BaseCommand):
@@ -22,47 +28,26 @@ class Command(BaseCommand):
 
         for item in dados:
             # ########### alterar/comentar chave estrangeira ##################
-            fk_transportadora_origem_destino = estrangeiro_transportadora_origem_destino.filter(
-                transportadora__nome=item['transportadora'],
-                estado_origem_destino__uf_origem__chave_migracao=item['origem'],
-                estado_origem_destino__uf_destino__chave_migracao=item['destino'],
+            fk_transportadora = transportadoras.filter(nome=item['transportadora']).first()
+            fk_origem = estados_origem.filter(chave_migracao=item['origem']).first()
+            fk_destino = estados_destino.filter(chave_migracao=item['destino']).first()
+            fk_origem_destino = estados_origem_destino.filter(uf_origem=fk_origem, uf_destino=fk_destino).first()
+            fk_transportadora_origem_destino = transportadoras_origem_destino.filter(
+                transportadora=fk_transportadora,
+                estado_origem_destino=fk_origem_destino
+            ).first()
+            fk_transportadora_regiao_valores = estrangeiro_transportadora_regiao_valores.filter(
+                transportadora_origem_destino=fk_transportadora_origem_destino,
+                descricao=item['descricao'],
             ).first()
             # ########### alterar/comentar chave estrangeira obrigatoria ######
-            if fk_transportadora_origem_destino:
+            if fk_transportadora_regiao_valores:
                 # ########### alterar model do import #########################
-                instancia = TransportadorasRegioesValores(
+                instancia = TransportadorasRegioesMargens(
                     # ######## alterar campos json vs model e chave estrangeira
-                    transportadora_origem_destino=fk_transportadora_origem_destino,
-                    descricao=item['descricao'],
-                    atendimento_cidades_especificas=item['atendimento_cidades_especificas'],
-                    status=item['status'],
-                    razao=str(item['razao']),
-                    advaloren=str(item['advaloren']),
-                    advaloren_valor_minimo=str(item['advaloren_valor_minimo']),
-                    gris=str(item['gris']),
-                    gris_valor_minimo=str(item['gris_valor_minimo']),
-                    taxa_coleta=str(item['taxa_coleta']),
-                    taxa_conhecimento=str(item['taxa_conhecimento']),
-                    taxa_sefaz=str(item['taxa_sefaz']),
-                    taxa_suframa=str(item['taxa_suframa']),
-                    pedagio_fracao=str(item['pedagio_fracao']),
-                    pedagio_valor_fracao=str(item['pedagio_valor_fracao']),
-                    pedagio_valor_minimo=str(item['pedagio_valor_minimo']),
-                    valor_kg=str(item['valor_kg']),
-                    valor_kg_excedente=item['valor_kg_excedente'],
-                    taxa_frete_peso=str(item['taxa_frete_peso']),
-                    taxa_frete_peso_valor_minimo=str(item['taxa_frete_peso_valor_minimo']),
-                    taxa_valor_mercadorias=str(item['taxa_valor_mercadorias']),
-                    taxa_valor_mercadorias_valor_minimo=str(item['taxa_valor_mercadorias_valor_minimo']),
-                    frete_minimo_valor=str(item['frete_minimo_valor']),
-                    frete_minimo_percentual=str(item['frete_minimo_percentual']),
-                    observacoes=item['observacoes'],
-                    prazo_tipo=item['prazo_tipo'],
-                    prazo_padrao=str(item['prazo_padrao']),
-                    frequencia_padrao=item['frequencia_padrao'],
-                    observacoes_prazo_padrao=item['observacoes_prazo_padrao'],
-                    atendimento_zona_rural=item['atendimento_zona_rural'],
-                    taxa_zona_rural=str(item['taxa_zona_rural']),
+                    transportadora_regiao_valor=fk_transportadora_regiao_valores,
+                    ate_kg=str(item['ate_kg']),
+                    valor=str(item['valor']),
                     # ######## usar str() em float ############################
                 )
                 instancia.full_clean()

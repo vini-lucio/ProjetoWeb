@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from utils.base_models import BaseLogModel
 from utils.choices import status_ativo_inativo
@@ -171,6 +172,35 @@ class TransportadorasRegioesValores(BaseLogModel):
         return f'{self.transportadora_origem_destino} / {self.descricao}'
 
 
-# TODO: tabela de margens
+class TransportadorasRegioesMargens(BaseLogModel):
+    class Meta:
+        verbose_name = 'Transportadoras Região Margem'
+        verbose_name_plural = 'Transportadoras Região Margens'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['transportadora_regiao_valor', 'ate_kg',],
+                name='transportadorasresgioesmargens_unique_kg',
+                violation_error_message="Transportadora Região e Até kg são campos unicos"
+            ),
+            models.CheckConstraint(
+                check=Q(ate_kg__gt=0),
+                name='transportadorasresgioesmargens_check_ate_kg',
+                violation_error_message="Até kg precisa ser maior que 0"
+            ),
+            models.CheckConstraint(
+                check=Q(valor__gt=0),
+                name='transportadorasresgioesmargens_check_valor',
+                violation_error_message="Valor precisa ser maior que 0"
+            ),
+        ]
+
+    transportadora_regiao_valor = models.ForeignKey(TransportadorasRegioesValores, verbose_name="Transportadora Região",
+                                                    on_delete=models.CASCADE, related_name="%(class)s")
+    ate_kg = models.DecimalField("Até kg", max_digits=9, decimal_places=2, default=0)  # type:ignore
+    valor = models.DecimalField("Valor (R$)", max_digits=9, decimal_places=2, default=0)  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.transportadora_regiao_valor} / {self.ate_kg}'
+
 
 # TODO: replicar valores
