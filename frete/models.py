@@ -75,7 +75,7 @@ class TransportadorasRegioesValores(BaseLogModel):
     }
 
     help_text_atendimento_cidades_especificas = "Desmarcar para considerar todas as cidades do estado de destino, desconsiderando as cidades especificadas em outras regiões da mesma transportadora"
-    help_text_porcentagem_valor_mercadorias = "Porcentagem sobre o valor das mercadorias"
+    help_text_porcentagem_valor_nota = "Porcentagem sobre o valor da nota"
     help_text_valor_kg_excedente = "Marcar para considerar somente os kgs a mais do maior kg definido nas margens de kg"
     help_text_frete_peso = "Frete peso é o resultado final de acordo com os valores nas margens de kg e valor/kg"
     help_text_frete_minimo = "Valor a ser considerado quando a soma de todo custo de frete (liquido de ICMS) for menor que o informado"
@@ -91,11 +91,11 @@ class TransportadorasRegioesValores(BaseLogModel):
                               choices=status_transportadoras_regioes_valores)  # type:ignore
     razao = models.DecimalField("Razão (kg/m³)", max_digits=9, decimal_places=2, default=0)  # type:ignore
     advaloren = models.DecimalField("Advaloren / Frete Valor (%)", max_digits=9, decimal_places=2,
-                                    help_text=help_text_porcentagem_valor_mercadorias, default=0)  # type:ignore
+                                    help_text=help_text_porcentagem_valor_nota, default=0)  # type:ignore
     advaloren_valor_minimo = models.DecimalField("Valor Minimo Advaloren / Frete Valor (R$)", max_digits=9,
                                                  decimal_places=2, default=0)  # type:ignore
     gris = models.DecimalField("Gris / Gerenciamento de Risco (%)", max_digits=9, decimal_places=2,
-                               help_text=help_text_porcentagem_valor_mercadorias, default=0)  # type:ignore
+                               help_text=help_text_porcentagem_valor_nota, default=0)  # type:ignore
     gris_valor_minimo = models.DecimalField("Valor Minimo Gris / Gerenciamento de Risco (R$)", max_digits=9,
                                             decimal_places=2, default=0)  # type:ignore
     taxa_coleta = models.DecimalField("Taxa de Coleta (R$)", max_digits=9, decimal_places=2, default=0)  # type:ignore
@@ -116,15 +116,15 @@ class TransportadorasRegioesValores(BaseLogModel):
                                           help_text=help_text_frete_peso, default=0)  # type:ignore
     taxa_frete_peso_valor_minimo = models.DecimalField("Valor Minimo Outras Taxas sobre frete peso (R$)", max_digits=9,
                                                        decimal_places=2, default=0)  # type:ignore
-    taxa_valor_mercadorias = models.DecimalField("Outras Taxas sobre valor das mercadorias (%)", max_digits=9,
-                                                 decimal_places=2, default=0)  # type:ignore
-    taxa_valor_mercadorias_valor_minimo = models.DecimalField(
-        "Valor Minimo Outras Taxas sobre valor das mercadorias (R$)", max_digits=9, decimal_places=2,
+    taxa_valor_nota = models.DecimalField("Outras Taxas sobre valor da nota (%)", max_digits=9,
+                                          decimal_places=2, default=0)  # type:ignore
+    taxa_valor_nota_valor_minimo = models.DecimalField(
+        "Valor Minimo Outras Taxas sobre valor da nota (R$)", max_digits=9, decimal_places=2,
         default=0  # type:ignore
     )
     frete_minimo_valor = models.DecimalField("Frete Minimo (R$)", max_digits=9, decimal_places=2,
                                              help_text=help_text_frete_minimo, default=0)  # type:ignore
-    frete_minimo_percentual = models.DecimalField("Frete Minimo sobre valor das mercadorias (%)", max_digits=9,
+    frete_minimo_percentual = models.DecimalField("Frete Minimo sobre valor da nota (%)", max_digits=9,
                                                   decimal_places=2, help_text=help_text_frete_minimo,
                                                   default=0)  # type:ignore
     observacoes = models.CharField("Observações", max_length=100, null=True, blank=True)
@@ -274,3 +274,6 @@ class TransportadorasRegioesCidades(BaseLogModel):
 
 
 # TODO: replicar valores
+# TODO: importar/atualizar cidades prazos
+# TODO: reajuste de valores
+# TODO: calular frete pelo pedido ou nota?

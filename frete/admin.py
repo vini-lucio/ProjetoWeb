@@ -84,9 +84,9 @@ class TransportadorasRegioesValoresAdmin(BaseModelAdminRedRequiredLog):
                 'taxa_frete_peso', 'taxa_frete_peso_valor_minimo',
             ),
         }),
-        ('Outras Taxas (Valor Mercadorias)', {
+        ('Outras Taxas (Valor da Nota)', {
             "fields": (
-                'taxa_valor_mercadorias', 'taxa_valor_mercadorias_valor_minimo',
+                'taxa_valor_nota', 'taxa_valor_nota_valor_minimo',
             ),
         }),
         ('Frete Minimo', {

@@ -1,8 +1,8 @@
 from django.urls import path
-from home.views import IndexListView
+from frete.views import calculo_frete
 
 app_name = 'frete'
 
 urlpatterns = [
-    path('', IndexListView.as_view(), name='index'),
+    path('', calculo_frete, name='index'),
 ]
