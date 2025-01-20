@@ -2,16 +2,17 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 # ########### alterar model do import #########################################
-from frete.models import TransportadorasRegioesMargens
+from frete.models import TransportadorasRegioesCidades
 # ########### alterar/comentar get do import ##################################
 from utils.site_setup import (get_transportadoras_regioes_valores, get_transportadoras, get_estados, get_estados_icms,
-                              get_transportadoras_origem_destino)
+                              get_transportadoras_origem_destino, get_cidades)
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent
 origem = BASE_DIR / '__localcode' / 'migracao' / 'migrar.json'
 
 # ########### alterar/comentar get ############################################
 estrangeiro_transportadora_regiao_valores = get_transportadoras_regioes_valores()
+estrangeiro_cidades = get_cidades()
 transportadoras = get_transportadoras()
 estados_origem = get_estados()
 estados_destino = get_estados()
@@ -40,14 +41,20 @@ class Command(BaseCommand):
                 transportadora_origem_destino=fk_transportadora_origem_destino,
                 descricao=item['descricao'],
             ).first()
+            fk_cidades = estrangeiro_cidades.filter(estado=fk_destino, nome=item['cidade']).first()
             # ########### alterar/comentar chave estrangeira obrigatoria ######
-            if fk_transportadora_regiao_valores:
+            if fk_transportadora_regiao_valores and fk_cidades:
                 # ########### alterar model do import #########################
-                instancia = TransportadorasRegioesMargens(
+                instancia = TransportadorasRegioesCidades(
                     # ######## alterar campos json vs model e chave estrangeira
                     transportadora_regiao_valor=fk_transportadora_regiao_valores,
-                    ate_kg=str(item['ate_kg']),
-                    valor=str(item['valor']),
+                    cidade=fk_cidades,
+                    prazo_tipo=item['prazo_tipo'],
+                    prazo=item['prazo'],
+                    frequencia=item['frequencia'],
+                    observacoes=item['observacoes'],
+                    taxa=str(item['taxa']),
+                    cif=item['cif'],
                     # ######## usar str() em float ############################
                 )
                 instancia.full_clean()

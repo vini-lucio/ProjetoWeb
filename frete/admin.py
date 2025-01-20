@@ -1,6 +1,6 @@
 from django.contrib import admin
 from frete.models import (Transportadoras, TransportadorasOrigemDestino, TransportadorasRegioesValores,
-                          TransportadorasRegioesMargens)
+                          TransportadorasRegioesMargens, TransportadorasRegioesCidades)
 from utils.base_models import BaseModelAdminRedRequiredLog
 
 
@@ -120,3 +120,14 @@ class TransportadorasRegioesMargensAdmin(BaseModelAdminRedRequiredLog):
     search_fields = 'transportadora_regiao_valor__transportadora_origem_destino__transportadora__nome',
     readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
     autocomplete_fields = 'transportadora_regiao_valor',
+
+
+@admin.register(TransportadorasRegioesCidades)
+class TransportadorasRegioesCidadesAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'transportadora_regiao_valor', 'cidade', 'prazo', 'prazo_tipo', 'cif',
+    list_display_links = list_display
+    ordering = 'transportadora_regiao_valor', 'cidade',
+    search_fields = ('transportadora_regiao_valor__transportadora_origem_destino__transportadora__nome',
+                     'cidade__nome')
+    readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+    autocomplete_fields = 'transportadora_regiao_valor', 'cidade',

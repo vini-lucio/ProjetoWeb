@@ -3,7 +3,7 @@ from django.db.models import Q
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from utils.base_models import BaseLogModel
 from utils.choices import status_ativo_inativo
-from home.models import EstadosIcms
+from home.models import EstadosIcms, Cidades
 
 
 class Transportadoras(BaseLogModel):
@@ -201,6 +201,76 @@ class TransportadorasRegioesMargens(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.transportadora_regiao_valor} / {self.ate_kg}'
+
+
+class TransportadorasRegioesCidades(BaseLogModel):
+    class Meta:
+        verbose_name = 'Transportadoras Região Cidade'
+        verbose_name_plural = 'Transportadoras Região Cidades'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['transportadora_regiao_valor', 'cidade',],
+                name='transportadorasresgioescidades_unique_cidade',
+                violation_error_message="Transportadora Região e Cidade são campos unicos"
+            ),
+        ]
+
+    prazo_tipos = {
+        'DIAS': 'Dias',
+        'DIAS UTEIS': 'Dias Uteis',
+    }
+
+    transportadora_regiao_valor = models.ForeignKey(TransportadorasRegioesValores,
+                                                    verbose_name="Transportadora Região Valor",
+                                                    on_delete=models.CASCADE, related_name="%(class)s")
+    cidade = models.ForeignKey(Cidades, verbose_name="Cidade", on_delete=models.PROTECT, related_name="%(class)s")
+    prazo_tipo = models.CharField("Prazo Tipo", max_length=10, null=True, blank=True,
+                                  choices=prazo_tipos)  # type:ignore
+    prazo = models.IntegerField("Prazo", default=0)
+    frequencia = models.CharField("Frequencia", max_length=100, null=True, blank=True)
+    observacoes = models.CharField("Observações", max_length=100, null=True, blank=True)
+    taxa = models.DecimalField("Taxa (R$)", max_digits=9, decimal_places=2, default=0)  # type:ignore
+    cif = models.BooleanField("Frete CIF", default=False)
+
+    def clean(self) -> None:
+        super_clean = super().clean()
+
+        try:
+            if not self.transportadora_regiao_valor.atendimento_cidades_especificas:
+                raise ValidationError(
+                    {
+                        'transportadora_regiao_valor': 'Transportadora Região Valor o atendimento não está especifico'
+                    }  # type:ignore
+                )
+        except ObjectDoesNotExist:
+            raise ValidationError(
+                {'transportadora_regiao_valor': "Transportadora Região Valor é obrigatorio"}  # type:ignore
+            )
+
+        try:
+            if self.cidade and self.transportadora_regiao_valor:
+                uf_cidade = self.cidade.estado
+                uf_transportadora_regiao = self.transportadora_regiao_valor.transportadora_origem_destino.estado_origem_destino.uf_destino
+                if uf_cidade != uf_transportadora_regiao:
+                    raise ValidationError(
+                        {'cidade': 'UF da cidade é diferente do UF destino da região da transportadora'}  # type:ignore
+                    )
+        except ObjectDoesNotExist:
+            raise ValidationError(
+                {'transportadora_regiao_valor': "Transportadora Região Valor é obrigatorio",
+                 'cidade': "Cidade é obrigatorio", }  # type:ignore
+            )
+
+        if self.prazo > 0 and not self.prazo_tipo:
+            raise ValidationError({'prazo_tipo': 'Prazo Tipo precisa ser preenchido '})  # type:ignore
+
+        if self.prazo == 0:
+            self.prazo_tipo = None
+
+        return super_clean
+
+    def __str__(self) -> str:
+        return f'{self.transportadora_regiao_valor} / {self.cidade.nome}'
 
 
 # TODO: replicar valores
