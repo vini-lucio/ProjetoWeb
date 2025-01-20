@@ -84,6 +84,11 @@ class SiteSetupAdmin(BaseModelAdminRedRequired):
                 'medida_volume_padrao_x', 'medida_volume_padrao_y', 'medida_volume_padrao_z',
             ),
         }),
+        ('Impostos Calulo de Frete', {
+            "fields": (
+                'aliquota_pis_cofins', 'aliquota_icms_simples',
+            ),
+        }),
     )
 
     def has_add_permission(self, request: HttpRequest) -> bool:

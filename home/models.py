@@ -201,6 +201,10 @@ class SiteSetup(models.Model):
                                                  default=0)  # type:ignore
     medida_volume_padrao_z = models.DecimalField("Medida Volume Padrão Z (m)", max_digits=5, decimal_places=2,
                                                  default=0)  # type:ignore
+    aliquota_pis_cofins = models.DecimalField("Aliquota PIS / Cofins %", default=0.00,  # type:ignore
+                                              max_digits=5, decimal_places=2)
+    aliquota_icms_simples = models.DecimalField("Aliquota ICMS Simples %", default=0.00,  # type:ignore
+                                                max_digits=5, decimal_places=2)
 
     @property
     def primeiro_dia_mes_as_ddmmyyyy(self):
@@ -261,6 +265,14 @@ class SiteSetup(models.Model):
     @property
     def rentabilidade_vermelha_as_float(self):
         return float(self.rentabilidade_vermelha)
+
+    @property
+    def aliquota_pis_cofins_as_float(self):
+        return float(self.aliquota_pis_cofins)
+
+    @property
+    def aliquota_icms_simples_as_float(self):
+        return float(self.aliquota_icms_simples)
 
     def clean(self) -> None:
         if self.dias_uteis_mes == 0:
