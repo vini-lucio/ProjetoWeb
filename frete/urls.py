@@ -4,5 +4,5 @@ from frete.views import calculo_frete
 app_name = 'frete'
 
 urlpatterns = [
-    path('', calculo_frete, name='index'),
+    path('', calculo_frete, name='calculo-frete'),
 ]

@@ -1,0 +1,59 @@
+{% extends "frete/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Calculo de Frete</h1>
+            </div>
+
+            <form method="get">
+                <div class="grid-simples link-conteudo">
+                    {{ formulario.as_p }}
+                </div>
+                <button class="botao" type="submit">Calcular</button>
+            </form>
+        </div>
+
+        
+
+        <div class="link-conteudo">
+            {% if dados_orcamento %}
+
+                <div>
+                    <p>Cliente: {{ dados_orcamento.CLIENTE }}</p>
+                    <p>Valor Total: R$ {{ dados_orcamento.VALOR_TOTAL | floatformat:"2" }}</p>
+                    <p>UF Origem: {{ dados_orcamento.UF_ORIGEM }}</p>
+                    <p>UF Faturamento: {{ dados_orcamento.UF_FATURAMENTO }}</p>
+                    <p>UF Destino: {{ dados_orcamento.UF_DESTINO }}</p>
+                    <p>Cidade Destino: {{ dados_orcamento.CIDADE_DESTINO }}</p>
+                    <p>Destino Mercadorias: {{ dados_orcamento.DESTINO_MERCADORIAS }}</p>
+                    <p>Zona Franca / ALC: {{ dados_orcamento.ZONA_FRANCA_ALC }}</p>
+                </div>
+
+                {% if dados_itens_orcamento %}
+                
+                    <p>{{ dados_volumes }}</p>
+
+                    {% if fretes %}
+
+                        {% for frete in fretes %}
+                            <p>{{ frete }}</p>
+                        {% endfor %}
+
+                    {% else %}
+                        <p>Destino não atendido</p>
+                    {% endif %}
+                {% else %}
+                    <p>Orçamento não possui itens</p>
+                {% endif %}
+            {% else %}
+                <p>Orçamento não existe</p>  
+            {% endif %}
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

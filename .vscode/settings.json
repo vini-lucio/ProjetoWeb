@@ -30,7 +30,7 @@
         "--max-line-length",
         "119",
         "--ignore",
-        "E501"
+        "E501, W504"
     ],
     "workbench.colorCustomizations": {
         "separators.classes.borderColor": "#8be8fdb0",

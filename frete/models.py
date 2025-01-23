@@ -168,6 +168,14 @@ class TransportadorasRegioesValores(BaseLogModel):
 
         return super_clean
 
+    @classmethod
+    def filter_ativos(cls):
+        return cls.objects.filter(
+            status='ativo',
+            transportadora_origem_destino__status='ativo',
+            transportadora_origem_destino__transportadora__status='ativo',
+        )
+
     def __str__(self) -> str:
         return f'{self.transportadora_origem_destino} / {self.descricao}'
 
