@@ -11,6 +11,7 @@ def get_dados_orcamento(orcamento: int):
     sql = """
         SELECT
             ORCAMENTOS.NUMPED AS ORCAMENTO,
+            ORCAMENTOS.CHAVE_TRANSPORTADORA,
             CLIENTES.NOMERED AS CLIENTE,
             ORCAMENTOS.VALOR_COM_FRETE AS VALOR_TOTAL,
             JOBS.UF AS UF_ORIGEM,
@@ -66,6 +67,61 @@ def get_dados_orcamento(orcamento: int):
     return resultado
 
 
+def get_dados_pedidos_em_aberto():
+    """Retorna os dados de entrega para conferencia de atendimento das transportadoras nos pedidos em aberto"""
+    sql = """
+        SELECT
+            VENDEDORES.NOMERED AS CARTEIRA,
+            PEDIDOS.NUMPED AS PEDIDO,
+            PEDIDOS.CHAVE_TRANSPORTADORA,
+            JOBS.UF AS UF_ORIGEM,
+            ESTADOS.SIGLA AS UF_FATURAMENTO,
+            COALESCE(UF_ORDEM.UF_ORDEM, ESTADOS2.SIGLA, ESTADOS.SIGLA) AS UF_DESTINO,
+            COALESCE(UF_ORDEM.CIDADE_ORDEM, PLATAFORMAS.CIDADE_ENT, CLIENTES.CIDADE) AS CIDADE_DESTINO
+
+        FROM
+            (
+                SELECT
+                    PEDIDOS_ORDEM.CHAVE AS CHAVE_PEDIDO,
+                    ESTADOS_ORDEM.SIGLA AS UF_ORDEM,
+                    CLIENTES_ORDEM.CIDADE AS CIDADE_ORDEM
+
+                FROM
+                    COPLAS.ESTADOS ESTADOS_ORDEM,
+                    COPLAS.PEDIDOS PEDIDOS_ORDEM,
+                    COPLAS.CLIENTES CLIENTES_ORDEM
+
+                WHERE
+                    PEDIDOS_ORDEM.CHAVE_CLIENTE_REMESSA = CLIENTES_ORDEM.CODCLI AND
+                    CLIENTES_ORDEM.UF = ESTADOS_ORDEM.CHAVE AND
+                    PEDIDOS_ORDEM.STATUS != 'LIQUIDADO' AND
+                    PEDIDOS_ORDEM.COBRANCA_FRETE IN (0, 1, 4, 5)
+            ) UF_ORDEM,
+            COPLAS.VENDEDORES,
+            COPLAS.ESTADOS ESTADOS2,
+            COPLAS.PLATAFORMAS,
+            COPLAS.ESTADOS,
+            COPLAS.CLIENTES,
+            COPLAS.JOBS,
+            COPLAS.PEDIDOS
+
+        WHERE
+            VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
+            PEDIDOS.CHAVE = UF_ORDEM.CHAVE_PEDIDO(+) AND
+            PLATAFORMAS.UF_ENT = ESTADOS2.CHAVE(+) AND
+            PEDIDOS.CHAVE_PLATAFORMA = PLATAFORMAS.CHAVE(+) AND
+            CLIENTES.CODCLI = PEDIDOS.CHAVE_CLIENTE AND
+            ESTADOS.CHAVE = CLIENTES.UF AND
+            JOBS.CODIGO = PEDIDOS.CHAVE_JOB AND
+            PEDIDOS.STATUS != 'LIQUIDADO' AND
+            PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True)
+
+    return resultado
+
+
 def get_dados_itens_orcamento(orcamento: int):
     """Retorna os dados dos itens do orcamento para calculo de frete"""
     sql = """
@@ -95,23 +151,31 @@ def get_dados_itens_orcamento(orcamento: int):
     return resultado
 
 
-def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamento=[], zona_rural: bool = False) -> list[TransportadorasRegioesValores]:
-    """Passar somente um dos parametros. Retorna os dados dos valores das transportadoras que atendem o destino do orçamento informado"""
+def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamento_pedido=[], zona_rural: bool = False, transportadora_especifica: bool = False) -> list[TransportadorasRegioesValores]:
+    """Passar somente um dos parametros de orçamento. Retorna os dados dos valores das transportadoras que atendem o destino do orçamento informado"""
     if orcamento != 0:
-        dados_orcamento = get_dados_orcamento(orcamento)
+        dados_orcamento_pedido = get_dados_orcamento(orcamento)
 
-    uf_faturamento = dados_orcamento['UF_FATURAMENTO']  # type:ignore
-    uf_origem = dados_orcamento['UF_ORIGEM']  # type:ignore
-    uf_destino = dados_orcamento['UF_DESTINO']  # type:ignore
-    cidade_destino = dados_orcamento['CIDADE_DESTINO']  # type:ignore
+    uf_faturamento = dados_orcamento_pedido['UF_FATURAMENTO']  # type:ignore
+    uf_origem = dados_orcamento_pedido['UF_ORIGEM']  # type:ignore
+    uf_destino = dados_orcamento_pedido['UF_DESTINO']  # type:ignore
+    cidade_destino = dados_orcamento_pedido['CIDADE_DESTINO']  # type:ignore
 
     faturamento_diferente_destino = uf_faturamento != uf_destino
 
-    ativos_origem_destino = TransportadorasRegioesValores.filter_ativos().filter(
-        transportadora_origem_destino__estado_origem_destino__uf_origem__sigla=uf_origem,
-        transportadora_origem_destino__estado_origem_destino__uf_destino__sigla=uf_destino,
+    if not transportadora_especifica:
+        ativos_origem_destino = TransportadorasRegioesValores.filter_ativos().filter(
+            transportadora_origem_destino__estado_origem_destino__uf_origem__sigla=uf_origem,
+            transportadora_origem_destino__estado_origem_destino__uf_destino__sigla=uf_destino,
+        )
+    else:
+        transportadora = dados_orcamento_pedido['CHAVE_TRANSPORTADORA']  # type:ignore
+        ativos_origem_destino = TransportadorasRegioesValores.filter_ativos().filter(
+            transportadora_origem_destino__estado_origem_destino__uf_origem__sigla=uf_origem,
+            transportadora_origem_destino__estado_origem_destino__uf_destino__sigla=uf_destino,
+            transportadora_origem_destino__transportadora__chave_analysis=transportadora,
+        )
 
-    )
     if faturamento_diferente_destino:
         ativos_origem_destino = ativos_origem_destino.filter(
             transportadora_origem_destino__transportadora__entrega_uf_diferente_faturamento=True
@@ -149,6 +213,9 @@ def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamen
     if transportadoras_regioes_todas_cidades:
         for valor in transportadoras_regioes_todas_cidades:
             valores.append(valor)
+
+    if not valores:
+        raise ObjectDoesNotExist('Destino não atendido')
 
     return valores
 
@@ -232,7 +299,7 @@ def calcular_frete(orcamento: int, zona_rural: bool = False):
         dados_itens.append(item)
 
     dados_volume = {}
-    valores = get_transportadoras_valores_atendimento(dados_orcamento=dados_orcamento, zona_rural=zona_rural)
+    valores = get_transportadoras_valores_atendimento(dados_orcamento_pedido=dados_orcamento, zona_rural=zona_rural)
     if valores:
         site_setup = get_site_setup()
         if site_setup:
@@ -360,6 +427,7 @@ def calcular_frete(orcamento: int, zona_rural: bool = False):
                 icms_interno = get_estados_icms().get(uf_origem__sigla=uf_origem_orc, uf_destino__sigla=uf_origem_orc)
                 icms_interno = icms_interno.icms / 100
                 aliquota_icms = icms_interno
+            # TODO: rever isenção de icms não só pela zona franca (igual ao pis/cofis?)
             if zona_franca_alc_orc:
                 aliquota_icms = 0
             if zona_franca_alc_orc or simples_nacional:
@@ -381,8 +449,5 @@ def calcular_frete(orcamento: int, zona_rural: bool = False):
                 'total_peso_maior': round(total_peso_maior, 2),
             }
             fretes.append(frete)
-
-    if not fretes:
-        raise ObjectDoesNotExist('Destino não atendido')
 
     return fretes, dados_orcamento, dados_itens_orcamento, dados_volume
