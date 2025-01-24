@@ -20,38 +20,59 @@
         
 
         <div class="link-conteudo">
-            {% if dados_orcamento %}
 
-                <div>
-                    <p>Cliente: {{ dados_orcamento.CLIENTE }}</p>
-                    <p>Valor Total: R$ {{ dados_orcamento.VALOR_TOTAL | floatformat:"2" }}</p>
-                    <p>UF Origem: {{ dados_orcamento.UF_ORIGEM }}</p>
-                    <p>UF Faturamento: {{ dados_orcamento.UF_FATURAMENTO }}</p>
-                    <p>UF Destino: {{ dados_orcamento.UF_DESTINO }}</p>
-                    <p>Cidade Destino: {{ dados_orcamento.CIDADE_DESTINO }}</p>
-                    <p>Destino Mercadorias: {{ dados_orcamento.DESTINO_MERCADORIAS }}</p>
-                    <p>Zona Franca / ALC: {{ dados_orcamento.ZONA_FRANCA_ALC }}</p>
-                </div>
-
-                {% if dados_itens_orcamento %}
-                
-                    <p>{{ dados_volumes }}</p>
-
-                    {% if fretes %}
-
-                        {% for frete in fretes %}
-                            <p>{{ frete }}</p>
-                        {% endfor %}
-
-                    {% else %}
-                        <p>Destino não atendido</p>
-                    {% endif %}
-                {% else %}
-                    <p>Orçamento não possui itens</p>
-                {% endif %}
-            {% else %}
-                <p>Orçamento não existe</p>  
+            {% if erros %}
+                <p>{{ erros }}</p>
             {% endif %}
+
+            {% if fretes %}
+                <div class="grid-slim centralizar">
+                    <div class="moldura-verde moldura-verde-slim">
+                        <p><span class="azul-negrito">Orçamento: </span>{{ dados_orcamento.ORCAMENTO }}</p>
+                        <p><span class="azul-negrito">Cliente: </span>{{ dados_orcamento.CLIENTE }}</p>
+                        <p><span class="azul-negrito">Valor Total: </span>R$ {{ dados_orcamento.VALOR_TOTAL | floatformat:"2" }}</p>
+                        <p><span class="azul-negrito">Destino Mercadorias: </span>{{ dados_orcamento.DESTINO_MERCADORIAS }}</p>
+                        {% if dados_orcamento.ZONA_FRANCA_ALC == 'SIM' %}<p><span class="azul-negrito"> Zona Franca / ALC</span></p>{% endif %}
+                    </div>
+                    <div class="moldura-verde moldura-verde-slim">
+                        <p><span class="azul-negrito">UF Origem: </span>{{ dados_orcamento.UF_ORIGEM }}</p>
+                        <p><span class="azul-negrito">UF Faturamento: </span>{{ dados_orcamento.UF_FATURAMENTO }}</p>
+                        <p><span class="azul-negrito">UF Destino: </span>{{ dados_orcamento.UF_DESTINO }}</p>
+                        <p><span class="azul-negrito">Cidade Destino: </span>{{ dados_orcamento.CIDADE_DESTINO }}</p>
+                    </div>
+                    <div class="moldura-verde moldura-verde-slim">
+                        <p><span class="azul-negrito">Volumes: </span>{{ dados_volumes.total_volumes }}</p>
+                        <p><span class="azul-negrito">Cubagem: </span>{{ dados_volumes.total_m3 }} m³</p>
+                        <p><span class="azul-negrito">Peso Bruto: </span>{{ dados_volumes.total_peso_real }} kg</p>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="grid-simples">
+                {% for frete in fretes %}
+                    <div class="moldura-verde moldura-verde-slim width-100">
+                        <div class="grid-slim centralizar">
+                            <p class="verde-negrito">{{ frete.valor.transportadora_origem_destino.transportadora.nome }}</p>
+                            {% if frete.observacoes_prazo %}<p class="fonte-vermelho">{{ frete.observacoes_prazo }}</p>{% endif %}
+                        </div>
+
+                        <div class="grid-slim centralizar">
+                            <div class="block-slim centralizar">
+                                <p><span class="azul-negrito">Frete Empresa: </span>R$ {{ frete.valor_frete_empresa }}</p>
+                                {% if frete.cif %}<p class="verde-negrito">Frete CIF</p>{% endif %}
+                                <p><span class="azul-negrito">Frete Cliente: </span>R$ {{ frete.valor_frete_cliente }}</p>
+                            </div>
+
+                            <div class="block-slim centralizar">
+                                <p><span class="azul-negrito">Prazo: </span>{{ frete.prazo }} {{ frete.prazo_tipo }}</p>
+                                {% if frete.frequencia %}<p><span class="azul-negrito">Frequencia: </span>{{ frete.frequencia }}</p>{% endif %}
+                                <p><span class="azul-negrito">Peso Cubado: </span>{{ frete.total_peso_maior }} kg</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
         </div>
 
     </section>

@@ -3,12 +3,14 @@ from math import ceil
 from frete.models import TransportadorasRegioesValores
 from utils.oracle.conectar import executar_oracle
 from utils.site_setup import get_transportadoras_regioes_cidades, get_produtos, get_site_setup, get_estados_icms
+from django.core.exceptions import ObjectDoesNotExist
 
 
 def get_dados_orcamento(orcamento: int):
     """Retorna os dados de entrega para calculo de frete"""
     sql = """
         SELECT
+            ORCAMENTOS.NUMPED AS ORCAMENTO,
             CLIENTES.NOMERED AS CLIENTE,
             ORCAMENTOS.VALOR_COM_FRETE AS VALOR_TOTAL,
             JOBS.UF AS UF_ORIGEM,
@@ -56,8 +58,10 @@ def get_dados_orcamento(orcamento: int):
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, orcamento=orcamento)
 
-    if resultado:
-        resultado = resultado[0]
+    if not resultado:
+        raise ObjectDoesNotExist("Orçamento não existe")
+
+    resultado = resultado[0]
 
     return resultado
 
@@ -68,7 +72,8 @@ def get_dados_itens_orcamento(orcamento: int):
         SELECT
             PRODUTOS.CODIGO,
             ORCAMENTOS_ITENS.CHAVE_PRODUTO,
-            ORCAMENTOS_ITENS.QUANTIDADE
+            ORCAMENTOS_ITENS.QUANTIDADE,
+            ORCAMENTOS_ITENS.ANALISE_PIS + ORCAMENTOS_ITENS.ANALISE_COFINS AS PIS_COFINS
 
         FROM
             COPLAS.PRODUTOS,
@@ -83,6 +88,9 @@ def get_dados_itens_orcamento(orcamento: int):
     """
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, orcamento=orcamento)
+
+    if not resultado:
+        raise ObjectDoesNotExist("Orçamento sem itens")
 
     return resultado
 
@@ -189,44 +197,48 @@ def calcular_frete(orcamento: int, zona_rural: bool = False):
     dados_itens_orcamento = get_dados_itens_orcamento(orcamento)
     fretes = []
 
-    if dados_orcamento:
-        valor_total_orc = Decimal(dados_orcamento['VALOR_TOTAL'])  # type:ignore
-        destino_consumo_orc = True if dados_orcamento['DESTINO_MERCADORIAS'] == 'CONSUMO' else False  # type:ignore
-        zona_franca_alc_orc = True if dados_orcamento['ZONA_FRANCA_ALC'] == 'SIM' else False  # type:ignore
-        uf_origem_orc = dados_orcamento['UF_ORIGEM']  # type:ignore
-        uf_destino_orc = dados_orcamento['UF_DESTINO']  # type:ignore
-        cidade_destino_orc = dados_orcamento['CIDADE_DESTINO']  # type:ignore
+    valor_total_orc = Decimal(dados_orcamento['VALOR_TOTAL'])  # type:ignore
+    destino_consumo_orc = True if dados_orcamento['DESTINO_MERCADORIAS'] == 'CONSUMO' else False  # type:ignore
+    zona_franca_alc_orc = True if dados_orcamento['ZONA_FRANCA_ALC'] == 'SIM' else False  # type:ignore
+    uf_origem_orc = dados_orcamento['UF_ORIGEM']  # type:ignore
+    uf_destino_orc = dados_orcamento['UF_DESTINO']  # type:ignore
+    cidade_destino_orc = dados_orcamento['CIDADE_DESTINO']  # type:ignore
 
-    if dados_itens_orcamento:
-        dados_itens = []
-        produtos = get_produtos()
+    dados_itens = []
+    produtos = get_produtos()
 
-        for item_orcamento in dados_itens_orcamento:
-            id_produto_orc = item_orcamento['CHAVE_PRODUTO']  # type:ignore
-            quantidade_produto_orc = Decimal(item_orcamento['QUANTIDADE'])  # type:ignore
+    for item_orcamento in dados_itens_orcamento:
+        id_produto_orc = item_orcamento['CHAVE_PRODUTO']  # type:ignore
+        quantidade_produto_orc = Decimal(item_orcamento['QUANTIDADE'])  # type:ignore
+        pis_cofins_orc = Decimal(item_orcamento['PIS_COFINS'])  # type:ignore
 
+        try:
             produto = produtos.get(chave_analysis=id_produto_orc)
-            peso_liquido = produto.peso_liquido
-            peso_bruto = produto.peso_bruto
-            quantidade_volume = produto.quantidade_volume
-            m3_volume = produto.m3_volume
+        except ObjectDoesNotExist:
+            raise ObjectDoesNotExist('Produto não cadastrado')
+        peso_liquido = produto.peso_liquido
+        peso_bruto = produto.peso_bruto
+        quantidade_volume = produto.quantidade_volume
+        m3_volume = produto.m3_volume
 
-            maior_peso = peso_liquido if peso_liquido >= peso_bruto else peso_bruto
-            peso = maior_peso * quantidade_produto_orc
+        maior_peso = peso_liquido if peso_liquido >= peso_bruto else peso_bruto
+        peso = maior_peso * quantidade_produto_orc
 
-            volumes = quantidade_produto_orc / quantidade_volume
+        volumes = quantidade_produto_orc / quantidade_volume
 
-            m3 = volumes * m3_volume
+        m3 = volumes * m3_volume
 
-            item = {'produto': produto, 'peso_item': peso, 'volumes_item': volumes, 'm3_item': m3}
-            dados_itens.append(item)
+        item = {'produto': produto, 'peso_item': peso, 'volumes_item': volumes, 'm3_item': m3}
+        dados_itens.append(item)
 
+    dados_volume = {}
     valores = get_transportadoras_valores_atendimento(dados_orcamento=dados_orcamento, zona_rural=zona_rural)
     if valores:
         site_setup = get_site_setup()
         if site_setup:
-            # TODO: passar isenção aliquota pis/cofins do orçamento
             aliquota_pis_cofins = site_setup.aliquota_pis_cofins / 100
+            if pis_cofins_orc == 0:
+                aliquota_pis_cofins = 0
             aliquota_icms_simples = site_setup.aliquota_icms_simples / 100
 
         for valor in valores:
@@ -369,5 +381,8 @@ def calcular_frete(orcamento: int, zona_rural: bool = False):
                 'total_peso_maior': round(total_peso_maior, 2),
             }
             fretes.append(frete)
+
+    if not fretes:
+        raise ObjectDoesNotExist('Destino não atendido')
 
     return fretes, dados_orcamento, dados_itens_orcamento, dados_volume

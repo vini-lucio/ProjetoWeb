@@ -1,5 +1,6 @@
 from typing import Dict
 from django.shortcuts import render
+from django.core.exceptions import ObjectDoesNotExist
 from frete.services import calcular_frete
 from frete.forms import PesquisarOrcamentoFrete
 
@@ -15,14 +16,16 @@ def calculo_frete(request):
             orcamento: int = formulario.cleaned_data.get('orcamento')  # type:ignore
             zona_rural: bool = True if formulario.cleaned_data.get('zona_rural') == 'sim' else False  # type:ignore
 
-            fretes, dados_orcamento, dados_itens_orcamento, dados_volumes = calcular_frete(orcamento, zona_rural)
+            try:
+                fretes, dados_orcamento, dados_itens_orcamento, dados_volumes = calcular_frete(orcamento, zona_rural)
+                contexto.update({'dados_orcamento': dados_orcamento})
+                contexto.update({'dados_volumes': dados_volumes})
+                contexto.update({'dados_itens_orcamento': dados_itens_orcamento})
+                contexto.update({'fretes': fretes})
+            except ObjectDoesNotExist as erros:
+                contexto.update({'erros': erros})
 
-            contexto.update({'dados_orcamento': dados_orcamento})
-            contexto.update({'dados_volumes': dados_volumes})
-            contexto.update({'dados_itens_orcamento': dados_itens_orcamento})
-            contexto.update({'fretes': fretes})
-    else:
-        formulario = PesquisarOrcamentoFrete()
+    formulario = PesquisarOrcamentoFrete()
 
     contexto.update({'formulario': formulario})
 
