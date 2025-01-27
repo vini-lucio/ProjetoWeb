@@ -1,5 +1,4 @@
 from django.db import connection
-from django.db import connections
 
 
 def executar_django(sql: str, exportar_cabecalho: bool = False, **kwargs) -> list:
@@ -13,12 +12,3 @@ def executar_django(sql: str, exportar_cabecalho: bool = False, **kwargs) -> lis
             resultado = [dict(zip(cabecalho, linha)) for linha in resultado]
 
     return resultado
-
-
-def teste():
-    with connections['oracle'].cursor() as cursor:
-        cursor.execute("SELECT CPROD FROM COPLAS.PRODUTOS")
-        rows = cursor.fetchall()
-        for row in rows:
-            print(row)
-    return row
