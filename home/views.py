@@ -11,6 +11,7 @@ from .services import (get_tabela_precos, migrar_cidades, migrar_unidades, migra
 from .forms import ConfirmacaoMigrar
 from django.contrib.auth.decorators import user_passes_test
 from collections import Counter
+from utils.conectar_database_django import teste
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
@@ -51,6 +52,9 @@ def migracao(request):
     formulario_migrar_cidades = ConfirmacaoMigrar(id_confirma=id_confirma_cidades)
     formulario_migrar_unidades = ConfirmacaoMigrar(id_confirma=id_confirma_unidades)
     formulario_migrar_produtos = ConfirmacaoMigrar(id_confirma=id_confirma_produtos)
+
+    t = teste()
+    titulo_pagina = t
 
     contexto = {
         'titulo_pagina': titulo_pagina,

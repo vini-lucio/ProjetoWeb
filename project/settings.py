@@ -13,6 +13,17 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+import oracledb
+import platform
+
+
+sistema_operacional = platform.system()
+
+# a linha abaixo é para forçar o modo thick do oracle por causa da senha no padrao antigo do oracle
+if sistema_operacional == 'Windows':
+    oracledb.init_oracle_client(lib_dir=r"C:\instantclient_19_24")
+else:
+    oracledb.init_oracle_client()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -114,15 +125,16 @@ DATABASES = {
         'HOST': os.getenv('POSTGRES_HOST'),
         'PORT': os.getenv('POSTGRES_PORT'),
     },
-    # 'oracle': {
-    #     'ENGINE': os.getenv('ORACLE_ENGINE'),
-    #     'NAME': os.getenv('ORACLE_NAME'),
-    #     'USER': os.getenv('ORACLE_USER'),
-    #     'PASSWORD': os.getenv('ORACLE_PASSWORD'),
+    'oracle': {
+        'ENGINE': os.getenv('ORACLE_ENGINE'),
+        'NAME': os.getenv('ORACLE_DSN'),
+        # 'NAME': os.getenv('ORACLE_NAME'),
+        'USER': os.getenv('ORACLE_USER'),
+        'PASSWORD': os.getenv('ORACLE_PASSWORD'),
 
-    #     'HOST': os.getenv('ORACLE_HOST'),
-    #     'PORT': os.getenv('ORACLE_PORT'),
-    # },
+        # 'HOST': os.getenv('ORACLE_HOST'),
+        # 'PORT': os.getenv('ORACLE_PORT'),
+    },
 }
 
 

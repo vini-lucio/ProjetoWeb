@@ -88,6 +88,7 @@ class DashboardVendasTv(DashBoardVendas):
         super().__init__()
         self.ASSISTENTES_TECNICOS = get_assistentes_tecnicos()
         self.AGENDA_VEC = get_assistentes_tecnicos_agenda()
+        # TODO: toneladas vendidas (mes / no dia)
 
     def get_dados(self):
         dados = super().get_dados()
