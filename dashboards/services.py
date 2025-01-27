@@ -20,13 +20,13 @@ class DashBoardVendas():
             self.PRIMEIRO_DIA_UTIL_PROXIMO_MES = self.SITE_SETUP.primeiro_dia_util_proximo_mes_as_ddmmyyyy
             self.DESPESA_ADMINISTRATIVA_FIXA = self.SITE_SETUP.despesa_administrativa_fixa_as_float
 
-        self.PEDIDOS_DIA = pedidos_dia(self.PRIMEIRO_DIA_UTIL_PROXIMO_MES)
+        self.PEDIDOS_DIA, self.TONELADAS_DIA = pedidos_dia(self.PRIMEIRO_DIA_UTIL_PROXIMO_MES)
         self.PORCENTAGEM_META_DIA = int(self.PEDIDOS_DIA / self.META_DIARIA * 100)
         self.FALTAM_META_DIA = round(self.META_DIARIA - self.PEDIDOS_DIA, 2)
         self.CONVERSAO_DE_ORCAMENTOS = conversao_de_orcamentos()
         self.FALTAM_ABRIR_ORCAMENTOS_DIA = round(self.FALTAM_META_DIA / (self.CONVERSAO_DE_ORCAMENTOS / 100), 2)
-        self.PEDIDOS_MES = pedidos_mes(self.PRIMEIRO_DIA_MES, self.PRIMEIRO_DIA_UTIL_MES,
-                                       self.ULTIMO_DIA_MES, self.PRIMEIRO_DIA_UTIL_PROXIMO_MES)
+        self.PEDIDOS_MES, self.TONELADAS_MES = pedidos_mes(self.PRIMEIRO_DIA_MES, self.PRIMEIRO_DIA_UTIL_MES,
+                                                           self.ULTIMO_DIA_MES, self.PRIMEIRO_DIA_UTIL_PROXIMO_MES)
         self.PORCENTAGEM_META_MES = int(self.PEDIDOS_MES / self.META_MES * 100)
         self.FALTAM_META_MES = round(self.META_MES - self.PEDIDOS_MES, 2)
 
@@ -61,12 +61,14 @@ class DashBoardVendas():
         dados = {
             'meta_diaria': self.META_DIARIA,
             'pedidos_dia': self.PEDIDOS_DIA,
+            'toneladas_dia': self.TONELADAS_DIA,
             'porcentagem_meta_dia': self.PORCENTAGEM_META_DIA,
             'faltam_meta_dia': self.FALTAM_META_DIA,
             'conversao_de_orcamentos': self.CONVERSAO_DE_ORCAMENTOS,
             'faltam_abrir_orcamentos_dia': self.FALTAM_ABRIR_ORCAMENTOS_DIA,
             'meta_mes': self.META_MES,
             'pedidos_mes': self.PEDIDOS_MES,
+            'toneladas_mes': self.TONELADAS_MES,
             'porcentagem_meta_mes': self.PORCENTAGEM_META_MES,
             'faltam_meta_mes': self.FALTAM_META_MES,
             'data_hora_atual': self.DATA_HORA_ATUAL,
@@ -88,7 +90,6 @@ class DashboardVendasTv(DashBoardVendas):
         super().__init__()
         self.ASSISTENTES_TECNICOS = get_assistentes_tecnicos()
         self.AGENDA_VEC = get_assistentes_tecnicos_agenda()
-        # TODO: toneladas vendidas (mes / no dia)
 
     def get_dados(self):
         dados = super().get_dados()
@@ -99,11 +100,12 @@ class DashboardVendasTv(DashBoardVendas):
         return dados
 
 
-def pedidos_dia(primeiro_dia_util_proximo_mes: str) -> float:
-    """Valor mercadorias dos pedidos com valor comercial no dia com entrega até o primeiro dia util do proximo mes"""
+def pedidos_dia(primeiro_dia_util_proximo_mes: str) -> tuple[float, float]:
+    """Valor mercadorias e toneladas dos pedidos com valor comercial no dia com entrega até o primeiro dia util do proximo mes"""
     sql = """
         SELECT
-            ROUND(SUM((PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END), 2) AS TOTAL
+            ROUND(SUM((PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END), 2) AS TOTAL,
+            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.PESO_LIQUIDO ELSE 0 END) / 1000, 3) AS TONELADAS_PROPRIO
 
         FROM
             COPLAS.VENDEDORES,
@@ -129,9 +131,9 @@ def pedidos_dia(primeiro_dia_util_proximo_mes: str) -> float:
     resultado = executar_oracle(sql, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     if not resultado[0][0]:
-        return 0.00
+        return 0.00, 0.00
 
-    return float(resultado[0][0])
+    return float(resultado[0][0]), float(resultado[0][1])
 
 
 def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_util_proximo_mes: str) -> float:
@@ -377,11 +379,12 @@ def conversao_de_orcamentos():
 
 
 def pedidos_mes(primeiro_dia_mes: str, primeiro_dia_util_mes: str,
-                ultimo_dia_mes: str, primeiro_dia_util_proximo_mes: str) -> float:
-    """Valor mercadorias dos pedidos com valor comercial no mes com entrega até o primeiro dia util do proximo mes, debitando as notas de devolução"""
+                ultimo_dia_mes: str, primeiro_dia_util_proximo_mes: str) -> tuple[float, float]:
+    """Valor mercadorias e toneladas dos pedidos com valor comercial no mes com entrega até o primeiro dia util do proximo mes, debitando as notas de devolução"""
     sql = """
         SELECT
-            ROUND(SUM((PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) + DEVOLUCOES.TOTAL, 2) AS TOTAL
+            ROUND(SUM((PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) + DEVOLUCOES.TOTAL, 2) AS TOTAL,
+            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.PESO_LIQUIDO ELSE 0 END) / 1000, 3) AS TONELADAS_PROPRIO
 
         FROM
             (
@@ -443,9 +446,9 @@ def pedidos_mes(primeiro_dia_mes: str, primeiro_dia_util_mes: str,
                                 ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
 
     if not resultado[0][0]:
-        return 0.00
+        return 0.00, 0.00
 
-    return float(resultado[0][0])
+    return float(resultado[0][0]), float(resultado[0][1])
 
 
 def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_mes: str,

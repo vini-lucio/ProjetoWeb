@@ -43,6 +43,11 @@
                             <p class="fonte-verde">Pedidos Hoje</p>
                             <p>R$ {{ dados.pedidos_dia | floatformat:"2" }}</p>
                         </div>
+
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Toneladas Hoje</p>
+                            <p>{{ dados.toneladas_dia | floatformat:"3" }} t</p>
+                        </div>
                     </div>
 
                     <div>
@@ -79,6 +84,11 @@
                         <div class="div-dashboard">
                             <p class="fonte-verde">Pedidos Mês</p>
                             <p>R$ {{ dados.pedidos_mes | floatformat:"2" }}</p>
+                        </div>
+
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Toneladas Mês</p>
+                            <p>{{ dados.toneladas_mes | floatformat:"3" }} t</p>
                         </div>
                     </div>
 
