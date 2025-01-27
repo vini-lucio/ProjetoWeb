@@ -425,6 +425,7 @@ class Estados(models.Model):
     class Meta:
         verbose_name = 'Estado'
         verbose_name_plural = 'Estados'
+        ordering = 'uf',
         constraints = [
             models.UniqueConstraint(
                 fields=['uf',],

@@ -1,0 +1,57 @@
+{% extends "frete/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Prazos</h1>
+            </div>
+
+            <form method="get">
+                <div class="grid-simples link-conteudo">
+                    {{ formulario.as_p }}
+                </div>
+                <button class="botao" type="submit">Pesquisar</button>
+            </form>
+        </div>
+
+        
+
+        <div class="link-conteudo">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if prazos %}
+                <div class="tabela-preco">
+                    <table>
+                        <tr>
+                            <th>Origem</th>
+                            <th>Destino</th>
+                            <th>Transportadora</th>
+                            <th>Prazo</th>
+                            <th>Frequencia</th>
+                            <th>Observações</th>
+                        </tr>
+                        {% for prazo in prazos %}
+                            <tr class="{% cycle 'principal-azul-claro' '' %}">
+                                <td>{{ prazo.uf_origem }}</td>
+                                <td>{{ prazo.uf_destino }} - {{ prazo.cidade_destino }}</td>
+                                <td>{{ prazo.transportadora.transportadora_origem_destino.transportadora.nome }}</td>
+                                <td>{{ prazo.prazo }} {{ prazo.prazo_tipo }}</td>
+                                <td>{% if prazo.frequencia %}{{ prazo.frequencia }}{% endif %}</td>
+                                <td>{% if prazo.observacoes_prazo %}{{ prazo.observacoes_prazo }}{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

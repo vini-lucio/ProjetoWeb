@@ -129,7 +129,8 @@ def get_dados_itens_orcamento(orcamento: int):
             PRODUTOS.CODIGO,
             ORCAMENTOS_ITENS.CHAVE_PRODUTO,
             ORCAMENTOS_ITENS.QUANTIDADE,
-            ORCAMENTOS_ITENS.ANALISE_PIS + ORCAMENTOS_ITENS.ANALISE_COFINS AS PIS_COFINS
+            ORCAMENTOS_ITENS.ANALISE_PIS + ORCAMENTOS_ITENS.ANALISE_COFINS AS PIS_COFINS,
+            ORCAMENTOS_ITENS.ANALISE_ICMS AS ICMS
 
         FROM
             COPLAS.PRODUTOS,
@@ -220,9 +221,8 @@ def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamen
     return valores
 
 
-def get_cidades_prazo_taxas(transportadora_regiao_valor: TransportadorasRegioesValores, cidade_destino: str, uf_destino: str):
+def get_cidades_prazo_taxas(transportadora_regiao_valor: TransportadorasRegioesValores, cidade_destino: str, uf_cidade_destino: str):
     """Retorna prazos de entrega e taxas das cidades por transportadoras"""
-    # TODO: aceitar sem transportadora regiao valor para retornar que atende e prazo
     taxa_cidade = 0
     prazo_tipo = transportadora_regiao_valor.prazo_tipo
     prazo = transportadora_regiao_valor.prazo_padrao
@@ -234,7 +234,7 @@ def get_cidades_prazo_taxas(transportadora_regiao_valor: TransportadorasRegioesV
         transportadora_regiao_valor=transportadora_regiao_valor,
         transportadora_regiao_valor__atendimento_cidades_especificas=True,
         cidade__nome=cidade_destino,
-        cidade__estado__sigla=uf_destino,
+        cidade__estado__sigla=uf_cidade_destino,
     ).first()
 
     if transportadora_regiao_cidade:
@@ -258,6 +258,26 @@ def get_cidades_prazo_taxas(transportadora_regiao_valor: TransportadorasRegioesV
     return prazo
 
 
+def get_prazos(uf_origem: str, uf_destino: str, cidade_destino: str) -> list[dict]:
+    """Retorna os prazos por transportadora de uma origem e cidade destino especifica"""
+    dados = {
+        'UF_ORIGEM': uf_origem,
+        'UF_DESTINO': uf_destino,
+        'CIDADE_DESTINO': cidade_destino,
+    }
+    dados.update({'UF_FATURAMENTO': dados['UF_DESTINO']})
+
+    prazos = []
+    valores = get_transportadoras_valores_atendimento(dados_orcamento_pedido=dados)
+    for valor in valores:
+        prazo = get_cidades_prazo_taxas(valor, cidade_destino, uf_destino)
+        prazo.update({'transportadora': valor, 'uf_origem': uf_origem, 'uf_destino': uf_destino,
+                      'cidade_destino': cidade_destino})
+        prazos.append(prazo)
+
+    return prazos
+
+
 def calcular_frete(orcamento: int, zona_rural: bool = False):
     """Retorna uma tupla com os valores do frete por transportadora, dados do orçamento, dados dos itens do orcamento e dados dos volumes dos itens"""
     dados_orcamento = get_dados_orcamento(orcamento)
@@ -266,7 +286,7 @@ def calcular_frete(orcamento: int, zona_rural: bool = False):
 
     valor_total_orc = Decimal(dados_orcamento['VALOR_TOTAL'])  # type:ignore
     destino_consumo_orc = True if dados_orcamento['DESTINO_MERCADORIAS'] == 'CONSUMO' else False  # type:ignore
-    zona_franca_alc_orc = True if dados_orcamento['ZONA_FRANCA_ALC'] == 'SIM' else False  # type:ignore
+    # zona_franca_alc_orc = True if dados_orcamento['ZONA_FRANCA_ALC'] == 'SIM' else False  # type:ignore
     uf_origem_orc = dados_orcamento['UF_ORIGEM']  # type:ignore
     uf_destino_orc = dados_orcamento['UF_DESTINO']  # type:ignore
     cidade_destino_orc = dados_orcamento['CIDADE_DESTINO']  # type:ignore
@@ -278,6 +298,7 @@ def calcular_frete(orcamento: int, zona_rural: bool = False):
         id_produto_orc = item_orcamento['CHAVE_PRODUTO']  # type:ignore
         quantidade_produto_orc = Decimal(item_orcamento['QUANTIDADE'])  # type:ignore
         pis_cofins_orc = Decimal(item_orcamento['PIS_COFINS'])  # type:ignore
+        icms_orc = Decimal(item_orcamento['ICMS'])  # type:ignore
 
         try:
             produto = produtos.get(chave_analysis=id_produto_orc)
@@ -305,7 +326,7 @@ def calcular_frete(orcamento: int, zona_rural: bool = False):
         if site_setup:
             aliquota_pis_cofins = site_setup.aliquota_pis_cofins / 100
             if pis_cofins_orc == 0:
-                aliquota_pis_cofins = 0
+                aliquota_pis_cofins = Decimal(3.08 / 100)  # 2% IR + 1,08% CSLL
             aliquota_icms_simples = site_setup.aliquota_icms_simples / 100
 
         for valor in valores:
@@ -427,10 +448,9 @@ def calcular_frete(orcamento: int, zona_rural: bool = False):
                 icms_interno = get_estados_icms().get(uf_origem__sigla=uf_origem_orc, uf_destino__sigla=uf_origem_orc)
                 icms_interno = icms_interno.icms / 100
                 aliquota_icms = icms_interno
-            # TODO: rever isenção de icms não só pela zona franca (igual ao pis/cofis?)
-            if zona_franca_alc_orc:
+            if icms_orc == 0:
                 aliquota_icms = 0
-            if zona_franca_alc_orc or simples_nacional:
+            if icms_orc == 0 or simples_nacional:
                 credito_icms = 0
             aliquota_impostos_totais = aliquota_icms + aliquota_pis_cofins
             aliquota_impostos_totais_por_dentro = 1 - aliquota_impostos_totais

@@ -9,6 +9,12 @@
                 <h1>Calculo de Frete</h1>
             </div>
 
+            <div class="link-conteudo">
+                <div class="grid-simples">
+                    <a href="{% url "frete:prazos" %}"><div class="botao-div">Consultar Prazos</div></a>
+                </div>
+            </div>
+
             <form method="get">
                 <div class="grid-simples link-conteudo">
                     {{ formulario.as_p }}
@@ -42,7 +48,7 @@
                     </div>
                     <div class="moldura-verde moldura-verde-slim">
                         <p><span class="azul-negrito">Volumes: </span>{{ dados_volumes.total_volumes }}</p>
-                        <p><span class="azul-negrito">Cubagem: </span>{{ dados_volumes.total_m3 }} m³</p>
+                        <p><span class="azul-negrito">Cubagem: </span>{{ dados_volumes.total_m3 }} m³ <button onclick="copiarCubagem()">🗐</button></p>
                         <p><span class="azul-negrito">Peso Bruto: </span>{{ dados_volumes.total_peso_real }} kg</p>
                     </div>
                 </div>
@@ -76,5 +82,20 @@
         </div>
 
     </section>
+
+    <script>
+        function copiarCubagem() {
+            const cubagem = "Medida aferida: {{ dados_volumes.total_m3 }} m³";
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = cubagem;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            alert('Copiado: ' + cubagem);
+        }
+    </script>
 
 {% endblock conteudo %}

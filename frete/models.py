@@ -284,6 +284,4 @@ class TransportadorasRegioesCidades(BaseLogModel):
 # TODO: replicar valores
 # TODO: importar/atualizar cidades prazos
 # TODO: reajuste de valores
-# TODO: calular frete pelo pedido ou nota?
-# TODO: relatorios calculo de frete
-# TODO: copiar m³ na area de transferencia
+# TODO: relatorios calculo de frete, medidas
