@@ -1,8 +1,11 @@
 from typing import Dict
 from django.shortcuts import render
 from django.core.exceptions import ObjectDoesNotExist
+from django.views.generic import ListView
 from frete.services import calcular_frete, get_prazos
 from frete.forms import PesquisarOrcamentoFreteForm, PesquisarCidadePrazosForm
+from home.models import Produtos
+from utils.base_forms import FormPesquisarMixIn
 
 
 def calculo_frete(request):
@@ -54,3 +57,39 @@ def prazos(request):
     contexto.update({'formulario': formulario})
 
     return render(request, 'frete/pages/prazos.html', contexto)
+
+
+class MedidasProdutos(ListView):
+    model = Produtos
+    template_name = 'frete/pages/medidas-produtos.html'
+    context_object_name = 'medidas_produtos'
+    ordering = 'nome',
+    queryset = Produtos.filter_ativos()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({'titulo_pagina': 'Medidas Produtos'})
+
+        if self.request.GET:
+            formulario = FormPesquisarMixIn(self.request.GET)
+            context.update({'formulario': formulario})
+        else:
+            context.update({'formulario': FormPesquisarMixIn()})
+
+        return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        if not self.request.GET:
+            queryset = queryset.none()
+            return queryset
+
+        formulario = FormPesquisarMixIn(self.request.GET)
+
+        if formulario.is_valid() and self.request.GET:
+            produto = formulario.cleaned_data.get('pesquisar')
+            if produto:
+                queryset = queryset.filter(nome__icontains=produto)
+
+        return queryset

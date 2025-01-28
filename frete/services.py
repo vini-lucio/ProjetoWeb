@@ -2,7 +2,8 @@ from decimal import Decimal
 from math import ceil
 from frete.models import TransportadorasRegioesValores
 from utils.oracle.conectar import executar_oracle
-from utils.site_setup import get_transportadoras_regioes_cidades, get_produtos, get_site_setup, get_estados_icms
+from utils.site_setup import (get_transportadoras_regioes_cidades, get_produtos, get_site_setup, get_estados_icms,
+                              get_cidades)
 from django.core.exceptions import ObjectDoesNotExist
 
 
@@ -186,11 +187,14 @@ def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamen
             atendimento_zona_rural=True
         )
 
+    confere_cidade_destino = get_cidades().filter(nome=cidade_destino, estado__sigla=uf_destino).first()
+    if not confere_cidade_destino:
+        raise ObjectDoesNotExist('Cidade não existe')
+
     transportadoras_regioes_cidades = get_transportadoras_regioes_cidades().filter(
         transportadora_regiao_valor__in=ativos_origem_destino,
         transportadora_regiao_valor__atendimento_cidades_especificas=True,
-        cidade__nome=cidade_destino,
-        cidade__estado__sigla=uf_destino,
+        cidade=confere_cidade_destino,
     )
 
     valores = []

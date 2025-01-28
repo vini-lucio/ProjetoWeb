@@ -767,6 +767,10 @@ class Produtos(BaseLogModel):
     prioridade = models.DecimalField("Prioridade", max_digits=4, decimal_places=0, default=0)  # type:ignore
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
+    @classmethod
+    def filter_ativos(cls):
+        return cls.objects.filter(status='ativo')
+
     def save(self, *args, **kwargs) -> None:
         if self.medida_volume_padrao:
             site_setup = SiteSetup.objects.first()

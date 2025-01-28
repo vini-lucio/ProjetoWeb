@@ -1,0 +1,57 @@
+{% extends "frete/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Medidas Produtos</h1>
+            </div>
+
+            <form method="get">
+                <div class="grid-simples link-conteudo">
+                    {{ formulario.as_p }}
+                </div>
+                <button class="botao" type="submit">Pesquisar</button>
+            </form>
+        </div>
+
+        
+
+        <div class="link-conteudo">
+
+            {% if medidas_produtos %}
+                <div class="tabela-preco">
+                    <table>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Peso (kg)</th>
+                            <th>Un.</th>
+                            <th>Multipl.</th>
+                            <th>Embalagem (m)</th>
+                            <th>Qtd./Vol.</th>
+                            <th>Medida Volume (m)</th>
+                            <th>m³ Vol.</th>
+                        </tr>
+                        {% for produto in medidas_produtos %}
+                            <tr class="{% cycle 'principal-azul-claro' '' %}">
+                                <td>{{ produto.nome }}</td>
+                                <td>{{ produto.peso_liquido }}</td>
+                                <td>{{ produto.unidade.unidade }}</td>
+                                <td>{{ produto.multiplicidade }}</td>
+                                <td>{% if produto.tipo_embalagem %}{{ produto.tipo_embalagem }} {% endif %}{{ produto.medida_embalagem_x }} x {{  produto.medida_embalagem_y  }}</td>
+                                <td>{{ produto.quantidade_volume }}</td>
+                                <td>{{ produto.medida_volume_x }} x {{ produto.medida_volume_y }} x {{ produto.medida_volume_z }}</td>
+                                <td>{{ produto.m3_volume }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}
