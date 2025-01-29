@@ -1,0 +1,25 @@
+{% extends "frete/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Relatorios</h1>
+            </div>
+
+            <form method="get">
+                <div class="grid-simples link-conteudo">
+                    {{ formulario.as_p }}
+                </div>
+                <div class="grid-simples">
+                    <button class="botao" name="agili-submit" type="submit">Relatorio Agilli</button>
+                    <button class="botao" name="rastreamento-submit" type="submit">Relatorio Rastreamento</button>
+                </div>
+            </form>
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

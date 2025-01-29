@@ -153,6 +153,60 @@ def get_dados_itens_orcamento(orcamento: int):
     return resultado
 
 
+def get_dados_notas(data_inicio, data_fim):
+    """Retorna os dados dos itens do orcamento para calculo de frete"""
+    sql = """
+        SELECT DISTINCT
+            NOTAS.DATA_SAIDA,
+            VENDEDORES.NOMERED AS CARTEIRA,
+            NOTAS.NF,
+            ORCAMENTOS.NUMPED AS ORCAMENTO,
+            CLIENTES.NOMERED,
+            NOTAS.VALOR_MERCADORIAS,
+            NOTAS.VALOR_TOTAL,
+            NOTAS.VOLUMES_QUANTIDADE,
+            NOTAS.PESO_BRUTO,
+            COALESCE(NOTAS.CLI_ENT_UF, NOTAS.CLI_UF) AS UF_ENTREGA,
+            COALESCE(NOTAS.CLI_ENT_CIDADE, NOTAS.CLI_CIDADE) AS CIDADE_ENTREGA,
+            TRANSPORTADORAS.NOMERED AS TRANSPORTADORA,
+            CASE WHEN NOTAS.COBRANCA_FRETE IN (0, 1, 4, 5) THEN 'REMETENTE' WHEN NOTAS.COBRANCA_FRETE IN (2, 6) THEN 'DESTINATARIO' ELSE 'INCORRETO' END AS FRETE,
+            NOTAS.VALOR_FRETE AS FRETE_NOTA
+            -- , JOBS.UF AS UF_ORIGEM
+
+        FROM
+            COPLAS.VENDEDORES,
+            COPLAS.ORCAMENTOS,
+            COPLAS.PEDIDOS,
+            COPLAS.NOTAS_ITENS,
+            COPLAS.TRANSPORTADORAS,
+            COPLAS.NOTAS,
+            COPLAS.JOBS,
+            COPLAS.CLIENTES
+
+        WHERE
+            VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
+            CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
+            TRANSPORTADORAS.CODTRANSP = NOTAS.CHAVE_TRANSPORTADORA AND
+            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+            PEDIDOS.CHAVE = NOTAS_ITENS.NUMPED AND
+            JOBS.CODIGO = NOTAS.CHAVE_JOB AND
+            ORCAMENTOS.CHAVE = PEDIDOS.CHAVE_ORCAMENTO AND
+
+            NOTAS.DATA_EMISSAO >= :data_inicio AND
+            NOTAS.DATA_EMISSAO <= :data_fim
+
+            -- NOTAS.DATA_EMISSAO >= TO_DATE(:data_inicio,'DD-MM-YYYY') AND
+            -- NOTAS.DATA_EMISSAO <= TO_DATE(:data_fim,'DD-MM-YYYY')
+
+        ORDER BY
+            TRANSPORTADORAS.NOMERED, NOTAS.NF
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim)
+
+    return resultado
+
+
 def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamento_pedido=[], zona_rural: bool = False, transportadora_especifica: bool = False) -> list[TransportadorasRegioesValores]:
     """Passar somente um dos parametros de orçamento. Retorna os dados dos valores das transportadoras que atendem o destino do orçamento informado"""
     if orcamento != 0:
@@ -282,8 +336,8 @@ def get_prazos(uf_origem: str, uf_destino: str, cidade_destino: str) -> list[dic
     return prazos
 
 
-def calcular_frete(orcamento: int, zona_rural: bool = False):
-    """Retorna uma tupla com os valores do frete por transportadora, dados do orçamento, dados dos itens do orcamento e dados dos volumes dos itens"""
+def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_regiao_valor_especifico: TransportadorasRegioesValores | None = None):
+    """Retorna uma tupla com os valores do frete por transportadora, dados do orçamento, dados dos itens do orcamento e dados dos volumes dos itens. Se transportadora região valor especifico for informado, será calculado independente do destino do orçamento"""
     dados_orcamento = get_dados_orcamento(orcamento)
     dados_itens_orcamento = get_dados_itens_orcamento(orcamento)
     fretes = []
@@ -324,7 +378,13 @@ def calcular_frete(orcamento: int, zona_rural: bool = False):
         dados_itens.append(item)
 
     dados_volume = {}
-    valores = get_transportadoras_valores_atendimento(dados_orcamento_pedido=dados_orcamento, zona_rural=zona_rural)
+    valores = []
+    if not transportadora_regiao_valor_especifico:
+        valores = get_transportadoras_valores_atendimento(dados_orcamento_pedido=dados_orcamento,
+                                                          zona_rural=zona_rural)
+    else:
+        valores.append(transportadora_regiao_valor_especifico)
+
     if valores:
         site_setup = get_site_setup()
         if site_setup:

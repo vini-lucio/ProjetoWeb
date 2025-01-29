@@ -17,3 +17,5 @@ urlpatterns = [
     path('produtos-modelos/', ProdutosModelosListView.as_view(), name='produtos-modelos'),
     path('produtos-modelos/<int:pk>/', ProdutosModelosDetailView.as_view(), name='produtos-modelo'),
 ]
+
+# TODO: atalhos para todas as urls

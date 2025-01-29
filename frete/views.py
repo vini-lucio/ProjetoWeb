@@ -2,14 +2,17 @@ from typing import Dict
 from django.shortcuts import render
 from django.core.exceptions import ObjectDoesNotExist
 from django.views.generic import ListView
-from frete.services import calcular_frete, get_prazos
+from django.http import HttpResponse
+from frete.services import calcular_frete, get_prazos, get_dados_notas
 from frete.forms import PesquisarOrcamentoFreteForm, PesquisarCidadePrazosForm
 from home.models import Produtos
-from utils.base_forms import FormPesquisarMixIn
+from utils.site_setup import get_transportadoras_regioes_valores
+from utils.base_forms import FormPesquisarMixIn, FormPeriodoInicioFimMixIn
+from utils.exportar_excel import arquivo_excel, salvar_excel_temporario
 
 
 def calculo_frete(request):
-    titulo_pagina = 'Calculo de Frete'
+    titulo_pagina = 'Frete - Calculo de Frete'
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, }
 
@@ -36,7 +39,7 @@ def calculo_frete(request):
 
 
 def prazos(request):
-    titulo_pagina = 'Prazos'
+    titulo_pagina = 'Frete - Prazos'
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, }
 
@@ -68,7 +71,7 @@ class MedidasProdutos(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update({'titulo_pagina': 'Medidas Produtos'})
+        context.update({'titulo_pagina': 'Frete - Medidas Produtos'})
 
         if self.request.GET:
             formulario = FormPesquisarMixIn(self.request.GET)
@@ -93,3 +96,45 @@ class MedidasProdutos(ListView):
                 queryset = queryset.filter(nome__icontains=produto)
 
         return queryset
+
+
+# TODO: forçar login? forçar direito de usuario?
+def relatorios(request):
+    titulo_pagina = 'Frete - Relatorios'
+
+    contexto: Dict = {'titulo_pagina': titulo_pagina, }
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormPeriodoInicioFimMixIn(request.GET)
+        contexto.update({'formulario': formulario})
+
+        if formulario.is_valid() and 'agili-submit' in request.GET:
+            data_inicio = formulario.cleaned_data.get('inicio')
+            data_fim = formulario.cleaned_data.get('fim')
+
+            agili = get_transportadoras_regioes_valores().filter(
+                transportadora_origem_destino__transportadora__nome__iexact='agili',
+                transportadora_origem_destino__estado_origem_destino__uf_origem__sigla='SP',
+                transportadora_origem_destino__estado_origem_destino__uf_destino__sigla='SP',
+                descricao__iexact='capital',
+            ).first()
+            notas = get_dados_notas(data_inicio, data_fim)
+
+            for nota in notas:
+                valor_calculo_frete, *_ = calcular_frete(nota['ORCAMENTO'],
+                                                         transportadora_regiao_valor_especifico=agili)
+                nota.update({'VALOR_CALCULO_FRETE': valor_calculo_frete[0]['valor_frete_empresa']})
+
+            excel = arquivo_excel(notas)
+            arquivo = salvar_excel_temporario(excel)
+
+            response = HttpResponse(
+                arquivo,
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = 'attachment; filename="relatorio_agili.xlsx"'
+            return response
+
+    contexto.update({'formulario': FormPeriodoInicioFimMixIn()})
+
+    return render(request, 'frete/pages/relatorios.html', contexto)
