@@ -1,6 +1,7 @@
 from typing import Dict
 from django.shortcuts import render
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.decorators import user_passes_test
 from django.views.generic import ListView
 from django.http import HttpResponse
 from frete.services import calcular_frete, get_prazos, get_dados_notas
@@ -98,7 +99,7 @@ class MedidasProdutos(ListView):
         return queryset
 
 
-# TODO: forçar login? forçar direito de usuario?
+@user_passes_test(lambda usuario: usuario.has_perm('frete.view_transportadorasregioesvalores'), login_url='/admin/login/')
 def relatorios(request):
     titulo_pagina = 'Frete - Relatorios'
 
