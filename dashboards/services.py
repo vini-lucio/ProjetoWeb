@@ -643,7 +643,7 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
     for dados_pedido in dados_pedidos:
         try:
             get_transportadoras_valores_atendimento(dados_orcamento_pedido=dados_pedido,
-                                                    transportadora_especifica=True)
+                                                    transportadora_orcamento_pedido=True)
         except ObjectDoesNotExist:
             transportadora = transportadoras.filter(chave_analysis=dados_pedido['CHAVE_TRANSPORTADORA'])
             if transportadora:

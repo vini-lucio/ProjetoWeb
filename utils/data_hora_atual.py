@@ -10,3 +10,10 @@ def data_hora_atual() -> str:
 
 def hoje():
     return datetime.today().date()
+
+
+def hoje_as_yyyymmdd() -> str:
+    """Retorna data atual no formato YYYY-MM-DD"""
+    hoje_ = hoje()
+    hoje_formatado = hoje_.strftime("%Y-%m-%d")
+    return hoje_formatado

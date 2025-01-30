@@ -4,12 +4,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import user_passes_test
 from django.views.generic import ListView
 from django.http import HttpResponse
-from frete.services import calcular_frete, get_prazos, get_dados_notas
-from frete.forms import PesquisarOrcamentoFreteForm, PesquisarCidadePrazosForm
+from frete.services import calcular_frete, get_prazos, get_dados_notas, get_dados_notas_monitoramento
+from frete.forms import PesquisarOrcamentoFreteForm, PesquisarCidadePrazosForm, PeriodoInicioFimForm
 from home.models import Produtos
 from utils.site_setup import get_transportadoras_regioes_valores
-from utils.base_forms import FormPesquisarMixIn, FormPeriodoInicioFimMixIn
+from utils.base_forms import FormPesquisarMixIn
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario
+from pandas import offsets
 
 
 def calculo_frete(request):
@@ -106,36 +107,61 @@ def relatorios(request):
     contexto: Dict = {'titulo_pagina': titulo_pagina, }
 
     if request.method == 'GET' and request.GET:
-        formulario = FormPeriodoInicioFimMixIn(request.GET)
+        formulario = PeriodoInicioFimForm(request.GET)
         contexto.update({'formulario': formulario})
 
-        if formulario.is_valid() and 'agili-submit' in request.GET:
+        if formulario.is_valid():
             data_inicio = formulario.cleaned_data.get('inicio')
             data_fim = formulario.cleaned_data.get('fim')
 
-            agili = get_transportadoras_regioes_valores().filter(
-                transportadora_origem_destino__transportadora__nome__iexact='agili',
-                transportadora_origem_destino__estado_origem_destino__uf_origem__sigla='SP',
-                transportadora_origem_destino__estado_origem_destino__uf_destino__sigla='SP',
-                descricao__iexact='capital',
-            ).first()
-            notas = get_dados_notas(data_inicio, data_fim)
+            if 'agili-submit' in request.GET:
 
-            for nota in notas:
-                valor_calculo_frete, *_ = calcular_frete(nota['ORCAMENTO'],
-                                                         transportadora_regiao_valor_especifico=agili)
-                nota.update({'VALOR_CALCULO_FRETE': valor_calculo_frete[0]['valor_frete_empresa']})
+                agili = get_transportadoras_regioes_valores().filter(
+                    transportadora_origem_destino__transportadora__nome__iexact='agili',
+                    transportadora_origem_destino__estado_origem_destino__uf_origem__sigla='SP',
+                    transportadora_origem_destino__estado_origem_destino__uf_destino__sigla='SP',
+                    descricao__iexact='capital',
+                ).first()
+                notas = get_dados_notas(data_inicio, data_fim)
 
-            excel = arquivo_excel(notas)
-            arquivo = salvar_excel_temporario(excel)
+                for nota in notas:
+                    valor_calculo_frete, *_ = calcular_frete(nota['ORCAMENTO'],
+                                                             transportadora_regiao_valor_especifico=agili)
+                    nota.update({'VALOR_CALCULO_FRETE': valor_calculo_frete[0]['valor_frete_empresa']})
+
+                excel = arquivo_excel(notas)
+                arquivo = salvar_excel_temporario(excel)
+                nome_arquivo = 'relatorio_agili'
+
+            if 'rastreamento-submit' in request.GET:
+
+                notas = get_dados_notas_monitoramento(data_inicio, data_fim)
+
+                for nota in notas:
+                    try:
+                        valor_calculo_frete, * _ = calcular_frete(nota['ORCAMENTO'],
+                                                                  transportadora_orcamento_pedido=True)
+                        despacho = nota['DATA_DESPACHO']
+                        prazo = valor_calculo_frete[0]['prazo']
+                        prazo_entrega = despacho + offsets.BDay(prazo)
+                        nota.update({
+                            'PRAZO_ENTREGA': prazo_entrega,
+                            'PRAZO': prazo,
+                        })
+                    except ObjectDoesNotExist:
+                        nota.update({'PRAZO_ENTREGA': '', 'PRAZO': '', 'FDS': '', })
+
+                excel = arquivo_excel(notas)
+                arquivo = salvar_excel_temporario(excel)
+                nome_arquivo = 'relatorio_rastreamento'
 
             response = HttpResponse(
                 arquivo,
                 content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
-            response['Content-Disposition'] = 'attachment; filename="relatorio_agili.xlsx"'
+            response['Content-Disposition'] = 'attachment; filename="{}.xlsx"'.format(nome_arquivo)
             return response
 
-    contexto.update({'formulario': FormPeriodoInicioFimMixIn()})
+    contexto.update({'formulario': PeriodoInicioFimForm()})
 
     return render(request, 'frete/pages/relatorios.html', contexto)

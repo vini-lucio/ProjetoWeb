@@ -207,7 +207,53 @@ def get_dados_notas(data_inicio, data_fim):
     return resultado
 
 
-def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamento_pedido=[], zona_rural: bool = False, transportadora_especifica: bool = False) -> list[TransportadorasRegioesValores]:
+def get_dados_notas_monitoramento(data_inicio, data_fim):
+    """Retorna os dados dos itens do orcamento para calculo de frete"""
+    sql = """
+        SELECT DISTINCT
+            TRANSPORTADORAS.CODTRANSP,
+            ORCAMENTOS.NUMPED AS ORCAMENTO,
+            NOTAS.DATA_DESPACHO,
+            NOTAS.NF,
+            CLIENTES.NOMERED,
+            COALESCE(NOTAS.CLI_ENT_UF, NOTAS.CLI_UF) AS UF_ENTREGA,
+            COALESCE(NOTAS.CLI_ENT_CIDADE, NOTAS.CLI_CIDADE) AS CIDADE_ENTREGA,
+            TRANSPORTADORAS.NOMERED AS TRANSPORTADORA,
+            CASE WHEN NOTAS.COBRANCA_FRETE = 1 THEN 'COM COBRANCA' ELSE 'SEM COBRANCA' END AS FRETE
+
+        FROM
+            COPLAS.VENDEDORES,
+            COPLAS.ORCAMENTOS,
+            COPLAS.PEDIDOS,
+            COPLAS.NOTAS_ITENS,
+            COPLAS.TRANSPORTADORAS,
+            COPLAS.NOTAS,
+            COPLAS.CLIENTES
+
+        WHERE
+            VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
+            CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
+            TRANSPORTADORAS.CODTRANSP = NOTAS.CHAVE_TRANSPORTADORA AND
+            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+            PEDIDOS.CHAVE = NOTAS_ITENS.NUMPED AND
+            ORCAMENTOS.CHAVE = PEDIDOS.CHAVE_ORCAMENTO AND
+            NOTAS.COBRANCA_FRETE IN (0, 1) AND
+            TRANSPORTADORAS.CODTRANSP NOT IN (8003, 8475, 7738, 6766, 7733, 8264) AND
+            COALESCE(NOTAS.CLI_ENT_CIDADE, NOTAS.CLI_CIDADE) != 'EXTERIOR' AND
+
+            NOTAS.DATA_DESPACHO >= :data_inicio AND
+            NOTAS.DATA_DESPACHO <= :data_fim
+
+        ORDER BY
+            NOTAS.NF
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim)
+
+    return resultado
+
+
+def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamento_pedido=[], zona_rural: bool = False, transportadora_orcamento_pedido: bool = False) -> list[TransportadorasRegioesValores]:
     """Passar somente um dos parametros de orçamento. Retorna os dados dos valores das transportadoras que atendem o destino do orçamento informado"""
     if orcamento != 0:
         dados_orcamento_pedido = get_dados_orcamento(orcamento)
@@ -219,7 +265,7 @@ def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamen
 
     faturamento_diferente_destino = uf_faturamento != uf_destino
 
-    if not transportadora_especifica:
+    if not transportadora_orcamento_pedido:
         ativos_origem_destino = TransportadorasRegioesValores.filter_ativos().filter(
             transportadora_origem_destino__estado_origem_destino__uf_origem__sigla=uf_origem,
             transportadora_origem_destino__estado_origem_destino__uf_destino__sigla=uf_destino,
@@ -336,7 +382,7 @@ def get_prazos(uf_origem: str, uf_destino: str, cidade_destino: str) -> list[dic
     return prazos
 
 
-def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_regiao_valor_especifico: TransportadorasRegioesValores | None = None):
+def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_orcamento_pedido: bool = False, transportadora_regiao_valor_especifico: TransportadorasRegioesValores | None = None):
     """Retorna uma tupla com os valores do frete por transportadora, dados do orçamento, dados dos itens do orcamento e dados dos volumes dos itens. Se transportadora região valor especifico for informado, será calculado independente do destino do orçamento"""
     dados_orcamento = get_dados_orcamento(orcamento)
     dados_itens_orcamento = get_dados_itens_orcamento(orcamento)
@@ -381,7 +427,8 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_r
     valores = []
     if not transportadora_regiao_valor_especifico:
         valores = get_transportadoras_valores_atendimento(dados_orcamento_pedido=dados_orcamento,
-                                                          zona_rural=zona_rural)
+                                                          zona_rural=zona_rural,
+                                                          transportadora_orcamento_pedido=transportadora_orcamento_pedido)
     else:
         valores.append(transportadora_regiao_valor_especifico)
 
