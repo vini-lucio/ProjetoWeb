@@ -50,3 +50,17 @@ def converter_hora_django_para_str_hh24mm(hora_converter) -> str:
     hora = converter_hora_django_para_datetime(hora_converter)
     hora_formatada = hora.strftime('%H:%M')
     return hora_formatada
+
+
+def converter_datetime_para_str_ddmmyy(data_converter) -> str:
+    if not data_converter:
+        return ''
+    data_formatada = data_converter.strftime('%d/%m/%y')
+    return data_formatada
+
+
+def converter_datetime_para_str_ddmmyyyy(data_converter) -> str:
+    if not data_converter:
+        return ''
+    data_formatada = data_converter.strftime('%d/%m/%Y')
+    return data_formatada

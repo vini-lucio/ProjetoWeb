@@ -10,6 +10,7 @@ from home.models import Produtos
 from utils.site_setup import get_transportadoras_regioes_valores
 from utils.base_forms import FormPesquisarMixIn
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario
+from utils.converter import converter_datetime_para_str_ddmmyy, converter_datetime_para_str_ddmmyyyy
 from pandas import offsets
 
 
@@ -138,18 +139,19 @@ def relatorios(request):
                 notas = get_dados_notas_monitoramento(data_inicio, data_fim)
 
                 for nota in notas:
+                    despacho = nota['DATA_DESPACHO']
+                    nota.update({'DATA_DESPACHO': converter_datetime_para_str_ddmmyyyy(nota['DATA_DESPACHO']), })
                     try:
                         valor_calculo_frete, * _ = calcular_frete(nota['ORCAMENTO'],
                                                                   transportadora_orcamento_pedido=True)
-                        despacho = nota['DATA_DESPACHO']
                         prazo = valor_calculo_frete[0]['prazo']
                         prazo_entrega = despacho + offsets.BDay(prazo)
                         nota.update({
-                            'PRAZO_ENTREGA': prazo_entrega,
+                            'PRAZO_ENTREGA': converter_datetime_para_str_ddmmyy(prazo_entrega),
                             'PRAZO': prazo,
                         })
                     except ObjectDoesNotExist:
-                        nota.update({'PRAZO_ENTREGA': '', 'PRAZO': '', 'FDS': '', })
+                        nota.update({'PRAZO_ENTREGA': '', 'PRAZO': '', })
 
                 excel = arquivo_excel(notas)
                 arquivo = salvar_excel_temporario(excel)
