@@ -6,6 +6,51 @@ from utils.site_setup import get_cidades, get_estados, get_site_setup, get_unida
 from utils.lfrete import notas as lfrete_notas
 
 
+def contas_marketing_ano_mes_a_mes():
+    """Totaliza o valor das contas de marketing no periodo informado em site setup mes a mes"""
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+
+    sql = """
+        SELECT
+            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) AS MES,
+            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1396 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS CORREIOS,
+            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1481 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS MIDIA,
+            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1482 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS FEIRAS_EVENTOS,
+            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1483 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS BRINDES,
+            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1484 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS IMPRESSO,
+            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1537 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS INSTITUCIONAL,
+            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1561 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS PATROCINIO,
+            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1565 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS FERRAMENTAS,
+            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1608 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS CAMPANHA_COMERCIAL
+
+        FROM
+            COPLAS.PAGAR,
+            COPLAS.PAGAR_PLANOCONTA
+
+        WHERE
+            PAGAR.CHAVE = PAGAR_PLANOCONTA.CHAVE_PAGAR AND
+            PAGAR.CONDICAO = 'LIQUIDADO' AND
+            PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS IN (1396, 1481, 1482, 1483, 1484, 1537, 1561, 1565, 1608) AND
+
+            PAGAR.DATALIQUIDACAO >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
+            PAGAR.DATALIQUIDACAO <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
+
+        GROUP BY
+            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO)
+
+        ORDER BY
+            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO)
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
+                                data_ano_fim=data_ano_fim)
+
+    return resultado
+
+
 def i4ref_terceirizacao_ano_mes_a_mes():
     """Totaliza o valor da terceirização do 4REF do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
