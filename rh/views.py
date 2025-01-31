@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import user_passes_test
 from django.views.generic import ListView, DetailView
 from django.utils.decorators import method_decorator
 from rh.models import Funcionarios, Ferias, Dependentes
@@ -7,7 +7,7 @@ from rh.forms import ReciboValeTransporteForm, FeriasEmAbertoForm, DependentesIr
 from rh_relatorios.models import FuncionariosSalarioFuncaoAtual
 
 
-@login_required(login_url='/admin/login/')
+@user_passes_test(lambda usuario: usuario.has_perm('rh.view_funcionarios'), login_url='/admin/login/')
 def index(request):
     titulo_pagina = 'RH'
     return render(request, 'rh/pages/index.html', {'titulo_pagina': titulo_pagina})

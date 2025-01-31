@@ -6,3 +6,5 @@ app_name = 'dashboards'
 urlpatterns = [
     path('vendas-tv/', vendas_tv, name='vendas-tv'),
 ]
+
+# TODO: atalhos para dashboards

@@ -14,8 +14,7 @@ urlpatterns = [
     path('consultoria-vendas/calculo-quimicos/', calculo_quimicos, name='calculo-quimicos'),
     path('consultoria-vendas/calculo-niveladores/', calculo_niveladores, name='calculo-niveladores'),
     path('consultoria-vendas/tabela-precos/', tabela_precos, name='tabela-precos'),
+    # TODO: atalhos para produtos modelos em consultoria de vendas
     path('produtos-modelos/', ProdutosModelosListView.as_view(), name='produtos-modelos'),
     path('produtos-modelos/<int:pk>/', ProdutosModelosDetailView.as_view(), name='produtos-modelo'),
 ]
-
-# TODO: atalhos para todas as urls

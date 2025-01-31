@@ -182,7 +182,7 @@ def volumes_manual(request):
         request.session.create()
 
     session_key = request.session.session_key
-    cache_key = f'valores{session_key}'
+    cache_key = f'volumes_manual_{session_key}'
     cache_lista = cache.get(cache_key, [])
 
     if not cache_lista:
