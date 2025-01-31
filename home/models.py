@@ -656,6 +656,7 @@ class Produtos(BaseLogModel):
     class Meta:
         verbose_name = 'Produto'
         verbose_name_plural = 'Produtos'
+        ordering = 'nome',
         constraints = [
             models.UniqueConstraint(
                 fields=['chave_analysis',],

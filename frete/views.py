@@ -4,14 +4,18 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import user_passes_test
 from django.views.generic import ListView
 from django.http import HttpResponse
-from frete.services import calcular_frete, get_prazos, get_dados_notas, get_dados_notas_monitoramento
-from frete.forms import PesquisarOrcamentoFreteForm, PesquisarCidadePrazosForm, PeriodoInicioFimForm
+from django.core.cache import cache
+from frete.services import (calcular_frete, get_prazos, get_dados_notas, get_dados_notas_monitoramento,
+                            get_dados_itens_frete)
+from frete.forms import PesquisarOrcamentoFreteForm, PesquisarCidadePrazosForm, PeriodoInicioFimForm, VolumesManualForm
 from home.models import Produtos
 from utils.site_setup import get_transportadoras_regioes_valores
 from utils.base_forms import FormPesquisarMixIn
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario
 from utils.converter import converter_datetime_para_str_ddmmyy, converter_datetime_para_str_ddmmyyyy
 from pandas import offsets
+from decimal import Decimal
+from math import ceil
 
 
 def calculo_frete(request):
@@ -167,3 +171,82 @@ def relatorios(request):
     contexto.update({'formulario': PeriodoInicioFimForm()})
 
     return render(request, 'frete/pages/relatorios.html', contexto)
+
+
+def volumes_manual(request):
+    titulo_pagina = 'Frete - Volumes Manual'
+
+    contexto: Dict = {'titulo_pagina': titulo_pagina, }
+
+    if not request.session.session_key:
+        request.session.create()
+
+    session_key = request.session.session_key
+    cache_key = f'valores{session_key}'
+    cache_lista = cache.get(cache_key, [])
+
+    if not cache_lista:
+        itens = []
+        dados_volumes = {
+            'total_volumes_real': Decimal(0),
+            'total_volumes': Decimal(0),
+            'total_m3': Decimal(0),
+            'total_peso_real': Decimal(0),
+        }
+    else:
+        itens, dados_volumes = cache_lista
+        cache_lista = []
+
+    if request.method == 'GET' and request.GET:
+        formulario = VolumesManualForm(request.GET)
+        if formulario.is_valid():
+            if 'incluir-submit' in request.GET:
+                produto = formulario.cleaned_data.get('produto')
+                quantidade = formulario.cleaned_data.get('quantidade')
+
+                total_volumes = dados_volumes['total_volumes']
+                total_m3 = dados_volumes['total_m3']
+                total_peso_real = dados_volumes['total_peso_real']
+
+                dados_itens_orcamento = [{
+                    'CHAVE_PRODUTO': produto.chave_analysis,  # type:ignore
+                    'QUANTIDADE': quantidade,
+                    'PIS_COFINS': 0,
+                    'ICMS': 0,
+                }]
+                dados_itens, *_ = get_dados_itens_frete(dados_itens_orcamento)
+                dados_itens = dados_itens[0]
+                dados_itens.update({'quantidade': dados_itens_orcamento[0]['QUANTIDADE']})
+
+                if dados_itens['produto'] not in [item['produto'] for item in itens]:
+                    itens.append(dados_itens)
+
+                    total_volumes += dados_itens['volumes_item']
+                    total_m3 += dados_itens['m3_item']
+                    total_peso_real += dados_itens['peso_item']
+                    dados_volumes.update({
+                        'total_volumes_real': ceil(total_volumes),
+                        'total_volumes': total_volumes,
+                        'total_m3': total_m3,
+                        'total_peso_real': total_peso_real})
+                else:
+                    contexto.update({'erros': 'Produto já está na lista', })
+
+        if 'limpar-submit' in request.GET:
+            itens = []
+            dados_volumes = {
+                'total_volumes_real': Decimal(0),
+                'total_volumes': Decimal(0),
+                'total_m3': Decimal(0),
+                'total_peso_real': Decimal(0),
+            }
+
+    cache_lista.append(itens)
+    cache_lista.append(dados_volumes)
+    cache.set(cache_key, cache_lista)
+
+    formulario = VolumesManualForm()
+
+    contexto.update({'formulario': formulario, 'itens': itens, 'dados_volumes': dados_volumes})
+
+    return render(request, 'frete/pages/volumes-manual.html', contexto)

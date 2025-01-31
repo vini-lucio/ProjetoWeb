@@ -1,0 +1,66 @@
+{% extends "frete/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Volumes Manual</h1>
+            </div>
+
+            <form method="get">
+                <div class="grid-simples link-conteudo">
+                    {{ formulario.as_p }}
+                </div>
+                <button class="botao" name="incluir-submit" type="submit">Incluir</button>
+            </form>
+        </div>
+
+        
+
+        <div class="link-conteudo">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if dados_volumes %}
+                <div class="grid-slim centralizar">
+                    <div class="moldura-verde moldura-verde-slim">
+                        <p><span class="azul-negrito">Volumes: </span>{{ dados_volumes.total_volumes_real }}</p>
+                        <p><span class="azul-negrito">Cubagem: </span>{{ dados_volumes.total_m3 | floatformat:4 }} m³</p>
+                        <p><span class="azul-negrito">Peso Bruto: </span>{{ dados_volumes.total_peso_real | floatformat:4 }} kg</p>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if itens %}
+                <div class="grid-simples link-conteudo">
+                    <form method="get">
+                        <button class="botao" name="limpar-submit" type="submit">Limpar</button>
+                    </form>
+                </div>
+                <div class="tabela-preco">
+                    <table>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Quantidade</th>
+                            <th>Un.</th>
+                        </tr>
+                        {% for produto in itens %}
+                            <tr class="{% cycle 'principal-azul-claro' '' %}">
+                                <td>{{ produto.produto.nome }}</td>
+                                <td>{{ produto.quantidade }}</td>
+                                <td>{{ produto.produto.unidade.unidade }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

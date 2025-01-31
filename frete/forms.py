@@ -2,7 +2,7 @@ from django import forms
 from utils.choices import sim_nao_branco
 from utils.base_forms import FormPeriodoInicioFimMixIn
 from utils.data_hora_atual import hoje_as_yyyymmdd
-from home.models import Estados
+from home.models import Estados, Produtos
 
 
 class PesquisarOrcamentoFreteForm(forms.Form):
@@ -25,3 +25,10 @@ class PeriodoInicioFimForm(FormPeriodoInicioFimMixIn, forms.Form):
         super().__init__(*args, **kwargs)
         self.fields['inicio'].initial = hoje_as_yyyymmdd()
         self.fields['fim'].initial = hoje_as_yyyymmdd()
+
+
+class VolumesManualForm(forms.Form):
+    produtos = Produtos.filter_ativos().filter(quantidade_volume__gt=0)
+
+    produto = forms.ModelChoiceField(produtos, label="Produto")
+    quantidade = forms.DecimalField(label="Quantidade")
