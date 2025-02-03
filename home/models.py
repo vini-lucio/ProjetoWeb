@@ -726,6 +726,7 @@ class Produtos(BaseLogModel):
         ]
 
     tipos_embalagem = {
+        # se incluir um novo tipo, verificar arredondamento do calculo de volumes
         'PLASTICO': 'Plastico',
         'RAFIA': 'Rafia',
         'OUTROS': 'Outros',

@@ -382,7 +382,7 @@ def get_prazos(uf_origem: str, uf_destino: str, cidade_destino: str) -> list[dic
     return prazos
 
 
-def get_dados_itens_frete(dados_itens_orcamento):
+def get_dados_itens_frete(dados_itens_orcamento, exportacao: bool = False):
     """Retorna uma tupla com os dados de volume dos produtos, pis/cofins e icms"""
     dados_itens = []
     produtos = get_produtos()
@@ -407,9 +407,13 @@ def get_dados_itens_frete(dados_itens_orcamento):
         maior_peso = peso_liquido if peso_liquido >= peso_bruto else peso_bruto
         peso = maior_peso * quantidade_produto_orc
 
-        volumes = quantidade_produto_orc / quantidade_volume
-
+        try:
+            volumes = quantidade_produto_orc / quantidade_volume
+        except ZeroDivisionError:
+            raise ZeroDivisionError()
         m3 = volumes * m3_volume
+        if produto.tipo_embalagem != 'PLASTICO' or exportacao:
+            volumes = ceil(volumes)
 
         item = {'produto': produto, 'peso_item': peso, 'volumes_item': volumes, 'm3_item': m3}
         dados_itens.append(item)
@@ -430,7 +434,8 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_o
     uf_destino_orc = dados_orcamento['UF_DESTINO']  # type:ignore
     cidade_destino_orc = dados_orcamento['CIDADE_DESTINO']  # type:ignore
 
-    dados_itens, pis_cofins_orc, icms_orc = get_dados_itens_frete(dados_itens_orcamento)
+    exportacao = True if uf_destino_orc == 'EX' else False
+    dados_itens, pis_cofins_orc, icms_orc = get_dados_itens_frete(dados_itens_orcamento, exportacao)
 
     dados_volume = {}
     valores = []

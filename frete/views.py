@@ -37,6 +37,8 @@ def calculo_frete(request):
                 contexto.update({'fretes': fretes})
             except ObjectDoesNotExist as erros:
                 contexto.update({'erros': erros})
+            except ZeroDivisionError:
+                contexto.update({'erros': 'Erro divisão por 0 (quantidade por volume)'})
 
     formulario = PesquisarOrcamentoFreteForm()
 
