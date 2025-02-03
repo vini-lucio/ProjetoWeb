@@ -284,3 +284,4 @@ class TransportadorasRegioesCidades(BaseLogModel):
 # TODO: replicar valores
 # TODO: importar/atualizar cidades prazos
 # TODO: reajuste de valores
+# TODO: calculo de frete com redespacho para a filial da transportadora (exemplo: agili leva até a transportadora)

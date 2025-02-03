@@ -408,7 +408,7 @@ def get_dados_itens_frete(dados_itens_orcamento, exportacao: bool = False):
         peso = maior_peso * quantidade_produto_orc
 
         try:
-            volumes = quantidade_produto_orc / quantidade_volume
+            volumes = round(quantidade_produto_orc / quantidade_volume, 4)
         except ZeroDivisionError:
             raise ZeroDivisionError()
         m3 = volumes * m3_volume
@@ -517,7 +517,7 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_o
             pedagio_minimo = valor.pedagio_valor_minimo
             valor_pedagio = 0
             if pedagio_fracao != 0:
-                fracoes = ceil(total_peso_maior / pedagio_fracao)
+                fracoes = ceil(round(total_peso_maior / pedagio_fracao, 4))
                 valor_pedagio = fracoes * pedagio_fracao_valor
             if valor_pedagio < pedagio_minimo:
                 valor_pedagio = pedagio_minimo
