@@ -40,13 +40,14 @@ def calculo_frete(request):
 
                 if usuario_logistica:
                     transportadora_valor_redespacho = formulario.cleaned_data.get('transportadora_valor_redespacho')
-                    frete_redespacho, * _ = calcular_frete(
-                        orcamento,
-                        zona_rural,
-                        transportadora_regiao_valor_especifico=transportadora_valor_redespacho
-                    )
-                    frete_redespacho = frete_redespacho[0]
-                    contexto.update({'frete_redespacho': frete_redespacho})
+                    if transportadora_valor_redespacho:
+                        frete_redespacho, * _ = calcular_frete(
+                            orcamento,
+                            zona_rural,
+                            transportadora_regiao_valor_especifico=transportadora_valor_redespacho
+                        )
+                        frete_redespacho = frete_redespacho[0]
+                        contexto.update({'frete_redespacho': frete_redespacho})
 
             except ObjectDoesNotExist as erros:
                 contexto.update({'erros': erros})
