@@ -20,7 +20,23 @@
 
             <form method="get">
                 <div class="grid-simples link-conteudo">
-                    {{ formulario.as_p }}
+                    {% comment %} {{ formulario.as_p }} {% endcomment %}
+                    {% for field in formulario %}
+                        {% if field.name != 'transportadora_valor_redespacho' or field.name == 'transportadora_valor_redespacho' and usuario_logistica %}
+                            <p>
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <small>{{ field.help_text }}</small>
+                                {% endif %}
+                                {% if field.errors %}
+                                    <div class="error">
+                                        {{ field.errors }}
+                                    </div>
+                                {% endif %}
+                            </p>
+                        {% endif %}
+                    {% endfor %}
                 </div>
                 <button class="botao" type="submit">Calcular</button>
             </form>
@@ -81,6 +97,33 @@
                     </div>
                 {% endfor %}
             </div>
+
+            {% if frete_redespacho %}
+                <div class="grid-simples">
+                    <div class="grid-slim centralizar titulo">
+                        <h3 class="vermelho-negrito">Redespacho</h3>
+                    </div>
+
+                    <div class="moldura-verde moldura-verde-slim width-100">
+                        <div class="grid-slim centralizar">
+                            <p class="verde-negrito">{{ frete_redespacho.valor.transportadora_origem_destino.transportadora.nome }}</p>
+                            {% if frete_redespacho.observacoes_prazo %}<p class="fonte-vermelho">{{ frete_redespacho.observacoes_prazo }}</p>{% endif %}
+                        </div>
+
+                        <div class="grid-slim centralizar">
+                            <div class="block-slim centralizar">
+                                <p><span class="azul-negrito">Frete Empresa: </span>R$ {{ frete_redespacho.valor_frete_empresa }}</p>
+                                <p><span class="azul-negrito">Frete Cliente: </span>R$ {{ frete_redespacho.valor_frete_cliente }}</p>
+                            </div>
+
+                            <div class="block-slim centralizar">
+                                <p><span class="azul-negrito">Peso Cubado: </span>{{ frete_redespacho.total_peso_maior }} kg</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
 
         </div>
 

@@ -21,7 +21,9 @@ from math import ceil
 def calculo_frete(request):
     titulo_pagina = 'Frete - Calculo de Frete'
 
-    contexto: Dict = {'titulo_pagina': titulo_pagina, }
+    usuario_logistica = request.user.has_perm('frete.view_transportadorasregioesvalores')
+
+    contexto: Dict = {'titulo_pagina': titulo_pagina, 'usuario_logistica': usuario_logistica, }
 
     if request.method == 'GET' and request.GET:
         formulario = PesquisarOrcamentoFreteForm(request.GET)
@@ -35,6 +37,17 @@ def calculo_frete(request):
                 contexto.update({'dados_volumes': dados_volumes})
                 contexto.update({'dados_itens_orcamento': dados_itens_orcamento})
                 contexto.update({'fretes': fretes})
+
+                if usuario_logistica:
+                    transportadora_valor_redespacho = formulario.cleaned_data.get('transportadora_valor_redespacho')
+                    frete_redespacho, * _ = calcular_frete(
+                        orcamento,
+                        zona_rural,
+                        transportadora_regiao_valor_especifico=transportadora_valor_redespacho
+                    )
+                    frete_redespacho = frete_redespacho[0]
+                    contexto.update({'frete_redespacho': frete_redespacho})
+
             except ObjectDoesNotExist as erros:
                 contexto.update({'erros': erros})
             except ZeroDivisionError:

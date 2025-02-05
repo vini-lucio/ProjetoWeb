@@ -60,6 +60,7 @@ class TransportadorasRegioesValores(BaseLogModel):
     class Meta:
         verbose_name = 'Transportadoras Região Valores'
         verbose_name_plural = 'Transportadoras Regiões Valores'
+        ordering = 'transportadora_origem_destino',
         constraints = [
             models.UniqueConstraint(
                 fields=['transportadora_origem_destino', 'descricao',],
@@ -284,4 +285,4 @@ class TransportadorasRegioesCidades(BaseLogModel):
 # TODO: replicar valores
 # TODO: importar/atualizar cidades prazos
 # TODO: reajuste de valores
-# TODO: calculo de frete com redespacho para a filial da transportadora (exemplo: agili leva até a transportadora)
+# TODO: calculo manual

@@ -3,13 +3,17 @@ from utils.choices import sim_nao_branco
 from utils.base_forms import FormPeriodoInicioFimMixIn
 from utils.data_hora_atual import hoje_as_yyyymmdd
 from home.models import Estados, Produtos
+from frete.models import TransportadorasRegioesValores
 
 
 class PesquisarOrcamentoFreteForm(forms.Form):
     rural = sim_nao_branco
+    transportadoras_regioes_valores = TransportadorasRegioesValores.filter_ativos()
 
     orcamento = forms.IntegerField(label="nº Orçamento:")
     zona_rural = forms.ChoiceField(label="Destino Zona Rural?", choices=rural)  # type:ignore
+    transportadora_valor_redespacho = forms.ModelChoiceField(transportadoras_regioes_valores,
+                                                             label="Redespacho:", required=False)
 
 
 class PesquisarCidadePrazosForm(forms.Form):
