@@ -39,7 +39,7 @@ def calculo_frete(request):
                 contexto.update({'fretes': fretes})
 
                 if usuario_logistica:
-                    transportadora_valor_redespacho = formulario.cleaned_data.get('transportadora_valor_redespacho')
+                    transportadora_valor_redespacho = formulario.cleaned_data.get('transportadora_valor')
                     if transportadora_valor_redespacho:
                         frete_redespacho, * _ = calcular_frete(
                             orcamento,
@@ -248,7 +248,44 @@ def volumes_manual(request):
                 else:
                     contexto.update({'erros': 'Produto já está na lista', })
 
+                transportadora_valor = formulario.cleaned_data.get('transportadora_valor')
+                if transportadora_valor:
+                    valor_total = formulario.cleaned_data.get('valor_total')
+                    if not valor_total:
+                        valor_total = 0
+                    destino_mercadorias = 'CONSUMO'
+                    uf_origem = transportadora_valor.transportadora_origem_destino.estado_origem_destino.uf_origem.sigla
+                    uf_destino = transportadora_valor.transportadora_origem_destino.estado_origem_destino.uf_destino.sigla
+                    cidade_destino = 'N/A'
+                    dados_orcamento_manual = {
+                        'VALOR_TOTAL': valor_total,
+                        'DESTINO_MERCADORIAS': destino_mercadorias,
+                        'UF_ORIGEM': uf_origem,
+                        'UF_DESTINO': uf_destino,
+                        'CIDADE_DESTINO': cidade_destino,
+                    }
+
+                    dados_itens_orcamento_manual = []
+                    for item in itens:
+                        item_manual = {
+                            'CHAVE_PRODUTO': item['produto'].chave_analysis,
+                            'QUANTIDADE': item['quantidade'],
+                            'PIS_COFINS': 6,
+                            'ICMS': 18
+                        }
+                        dados_itens_orcamento_manual.append(item_manual)
+
+                    frete_manual, * _ = calcular_frete(
+                        orcamento=0,
+                        transportadora_regiao_valor_especifico=transportadora_valor,
+                        dados_orcamento_manual=dados_orcamento_manual,
+                        dados_itens_orcamento_manual=dados_itens_orcamento_manual,
+                    )
+                    frete_manual = frete_manual[0]
+                    contexto.update({'frete_manual': frete_manual})
+
         if 'limpar-submit' in request.GET:
+            formulario = VolumesManualForm()
             itens = []
             dados_volumes = {
                 'total_volumes_real': Decimal(0),
@@ -256,12 +293,12 @@ def volumes_manual(request):
                 'total_m3': Decimal(0),
                 'total_peso_real': Decimal(0),
             }
+    else:
+        formulario = VolumesManualForm()
 
     cache_lista.append(itens)
     cache_lista.append(dados_volumes)
     cache.set(cache_key, cache_lista)
-
-    formulario = VolumesManualForm()
 
     contexto.update({'formulario': formulario, 'itens': itens, 'dados_volumes': dados_volumes})
 

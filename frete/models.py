@@ -285,4 +285,3 @@ class TransportadorasRegioesCidades(BaseLogModel):
 # TODO: replicar valores
 # TODO: importar/atualizar cidades prazos
 # TODO: reajuste de valores
-# TODO: calculo manual

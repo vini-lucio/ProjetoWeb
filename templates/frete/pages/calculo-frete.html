@@ -22,7 +22,7 @@
                 <div class="grid-simples link-conteudo">
                     {% comment %} {{ formulario.as_p }} {% endcomment %}
                     {% for field in formulario %}
-                        {% if field.name != 'transportadora_valor_redespacho' or field.name == 'transportadora_valor_redespacho' and usuario_logistica %}
+                        {% if field.name != 'transportadora_valor' or field.name == 'transportadora_valor' and usuario_logistica %}
                             <p>
                                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                                 {{ field }}

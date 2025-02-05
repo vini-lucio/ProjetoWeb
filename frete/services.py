@@ -421,15 +421,18 @@ def get_dados_itens_frete(dados_itens_orcamento, exportacao: bool = False):
     return dados_itens, pis_cofins_orc, icms_orc
 
 
-def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_orcamento_pedido: bool = False, transportadora_regiao_valor_especifico: TransportadorasRegioesValores | None = None):
-    """Retorna uma tupla com os valores do frete por transportadora, dados do orçamento, dados dos itens do orcamento e dados dos volumes dos itens. Se transportadora região valor especifico for informado, será calculado independente do destino do orçamento"""
-    dados_orcamento = get_dados_orcamento(orcamento)
-    dados_itens_orcamento = get_dados_itens_orcamento(orcamento)
+def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_orcamento_pedido: bool = False, transportadora_regiao_valor_especifico: TransportadorasRegioesValores | None = None, dados_orcamento_manual=None, dados_itens_orcamento_manual=None):
+    """Retorna uma tupla com os valores do frete por transportadora, dados do orçamento, dados dos itens do orcamento e dados dos volumes dos itens. Se transportadora região valor especifico for informado, será calculado independente do destino do orçamento. Em caso de calculo manual enviar orçamento 0 (zero) e enviar parametros manuais"""
+    if orcamento:
+        dados_orcamento = get_dados_orcamento(orcamento)
+        dados_itens_orcamento = get_dados_itens_orcamento(orcamento)
+    else:
+        dados_orcamento = dados_orcamento_manual
+        dados_itens_orcamento = dados_itens_orcamento_manual
     fretes = []
 
     valor_total_orc = Decimal(dados_orcamento['VALOR_TOTAL'])  # type:ignore
     destino_consumo_orc = True if dados_orcamento['DESTINO_MERCADORIAS'] == 'CONSUMO' else False  # type:ignore
-    # zona_franca_alc_orc = True if dados_orcamento['ZONA_FRANCA_ALC'] == 'SIM' else False  # type:ignore
     uf_origem_orc = dados_orcamento['UF_ORIGEM']  # type:ignore
     uf_destino_orc = dados_orcamento['UF_DESTINO']  # type:ignore
     cidade_destino_orc = dados_orcamento['CIDADE_DESTINO']  # type:ignore

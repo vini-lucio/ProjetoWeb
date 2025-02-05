@@ -59,6 +59,28 @@
                 </div>
             {% endif %}
 
+            {% if frete_manual %}
+                <div class="grid-simples">
+                    <div class="moldura-verde moldura-verde-slim width-100">
+                        <div class="grid-slim centralizar">
+                            <p class="verde-negrito">{{ frete_manual.valor.transportadora_origem_destino.transportadora.nome }}</p>
+                            {% if frete_manual.observacoes_prazo %}<p class="fonte-vermelho">{{ frete_manual.observacoes_prazo }}</p>{% endif %}
+                        </div>
+
+                        <div class="grid-slim centralizar">
+                            <div class="block-slim centralizar">
+                                <p><span class="azul-negrito">Frete Empresa: </span>R$ {{ frete_manual.valor_frete_empresa }}</p>
+                                <p><span class="azul-negrito">Frete Cliente: </span>R$ {{ frete_manual.valor_frete_cliente }}</p>
+                            </div>
+
+                            <div class="block-slim centralizar">
+                                <p><span class="azul-negrito">Peso Cubado: </span>{{ frete_manual.total_peso_maior }} kg</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
         </div>
 
     </section>

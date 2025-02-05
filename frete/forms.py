@@ -6,14 +6,24 @@ from home.models import Estados, Produtos
 from frete.models import TransportadorasRegioesValores
 
 
-class PesquisarOrcamentoFreteForm(forms.Form):
+class TransportadoraValorFormMixIn(forms.Form):
+    transportadoras_regioes_valores = TransportadorasRegioesValores.filter_ativos()
+
+    transportadora_valor = forms.ModelChoiceField(transportadoras_regioes_valores, required=False)
+
+
+class PesquisarOrcamentoFreteForm(TransportadoraValorFormMixIn, forms.Form):
     rural = sim_nao_branco
     transportadoras_regioes_valores = TransportadorasRegioesValores.filter_ativos()
 
     orcamento = forms.IntegerField(label="nº Orçamento:")
     zona_rural = forms.ChoiceField(label="Destino Zona Rural?", choices=rural)  # type:ignore
-    transportadora_valor_redespacho = forms.ModelChoiceField(transportadoras_regioes_valores,
-                                                             label="Redespacho:", required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        campo_no_final = self.fields.pop('transportadora_valor')
+        self.fields.update({'transportadora_valor': campo_no_final})
+        self.fields['transportadora_valor'].label = 'Redespacho:'
 
 
 class PesquisarCidadePrazosForm(forms.Form):
@@ -31,8 +41,13 @@ class PeriodoInicioFimForm(FormPeriodoInicioFimMixIn, forms.Form):
         self.fields['fim'].initial = hoje_as_yyyymmdd()
 
 
-class VolumesManualForm(forms.Form):
+class VolumesManualForm(TransportadoraValorFormMixIn, forms.Form):
     produtos = Produtos.filter_ativos().filter(quantidade_volume__gt=0)
 
+    valor_total = forms.DecimalField(label="(Opcional) Valor Total", required=False)
     produto = forms.ModelChoiceField(produtos, label="Produto")
     quantidade = forms.DecimalField(label="Quantidade")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['transportadora_valor'].label = '(Opcional) Tabela Transportadora:'
