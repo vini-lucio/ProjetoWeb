@@ -15,6 +15,7 @@
                     <a href="{% url "frete:medidas-produtos" %}"><div class="botao-div">Medidas Produtos</div></a>
                     <a href="{% url "frete:volumes-manual" %}"><div class="botao-div">Volumes Manual</div></a>
                     <a href="{% url "frete:relatorios" %}"><div class="botao-div">Relatorios</div></a>
+                    {% if super_user %}<a href="{% url "frete:reajustes" %}"><div class="botao-div">Reajustes</div></a>{% endif %}
                 </div>
             </div>
 

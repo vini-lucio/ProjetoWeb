@@ -1,0 +1,65 @@
+{% extends "frete/base.html" %}
+
+{% load custom_filters %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Reajustes</h1>
+            </div>
+
+            {% comment %} <form method="get"> {% endcomment %}
+            <form id="form" action="{% url 'frete:reajustes' %}">
+                {% csrf_token %}
+                <div class="grid-simples link-conteudo">
+                    {{ formulario.as_p }}
+                </div>
+                {% comment %} <button class="botao" name="listar-submit" type="submit">Listar</button> {% endcomment %}
+                <button class="botao" name="listar-submit" onclick="metodoForm('get')">Listar</button>
+                {% if post %}<button class="botao" name="alterar-submit" onclick="metodoForm('post')">Alterar</button>{% endif %}
+            </form>
+        </div>
+
+        
+
+        <div class="link-conteudo">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if transportadora_valores %}
+                <div class="tabela-simples">
+                    <table>
+                        <tr>
+                            <th>Transportadora Valor</th>
+                            <th>Valor Atual</th>
+                            <th>Valor Reajuste</th>
+                        </tr>
+                        {% for valor in transportadora_valores %}
+                            <tr class="{% cycle 'principal-azul-claro' '' %}">
+                                <td>{% if campo != 'margem_kg_valor' %}{{ valor.transportadora_origem_destino }} / {{ valor.descricao }}{% else %}{{ valor.transportadora_regiao_valor }} - até {{ valor.ate_kg }} kg{% endif %}</td>
+                                <td>{% if campo != 'margem_kg_valor' %}{{ valor|get_attr:campo }}{% else %}{{ valor.valor }}{% endif %}</td>
+                                <td>{% if campo != 'margem_kg_valor' %}{{ valor|get_attr:campo|multiplicar:reajuste | floatformat:2 }}{% else %}{{ valor.valor|multiplicar:reajuste | floatformat:2 }}{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
+
+        </div>
+
+    </section>
+
+<script>
+    function metodoForm(metodo) {
+        var form = document.getElementById('form');
+        form.method = metodo;
+        form.submit();
+    }
+</script>
+
+{% endblock conteudo %}

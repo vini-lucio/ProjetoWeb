@@ -1,5 +1,5 @@
 from django.urls import path
-from frete.views import calculo_frete, prazos, MedidasProdutos, relatorios, volumes_manual
+from frete.views import calculo_frete, prazos, MedidasProdutos, relatorios, volumes_manual, reajustes
 
 app_name = 'frete'
 
@@ -9,4 +9,5 @@ urlpatterns = [
     path('medidas-produtos/', MedidasProdutos.as_view(), name='medidas-produtos'),
     path('relatorios/', relatorios, name='relatorios'),
     path('volumes-manual/', volumes_manual, name='volumes-manual'),
+    path('reajustes/', reajustes, name='reajustes'),
 ]

@@ -10,6 +10,7 @@ class Transportadoras(BaseLogModel):
     class Meta:
         verbose_name = 'Transportadora'
         verbose_name_plural = 'Transportadoras'
+        ordering = 'nome',
         constraints = [
             models.UniqueConstraint(
                 fields=['nome',],
@@ -26,6 +27,10 @@ class Transportadoras(BaseLogModel):
     simples_nacional = models.BooleanField("Simples Nacional", default=False)
     entrega_uf_diferente_faturamento = models.BooleanField("Entrega UF Diferente Faturamento", default=False)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    @classmethod
+    def filter_ativos(cls):
+        return cls.objects.filter(status='ativo')
 
     def __str__(self) -> str:
         return self.nome
@@ -185,6 +190,7 @@ class TransportadorasRegioesMargens(BaseLogModel):
     class Meta:
         verbose_name = 'Transportadoras Região Margem'
         verbose_name_plural = 'Transportadoras Região Margens'
+        ordering = 'ate_kg',
         constraints = [
             models.UniqueConstraint(
                 fields=['transportadora_regiao_valor', 'ate_kg',],
@@ -282,6 +288,4 @@ class TransportadorasRegioesCidades(BaseLogModel):
         return f'{self.transportadora_regiao_valor} / {self.cidade.nome}'
 
 
-# TODO: replicar valores
 # TODO: importar/atualizar cidades prazos
-# TODO: reajuste de valores

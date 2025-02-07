@@ -7,7 +7,9 @@ from django.http import HttpResponse
 from django.core.cache import cache
 from frete.services import (calcular_frete, get_prazos, get_dados_notas, get_dados_notas_monitoramento,
                             get_dados_itens_frete)
-from frete.forms import PesquisarOrcamentoFreteForm, PesquisarCidadePrazosForm, PeriodoInicioFimForm, VolumesManualForm
+from frete.forms import (PesquisarOrcamentoFreteForm, PesquisarCidadePrazosForm, PeriodoInicioFimForm,
+                         VolumesManualForm, ReajustesForm)
+from frete.models import TransportadorasRegioesValores, TransportadorasRegioesMargens
 from home.models import Produtos
 from utils.site_setup import get_transportadoras_regioes_valores
 from utils.base_forms import FormPesquisarMixIn
@@ -22,8 +24,9 @@ def calculo_frete(request):
     titulo_pagina = 'Frete - Calculo de Frete'
 
     usuario_logistica = request.user.has_perm('frete.view_transportadorasregioesvalores')
+    super_user = request.user.is_superuser
 
-    contexto: Dict = {'titulo_pagina': titulo_pagina, 'usuario_logistica': usuario_logistica, }
+    contexto: Dict = {'titulo_pagina': titulo_pagina, 'usuario_logistica': usuario_logistica, 'super_user': super_user}
 
     if request.method == 'GET' and request.GET:
         formulario = PesquisarOrcamentoFreteForm(request.GET)
@@ -303,3 +306,68 @@ def volumes_manual(request):
     contexto.update({'formulario': formulario, 'itens': itens, 'dados_volumes': dados_volumes})
 
     return render(request, 'frete/pages/volumes-manual.html', contexto)
+
+
+@user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
+def reajustes(request):
+    titulo_pagina = 'Frete - Reajustes'
+
+    contexto: Dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = ReajustesForm()
+
+    if request.method == 'GET' and request.GET:
+        formulario = ReajustesForm(request.GET)
+        if formulario.is_valid():
+            if 'listar-submit' in request.GET:
+                campo, reajuste, transportadora_valores = dados_reajuste(formulario)
+
+                contexto.update({
+                    'transportadora_valores': transportadora_valores,
+                    'campo': campo,
+                    'reajuste': reajuste,
+                })
+                if transportadora_valores:
+                    contexto.update({'post': True, })
+
+    if request.method == 'POST' and request.POST:
+        formulario = ReajustesForm(request.POST)
+        if formulario.is_valid():
+            if 'alterar-submit' in request.POST:
+                campo, reajuste, transportadora_valores = dados_reajuste(formulario)
+                if reajuste >= 0:
+                    reajuste = (reajuste / 100) + 1
+                else:
+                    reajuste = 1 + (reajuste / 100)
+
+                if campo == 'margem_kg_valor':
+                    campo = 'valor'
+                for valor in transportadora_valores:
+                    valor_atual = getattr(valor, campo)  # type:ignore
+                    valor_novo = round(valor_atual * reajuste, 2)
+                    setattr(valor, campo, valor_novo)  # type:ignore
+                    valor.full_clean()
+                    valor.save()
+
+    contexto.update({'formulario': formulario, })
+
+    return render(request, 'frete/pages/reajustes.html', contexto)
+
+
+def dados_reajuste(formulario):
+    transportadora = formulario.cleaned_data.get('transportadora')
+    campo = formulario.cleaned_data.get('campo')
+    reajuste = formulario.cleaned_data.get('reajuste')
+    if not reajuste:
+        reajuste = Decimal(0)
+
+    transportadora_valores = TransportadorasRegioesValores.filter_ativos().filter(
+        transportadora_origem_destino__transportadora=transportadora,
+    )
+
+    if campo == 'margem_kg_valor':
+        transportadora_valores = TransportadorasRegioesMargens.objects.filter(
+            transportadora_regiao_valor__in=transportadora_valores
+        )
+
+    return campo, reajuste, transportadora_valores

@@ -3,13 +3,26 @@ from utils.choices import sim_nao_branco
 from utils.base_forms import FormPeriodoInicioFimMixIn
 from utils.data_hora_atual import hoje_as_yyyymmdd
 from home.models import Estados, Produtos
-from frete.models import TransportadorasRegioesValores
+from frete.models import TransportadorasRegioesValores, Transportadoras
 
 
 class TransportadoraValorFormMixIn(forms.Form):
     transportadoras_regioes_valores = TransportadorasRegioesValores.filter_ativos()
 
     transportadora_valor = forms.ModelChoiceField(transportadoras_regioes_valores, required=False)
+
+
+class ReajustesForm(forms.Form):
+    transportadoras = Transportadoras.filter_ativos()
+    campos = [(field.name, field.verbose_name) for field in TransportadorasRegioesValores._meta.get_fields()  # type:ignore
+              if field.get_internal_type() == 'DecimalField']
+    campos.append(('', '---------'))
+    campos.append(('margem_kg_valor', 'Margem (kg) R$'))
+    campos.sort()
+
+    transportadora = forms.ModelChoiceField(transportadoras, label="Transportadora")
+    campo = forms.ChoiceField(label="Campo", choices=campos, initial='')  # type:ignore
+    reajuste = forms.DecimalField(label="Reajuste %", required=False)
 
 
 class PesquisarOrcamentoFreteForm(TransportadoraValorFormMixIn, forms.Form):
