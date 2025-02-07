@@ -38,7 +38,7 @@ class TransportadorasRegioesValoresAdmin(BaseModelAdminRedRequiredLog):
     list_display_links = list_display
     ordering = 'transportadora_origem_destino', 'descricao',
     search_fields = 'transportadora_origem_destino__transportadora__nome',
-    readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+    readonly_fields = ['arquivo_migrar_cidades', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',]
     autocomplete_fields = 'transportadora_origem_destino',
     inlines = TransportadorasRegioesMargensInLine,
 
@@ -46,7 +46,7 @@ class TransportadorasRegioesValoresAdmin(BaseModelAdminRedRequiredLog):
         (None, {
             "fields": (
                 'transportadora_origem_destino', 'descricao', 'status', 'razao', 'observacoes',
-                'atendimento_cidades_especificas',
+                'atendimento_cidades_especificas', 'arquivo_migrar_cidades',
             ),
         }),
         ('Prazo Padrão', {
@@ -110,6 +110,16 @@ class TransportadorasRegioesValoresAdmin(BaseModelAdminRedRequiredLog):
         if obj:
             return super().get_inlines(request, obj)
         return []
+
+    def get_readonly_fields(self, request, obj):
+        campos = super().get_readonly_fields(request, obj)
+
+        if not obj:
+            return campos
+
+        campos = list(campos)
+        campos.remove('arquivo_migrar_cidades')
+        return campos
 
 
 @admin.register(TransportadorasRegioesMargens)

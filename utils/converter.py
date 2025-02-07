@@ -1,4 +1,17 @@
+import pandas
 from datetime import datetime, timedelta
+from django.conf import settings
+from pathlib import Path
+
+
+def converter_excel_para_json_temporario(caminho_excel_media):
+    """Converte excel para json e retorna o byte stream temporario do json"""
+    origem = Path(settings.MEDIA_ROOT / caminho_excel_media).resolve()
+
+    xls = pandas.read_excel(origem)
+    json = xls.to_json(orient='records')
+
+    return json
 
 
 def converter_data_django_para_datetime(data_converter) -> datetime:

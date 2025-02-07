@@ -3,7 +3,9 @@ from django.db.models import Q
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from utils.base_models import BaseLogModel
 from utils.choices import status_ativo_inativo
+from utils.converter import converter_excel_para_json_temporario
 from home.models import EstadosIcms, Cidades
+import json
 
 
 class Transportadoras(BaseLogModel):
@@ -86,6 +88,7 @@ class TransportadorasRegioesValores(BaseLogModel):
     help_text_frete_peso = "Frete peso é o resultado final de acordo com os valores nas margens de kg e valor/kg"
     help_text_frete_minimo = "Valor a ser considerado quando a soma de todo custo de frete (liquido de ICMS) for menor que o informado"
     help_text_zona_rural = "Valor só é somado quando for selecionado zona rural no calculo do frete"
+    help_text_arquivo_migrar_cidades = "A migração será feita ao salvar e excluirá o arquivo automaticamente"
 
     transportadora_origem_destino = models.ForeignKey(TransportadorasOrigemDestino,
                                                       verbose_name="Transportadora / Origem - Destino",
@@ -139,6 +142,10 @@ class TransportadorasRegioesValores(BaseLogModel):
     prazo_padrao = models.IntegerField("Prazo Padrão", default=0)
     frequencia_padrao = models.CharField("Frequencia Padrão", max_length=100, null=True, blank=True)
     observacoes_prazo_padrao = models.CharField("Observações Prazo Padrão", max_length=100, null=True, blank=True)
+    arquivo_migrar_cidades = models.FileField("Arquivo Migrar Cidades e Prazos",
+                                              help_text=help_text_arquivo_migrar_cidades,
+                                              upload_to='frete/migrar_cidades/%Y/%m/', null=True, blank=True,
+                                              default='')
     atendimento_zona_rural = models.BooleanField("Atendimento Zona Rural", default=True)
     taxa_zona_rural = models.DecimalField("Taxa Zona Rural (R$)", max_digits=9, decimal_places=2,
                                           help_text=help_text_zona_rural, default=0)  # type:ignore
@@ -173,6 +180,33 @@ class TransportadorasRegioesValores(BaseLogModel):
             self.taxa_zona_rural = 0
 
         return super_clean
+
+    def save(self, *args, **kwargs):
+        super_save = super().save(*args, **kwargs)
+        if self.arquivo_migrar_cidades:
+            dados_json = converter_excel_para_json_temporario(self.arquivo_migrar_cidades.name)  # type: ignore
+            parsed_json = json.loads(dados_json)
+
+            uf_destino = self.transportadora_origem_destino.estado_origem_destino.uf_destino
+            TransportadorasRegioesCidades.objects.filter(transportadora_regiao_valor=self).delete()
+            for cidade in parsed_json:
+                fk_cidade = Cidades.objects.filter(estado=uf_destino, nome=cidade['cidade']).first()
+                if fk_cidade:
+                    instancia = TransportadorasRegioesCidades(
+                        transportadora_regiao_valor=self,
+                        cidade=fk_cidade,
+                        prazo_tipo=cidade['prazo_tipo'],
+                        prazo=cidade['prazo'],
+                        frequencia=cidade['frequencia'],
+                        observacoes=cidade['observacoes'],
+                        taxa=str(cidade['taxa']),
+                        cif=cidade['cif'],
+                    )
+                    instancia.full_clean()
+                    instancia.save()
+
+            self.arquivo_migrar_cidades = ''
+        return super_save
 
     @classmethod
     def filter_ativos(cls):
@@ -288,4 +322,4 @@ class TransportadorasRegioesCidades(BaseLogModel):
         return f'{self.transportadora_regiao_valor} / {self.cidade.nome}'
 
 
-# TODO: importar/atualizar cidades prazos
+# TODO: pagina com passo a passo para importar/atualizar cidades prazos
