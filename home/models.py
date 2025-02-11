@@ -494,6 +494,12 @@ class Cidades(models.Model):
     nome = models.CharField("Nome", max_length=70)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
+    @property
+    def estado_sigla(self):
+        return self.estado.sigla
+
+    estado_sigla.fget.short_description = 'UF'  # type:ignore
+
     def __str__(self) -> str:
         return f'{self.nome} - {self.estado.sigla}'
 

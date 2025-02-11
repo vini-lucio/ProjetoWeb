@@ -1,6 +1,8 @@
 from django.db import models
 from django.db.models import Q
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.utils.safestring import mark_safe
+from django.urls import reverse
 from utils.base_models import BaseLogModel
 from utils.choices import status_ativo_inativo
 from utils.converter import converter_excel_para_json_temporario
@@ -63,6 +65,13 @@ class TransportadorasOrigemDestino(BaseLogModel):
         return f'{self.transportadora} / {self.estado_origem_destino}'
 
 
+def get_help_text_migrar_cidades():
+    url = reverse("frete:tutorial-importar-cidades-prazos")
+    return mark_safe(
+        f'<a href="{url}" target="_blank">Passo a passo.</a> A migração será feita ao salvar e excluirá o arquivo automaticamente'
+    )
+
+
 class TransportadorasRegioesValores(BaseLogModel):
     class Meta:
         verbose_name = 'Transportadoras Região Valores'
@@ -88,7 +97,7 @@ class TransportadorasRegioesValores(BaseLogModel):
     help_text_frete_peso = "Frete peso é o resultado final de acordo com os valores nas margens de kg e valor/kg"
     help_text_frete_minimo = "Valor a ser considerado quando a soma de todo custo de frete (liquido de ICMS) for menor que o informado"
     help_text_zona_rural = "Valor só é somado quando for selecionado zona rural no calculo do frete"
-    help_text_arquivo_migrar_cidades = "A migração será feita ao salvar e excluirá o arquivo automaticamente"
+    help_text_arquivo_migrar_cidades = get_help_text_migrar_cidades
 
     transportadora_origem_destino = models.ForeignKey(TransportadorasOrigemDestino,
                                                       verbose_name="Transportadora / Origem - Destino",
@@ -143,7 +152,7 @@ class TransportadorasRegioesValores(BaseLogModel):
     frequencia_padrao = models.CharField("Frequencia Padrão", max_length=100, null=True, blank=True)
     observacoes_prazo_padrao = models.CharField("Observações Prazo Padrão", max_length=100, null=True, blank=True)
     arquivo_migrar_cidades = models.FileField("Arquivo Migrar Cidades e Prazos",
-                                              help_text=help_text_arquivo_migrar_cidades,
+                                              help_text=help_text_arquivo_migrar_cidades,  # type:ignore
                                               upload_to='frete/migrar_cidades/%Y/%m/', null=True, blank=True,
                                               default='')
     atendimento_zona_rural = models.BooleanField("Atendimento Zona Rural", default=True)
@@ -320,6 +329,3 @@ class TransportadorasRegioesCidades(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.transportadora_regiao_valor} / {self.cidade.nome}'
-
-
-# TODO: pagina com passo a passo para importar/atualizar cidades prazos

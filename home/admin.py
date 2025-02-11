@@ -8,7 +8,7 @@ from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesT
                          ProdutosModelosTags, Unidades, Produtos, EstadosIcms)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
-                               AdminLogMixIn)
+                               AdminLogMixIn, ExportarXlsxMixIn)
 from utils.exportar_excel import arquivo_excel
 import home.services as services
 import os
@@ -167,12 +167,15 @@ class EstadosIcmsAdmin(BaseModelAdminRedRequired):
 
 
 @admin.register(Cidades)
-class CidadesAdmin(BaseModelAdminRedRequired):
+class CidadesAdmin(ExportarXlsxMixIn, BaseModelAdminRedRequired):
     list_display = 'id', 'nome', 'estado',
     list_display_links = list_display
+    list_filter = 'estado',
     ordering = 'nome',
     search_fields = 'nome',
     readonly_fields = 'chave_migracao',
+    actions = 'exportar_excel',
+    campos_exportar = ['nome', 'estado_sigla',]
 
 
 @admin.register(Bancos)

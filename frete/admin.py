@@ -114,7 +114,7 @@ class TransportadorasRegioesValoresAdmin(BaseModelAdminRedRequiredLog):
     def get_readonly_fields(self, request, obj):
         campos = super().get_readonly_fields(request, obj)
 
-        if not obj:
+        if not obj or not obj.atendimento_cidades_especificas:
             return campos
 
         campos = list(campos)

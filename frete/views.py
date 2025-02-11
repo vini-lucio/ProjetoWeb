@@ -371,3 +371,11 @@ def dados_reajuste(formulario):
         )
 
     return campo, reajuste, transportadora_valores
+
+
+def tutorial_importar_cidades_prazos(request):
+    titulo_pagina = 'Frete - Importar Cidades Prazos'
+
+    contexto = {'titulo_pagina': titulo_pagina, }
+
+    return render(request, 'frete/pages/tutorial-importar-cidades-prazo.html', contexto)

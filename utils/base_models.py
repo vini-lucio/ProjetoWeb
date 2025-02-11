@@ -76,6 +76,7 @@ class BaseViewAdmin(admin.ModelAdmin):
 
 
 class ExportarXlsxMixIn:
+    """Não usar chave estrangeira em campos_exportar criar uma property no model filho"""
     campos_exportar = []
 
     def exportar_excel(self, request, queryset):

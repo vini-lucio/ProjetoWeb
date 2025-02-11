@@ -1,0 +1,40 @@
+{% extends "frete/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Importar Cidades Prazos</h1>
+            </div>
+        </div>
+
+        <div class="link-conteudo alinhar-esquerda">
+            <li>Copiar o cabeçalho abaixo em uma planilha e salvar em Excel (.xlsx)</li>
+            <table class="tabela-simples">
+                <tr>
+                    <th>cidade</th>
+                    <th>prazo_tipo</th>
+                    <th>prazo</th>
+                    <th>frequencia</th>
+                    <th>observacoes</th>
+                    <th>taxa</th>
+                    <th>cif</th>
+                </tr>
+            </table>
+            <li>Não acrescentar colunas nem alterar os cabeçalhos</li>
+            <li>Regra geral de preenchimento - Todos os textos em letra MAIUSCULA e não utilizar os seguintes caracteres: ponto e virgula (;), aspas simples ('), aspas duplas (")</li>
+            <li>Regra coluna cidade - Certificar que a cidade é unica na transportadora. Escrever as cidades da mesma forma que esta no Analysis (exportar listagem na administração)</li>
+            <li>Regra coluna prazo_tipo - Somente texto: DIAS, DIAS UTEIS ou em branco</li>
+            <li>Regra coluna prazo - Somente numeros inteiros (sem virgulas ou pontos) em dias (se o prazo for uma faixa de dias somente considerar o maior) ou 0 (zero)</li>
+            <li>Regra coluna frequencia - Texto até 100 caracteres ou em branco</li>
+            <li>Regra coluna observacoes - Texto até 100 caracteres ou em branco</li>
+            <li>Regra coluna taxa - Somente numeros com até 2 casas decimais (com virgula, sem pontos) ou 0 (zero)</li>
+            <li>Regra coluna cif - Somente VERDADEIRO ou FALSO (valor booleano, não é texto) se o cliente pode não pagar o frete para o destino</li>
+            <li>Incluir o arquivo dentro da Transportadora Região Valor referente. <spam class="fonte-vermelho">ATENÇÃO: Todas as cidades anteriormente dentro da Transportadora Região Valor onde o arquivo foi salvo serão excluidos</spam></li>
+        </div>
+
+    </section>
+
+{% endblock conteudo %}
