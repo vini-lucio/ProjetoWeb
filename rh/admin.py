@@ -236,8 +236,8 @@ class SalariosInLine(admin.TabularInline):
     extra = 0
     verbose_name = "Salario Atual do Funcionario"
     verbose_name_plural = "Salario Atual do Funcionario"
-    fields = ('data_as_ddmmyyyy', 'salario', 'salario_convertido', 'motivo', 'comissao_carteira', 'comissao_dupla',
-              'comissao_geral',)
+    fields = ('data_as_ddmmyyyy', 'salario', 'salario_convertido', 'funcao', 'motivo', 'comissao_carteira',
+              'comissao_dupla', 'comissao_geral',)
     readonly_fields = fields
     can_delete = False
 
@@ -397,6 +397,7 @@ class FeriasAdmin(BaseModelAdminRedRequiredLog):
     list_display = ('id', 'funcionario', 'periodo_trabalhado_inicio_as_ddmmyyyy', 'periodo_trabalhado_fim_as_ddmmyyyy',
                     'dias_ferias', 'periodo_descanso_inicio_as_ddmmyyyy', 'periodo_descanso_fim_as_ddmmyyyy')
     list_display_links = list_display
+    list_filter = 'funcionario__job', 'funcionario__data_saida',
     ordering = 'funcionario', '-periodo_descanso_inicio', '-id'
     search_fields = 'funcionario__nome',
     readonly_fields = ('periodo_descanso_fim_as_ddmmyyyy', 'periodo_abono_inicio_as_ddmmyyyy',
@@ -430,7 +431,7 @@ class FeriasAdmin(BaseModelAdminRedRequiredLog):
 
 @admin.register(Salarios)
 class SalariosAdmin(BaseModelAdminRedRequiredLog):
-    list_display = 'id', 'funcionario', 'data_as_ddmmyyyy', 'salario', 'salario_convertido', 'motivo',
+    list_display = 'id', 'funcionario', 'data_as_ddmmyyyy', 'salario', 'salario_convertido', 'funcao', 'motivo',
     list_display_links = list_display
     ordering = 'funcionario', '-data',
     search_fields = 'funcionario__nome',

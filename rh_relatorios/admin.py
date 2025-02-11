@@ -59,7 +59,7 @@ class FuncionariosListagemAdmin(BaseViewAdmin, ExportarXlsxMixIn):
 
 @admin.register(FuncionariosSalarioFuncaoAtual)
 class FuncionariosSalarioFuncaoAtualAdmin(BaseViewAdmin, ExportarXlsxMixIn):
-    list_display = ('job', 'nome', 'data_entrada_as_ddmmyyyy', 'funcao', 'salario', 'salario_convertido',
+    list_display = ('job', 'nome', 'data_entrada_as_ddmmyyyy', 'setor', 'funcao', 'salario', 'salario_convertido',
                     'comissao_carteira', 'comissao_dupla', 'comissao_geral', )
     list_display_links = list_display
     list_filter = 'job',
