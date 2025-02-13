@@ -4,8 +4,17 @@ from django.contrib.auth import get_user_model
 from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
 from utils.exportar_excel import arquivo_excel
+from django.core.exceptions import PermissionDenied
 
 User = get_user_model()
+
+
+class ReadOnlyMixin:
+    def save(self, *args, **kwargs):
+        raise PermissionDenied("Ação não permitida")
+
+    def delete(self, *args, **kwargs):
+        raise PermissionDenied("Ação não permitida")
 
 
 class BaseLogModel(models.Model):

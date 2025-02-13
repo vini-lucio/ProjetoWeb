@@ -793,3 +793,30 @@ class Produtos(BaseLogModel):
 
     def __str__(self) -> str:
         return self.nome
+
+
+class Vendedores(models.Model):
+    class Meta:
+        verbose_name = 'Vendedor'
+        verbose_name_plural = 'Vendedores'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['chave_analysis',],
+                name='vendedores_unique_chave_analysis',
+                violation_error_message="Chave Analysis é unico em Vendedores"
+            ),
+            models.UniqueConstraint(
+                fields=['nome',],
+                name='vendedores_unique_nome',
+                violation_error_message="Nome é unico em Vendedores"
+            ),
+        ]
+
+    status_vendedores = status_ativo_inativo
+
+    chave_analysis = models.IntegerField("ID Analysis")
+    nome = models.CharField("Nome", max_length=30)
+    status = models.CharField("Status", max_length=10, choices=status_vendedores, default='ativo')  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.nome}'

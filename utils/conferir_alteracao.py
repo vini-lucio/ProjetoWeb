@@ -7,3 +7,19 @@ def campo_django_mudou(model, instancia, **kwargs) -> bool:
             if valor_novo != getattr(anterior, chave_novo):
                 return True
     return False
+
+
+def campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem) -> bool:
+    if not objeto_destino:
+        return True
+
+    # armazenar em variaveis locais é mais rapido
+    get_attr = getattr
+    for key_destino, value_origem in mapeamento_destino_origem.items():
+
+        destino = get_attr(objeto_destino, key_destino)
+        origem = get_attr(objeto_origem, value_origem)
+        if destino != origem:
+            return True
+
+    return False

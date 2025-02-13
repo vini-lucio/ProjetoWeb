@@ -86,12 +86,25 @@
     <a href="{% url "home:produtos-modelos" %}"><div class="botao-div voltar">⇦</div></a>
 
     <script>
-        function copiarLink() {
+        {% comment %} function copiarLink() {
             var copiar = document.getElementById("link");
             navigator.clipboard.writeText(copiar.href);
             var copiado = document.getElementById("copiar");
             copiado.innerText = "Copiar Link - Copiado!"
-          }
+          } {% endcomment %}
+
+          function copiarLink() {
+            const link = "{{ produtos_modelo.url_site }}";
+            
+            const textarea = document.createElement('textarea');
+            textarea.value = link;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            alert('Copiado: ' + link);
+        }
     </script>
 
 {% endblock conteudo %}

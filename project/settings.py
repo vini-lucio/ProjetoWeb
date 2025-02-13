@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'rh',
     'rh_relatorios',
     'frete',
+    'analysis',
     'django_summernote',
 ]
 
@@ -125,7 +126,7 @@ DATABASES = {
         'HOST': os.getenv('POSTGRES_HOST'),
         'PORT': os.getenv('POSTGRES_PORT'),
     },
-    'oracle': {
+    'analysis': {
         'ENGINE': os.getenv('ORACLE_ENGINE'),
         'NAME': os.getenv('ORACLE_DSN'),
         # 'NAME': os.getenv('ORACLE_NAME'),
