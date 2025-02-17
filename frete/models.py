@@ -290,6 +290,18 @@ class TransportadorasRegioesCidades(BaseLogModel):
     taxa = models.DecimalField("Taxa (R$)", max_digits=9, decimal_places=2, default=0)  # type:ignore
     cif = models.BooleanField("Frete CIF", default=False)
 
+    @property
+    def cidade_nome(self):
+        return self.cidade.nome
+
+    cidade_nome.fget.short_description = 'Cidade'  # type:ignore
+
+    @property
+    def transportadora_regiao_valor_nome(self):
+        return str(self.transportadora_regiao_valor)
+
+    transportadora_regiao_valor_nome.fget.short_description = 'Transportadora Região Valor'  # type:ignore
+
     def clean(self) -> None:
         super_clean = super().clean()
 

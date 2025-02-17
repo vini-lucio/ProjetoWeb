@@ -82,6 +82,20 @@ class UNIDADES(ReadOnlyMixin, models.Model):
         return self.DESCRICAO
 
 
+class FAMILIA_PRODUTOS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."FAMILIA_PRODUTOS"'
+        verbose_name = 'Familia Produtos'
+        verbose_name_plural = 'Familias Produtos'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    FAMILIA = models.CharField("Familia", max_length=50, null=True, blank=True)
+
+    def __str__(self):
+        return self.FAMILIA
+
+
 class PRODUTOS(ReadOnlyMixin, models.Model):
     class Meta:
         managed = False
@@ -91,6 +105,8 @@ class PRODUTOS(ReadOnlyMixin, models.Model):
 
     CPROD = models.IntegerField("ID", primary_key=True)
     CODIGO = models.CharField("Codigo", max_length=60, null=True, blank=True)
+    CHAVE_FAMILIA = models.ForeignKey(FAMILIA_PRODUTOS, db_column="CHAVE_FAMILIA", verbose_name="Familia",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
     CHAVE_UNIDADE = models.ForeignKey(UNIDADES, db_column="CHAVE_UNIDADE", verbose_name="Unidade",
                                       on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
     DESCRICAO = models.CharField("Descrição", max_length=120, null=True, blank=True)

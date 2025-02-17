@@ -1,7 +1,7 @@
 from django.contrib import admin
 from frete.models import (Transportadoras, TransportadorasOrigemDestino, TransportadorasRegioesValores,
                           TransportadorasRegioesMargens, TransportadorasRegioesCidades)
-from utils.base_models import BaseModelAdminRedRequiredLog
+from utils.base_models import BaseModelAdminRedRequiredLog, ExportarXlsxMixIn
 
 
 @admin.register(Transportadoras)
@@ -133,11 +133,15 @@ class TransportadorasRegioesMargensAdmin(BaseModelAdminRedRequiredLog):
 
 
 @admin.register(TransportadorasRegioesCidades)
-class TransportadorasRegioesCidadesAdmin(BaseModelAdminRedRequiredLog):
+class TransportadorasRegioesCidadesAdmin(ExportarXlsxMixIn, BaseModelAdminRedRequiredLog):
     list_display = 'id', 'transportadora_regiao_valor', 'cidade', 'prazo', 'prazo_tipo', 'cif',
     list_display_links = list_display
+    list_filter = 'transportadora_regiao_valor__transportadora_origem_destino__transportadora',
     ordering = 'transportadora_regiao_valor', 'cidade',
     search_fields = ('transportadora_regiao_valor__transportadora_origem_destino__transportadora__nome',
                      'cidade__nome')
     readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
     autocomplete_fields = 'transportadora_regiao_valor', 'cidade',
+    actions = 'exportar_excel',
+    campos_exportar = ['transportadora_regiao_valor_nome', 'cidade_nome', 'prazo_tipo', 'prazo', 'frequencia',
+                       'observacoes', 'taxa', 'cif',]
