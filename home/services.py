@@ -2,8 +2,8 @@ from decimal import Decimal
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
 from home.models import Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores
-from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES
-from utils.site_setup import get_site_setup, get_produtos, get_unidades
+from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES, PRODUTOS
+from utils.site_setup import get_site_setup
 from utils.lfrete import notas as lfrete_notas
 from utils.conferir_alteracao import campo_migrar_mudou
 
@@ -3744,72 +3744,59 @@ def migrar_unidades():
                 instancia.save()
 
 
-def get_produtos_base() -> list | None:
-    """Retorna tabela de produtos atualizada"""
-    sql = """
-        SELECT
-            PRODUTOS.CPROD AS CHAVE_ANALYSIS,
-            PRODUTOS.CODIGO AS NOME,
-            PRODUTOS.CHAVE_UNIDADE AS CHAVE_ANALYSIS_UNIDADE,
-            PRODUTOS.DESCRICAO,
-            ROUND(PRODUTOS.PESO_LIQUIDO, 4) AS PESO_LIQUIDO,
-            ROUND(PRODUTOS.PESO_BRUTO, 4) AS PESO_BRUTO,
-            CASE PRODUTOS.FORA_DE_LINHA WHEN 'SIM' THEN 'inativo' ELSE 'ativo' END AS STATUS,
-            PRODUTOS.CODIGO_BARRA AS EAN13,
-            CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 1 WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 2 WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 3 ELSE 3 END AS PRIORIDADE
-
-        FROM
-            COPLAS.PRODUTOS
-
-        WHERE
-            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True)
-
-    return resultado
-
-
 def migrar_produtos():
-    """Atualiza cadastro de produtos de acordo com Analysis"""
-    produtos_base = get_produtos_base()
-    if produtos_base:
-        produtos = get_produtos()
-        unidades = get_unidades()
-        for produto_base in produtos_base:
-            produto_conferir = produtos.filter(chave_analysis=produto_base['CHAVE_ANALYSIS']).first()
-            unidade_conferir = unidades.filter(chave_analysis=produto_base['CHAVE_ANALYSIS_UNIDADE']).first()
+    mapeamento_destino_origem = {
+        'nome': 'CODIGO',
+        'unidade': ('CHAVE_UNIDADE', ('chave_analysis', 'CHAVE')),
+        'descricao': 'DESCRICAO',
+        'peso_liquido': 'PESO_LIQUIDO',
+        'peso_bruto': 'PESO_BRUTO',
+        'ean13': 'CODIGO_BARRA',
+    }
 
-            if not produto_conferir or \
-                    produto_conferir.nome != produto_base['NOME'] or \
-                    produto_conferir.unidade != unidade_conferir or \
-                    produto_conferir.descricao != produto_base['DESCRICAO'] or \
-                    produto_conferir.peso_liquido != produto_base['PESO_LIQUIDO'] or \
-                    produto_conferir.peso_bruto != produto_base['PESO_BRUTO'] or \
-                    produto_conferir.status != produto_base['STATUS'] or \
-                    produto_conferir.ean13 != produto_base['EAN13'] or \
-                    produto_conferir.prioridade != produto_base['PRIORIDADE']:
+    origem = PRODUTOS.objects.using('analysis').filter(CHAVE_FAMILIA__CHAVE__in=(7766, 7767, 8378)).all()
+    if origem:
+        destino = Produtos.objects
+        unidade = Unidades.objects
+        for objeto_origem in origem:
+            objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
 
-                instancia, criado = Produtos.objects.update_or_create(
-                    chave_analysis=produto_base['CHAVE_ANALYSIS'],
+            mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
+            status = 'ativo' if objeto_origem.FORA_DE_LINHA == 'NAO' else 'inativo'
+            prioridade = Decimal(3)
+            if 'ESTOQUE A' in objeto_origem.CARACTERISTICA2:  # type:ignore
+                prioridade = Decimal(1)
+            elif 'ESTOQUE B' in objeto_origem.CARACTERISTICA2:  # type:ignore
+                prioridade = Decimal(2)
+            elif 'ESTOQUE C' in objeto_origem.CARACTERISTICA2:  # type:ignore
+                prioridade = Decimal(3)
+
+            if not mudou:
+                mudou = objeto_destino.status != status  # type:ignore
+
+            if not mudou:
+                mudou = objeto_destino.prioridade != prioridade  # type:ignore
+
+            if mudou:
+                fk_unidade = unidade.filter(chave_analysis=objeto_origem.CHAVE_UNIDADE.CHAVE).first()  # type:ignore
+
+                instancia, criado = destino.update_or_create(
+                    chave_analysis=objeto_origem.pk,
                     defaults={
-                        'chave_analysis': produto_base['CHAVE_ANALYSIS'],
-                        'nome': produto_base['NOME'],
-                        'unidade': unidade_conferir,
-                        'descricao': produto_base['DESCRICAO'],
-                        'peso_liquido': str(produto_base['PESO_LIQUIDO']),
-                        'peso_bruto': str(produto_base['PESO_BRUTO']),
-                        'status': produto_base['STATUS'],
-                        'ean13': produto_base['EAN13'],
-                        'prioridade': produto_base['PRIORIDADE'],
+                        'chave_analysis': objeto_origem.pk,
+                        'unidade': fk_unidade,
+                        'prioridade': prioridade,
+                        'status': status,
+                        'nome': objeto_origem.CODIGO,
+                        'descricao': objeto_origem.DESCRICAO,
+                        'peso_liquido': round(objeto_origem.PESO_LIQUIDO, 4),  # type:ignore
+                        'peso_bruto': round(objeto_origem.PESO_BRUTO, 4),  # type:ignore
+                        'ean13': objeto_origem.CODIGO_BARRA,
                     }
                 )
                 instancia.m3_volume = round(Decimal(instancia.m3_volume), 4)
                 instancia.full_clean()
                 instancia.save()
-
-
-# TODO: novo migrar produtos
 
 
 def migrar_vendedores():
