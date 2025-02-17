@@ -6,12 +6,10 @@ from django.http import HttpRequest, HttpResponse
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
                          ProdutosModelosTags, Unidades, Produtos, EstadosIcms, Vendedores)
-from analysis.models import VENDEDORES
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn, ExportarXlsxMixIn)
 from utils.exportar_excel import arquivo_excel
-from utils.conferir_alteracao import campo_migrar_mudou
 import home.services as services
 import os
 import zipfile
@@ -333,36 +331,3 @@ class VendedoresAdmin(BaseModelAdminRedRequired):
     list_display_links = list_display
     ordering = 'nome',
     search_fields = 'nome',
-
-    actions = 'migrar',
-
-    @admin.action(description="Migrar Vendedores")
-    def migrar(self, request, queryset):
-        mapeamento_destino_origem = {
-            'nome': 'NOMERED',
-            'status': 'INATIVO',
-        }
-
-        origem = VENDEDORES.objects.using('analysis').all()
-        if origem:
-            destino = Vendedores.objects
-            for objeto_origem in origem:
-                objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
-
-                mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
-
-                if mudou:
-                    status = 'ativo' if objeto_origem.INATIVO == 'NAO' else 'inativo'
-
-                    instancia, criado = destino.update_or_create(
-                        chave_analysis=objeto_origem.pk,
-                        defaults={
-                            'chave_analysis': objeto_origem.CODVENDEDOR,
-                            'nome': objeto_origem.NOMERED,
-                            'status': status,
-                        }
-                    )
-                    instancia.full_clean()
-                    instancia.save()
-
-        self.message_user(request, "Migração concluida!")

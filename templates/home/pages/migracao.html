@@ -59,6 +59,23 @@
             </div>
         </div>
 
+        <div class="link-conteudo">
+            <div class="grid-simples">
+                <form method="POST" action="{% url "home:migracao" %}">
+                    {% csrf_token %}
+                    {{ formulario_migrar_vendedores.as_p }}
+                    <button id="migrar-vendedores" name="vendedores-submit" onclick="mudarTextoVendedores()" class="botao" type="submit">Atualizar Cadastro de Vendedores</button>
+                    {% if messages %}
+                        {% for mensagem in messages %}
+                            {% if 'vendedores' in mensagem.tags %}
+                                <p>{{ mensagem }}</p>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
     </section>
 
     <script>
@@ -81,6 +98,14 @@
         function mudarTextoUnidades() {
             var checkbox = document.getElementById("confirma-migrar-unidades");
             var button = document.getElementById("migrar-unidades");
+            if (checkbox.checked) {
+                button.innerText = "Aguarde...";
+            }
+        }
+
+        function mudarTextoVendedores() {
+            var checkbox = document.getElementById("confirma-migrar-vendedores");
+            var button = document.getElementById("migrar-vendedores");
             if (checkbox.checked) {
                 button.innerText = "Aguarde...";
             }

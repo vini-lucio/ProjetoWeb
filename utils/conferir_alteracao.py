@@ -16,9 +16,19 @@ def campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
     # armazenar em variaveis locais é mais rapido
     get_attr = getattr
     for key_destino, value_origem in mapeamento_destino_origem.items():
-
         destino = get_attr(objeto_destino, key_destino)
-        origem = get_attr(objeto_origem, value_origem)
+
+        if not isinstance(value_origem, tuple):
+            origem = get_attr(objeto_origem, value_origem)
+
+        else:
+            value_origem, mapeamento_fk_destino_origem = value_origem
+            origem = get_attr(objeto_origem, value_origem)
+
+            fk_key_destino, fk_value_origem = mapeamento_fk_destino_origem
+            destino = get_attr(destino, fk_key_destino)
+            origem = get_attr(origem, fk_value_origem)
+
         if destino != origem:
             return True
 

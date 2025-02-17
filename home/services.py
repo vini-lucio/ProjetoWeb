@@ -1,9 +1,11 @@
 from decimal import Decimal
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
-from home.models import Cidades, Unidades, Produtos, Estados, EstadosIcms
-from utils.site_setup import get_cidades, get_estados, get_site_setup, get_unidades, get_produtos, get_estados_icms
+from home.models import Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores
+from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES
+from utils.site_setup import get_site_setup, get_produtos, get_unidades
 from utils.lfrete import notas as lfrete_notas
+from utils.conferir_alteracao import campo_migrar_mudou
 
 
 def contas_marketing_ano_mes_a_mes():
@@ -3624,172 +3626,118 @@ def get_tabela_precos() -> list | None:
     return resultado
 
 
-def get_estados_base() -> list | None:
-    """Retorna tabela de estados atualizada"""
-    sql = """
-        SELECT
-            CHAVE AS CHAVE_ANALYSIS,
-            ESTADO AS UF,
-            SIGLA
-
-        FROM
-            COPLAS.ESTADOS
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True)
-
-    return resultado
-
-
 def migrar_estados():
-    """Atualiza cadastro de estados de acordo com Analysis"""
-    estados_base = get_estados_base()
-    if estados_base:
-        estados = get_estados()
-        for estado_base in estados_base:
-            estado_conferir = estados.filter(chave_analysis=estado_base['CHAVE_ANALYSIS']).first()
+    mapeamento_destino_origem = {
+        'uf': 'ESTADO',
+        'sigla': 'SIGLA',
+    }
 
-            if not estado_conferir or \
-                    estado_conferir.uf != estado_base['UF'] or \
-                    estado_conferir.sigla != estado_base['SIGLA']:
+    origem = ESTADOS.objects.using('analysis').all()
+    if origem:
+        destino = Estados.objects
+        for objeto_origem in origem:
+            objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
 
-                instancia, criado = Estados.objects.update_or_create(
-                    chave_analysis=estado_base['CHAVE_ANALYSIS'],
+            mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
+
+            if mudou:
+                instancia, criado = destino.update_or_create(
+                    chave_analysis=objeto_origem.pk,
                     defaults={
-                        'chave_analysis': estado_base['CHAVE_ANALYSIS'],
-                        'uf': estado_base['UF'],
-                        'sigla': estado_base['SIGLA'],
+                        'chave_analysis': objeto_origem.pk,
+                        'uf': objeto_origem.ESTADO,
+                        'sigla': objeto_origem.SIGLA,
                     }
                 )
                 instancia.full_clean()
                 instancia.save()
-
-
-def get_estados_icms_base() -> list | None:
-    """Retorna tabela de estados icms atualizada"""
-    sql = """
-        SELECT
-            UF_EMITENTE AS CHAVE_UF_ORIGEM,
-            UF_DESTINO AS CHAVE_UF_DESTINO,
-            ALIQUOTA AS ICMS
-
-        FROM
-            COPLAS.MATRIZ_ICMS
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True)
-
-    return resultado
 
 
 def migrar_estados_icms():
-    """Atualiza cadastro de estados icms de acordo com Analysis"""
-    estados_icms_base = get_estados_icms_base()
-    if estados_icms_base:
-        estados_icms = get_estados_icms()
-        estados = get_estados()
-        for estado_icms_base in estados_icms_base:
-            estado_icms_conferir = estados_icms.filter(
-                uf_origem__chave_analysis=estado_icms_base['CHAVE_UF_ORIGEM'],
-                uf_destino__chave_analysis=estado_icms_base['CHAVE_UF_DESTINO'],
+    mapeamento_destino_origem = {
+        'icms': 'ALIQUOTA',
+    }
+
+    origem = MATRIZ_ICMS.objects.using('analysis').all()
+    if origem:
+        destino = EstadosIcms.objects
+        estados = Estados.objects
+        for objeto_origem in origem:
+            objeto_destino = destino.filter(
+                uf_origem__chave_analysis=objeto_origem.UF_EMITENTE.pk,  # type:ignore
+                uf_destino__chave_analysis=objeto_origem.UF_DESTINO.pk,  # type:ignore
             ).first()
 
-            if not estado_icms_conferir or \
-                    estado_icms_conferir.icms != estado_icms_base['ICMS']:
+            mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
 
-                uf_origem_fk = estados.filter(chave_analysis=estado_icms_base['CHAVE_UF_ORIGEM']).first()
-                uf_destino_fk = estados.filter(chave_analysis=estado_icms_base['CHAVE_UF_DESTINO']).first()
-                instancia, criado = EstadosIcms.objects.update_or_create(
-                    uf_origem__chave_analysis=estado_icms_base['CHAVE_UF_ORIGEM'],
-                    uf_destino__chave_analysis=estado_icms_base['CHAVE_UF_DESTINO'],
+            if mudou:
+                uf_origem_fk = estados.filter(chave_analysis=objeto_origem.UF_EMITENTE.pk).first()  # type:ignore
+                uf_destino_fk = estados.filter(chave_analysis=objeto_origem.UF_DESTINO.pk).first()  # type:ignore
+
+                instancia, criado = destino.update_or_create(
+                    uf_origem__chave_analysis=objeto_origem.UF_EMITENTE.pk,  # type:ignore
+                    uf_destino__chave_analysis=objeto_origem.UF_DESTINO.pk,  # type:ignore
                     defaults={
                         'uf_origem': uf_origem_fk,
                         'uf_destino': uf_destino_fk,
-                        'icms': str(estado_icms_base['ICMS']),
+                        'icms': objeto_origem.ALIQUOTA,
                     }
                 )
                 instancia.full_clean()
                 instancia.save()
-
-
-def get_cidades_base() -> list | None:
-    """Retorna tabela de cidades atualizada"""
-    sql = """
-        SELECT
-            CHAVE AS CHAVE_ANALYSIS,
-            UF AS SIGLA,
-            CIDADE AS NOME
-
-        FROM
-            COPLAS.FAIXAS_CEP
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True)
-
-    return resultado
 
 
 def migrar_cidades():
-    """Atualiza cadastro de cidades de acordo com Analysis"""
-    cidades_base = get_cidades_base()
-    if cidades_base:
-        cidades = get_cidades()
-        estados = get_estados()
-        for cidade_base in cidades_base:
-            cidade_conferir = cidades.filter(chave_analysis=cidade_base['CHAVE_ANALYSIS']).first()
+    mapeamento_destino_origem = {
+        'estado': ('UF', ('sigla', 'SIGLA')),
+        'nome': 'CIDADE',
+    }
 
-            if not cidade_conferir or \
-                    cidade_conferir.nome != cidade_base['NOME'] or \
-                    cidade_conferir.estado.sigla != cidade_base['SIGLA']:
+    origem = FAIXAS_CEP.objects.using('analysis').all()
+    if origem:
+        destino = Cidades.objects
+        estado = Estados.objects
+        for objeto_origem in origem:
+            objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
 
-                estados_fk = estados.filter(sigla=cidade_base['SIGLA']).first()
-                instancia, criado = Cidades.objects.update_or_create(
-                    chave_analysis=cidade_base['CHAVE_ANALYSIS'],
+            mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
+
+            if mudou:
+                fk_estado = estado.filter(chave_analysis=objeto_origem.UF.CHAVE).first()  # type:ignore
+
+                instancia, criado = destino.update_or_create(
+                    chave_analysis=objeto_origem.pk,
                     defaults={
-                        'chave_analysis': cidade_base['CHAVE_ANALYSIS'],
-                        'estado': estados_fk,
-                        'nome': cidade_base['NOME'],
+                        'chave_analysis': objeto_origem.pk,
+                        'estado': fk_estado,
+                        'nome': objeto_origem.CIDADE,
                     }
                 )
                 instancia.full_clean()
                 instancia.save()
 
 
-def get_unidades_base() -> list | None:
-    """Retorna tabela de unidades atualizada"""
-    sql = """
-        SELECT
-            CHAVE AS CHAVE_ANALYSIS,
-            UNIDADE,
-            DESCRICAO
-
-        FROM
-            COPLAS.UNIDADES
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True)
-
-    return resultado
-
-
 def migrar_unidades():
-    """Atualiza cadastro de unidades de acordo com Analysis"""
-    unidades_base = get_unidades_base()
-    if unidades_base:
-        unidades = get_unidades()
-        for unidade_base in unidades_base:
-            unidade_conferir = unidades.filter(chave_analysis=unidade_base['CHAVE_ANALYSIS']).first()
+    mapeamento_destino_origem = {
+        'unidade': 'UNIDADE',
+        'descricao': 'DESCRICAO',
+    }
 
-            if not unidade_conferir or \
-                    unidade_conferir.unidade != unidade_base['UNIDADE'] or \
-                    unidade_conferir.descricao != unidade_base['DESCRICAO']:
+    origem = UNIDADES.objects.using('analysis').all()
+    if origem:
+        destino = Unidades.objects
+        for objeto_origem in origem:
+            objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
 
-                instancia, criado = Unidades.objects.update_or_create(
-                    chave_analysis=unidade_base['CHAVE_ANALYSIS'],
+            mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
+
+            if mudou:
+                instancia, criado = destino.update_or_create(
+                    chave_analysis=objeto_origem.pk,
                     defaults={
-                        'chave_analysis': unidade_base['CHAVE_ANALYSIS'],
-                        'unidade': unidade_base['UNIDADE'],
-                        'descricao': unidade_base['DESCRICAO'],
+                        'chave_analysis': objeto_origem.pk,
+                        'unidade': objeto_origem.UNIDADE,
+                        'descricao': objeto_origem.DESCRICAO,
                     }
                 )
                 instancia.full_clean()
@@ -3857,5 +3805,38 @@ def migrar_produtos():
                     }
                 )
                 instancia.m3_volume = round(Decimal(instancia.m3_volume), 4)
+                instancia.full_clean()
+                instancia.save()
+
+
+# TODO: novo migrar produtos
+
+
+def migrar_vendedores():
+    mapeamento_destino_origem = {
+        'nome': 'NOMERED',
+    }
+
+    origem = VENDEDORES.objects.using('analysis').all()
+    if origem:
+        destino = Vendedores.objects
+        for objeto_origem in origem:
+            objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
+
+            mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
+            status = 'ativo' if objeto_origem.INATIVO == 'NAO' else 'inativo'
+
+            if not mudou:
+                mudou = objeto_destino.status != status  # type:ignore
+
+            if mudou:
+                instancia, criado = destino.update_or_create(
+                    chave_analysis=objeto_origem.pk,
+                    defaults={
+                        'chave_analysis': objeto_origem.pk,
+                        'nome': objeto_origem.NOMERED,
+                        'status': status,
+                    }
+                )
                 instancia.full_clean()
                 instancia.save()

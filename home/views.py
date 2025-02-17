@@ -7,7 +7,7 @@ from home.forms import PesquisarForm
 from django.db.models import Q
 from django.utils.text import slugify
 from .services import (get_tabela_precos, migrar_cidades, migrar_unidades, migrar_produtos, migrar_estados,
-                       migrar_estados_icms)
+                       migrar_estados_icms, migrar_vendedores)
 from .forms import ConfirmacaoMigrar
 from django.contrib.auth.decorators import user_passes_test
 from collections import Counter
@@ -19,6 +19,7 @@ def migracao(request):
     id_confirma_cidades = 'confirma-migrar-cidades'
     id_confirma_unidades = 'confirma-migrar-unidades'
     id_confirma_produtos = 'confirma-migrar-produtos'
+    id_confirma_vendedores = 'confirma-migrar-vendedores'
 
     if request.method == 'POST':
         if 'cidades-submit' in request.POST:
@@ -45,18 +46,27 @@ def migracao(request):
                 mensagem = "Migração de unidades concluída!"
                 extra_tags = 'unidades'
 
+        elif 'vendedores-submit' in request.POST:
+            formulario_migrar_vendedores = ConfirmacaoMigrar(request.POST, id_confirma=id_confirma_vendedores)
+            if formulario_migrar_vendedores.is_valid() and formulario_migrar_vendedores.cleaned_data['confirma']:
+                migrar_vendedores()
+                mensagem = "Migração de vendedores concluída!"
+                extra_tags = 'vendedores'
+
         messages.success(request, mensagem, extra_tags=extra_tags)
         return redirect(reverse('home:migracao'))
 
     formulario_migrar_cidades = ConfirmacaoMigrar(id_confirma=id_confirma_cidades)
     formulario_migrar_unidades = ConfirmacaoMigrar(id_confirma=id_confirma_unidades)
     formulario_migrar_produtos = ConfirmacaoMigrar(id_confirma=id_confirma_produtos)
+    formulario_migrar_vendedores = ConfirmacaoMigrar(id_confirma=id_confirma_vendedores)
 
     contexto = {
         'titulo_pagina': titulo_pagina,
         'formulario_migrar_cidades': formulario_migrar_cidades,
         'formulario_migrar_unidades': formulario_migrar_unidades,
         'formulario_migrar_produtos': formulario_migrar_produtos,
+        'formulario_migrar_vendedores': formulario_migrar_vendedores,
     }
 
     return render(request, 'home/pages/migracao.html', contexto)
