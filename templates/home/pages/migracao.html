@@ -13,7 +13,7 @@
                 <form method="POST" action="{% url "home:migracao" %}">
                     {% csrf_token %}
                     {{ formulario_migrar_cidades.as_p }}
-                    <button id="migrar-cidades" name="cidades-submit" onclick="mudarTextoCidades()" class="botao" type="submit">Atualizar Cadastro de Estados e Cidades</button>
+                    <button id="migrar-cidades" name="cidades-submit" onclick="mudarTextoCidades()" class="botao" type="submit">Atualizar Cadastro de Estados, Cidades e Regiões</button>
                     {% if messages %}
                         {% for mensagem in messages %}
                             {% if 'cidades' in mensagem.tags %}
@@ -64,7 +64,7 @@
                 <form method="POST" action="{% url "home:migracao" %}">
                     {% csrf_token %}
                     {{ formulario_migrar_vendedores.as_p }}
-                    <button id="migrar-vendedores" name="vendedores-submit" onclick="mudarTextoVendedores()" class="botao" type="submit">Atualizar Cadastro de Vendedores</button>
+                    <button id="migrar-vendedores" name="vendedores-submit" onclick="mudarTextoVendedores()" class="botao" type="submit">Atualizar Cadastro de Canais de Vendas e Vendedores</button>
                     {% if messages %}
                         {% for mensagem in messages %}
                             {% if 'vendedores' in mensagem.tags %}

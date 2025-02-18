@@ -26,10 +26,10 @@ def campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
             origem = get_attr(objeto_origem, value_origem)
 
             fk_key_destino, fk_value_origem = mapeamento_fk_destino_origem
-            destino = get_attr(destino, fk_key_destino)
-            origem = get_attr(origem, fk_value_origem)
+            destino = get_attr(destino, fk_key_destino) if destino else None
+            origem = get_attr(origem, fk_value_origem) if origem else None
 
-        if destino != origem:
+        if (destino != origem) or (origem and not destino) or (not origem and destino):
             return True
 
     return False

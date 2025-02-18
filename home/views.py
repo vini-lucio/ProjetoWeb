@@ -7,7 +7,7 @@ from home.forms import PesquisarForm
 from django.db.models import Q
 from django.utils.text import slugify
 from .services import (get_tabela_precos, migrar_cidades, migrar_unidades, migrar_produtos, migrar_estados,
-                       migrar_estados_icms, migrar_vendedores)
+                       migrar_estados_icms, migrar_vendedores, migrar_canais_vendas, migrar_regioes)
 from .forms import ConfirmacaoMigrar
 from django.contrib.auth.decorators import user_passes_test
 from collections import Counter
@@ -25,10 +25,11 @@ def migracao(request):
         if 'cidades-submit' in request.POST:
             formulario_migrar_cidades = ConfirmacaoMigrar(request.POST, id_confirma=id_confirma_cidades)
             if formulario_migrar_cidades.is_valid() and formulario_migrar_cidades.cleaned_data['confirma']:
+                migrar_regioes()
                 migrar_estados()
                 migrar_estados_icms()
                 migrar_cidades()
-                mensagem = "Migração de estados e cidades concluída!"
+                mensagem = "Migração de estados, cidades e regiões concluída!"
                 extra_tags = 'cidades'
 
         elif 'produtos-submit' in request.POST:
@@ -49,8 +50,9 @@ def migracao(request):
         elif 'vendedores-submit' in request.POST:
             formulario_migrar_vendedores = ConfirmacaoMigrar(request.POST, id_confirma=id_confirma_vendedores)
             if formulario_migrar_vendedores.is_valid() and formulario_migrar_vendedores.cleaned_data['confirma']:
+                migrar_canais_vendas()
                 migrar_vendedores()
-                mensagem = "Migração de vendedores concluída!"
+                mensagem = "Migração de canais de vendas e vendedores concluída!"
                 extra_tags = 'vendedores'
 
         messages.success(request, mensagem, extra_tags=extra_tags)

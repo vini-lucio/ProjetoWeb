@@ -42,7 +42,9 @@ class PesquisarOrcamentoFreteForm(TransportadoraValorFormMixIn, forms.Form):
 class PesquisarCidadePrazosForm(forms.Form):
     uf = Estados.objects.all()
 
-    uf_origem = forms.ModelChoiceField(uf, label="UF Origem", initial=uf.get(sigla="SP"))
+    # TODO: voltar linha comentada apos migração e importação em produção
+    # uf_origem = forms.ModelChoiceField(uf, label="UF Origem", initial=uf.get(sigla="SP"))
+    uf_origem = forms.ModelChoiceField(uf, label="UF Origem")
     uf_destino = forms.ModelChoiceField(uf, label="UF Destino")
     cidade_destino = forms.CharField(label="Cidade Destino", max_length=70)
 

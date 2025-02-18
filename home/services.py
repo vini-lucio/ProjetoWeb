@@ -1,8 +1,8 @@
 from decimal import Decimal
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
-from home.models import Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores
-from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES, PRODUTOS
+from home.models import Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores, CanaisVendas, Regioes
+from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES, PRODUTOS, CANAIS_VENDA, REGIOES
 from utils.site_setup import get_site_setup
 from utils.lfrete import notas as lfrete_notas
 from utils.conferir_alteracao import campo_migrar_mudou
@@ -3626,15 +3626,14 @@ def get_tabela_precos() -> list | None:
     return resultado
 
 
-def migrar_estados():
+def migrar_regioes():
     mapeamento_destino_origem = {
-        'uf': 'ESTADO',
-        'sigla': 'SIGLA',
+        'nome': 'REGIAO',
     }
 
-    origem = ESTADOS.objects.using('analysis').all()
+    origem = REGIOES.objects.using('analysis').all()
     if origem:
-        destino = Estados.objects
+        destino = Regioes.objects
         for objeto_origem in origem:
             objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
 
@@ -3645,8 +3644,39 @@ def migrar_estados():
                     chave_analysis=objeto_origem.pk,
                     defaults={
                         'chave_analysis': objeto_origem.pk,
+                        'nome': objeto_origem.REGIAO,
+                    }
+                )
+                instancia.full_clean()
+                instancia.save()
+
+
+def migrar_estados():
+    mapeamento_destino_origem = {
+        'uf': 'ESTADO',
+        'sigla': 'SIGLA',
+        'regiao': ('CHAVE_REGIAO', ('chave_analysis', 'CHAVE')),
+    }
+
+    origem = ESTADOS.objects.using('analysis').all()
+    if origem:
+        destino = Estados.objects
+        regiao = Regioes.objects
+        for objeto_origem in origem:
+            objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
+
+            mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
+
+            if mudou:
+                fk_regiao = regiao.filter(chave_analysis=objeto_origem.CHAVE_REGIAO.CHAVE).first()  # type:ignore
+
+                instancia, criado = destino.update_or_create(
+                    chave_analysis=objeto_origem.pk,
+                    defaults={
+                        'chave_analysis': objeto_origem.pk,
                         'uf': objeto_origem.ESTADO,
                         'sigla': objeto_origem.SIGLA,
+                        'regiao': fk_regiao,
                     }
                 )
                 instancia.full_clean()
@@ -3799,14 +3829,41 @@ def migrar_produtos():
                 instancia.save()
 
 
+def migrar_canais_vendas():
+    mapeamento_destino_origem = {
+        'descricao': 'DESCRICAO',
+    }
+
+    origem = CANAIS_VENDA.objects.using('analysis').all()
+    if origem:
+        destino = CanaisVendas.objects
+        for objeto_origem in origem:
+            objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
+
+            mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
+
+            if mudou:
+                instancia, criado = destino.update_or_create(
+                    chave_analysis=objeto_origem.pk,
+                    defaults={
+                        'chave_analysis': objeto_origem.pk,
+                        'descricao': objeto_origem.DESCRICAO,
+                    }
+                )
+                instancia.full_clean()
+                instancia.save()
+
+
 def migrar_vendedores():
     mapeamento_destino_origem = {
         'nome': 'NOMERED',
+        'canal_venda': ('CHAVE_CANAL', ('chave_analysis', 'CHAVE')),
     }
 
     origem = VENDEDORES.objects.using('analysis').all()
     if origem:
         destino = Vendedores.objects
+        canal_vendas = CanaisVendas.objects
         for objeto_origem in origem:
             objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
 
@@ -3817,11 +3874,15 @@ def migrar_vendedores():
                 mudou = objeto_destino.status != status  # type:ignore
 
             if mudou:
+                fk_canal_vendas = canal_vendas.filter(
+                    chave_analysis=objeto_origem.CHAVE_CANAL.CHAVE).first()  # type:ignore
+
                 instancia, criado = destino.update_or_create(
                     chave_analysis=objeto_origem.pk,
                     defaults={
                         'chave_analysis': objeto_origem.pk,
                         'nome': objeto_origem.NOMERED,
+                        'canal_venda': fk_canal_vendas,
                         'status': status,
                     }
                 )

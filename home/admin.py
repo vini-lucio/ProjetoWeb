@@ -5,7 +5,7 @@ from django.db.models.functions import Concat
 from django.http import HttpRequest, HttpResponse
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
-                         ProdutosModelosTags, Unidades, Produtos, EstadosIcms, Vendedores)
+                         ProdutosModelosTags, Unidades, Produtos, EstadosIcms, Vendedores, CanaisVendas, Regioes)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn, ExportarXlsxMixIn)
@@ -127,6 +127,14 @@ class PaisesAdmin(BaseModelAdminRedRequired):
     ordering = 'nome',
     search_fields = 'nome',
     readonly_fields = 'chave_migracao',
+
+
+@admin.register(Regioes)
+class RegioesAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'nome',
+    list_display_links = list_display
+    ordering = 'nome',
+    search_fields = 'nome',
 
 
 class EstadosIcmsInLine(admin.TabularInline):
@@ -323,6 +331,14 @@ class ProdutosAdmin(BaseModelAdminRedRequiredLog):
             ),
         }),
     )
+
+
+@admin.register(CanaisVendas)
+class CanaisVendasAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'descricao',
+    list_display_links = list_display
+    ordering = 'descricao',
+    search_fields = 'descricao',
 
 
 @admin.register(Vendedores)

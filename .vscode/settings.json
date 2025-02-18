@@ -1,5 +1,5 @@
 {
-    "editor.fontSize": 12,
+    "editor.fontSize": 11,
     "workbench.startupEditor": "none",
     "explorer.compactFolders": false,
     "code-runner.runInTerminal": true,

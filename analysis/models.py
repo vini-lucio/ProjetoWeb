@@ -2,6 +2,20 @@ from django.db import models
 from utils.base_models import ReadOnlyMixin
 
 
+class CANAIS_VENDA(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."CANAIS_VENDA"'
+        verbose_name = 'Canal de Vendas'
+        verbose_name_plural = 'Canais de Vendas'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    DESCRICAO = models.CharField("Descrição", max_length=30, null=True, blank=True)
+
+    def __str__(self):
+        return self.DESCRICAO
+
+
 class VENDEDORES(ReadOnlyMixin, models.Model):
     class Meta:
         managed = False
@@ -12,9 +26,25 @@ class VENDEDORES(ReadOnlyMixin, models.Model):
     CODVENDEDOR = models.IntegerField("ID", primary_key=True)
     NOMERED = models.CharField("Nome Reduzido", max_length=13, null=True, blank=True)
     INATIVO = models.CharField("Inativo", max_length=3, null=True, blank=True)
+    CHAVE_CANAL = models.ForeignKey(CANAIS_VENDA, db_column="CHAVE_CANAL", verbose_name="Canal de Vendas",
+                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
 
     def __str__(self):
         return self.NOMERED
+
+
+class REGIOES(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."REGIOES"'
+        verbose_name = 'Região'
+        verbose_name_plural = 'Regiões'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    REGIAO = models.CharField("Região", max_length=20, null=True, blank=True)
+
+    def __str__(self):
+        return self.REGIAO
 
 
 class ESTADOS(ReadOnlyMixin, models.Model):
@@ -27,6 +57,8 @@ class ESTADOS(ReadOnlyMixin, models.Model):
     CHAVE = models.IntegerField("ID", primary_key=True)
     ESTADO = models.CharField("Nome Reduzido", max_length=20, null=True, blank=True)
     SIGLA = models.CharField("Inativo", max_length=2, null=True, blank=True, unique=True)
+    CHAVE_REGIAO = models.ForeignKey(REGIOES, db_column="CHAVE_REGIAO", verbose_name="Região",
+                                     on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
 
     def __str__(self):
         return self.ESTADO

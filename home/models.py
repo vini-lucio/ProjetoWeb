@@ -421,6 +421,30 @@ class Paises(models.Model):
         return self.nome
 
 
+class Regioes(models.Model):
+    class Meta:
+        verbose_name = 'Região'
+        verbose_name_plural = 'Regiões'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['chave_analysis',],
+                name='regioes_unique_chave_analysis',
+                violation_error_message="Chave Analysis é unico em Regiões"
+            ),
+            models.UniqueConstraint(
+                fields=['nome',],
+                name='regioes_unique_nome',
+                violation_error_message="Nome é unico em Regiões"
+            ),
+        ]
+
+    chave_analysis = models.IntegerField("ID Analysis")
+    nome = models.CharField("Nome", max_length=30)
+
+    def __str__(self) -> str:
+        return self.nome
+
+
 class Estados(models.Model):
     class Meta:
         verbose_name = 'Estado'
@@ -447,6 +471,9 @@ class Estados(models.Model):
     chave_analysis = models.IntegerField("ID Analysis")
     uf = models.CharField("UF", max_length=30)
     sigla = models.CharField("Sigla", max_length=2)
+    # TODO: deixar regiao obrigatorio apos migração e importação inicial em produção
+    regiao = models.ForeignKey(Regioes, verbose_name="Região", on_delete=models.PROTECT,
+                               related_name="%(class)s", null=True, blank=True)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     def __str__(self) -> str:
@@ -795,6 +822,30 @@ class Produtos(BaseLogModel):
         return self.nome
 
 
+class CanaisVendas(models.Model):
+    class Meta:
+        verbose_name = 'Canal de Vendas'
+        verbose_name_plural = 'Canais de Vendas'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['chave_analysis',],
+                name='canais_vendas_unique_chave_analysis',
+                violation_error_message="Chave Analysis é unico em Canais de Vendas"
+            ),
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='canais_vendas_unique_descricao',
+                violation_error_message="Descrição é unico em Canais de Vendas"
+            ),
+        ]
+
+    chave_analysis = models.IntegerField("ID Analysis")
+    descricao = models.CharField("Descrição", max_length=30)
+
+    def __str__(self) -> str:
+        return self.descricao
+
+
 class Vendedores(models.Model):
     class Meta:
         verbose_name = 'Vendedor'
@@ -816,6 +867,9 @@ class Vendedores(models.Model):
 
     chave_analysis = models.IntegerField("ID Analysis")
     nome = models.CharField("Nome", max_length=30)
+    # TODO: deixar canal_venda obrigatorio apos migração e importação inicial em produção
+    canal_venda = models.ForeignKey(CanaisVendas, verbose_name="Canal de Venda", on_delete=models.PROTECT,
+                                    related_name="%(class)s", null=True, blank=True)
     status = models.CharField("Status", max_length=10, choices=status_vendedores, default='ativo')  # type:ignore
 
     def __str__(self) -> str:
