@@ -471,9 +471,7 @@ class Estados(models.Model):
     chave_analysis = models.IntegerField("ID Analysis")
     uf = models.CharField("UF", max_length=30)
     sigla = models.CharField("Sigla", max_length=2)
-    # TODO: deixar regiao obrigatorio apos migração e importação inicial em produção
-    regiao = models.ForeignKey(Regioes, verbose_name="Região", on_delete=models.PROTECT,
-                               related_name="%(class)s", null=True, blank=True)
+    regiao = models.ForeignKey(Regioes, verbose_name="Região", on_delete=models.PROTECT, related_name="%(class)s")
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     def __str__(self) -> str:
@@ -867,9 +865,8 @@ class Vendedores(models.Model):
 
     chave_analysis = models.IntegerField("ID Analysis")
     nome = models.CharField("Nome", max_length=30)
-    # TODO: deixar canal_venda obrigatorio apos migração e importação inicial em produção
     canal_venda = models.ForeignKey(CanaisVendas, verbose_name="Canal de Venda", on_delete=models.PROTECT,
-                                    related_name="%(class)s", null=True, blank=True)
+                                    related_name="%(class)s")
     status = models.CharField("Status", max_length=10, choices=status_vendedores, default='ativo')  # type:ignore
 
     def __str__(self) -> str:
