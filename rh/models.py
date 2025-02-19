@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils.safestring import mark_safe
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from home.models import Jobs, Cidades, Estados, Paises, Bancos
+from home.models import Jobs, Cidades, Estados, Paises, Bancos, Vendedores
 from utils.imagens import redimensionar_imagem
 from utils.base_models import BaseLogModel
 from utils.converter import (converter_data_django_para_str_ddmmyyyy, converter_hora_django_para_str_hh24mm,
@@ -1042,3 +1042,58 @@ class Salarios(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.funcionario} - Salario: {self.salario}'
+
+
+class Comissoes(models.Model):
+    class Meta:
+        verbose_name = 'Comissão'
+        verbose_name_plural = 'Comissões'
+
+    especies = {
+        'SAIDA': 'Saida',
+        'ENTRADA': 'Entrada',
+    }
+
+    data_vencimento = models.DateField("Data Vencimento", auto_now=False, auto_now_add=False, null=True, blank=True)
+    data_liquidacao = models.DateField("Data Liquidação", auto_now=False, auto_now_add=False, null=True, blank=True)
+    nota_fiscal = models.IntegerField("Nota Fiscal", default=0)
+    cliente = models.CharField("Cliente", max_length=50, null=True, blank=True)
+    uf_cliente = models.ForeignKey(Estados, verbose_name="UF Cliente", on_delete=models.CASCADE,
+                                   related_name="%(class)s_uf_cliente", null=True, blank=True)
+    uf_entrega = models.ForeignKey(Estados, verbose_name="UF Entrega", on_delete=models.CASCADE,
+                                   related_name="%(class)s_uf_entrega", null=True, blank=True)
+    cidade_entrega = models.ForeignKey(Cidades, verbose_name="Cidade Entrega", on_delete=models.CASCADE,
+                                       related_name="%(class)s", null=True, blank=True)
+    inclusao_orcamento = models.CharField("Inclusão Orçamento", max_length=50, null=True, blank=True)
+    representante_cliente = models.ForeignKey(Vendedores, verbose_name="Representante Cliente",
+                                              on_delete=models.CASCADE, related_name="%(class)s_representante_cliente",
+                                              null=True, blank=True)
+    representante_nota = models.ForeignKey(Vendedores, verbose_name="Representante Nota",
+                                           on_delete=models.CASCADE, related_name="%(class)s_representante_nota",
+                                           null=True, blank=True)
+    segundo_representante_cliente = models.ForeignKey(Vendedores, verbose_name="Segundo Representante Cliente",
+                                                      on_delete=models.CASCADE,
+                                                      related_name="%(class)s_segundo_representante_cliente",
+                                                      null=True, blank=True)
+    segundo_representante_nota = models.ForeignKey(Vendedores, verbose_name="Segundo Representante Nota",
+                                                   on_delete=models.CASCADE,
+                                                   related_name="%(class)s_segundo_representante_nota",
+                                                   null=True, blank=True)
+    carteira_cliente = models.ForeignKey(Vendedores, verbose_name="Carteira Cliente", on_delete=models.CASCADE,
+                                         related_name="%(class)s_carteira_cliente", null=True, blank=True)
+    especie = models.CharField("Especie", max_length=10, choices=especies, null=True, blank=True)  # type:ignore
+    valor_mercadorias_parcelas = models.DecimalField("Valor Mercadorias Parcelas R$", max_digits=12, decimal_places=2,
+                                                     default=0)  # type:ignore
+    abatimentos_totais = models.DecimalField("Abatimentos Totais R$", max_digits=12, decimal_places=2,
+                                             default=0)  # type:ignore
+    frete_item = models.DecimalField("Frete no Item R$", max_digits=12, decimal_places=2, default=0)  # type:ignore
+    divisao = models.BooleanField("Divisão", default=False)
+    erro = models.BooleanField("Erro", default=False)
+    infra = models.BooleanField("Infra", default=False)
+    premoldado_poste = models.BooleanField("Pre-Moldado / Poste", default=False)
+
+    def __str__(self):
+        return f'{self.nota_fiscal}'
+
+
+# TODO: Tabela de divisões de comissoes por vendedor

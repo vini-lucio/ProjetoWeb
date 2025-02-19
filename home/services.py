@@ -2,6 +2,7 @@ from decimal import Decimal
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
 from home.models import Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores, CanaisVendas, Regioes
+from rh.models import Comissoes
 from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES, PRODUTOS, CANAIS_VENDA, REGIOES
 from utils.site_setup import get_site_setup
 from utils.lfrete import notas as lfrete_notas
@@ -3888,3 +3889,219 @@ def migrar_vendedores():
                 )
                 instancia.full_clean()
                 instancia.save()
+
+
+def migrar_comissoes(data_inicio, data_fim):
+    sql = """
+        SELECT
+            RECEBER.DATAVENCIMENTO,
+            RECEBER.DATALIQUIDACAO,
+            NOTAS.NF,
+            CLIENTES.NOMERED AS CLIENTE,
+            ESTADOS.SIGLA AS UF_CLIENTE,
+            COALESCE(UF_ORDEM.UF_ORDEM, NOTAS.CLI_ENT_UF, ESTADOS.SIGLA) AS UF_ENTREGA,
+            COALESCE(UF_ORDEM.CIDADE_ORDEM, NOTAS.CLI_ENT_CIDADE, CLIENTES.CIDADE) AS CIDADE_ENTREGA,
+            NOTAS_ORCAMENTO.LOG_NOME_INCLUSAO AS LOG_INCLUSAO_ORCAMENTO,
+            REPRE_CAD.NOMERED AS REPRESENTANTE_CLIENTE,
+            REPRESENTANTES.NOMERED AS REPRESENTANTE_NOTA,
+            SEGUNDO_REPRE_CAD.NOMERED AS SEGUNDO_REPRE_CLIENTE,
+            SEGUNDO_REPRESENTANTE.NOMERED AS SEGUNDO_REPRE_NOTA,
+            VENDEDORES.NOMERED AS CARTEIRA_CLIENTE,
+            CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END AS ESPECIE,
+            SUM(ROUND(NOTAS_ITENS.VALOR_MERCADORIAS / NOTAS.VALOR_TOTAL * RECEBER.VALORRECEBIDO, 2)) - COALESCE(FRETE_NO_ITEM.FRETE_NO_ITEM, 0) AS VALOR_MERCADORIAS_PARCELA,
+            RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0) AS ABATIMENTOS_TOTAIS,
+            COALESCE(FRETE_NO_ITEM.FRETE_NO_ITEM, 0) AS FRETE_NO_ITEM,
+            0 AS DIVISAO,
+            0 AS ERRO,
+            INFRA.CONTEUDO AS INFRA,
+            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END AS PREMOLDADO_POSTE
+
+        FROM
+            (
+                SELECT
+                    NOTAS.CHAVE AS CHAVE_NOTA,
+                    NOTAS.NF,
+                    NOTAS.PARCELAS,
+                    NOTAS.VALOR_FRETE_INCL_ITEM,
+                    ROUND(NOTAS.VALOR_FRETE_INCL_ITEM / NOTAS.PARCELAS, 2) AS FRETE_NO_ITEM
+
+                FROM
+                    COPLAS.NOTAS,
+                    COPLAS.RECEBER
+
+                WHERE
+                    NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND
+
+                    -- RECEBER.DATAVENCIMENTO >= TO_DATE(data_entrada_funcionario,'DD-MM-YYYY') AND
+                    -- RECEBER.DATALIQUIDACAO IS NULL
+                    RECEBER.DATALIQUIDACAO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
+                    RECEBER.DATALIQUIDACAO <= TO_DATE(:data_fim,'YYYY-MM-DD')
+            ) FRETE_NO_ITEM,
+            (SELECT DISTINCT CHAVE_CLIENTE, 'INFRA' AS CONTEUDO FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CHAVE_INFORMACAO = 8) INFRA,
+            (SELECT DISTINCT NOTAS.CHAVE, ORCAMENTOS.LOG_NOME_INCLUSAO FROM COPLAS.ORCAMENTOS, COPLAS.PEDIDOS, COPLAS.NOTAS_ITENS, COPLAS.NOTAS WHERE NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA(+) AND NOTAS_ITENS.NUMPED = PEDIDOS.CHAVE(+) AND PEDIDOS.CHAVE_ORCAMENTO = ORCAMENTOS.CHAVE(+)) NOTAS_ORCAMENTO,
+            (SELECT NOTAS_ORDEM.CHAVE AS CHAVE_NOTA, ESTADOS_ORDEM.SIGLA AS UF_ORDEM, CLIENTES_ORDEM.CIDADE AS CIDADE_ORDEM FROM COPLAS.ESTADOS ESTADOS_ORDEM, COPLAS.NOTAS NOTAS_ORDEM, COPLAS.CLIENTES CLIENTES_ORDEM WHERE NOTAS_ORDEM.CHAVE_CLIENTE_REMESSA = CLIENTES_ORDEM.CODCLI AND CLIENTES_ORDEM.UF = ESTADOS_ORDEM.CHAVE) UF_ORDEM,
+            COPLAS.ESTADOS,
+            COPLAS.VENDEDORES,
+            COPLAS.VENDEDORES REPRESENTANTES,
+            COPLAS.VENDEDORES REPRE_CAD,
+            COPLAS.VENDEDORES SEGUNDO_REPRESENTANTE,
+            COPLAS.VENDEDORES SEGUNDO_REPRE_CAD,
+            COPLAS.NOTAS,
+            COPLAS.NOTAS_ITENS,
+            COPLAS.CLIENTES,
+            COPLAS.PRODUTOS,
+            COPLAS.RECEBER,
+            COPLAS.CLIENTES_TIPOS
+
+        WHERE
+            NOTAS.CHAVE = FRETE_NO_ITEM.CHAVE_NOTA(+) AND
+            CLIENTES.CHAVE_TIPO = CLIENTES_TIPOS.CHAVE AND
+            CLIENTES.CODCLI = INFRA.CHAVE_CLIENTE(+) AND
+            NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND
+            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD(+) AND
+            NOTAS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTE.CODVENDEDOR(+) AND
+            CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRE_CAD.CODVENDEDOR(+) AND
+            NOTAS.CHAVE = UF_ORDEM.CHAVE_NOTA(+) AND
+            NOTAS.CHAVE_VENDEDOR = REPRESENTANTES.CODVENDEDOR(+) AND
+            CLIENTES.CODVEND = REPRE_CAD.CODVENDEDOR(+) AND
+            NOTAS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
+            CLIENTES.UF = ESTADOS.CHAVE AND
+            CLIENTES.CHAVE_VENDEDOR3 = VENDEDORES.CODVENDEDOR(+) AND
+            NOTAS.CHAVE = NOTAS_ORCAMENTO.CHAVE(+) AND
+            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA(+) AND
+            NOTAS.VALOR_COMERCIAL = 'SIM' AND
+            (PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) OR PRODUTOS.CPROD IS NULL) AND
+
+            -- RECEBER.CONDICAO != 'LIQUIDADO' AND
+            RECEBER.CONDICAO = 'LIQUIDADO' AND
+
+            -- RECEBER.DATAVENCIMENTO >= TO_DATE(data_entrada_funcionario,'DD-MM-YYYY') AND
+            -- RECEBER.DATALIQUIDACAO IS NULL
+            RECEBER.DATALIQUIDACAO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
+            RECEBER.DATALIQUIDACAO <= TO_DATE(:data_fim,'YYYY-MM-DD')
+
+        GROUP BY
+            RECEBER.DATAVENCIMENTO,
+            RECEBER.DATALIQUIDACAO,
+            NOTAS.NF,
+            CLIENTES.NOMERED,
+            ESTADOS.SIGLA,
+            COALESCE(UF_ORDEM.UF_ORDEM, NOTAS.CLI_ENT_UF, ESTADOS.SIGLA),
+            COALESCE(UF_ORDEM.CIDADE_ORDEM, NOTAS.CLI_ENT_CIDADE, CLIENTES.CIDADE),
+            NOTAS_ORCAMENTO.LOG_NOME_INCLUSAO,
+            VENDEDORES.NOMERED,
+            SEGUNDO_REPRE_CAD.NOMERED,
+            SEGUNDO_REPRE_CAD.NOME,
+            REPRE_CAD.NOMERED,
+            REPRESENTANTES.NOMERED,
+            SEGUNDO_REPRESENTANTE.NOMERED,
+            SEGUNDO_REPRESENTANTE.NOME,
+            CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END,
+            RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0),
+            FRETE_NO_ITEM.FRETE_NO_ITEM,
+            INFRA.CONTEUDO,
+            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END
+
+        ORDER BY
+            NOTAS.NF
+    """
+
+    origem = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim)
+
+    if origem:
+        Comissoes.objects.all().delete()
+
+        estados = Estados.objects
+        cidades = Cidades.objects
+        vendedores = Vendedores.objects
+
+        for objeto_origem in origem:
+
+            # status = 'ativo' if objeto_origem.INATIVO == 'NAO' else 'inativo'
+
+            fk_uf_cliente = None
+            if objeto_origem['UF_CLIENTE']:
+                fk_uf_cliente = estados.filter(sigla=objeto_origem['UF_CLIENTE']).first()
+
+            fk_uf_entrega = None
+            fk_cidade_entrega = None
+            if objeto_origem['UF_ENTREGA']:
+                fk_uf_entrega = estados.filter(sigla=objeto_origem['UF_ENTREGA']).first()
+                if objeto_origem['CIDADE_ENTREGA']:
+                    fk_cidade_entrega = cidades.filter(nome=objeto_origem['CIDADE_ENTREGA'],
+                                                       estado=fk_uf_entrega).first()
+
+            fk_representante_cliente = None
+            if objeto_origem['REPRESENTANTE_CLIENTE']:
+                fk_representante_cliente = vendedores.filter(nome=objeto_origem['REPRESENTANTE_CLIENTE']).first()
+
+            fk_representante_nota = None
+            if objeto_origem['REPRESENTANTE_NOTA']:
+                fk_representante_nota = vendedores.filter(nome=objeto_origem['REPRESENTANTE_NOTA']).first()
+
+            fk_segundo_representante_cliente = None
+            if objeto_origem['SEGUNDO_REPRE_CLIENTE']:
+                fk_segundo_representante_cliente = vendedores.filter(
+                    nome=objeto_origem['SEGUNDO_REPRE_CLIENTE']).first()
+
+            fk_segundo_representante_nota = None
+            if objeto_origem['SEGUNDO_REPRE_NOTA']:
+                fk_segundo_representante_nota = vendedores.filter(nome=objeto_origem['SEGUNDO_REPRE_NOTA']).first()
+
+            fk_carteira_cliente = None
+            if objeto_origem['CARTEIRA_CLIENTE']:
+                fk_carteira_cliente = vendedores.filter(nome=objeto_origem['CARTEIRA_CLIENTE']).first()
+
+            instancia = Comissoes(
+                data_vencimento=objeto_origem['DATAVENCIMENTO'],
+                data_liquidacao=objeto_origem['DATALIQUIDACAO'],
+                nota_fiscal=objeto_origem['NF'],
+                cliente=objeto_origem['CLIENTE'],
+                uf_cliente=fk_uf_cliente,
+                uf_entrega=fk_uf_entrega,
+                cidade_entrega=fk_cidade_entrega,
+                inclusao_orcamento=objeto_origem['LOG_INCLUSAO_ORCAMENTO'],
+                representante_cliente=fk_representante_cliente,
+                representante_nota=fk_representante_nota,
+                segundo_representante_cliente=fk_segundo_representante_cliente,
+                segundo_representante_nota=fk_segundo_representante_nota,
+                carteira_cliente=fk_carteira_cliente,
+                especie=objeto_origem['ESPECIE'],
+                valor_mercadorias_parcelas=round(Decimal(objeto_origem['VALOR_MERCADORIAS_PARCELA']), 2),
+                abatimentos_totais=round(Decimal(objeto_origem['ABATIMENTOS_TOTAIS']), 2),
+                frete_item=round(Decimal(objeto_origem['FRETE_NO_ITEM']), 2),
+                divisao=False,
+                erro=False,
+                infra=True if objeto_origem['INFRA'] else False,
+                premoldado_poste=True if objeto_origem['PREMOLDADO_POSTE'] else False,
+            )
+
+            if instancia.carteira_cliente:
+                atendimentos_carteira = instancia.carteira_cliente.vendedoresregioes.all()  # type:ignore
+                if atendimentos_carteira:
+                    atendimentos_carteira = [atendimento.regiao for atendimento in atendimentos_carteira]
+
+            # teste OK 09/24
+            # if instancia.uf_cliente and instancia.carteira_cliente:
+            #     if atendimentos_carteira:
+            #         if instancia.uf_cliente.regiao not in atendimentos_carteira:
+            #             instancia.divisao = True
+
+            # teste OK
+            # if instancia.uf_entrega and instancia.carteira_cliente:
+            #     if atendimentos_carteira:
+            #         if instancia.uf_entrega.regiao not in atendimentos_carteira:
+            #             instancia.divisao = True
+
+            # teste OK 08/24
+            # if not instancia.carteira_cliente:
+            #     instancia.erro = True
+            # else:
+            #     if instancia.carteira_cliente.canal_venda.descricao.upper() != 'CONSULTOR TECNICO':
+            #         instancia.erro = True
+
+            # if instancia.divisao or instancia.erro:
+            #     print(instancia, instancia.divisao, instancia.erro)
+
+            # instancia.full_clean()
+            # instancia.save()

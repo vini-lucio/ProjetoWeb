@@ -76,6 +76,24 @@
             </div>
         </div>
 
+        <div class="link-conteudo">
+            <div class="grid-simples">
+                <form method="POST" action="{% url "home:migracao" %}">
+                    {% csrf_token %}
+                    {{ formulario_migrar_comissoes.as_p }}
+                    <p class="fonte-vermelho">ATENÇÃO: Serão excluidas todas as comissões atuais</p>
+                    <button id="migrar-comissoes" name="comissoes-submit" onclick="mudarTextoComissoes()" class="botao" type="submit">Importar Comissões</button>
+                    {% if messages %}
+                        {% for mensagem in messages %}
+                            {% if 'comissoes' in mensagem.tags %}
+                                <p>{{ mensagem }}</p>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
     </section>
 
     <script>
@@ -106,6 +124,14 @@
         function mudarTextoVendedores() {
             var checkbox = document.getElementById("confirma-migrar-vendedores");
             var button = document.getElementById("migrar-vendedores");
+            if (checkbox.checked) {
+                button.innerText = "Aguarde...";
+            }
+        }
+
+        function mudarTextoComissoes() {
+            var checkbox = document.getElementById("confirma-migrar-comissoes");
+            var button = document.getElementById("migrar-comissoes");
             if (checkbox.checked) {
                 button.innerText = "Aguarde...";
             }

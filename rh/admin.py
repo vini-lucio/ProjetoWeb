@@ -5,7 +5,7 @@ from django.forms.models import BaseInlineFormSet
 from django.http import HttpRequest
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
                        Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa,
-                       ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios)
+                       ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios, Comissoes)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
 
 
@@ -438,3 +438,12 @@ class SalariosAdmin(BaseModelAdminRedRequiredLog):
     readonly_fields = ('salario_convertido', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por',
                        'atualizado_em',)
     autocomplete_fields = 'funcionario',
+
+
+@admin.register(Comissoes)
+class ComissoesAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'nota_fiscal', 'carteira_cliente', 'divisao', 'erro',
+    list_display_links = list_display
+    ordering = 'nota_fiscal',
+    autocomplete_fields = ('uf_cliente', 'uf_entrega', 'cidade_entrega', 'representante_cliente', 'representante_nota',
+                           'segundo_representante_cliente', 'segundo_representante_nota', 'carteira_cliente')

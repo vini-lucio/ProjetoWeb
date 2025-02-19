@@ -1,6 +1,6 @@
 from django import forms
 from django.forms.widgets import CheckboxInput
-from utils.base_forms import FormPesquisarMixIn
+from utils.base_forms import FormPesquisarMixIn, FormPeriodoInicioFimMixIn
 
 
 class ConfirmacaoMigrar(forms.Form):
@@ -13,4 +13,8 @@ class ConfirmacaoMigrar(forms.Form):
 
 
 class PesquisarForm(FormPesquisarMixIn, forms.Form):
+    ...
+
+
+class ConfirmacaoMigrarData(FormPeriodoInicioFimMixIn, ConfirmacaoMigrar):
     ...

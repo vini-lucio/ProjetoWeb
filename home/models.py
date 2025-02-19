@@ -871,3 +871,23 @@ class Vendedores(models.Model):
 
     def __str__(self) -> str:
         return f'{self.nome}'
+
+
+class VendedoresRegioes(models.Model):
+    class Meta:
+        verbose_name = 'Vendedor Região'
+        verbose_name_plural = 'Vendedor Regiões'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['vendedor', 'regiao'],
+                name='vendedores_regiao_unique',
+                violation_error_message="Vendedor e Região são unicos em Vendedores Regiões"
+            ),
+        ]
+
+    vendedor = models.ForeignKey(Vendedores, verbose_name="Vendedor", on_delete=models.CASCADE,
+                                 related_name="%(class)s")
+    regiao = models.ForeignKey(Regioes, verbose_name="Região", on_delete=models.CASCADE, related_name="%(class)s")
+
+    def __str__(self) -> str:
+        return f'{self.vendedor} - {self.regiao}'

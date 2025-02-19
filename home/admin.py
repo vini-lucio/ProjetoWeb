@@ -5,7 +5,8 @@ from django.db.models.functions import Concat
 from django.http import HttpRequest, HttpResponse
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
-                         ProdutosModelosTags, Unidades, Produtos, EstadosIcms, Vendedores, CanaisVendas, Regioes)
+                         ProdutosModelosTags, Unidades, Produtos, EstadosIcms, Vendedores, CanaisVendas, Regioes,
+                         VendedoresRegioes)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn, ExportarXlsxMixIn)
@@ -341,9 +342,33 @@ class CanaisVendasAdmin(BaseModelAdminRedRequired):
     search_fields = 'descricao',
 
 
+class VendedoresRegioesInLine(admin.TabularInline):
+    model = VendedoresRegioes
+    extra = 1
+    verbose_name = "Vendedor Região"
+    verbose_name_plural = "Vendedor Regiões"
+    ordering = 'regiao__nome',
+    autocomplete_fields = 'regiao',
+
+
 @admin.register(Vendedores)
 class VendedoresAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'nome', 'status',
     list_display_links = list_display
     ordering = 'nome',
     search_fields = 'nome',
+    inlines = VendedoresRegioesInLine,
+
+    def get_inlines(self, request, obj):
+        if obj:
+            return super().get_inlines(request, obj)
+        return []
+
+
+@admin.register(VendedoresRegioes)
+class VendedoresRegioesAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'vendedor', 'regiao',
+    list_display_links = list_display
+    ordering = 'vendedor',
+    search_fields = 'vendedor',
+    autocomplete_fields = 'vendedor', 'regiao',
