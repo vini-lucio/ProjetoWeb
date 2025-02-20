@@ -1092,8 +1092,32 @@ class Comissoes(models.Model):
     infra = models.BooleanField("Infra", default=False)
     premoldado_poste = models.BooleanField("Pre-Moldado / Poste", default=False)
 
+    @property
+    def conferir(self):
+        return self.divisao or self.erro
+
+    conferir.fget.short_description = 'Conferir'  # type:ignore
+
     def __str__(self):
         return f'{self.nota_fiscal}'
 
 
-# TODO: Tabela de divisões de comissoes por vendedor
+class ComissoesVendedores(models.Model):
+    class Meta:
+        verbose_name = 'Comissão Divisão'
+        verbose_name_plural = 'Comissão Divisões'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['vendedor', 'comissao'],
+                name='comissoes_vendedores_unique',
+                violation_error_message="Comissão e Vendedor são unicos em Comissões Vendedores"
+            ),
+        ]
+
+    comissao = models.ForeignKey(Comissoes, verbose_name="Comissão", on_delete=models.CASCADE,
+                                 related_name="%(class)s")
+    vendedor = models.ForeignKey(Vendedores, verbose_name="Vendedor", on_delete=models.CASCADE,
+                                 related_name="%(class)s")
+
+    def __str__(self) -> str:
+        return f'{self.comissao} - {self.vendedor}'

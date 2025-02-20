@@ -2,7 +2,7 @@ from decimal import Decimal
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
 from home.models import Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores, CanaisVendas, Regioes
-from rh.models import Comissoes
+from rh.models import Comissoes, ComissoesVendedores
 from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES, PRODUTOS, CANAIS_VENDA, REGIOES
 from utils.site_setup import get_site_setup
 from utils.lfrete import notas as lfrete_notas
@@ -4076,32 +4076,87 @@ def migrar_comissoes(data_inicio, data_fim):
                 premoldado_poste=True if objeto_origem['PREMOLDADO_POSTE'] else False,
             )
 
+            vendedores_divisao: list[Vendedores] = []
+
+            # Conferencia Segundo Representante
+
+            segundo_cliente_consultor_diferente_carteira = False
+            if instancia.segundo_representante_cliente:
+                if instancia.segundo_representante_cliente.canal_venda.descricao.upper() == 'CONSULTOR TECNICO':
+                    if instancia.segundo_representante_cliente != instancia.carteira_cliente:
+                        segundo_cliente_consultor_diferente_carteira = True
+                        instancia.divisao = True
+                        if instancia.segundo_representante_cliente not in vendedores_divisao:
+                            vendedores_divisao.append(instancia.segundo_representante_cliente)
+
+            segundo_nota_consultor_diferente_carteira = False
+            if instancia.segundo_representante_nota:
+                if instancia.segundo_representante_nota.canal_venda.descricao.upper() == 'CONSULTOR TECNICO':
+                    if instancia.segundo_representante_nota != instancia.carteira_cliente:
+                        segundo_nota_consultor_diferente_carteira = True
+                        instancia.divisao = True
+                        if instancia.segundo_representante_nota not in vendedores_divisao:
+                            vendedores_divisao.append(instancia.segundo_representante_nota)
+
+            if segundo_cliente_consultor_diferente_carteira and segundo_nota_consultor_diferente_carteira:
+                if instancia.segundo_representante_cliente != instancia.segundo_representante_nota:
+                    instancia.erro = True
+
+            # Listar atendimentos da carteira, UF faturamento e UF entrega
+
+            atendimentos_carteira = []
             if instancia.carteira_cliente:
                 atendimentos_carteira = instancia.carteira_cliente.vendedoresregioes.all()  # type:ignore
                 if atendimentos_carteira:
                     atendimentos_carteira = [atendimento.regiao for atendimento in atendimentos_carteira]
 
-            # teste OK 09/24
-            # if instancia.uf_cliente and instancia.carteira_cliente:
-            #     if atendimentos_carteira:
-            #         if instancia.uf_cliente.regiao not in atendimentos_carteira:
-            #             instancia.divisao = True
+            vendedores_faturamento = []
+            if instancia.uf_cliente:
+                vendedores_regioes_faturamento = instancia.uf_cliente.regiao.vendedoresregioes.all()  # type:ignore
+                if vendedores_regioes_faturamento:
+                    vendedores_faturamento = [regiao.vendedor for regiao in vendedores_regioes_faturamento]
+                    if instancia.segundo_representante_cliente in vendedores_faturamento or \
+                            instancia.segundo_representante_nota in vendedores_faturamento:
+                        vendedores_faturamento = []
 
-            # teste OK
-            # if instancia.uf_entrega and instancia.carteira_cliente:
-            #     if atendimentos_carteira:
-            #         if instancia.uf_entrega.regiao not in atendimentos_carteira:
-            #             instancia.divisao = True
+            vendedores_entrega = []
+            if instancia.uf_entrega:
+                vendedores_regioes_entrega = instancia.uf_entrega.regiao.vendedoresregioes.all()  # type:ignore
+                if vendedores_regioes_entrega:
+                    vendedores_entrega = [regiao.vendedor for regiao in vendedores_regioes_entrega]
+                    if instancia.segundo_representante_cliente in vendedores_entrega or \
+                            instancia.segundo_representante_nota in vendedores_entrega:
+                        vendedores_entrega = []
 
-            # teste OK 08/24
-            # if not instancia.carteira_cliente:
-            #     instancia.erro = True
-            # else:
-            #     if instancia.carteira_cliente.canal_venda.descricao.upper() != 'CONSULTOR TECNICO':
-            #         instancia.erro = True
+            # Conferencia da carteira, UF faturamento e UF entrega
 
-            # if instancia.divisao or instancia.erro:
-            #     print(instancia, instancia.divisao, instancia.erro)
+            if vendedores_faturamento and atendimentos_carteira:
+                if instancia.carteira_cliente not in vendedores_faturamento:
+                    instancia.divisao = True
+                    for vendedor in vendedores_faturamento:
+                        if vendedor not in vendedores_divisao and 'EOLICA' not in vendedor.nome:
+                            vendedores_divisao.append(vendedor)
 
-            # instancia.full_clean()
-            # instancia.save()
+            if vendedores_entrega and atendimentos_carteira:
+                if instancia.carteira_cliente not in vendedores_entrega:
+                    instancia.divisao = True
+                    for vendedor in vendedores_entrega:
+                        if vendedor not in vendedores_divisao and 'EOLICA' not in vendedor.nome:
+                            vendedores_divisao.append(vendedor)
+
+            if not instancia.carteira_cliente:
+                instancia.erro = True
+            else:
+                if instancia.carteira_cliente.canal_venda.descricao.upper() != 'CONSULTOR TECNICO':
+                    instancia.erro = True
+
+            instancia.full_clean()
+            instancia.save()
+
+            for vendedor in vendedores_divisao:
+                instancia_divisao = ComissoesVendedores(
+                    comissao=instancia,
+                    vendedor=vendedor,
+                )
+                instancia_divisao.full_clean()
+                instancia_divisao.save()

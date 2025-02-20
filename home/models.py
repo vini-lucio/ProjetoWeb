@@ -869,6 +869,18 @@ class Vendedores(models.Model):
                                     related_name="%(class)s")
     status = models.CharField("Status", max_length=10, choices=status_vendedores, default='ativo')  # type:ignore
 
+    @classmethod
+    def filter_ativos(cls):
+        return cls.objects.filter(status='ativo')
+
+    def save(self, *args, **kwargs) -> None:
+        if self.pk and self.status == 'inativo':
+            regioes = self.vendedoresregioes.all()  # type:ignore
+            if regioes:
+                regioes.delete()
+
+        return super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return f'{self.nome}'
 

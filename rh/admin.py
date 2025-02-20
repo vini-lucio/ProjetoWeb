@@ -1,11 +1,12 @@
 from typing import Any
 from django.contrib import admin
 from django.db.models.query import QuerySet
+from django.db.models import Q
 from django.forms.models import BaseInlineFormSet
 from django.http import HttpRequest
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
                        Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa,
-                       ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios, Comissoes)
+                       ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios, Comissoes, ComissoesVendedores)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
 
 
@@ -440,10 +441,53 @@ class SalariosAdmin(BaseModelAdminRedRequiredLog):
     autocomplete_fields = 'funcionario',
 
 
+class ComissoesVendedoresInLine(admin.TabularInline):
+    model = ComissoesVendedores
+    extra = 1
+    verbose_name = "Comissão Vendedor"
+    verbose_name_plural = "Comissão Vendedores"
+    ordering = 'vendedor__nome',
+    autocomplete_fields = 'vendedor',
+
+
+# TODO: transformar CustomFilter em MixIn
+class CustomFilterConferir(admin.SimpleListFilter):
+    title = 'Conferir'
+    parameter_name = 'conferir'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('sim', 'Sim'),
+            ('nao', 'Não'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'sim':
+            return queryset.filter(Q(divisao=True) | Q(erro=True))
+        if self.value() == 'nao':
+            return queryset.filter(divisao=False, erro=False)
+
+
 @admin.register(Comissoes)
 class ComissoesAdmin(BaseModelAdminRedRequired):
-    list_display = 'id', 'nota_fiscal', 'carteira_cliente', 'divisao', 'erro',
+    list_display = ('id', 'nota_fiscal', 'uf_cliente', 'uf_entrega', 'carteira_cliente',
+                    'segundo_representante_cliente', 'segundo_representante_nota', 'divisao', 'erro',)
     list_display_links = list_display
+    list_filter = CustomFilterConferir, 'divisao', 'erro',
     ordering = 'nota_fiscal',
+    search_fields = 'nota_fiscal',
     autocomplete_fields = ('uf_cliente', 'uf_entrega', 'cidade_entrega', 'representante_cliente', 'representante_nota',
                            'segundo_representante_cliente', 'segundo_representante_nota', 'carteira_cliente')
+    inlines = ComissoesVendedoresInLine,
+
+    def get_inlines(self, request, obj):
+        if obj:
+            return super().get_inlines(request, obj)
+        return []
+
+
+# @admin.register(ComissoesVendedores)
+# class ComissoesVendedoresAdmin(BaseModelAdminRedRequired):
+#     list_display = 'id', 'comissao', 'vendedor',
+#     list_display_links = list_display
+#     autocomplete_fields = 'comissao', 'vendedor',

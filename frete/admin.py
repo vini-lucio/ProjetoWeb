@@ -122,14 +122,14 @@ class TransportadorasRegioesValoresAdmin(BaseModelAdminRedRequiredLog):
         return campos
 
 
-@admin.register(TransportadorasRegioesMargens)
-class TransportadorasRegioesMargensAdmin(BaseModelAdminRedRequiredLog):
-    list_display = 'id', 'transportadora_regiao_valor', 'ate_kg', 'valor',
-    list_display_links = list_display
-    ordering = 'transportadora_regiao_valor', 'ate_kg',
-    search_fields = 'transportadora_regiao_valor__transportadora_origem_destino__transportadora__nome',
-    readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
-    autocomplete_fields = 'transportadora_regiao_valor',
+# @admin.register(TransportadorasRegioesMargens)
+# class TransportadorasRegioesMargensAdmin(BaseModelAdminRedRequiredLog):
+#     list_display = 'id', 'transportadora_regiao_valor', 'ate_kg', 'valor',
+#     list_display_links = list_display
+#     ordering = 'transportadora_regiao_valor', 'ate_kg',
+#     search_fields = 'transportadora_regiao_valor__transportadora_origem_destino__transportadora__nome',
+#     readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
+#     autocomplete_fields = 'transportadora_regiao_valor',
 
 
 @admin.register(TransportadorasRegioesCidades)

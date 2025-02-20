@@ -361,14 +361,15 @@ class VendedoresAdmin(BaseModelAdminRedRequired):
 
     def get_inlines(self, request, obj):
         if obj:
-            return super().get_inlines(request, obj)
+            if obj.status == 'ativo':
+                return super().get_inlines(request, obj)
         return []
 
 
-@admin.register(VendedoresRegioes)
-class VendedoresRegioesAdmin(BaseModelAdminRedRequired):
-    list_display = 'id', 'vendedor', 'regiao',
-    list_display_links = list_display
-    ordering = 'vendedor',
-    search_fields = 'vendedor',
-    autocomplete_fields = 'vendedor', 'regiao',
+# @admin.register(VendedoresRegioes)
+# class VendedoresRegioesAdmin(BaseModelAdminRedRequired):
+#     list_display = 'id', 'vendedor', 'regiao',
+#     list_display_links = list_display
+#     ordering = 'vendedor',
+#     search_fields = 'vendedor',
+#     autocomplete_fields = 'vendedor', 'regiao',
