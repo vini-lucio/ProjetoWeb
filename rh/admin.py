@@ -10,6 +10,7 @@ from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, Transpor
                        ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios, Comissoes, ComissoesVendedores)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
 from utils.exportar_excel import arquivo_excel
+from openpyxl.styles import PatternFill, Font
 
 
 @admin.register(Cbo)
@@ -485,7 +486,7 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
 
     """Não usar chave estrangeira em campos_exportar criar uma property no model filho"""
     campos_exportar = ['data_liquidacao', 'nota_fiscal', 'cliente', 'uf_cliente_', 'uf_entrega_', 'inclusao_orcamento',
-                       'segundo_representante_cliente_', 'segundo_representante_nota_', 'carteira_cliente_', 'especie',
+                       'segundo_representante_cliente_', 'segundo_representante_nota_', 'carteira_cliente_',
                        'valor_mercadorias_parcelas', 'abatimentos_totais', 'frete_item', 'divisao', 'infra',
                        'premoldado_poste', 'valor_mercadorias_parcelas_nao_dividido']
 
@@ -508,24 +509,36 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
             cabecalho = [field for field in self.list_display]
 
         conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset, cabecalho)
-        workbook = arquivo_excel(conteudo, cabecalho, 'TOTAL')
+        titulo_aba = 'TOTAL'
+        workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, cabecalho_negrito=True,
+                                 formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
+        ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
 
         vendedores = Vendedores.objects.filter(canal_venda__descricao='CONSULTOR TECNICO').order_by('nome')
         for vendedor in vendedores:
             queryset_comissoes_vendedor = queryset.filter(carteira_cliente=vendedor)
             if queryset_comissoes_vendedor:
                 conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_vendedor, cabecalho)
-                workbook = arquivo_excel(conteudo, cabecalho, vendedor.nome, workbook)
+                titulo_aba = vendedor.nome
+                workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
+                                         formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
+                ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
 
         queryset_comissoes_infra = queryset.filter(infra=True)
         if queryset_comissoes_infra:
             conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_infra, cabecalho)
-            workbook = arquivo_excel(conteudo, cabecalho, 'INFRA', workbook)
+            titulo_aba = 'INFRA'
+            workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
+                                     formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
+        ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
 
         queryset_comissoes_premoldado_poste = queryset.filter(premoldado_poste=True)
         if queryset_comissoes_premoldado_poste:
             conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_premoldado_poste, cabecalho)
-            workbook = arquivo_excel(conteudo, cabecalho, 'PREMOLDADO POSTE', workbook)
+            titulo_aba = 'PREMOLDADO POSTE'
+            workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
+                                     formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
+        ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
 
         workbook.save(response)
 
@@ -540,6 +553,27 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
             linha = [getattr(obj, field) for field in cabecalho]  # type:ignore
             conteudo.append(linha)
         return conteudo
+
+    @classmethod
+    def formatar_planilha(cls, conteudo, titulo_aba, workbook):
+        letra_coluna_soma = 'J'
+        total_linhas = len(conteudo)
+
+        worksheet = workbook[titulo_aba]
+
+        verde = PatternFill(start_color='00CC00', end_color='00CC00', fill_type='solid')
+        negrito = Font(bold=True)
+
+        celula = worksheet[f'{letra_coluna_soma}{total_linhas + 2}']
+        celula.value = f'=SUM({letra_coluna_soma}2:{letra_coluna_soma}{total_linhas + 1})'
+        celula.number_format = '#,##0.00'
+        celula.fill = verde
+        celula.font = negrito
+
+        celula = worksheet[f'{letra_coluna_soma}{total_linhas + 3}']
+        celula.value = 'RECEBIDO'
+        celula.fill = verde
+        celula.font = negrito
 
 
 # @admin.register(ComissoesVendedores)
