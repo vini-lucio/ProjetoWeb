@@ -4068,6 +4068,7 @@ def migrar_comissoes(data_inicio, data_fim):
                 carteira_cliente=fk_carteira_cliente,
                 especie=objeto_origem['ESPECIE'],
                 valor_mercadorias_parcelas=round(Decimal(objeto_origem['VALOR_MERCADORIAS_PARCELA']), 2),
+                valor_mercadorias_parcelas_nao_dividido=round(Decimal(objeto_origem['VALOR_MERCADORIAS_PARCELA']), 2),
                 abatimentos_totais=round(Decimal(objeto_origem['ABATIMENTOS_TOTAIS']), 2),
                 frete_item=round(Decimal(objeto_origem['FRETE_NO_ITEM']), 2),
                 divisao=False,
@@ -4150,6 +4151,10 @@ def migrar_comissoes(data_inicio, data_fim):
                 if instancia.carteira_cliente.canal_venda.descricao.upper() != 'CONSULTOR TECNICO':
                     instancia.erro = True
 
+            divisoes = len(vendedores_divisao)
+            if divisoes:
+                instancia.valor_mercadorias_parcelas = instancia.valor_mercadorias_parcelas / 2
+
             instancia.full_clean()
             instancia.save()
 
@@ -4160,3 +4165,30 @@ def migrar_comissoes(data_inicio, data_fim):
                 )
                 instancia_divisao.full_clean()
                 instancia_divisao.save()
+
+                instancia_dividida = Comissoes(
+                    data_vencimento=instancia.data_vencimento,
+                    data_liquidacao=instancia.data_liquidacao,
+                    nota_fiscal=instancia.nota_fiscal,
+                    cliente=instancia.cliente,
+                    uf_cliente=instancia.uf_cliente,
+                    uf_entrega=instancia.uf_entrega,
+                    cidade_entrega=instancia.cidade_entrega,
+                    inclusao_orcamento=instancia.inclusao_orcamento,
+                    representante_cliente=instancia.representante_cliente,
+                    representante_nota=instancia.representante_nota,
+                    segundo_representante_cliente=instancia.segundo_representante_cliente,
+                    segundo_representante_nota=instancia.carteira_cliente,
+                    carteira_cliente=vendedor,
+                    especie=instancia.especie,
+                    valor_mercadorias_parcelas=instancia.valor_mercadorias_parcelas / divisoes,
+                    valor_mercadorias_parcelas_nao_dividido=instancia.valor_mercadorias_parcelas_nao_dividido,
+                    abatimentos_totais=instancia.abatimentos_totais,
+                    frete_item=instancia.frete_item,
+                    divisao=instancia.divisao,
+                    erro=instancia.erro,
+                    infra=instancia.infra,
+                    premoldado_poste=instancia.infra,
+                )
+                instancia_dividida.full_clean()
+                instancia_dividida.save()

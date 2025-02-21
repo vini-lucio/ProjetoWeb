@@ -3,11 +3,13 @@ from django.contrib import admin
 from django.db.models.query import QuerySet
 from django.db.models import Q
 from django.forms.models import BaseInlineFormSet
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
+from home.models import Vendedores
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
                        Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa,
                        ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios, Comissoes, ComissoesVendedores)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
+from utils.exportar_excel import arquivo_excel
 
 
 @admin.register(Cbo)
@@ -479,11 +481,65 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
     autocomplete_fields = ('uf_cliente', 'uf_entrega', 'cidade_entrega', 'representante_cliente', 'representante_nota',
                            'segundo_representante_cliente', 'segundo_representante_nota', 'carteira_cliente')
     inlines = ComissoesVendedoresInLine,
+    actions = 'exportar_excel',
+
+    """Não usar chave estrangeira em campos_exportar criar uma property no model filho"""
+    campos_exportar = ['data_liquidacao', 'nota_fiscal', 'cliente', 'uf_cliente_', 'uf_entrega_', 'inclusao_orcamento',
+                       'segundo_representante_cliente_', 'segundo_representante_nota_', 'carteira_cliente_', 'especie',
+                       'valor_mercadorias_parcelas', 'abatimentos_totais', 'frete_item', 'divisao', 'infra',
+                       'premoldado_poste', 'valor_mercadorias_parcelas_nao_dividido']
 
     def get_inlines(self, request, obj):
         if obj:
             return super().get_inlines(request, obj)
         return []
+
+    def exportar_excel(self, request, queryset):
+        meta = self.model._meta
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename={}.xlsx'.format(meta)
+
+        if self.campos_exportar:
+            cabecalho = [field for field in self.campos_exportar]
+        else:
+            cabecalho = [field for field in self.list_display]
+
+        conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset, cabecalho)
+        workbook = arquivo_excel(conteudo, cabecalho, 'TOTAL')
+
+        vendedores = Vendedores.objects.filter(canal_venda__descricao='CONSULTOR TECNICO').order_by('nome')
+        for vendedor in vendedores:
+            queryset_comissoes_vendedor = queryset.filter(carteira_cliente=vendedor)
+            if queryset_comissoes_vendedor:
+                conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_vendedor, cabecalho)
+                workbook = arquivo_excel(conteudo, cabecalho, vendedor.nome, workbook)
+
+        queryset_comissoes_infra = queryset.filter(infra=True)
+        if queryset_comissoes_infra:
+            conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_infra, cabecalho)
+            workbook = arquivo_excel(conteudo, cabecalho, 'INFRA', workbook)
+
+        queryset_comissoes_premoldado_poste = queryset.filter(premoldado_poste=True)
+        if queryset_comissoes_premoldado_poste:
+            conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_premoldado_poste, cabecalho)
+            workbook = arquivo_excel(conteudo, cabecalho, 'PREMOLDADO POSTE', workbook)
+
+        workbook.save(response)
+
+        return response
+
+    exportar_excel.short_description = "Exportar .XLSX Selecionados"
+
+    @classmethod
+    def gerar_conteudo_excel(cls, queryset, cabecalho):
+        conteudo = []
+        for obj in queryset:
+            linha = [getattr(obj, field) for field in cabecalho]  # type:ignore
+            conteudo.append(linha)
+        return conteudo
 
 
 # @admin.register(ComissoesVendedores)

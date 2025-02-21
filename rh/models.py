@@ -1084,6 +1084,9 @@ class Comissoes(models.Model):
     especie = models.CharField("Especie", max_length=10, choices=especies, null=True, blank=True)  # type:ignore
     valor_mercadorias_parcelas = models.DecimalField("Valor Mercadorias Parcelas R$", max_digits=12, decimal_places=2,
                                                      default=0)  # type:ignore
+    valor_mercadorias_parcelas_nao_dividido = models.DecimalField("Valor Mercadorias Parcelas Não Dividido R$",
+                                                                  max_digits=12, decimal_places=2,
+                                                                  default=0)  # type:ignore
     abatimentos_totais = models.DecimalField("Abatimentos Totais R$", max_digits=12, decimal_places=2,
                                              default=0)  # type:ignore
     frete_item = models.DecimalField("Frete no Item R$", max_digits=12, decimal_places=2, default=0)  # type:ignore
@@ -1091,6 +1094,78 @@ class Comissoes(models.Model):
     erro = models.BooleanField("Erro", default=False)
     infra = models.BooleanField("Infra", default=False)
     premoldado_poste = models.BooleanField("Pre-Moldado / Poste", default=False)
+
+    @property
+    def uf_cliente_(self):
+        campo = self.uf_cliente  # type:ignore
+        if campo:
+            return campo.sigla
+        return
+
+    uf_cliente_.fget.short_description = 'UF Cliente'  # type:ignore
+
+    @property
+    def uf_entrega_(self):
+        campo = self.uf_entrega  # type:ignore
+        if campo:
+            return campo.sigla
+        return
+
+    uf_entrega_.fget.short_description = 'UF Entrega'  # type:ignore
+
+    @property
+    def cidade_entrega_(self):
+        campo = self.cidade_entrega  # type:ignore
+        if campo:
+            return campo.nome
+        return
+
+    cidade_entrega_.fget.short_description = 'Cidade Entrega'  # type:ignore
+
+    @property
+    def representante_cliente_(self):
+        campo = self.representante_cliente  # type:ignore
+        if campo:
+            return campo.nome
+        return
+
+    representante_cliente_.fget.short_description = 'Representante Cliente'  # type:ignore
+
+    @property
+    def representante_nota_(self):
+        campo = self.representante_nota  # type:ignore
+        if campo:
+            return campo.nome
+        return
+
+    representante_nota_.fget.short_description = 'Representante Nota'  # type:ignore
+
+    @property
+    def segundo_representante_cliente_(self):
+        campo = self.segundo_representante_cliente  # type:ignore
+        if campo:
+            return campo.nome
+        return
+
+    segundo_representante_cliente_.fget.short_description = 'Segundo Representante Cliente'  # type:ignore
+
+    @property
+    def segundo_representante_nota_(self):
+        campo = self.segundo_representante_nota  # type:ignore
+        if campo:
+            return campo.nome
+        return
+
+    segundo_representante_nota_.fget.short_description = 'Segundo Representante Nota'  # type:ignore
+
+    @property
+    def carteira_cliente_(self):
+        campo = self.carteira_cliente  # type:ignore
+        if campo:
+            return campo.nome
+        return
+
+    carteira_cliente_.fget.short_description = 'Carteira Cliente'  # type:ignore
 
     @property
     def conferir(self):

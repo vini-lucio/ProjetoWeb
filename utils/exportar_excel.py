@@ -2,15 +2,24 @@ import openpyxl
 from io import BytesIO
 
 
-def arquivo_excel(conteudo: list[list] | list[dict], cabecalho: list = []):
-    """Gera arquivo excel sem salvar. Quando o conteudo for uma lista de dicionarios o cabeçalho sempre será  as chaves o primeiro item do dicionario"""
-    workbook = openpyxl.Workbook()
-    worksheet = workbook.active
+def arquivo_excel(conteudo: list[list] | list[dict], cabecalho: list = [], titulo: str = '', nova_aba: openpyxl.Workbook | None = None):
+    """Gera arquivo excel sem salvar. Quando o conteudo for uma lista de dicionarios o cabeçalho sempre será as chaves do primeiro item do dicionario.
+    Passar workbook em noba_aba para adicionar nova aba apos executar uma vez sem"""
+    if not nova_aba:
+        workbook = openpyxl.Workbook()
+        worksheet = workbook.active
+    else:
+        workbook = nova_aba
+        worksheet = workbook.create_sheet()
 
     if worksheet:
-        if isinstance(conteudo[0], dict):
-            cabecalho = list(conteudo[0].keys())
-            conteudo = [[linha.get(chave) for chave in cabecalho] for linha in conteudo]  # type:ignore
+        if titulo:
+            worksheet.title = titulo
+
+        if conteudo:
+            if isinstance(conteudo[0], dict):
+                cabecalho = list(conteudo[0].keys())
+                conteudo = [[linha.get(chave) for chave in cabecalho] for linha in conteudo]  # type:ignore
 
         if cabecalho:
             worksheet.append(cabecalho)

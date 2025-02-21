@@ -233,7 +233,8 @@ class TransportadorasRegioesMargens(BaseLogModel):
     class Meta:
         verbose_name = 'Transportadoras Região Margem'
         verbose_name_plural = 'Transportadoras Região Margens'
-        ordering = 'ate_kg',
+        ordering = ('transportadora_regiao_valor__transportadora_origem_destino',
+                    'transportadora_regiao_valor__descricao', 'ate_kg',)
         constraints = [
             models.UniqueConstraint(
                 fields=['transportadora_regiao_valor', 'ate_kg',],
