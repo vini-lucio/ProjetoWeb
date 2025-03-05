@@ -4105,6 +4105,8 @@ def migrar_comissoes(data_inicio, data_fim):
 
             # Listar atendimentos da carteira, UF faturamento e UF entrega
 
+            # TODO: testar decorator que lembra os resultados?
+
             atendimentos_carteira = []
             if instancia.carteira_cliente:
                 atendimentos_carteira = instancia.carteira_cliente.vendedoresregioes.all()  # type:ignore
@@ -4181,7 +4183,7 @@ def migrar_comissoes(data_inicio, data_fim):
                     segundo_representante_nota=instancia.carteira_cliente,
                     carteira_cliente=vendedor,
                     especie=instancia.especie,
-                    valor_mercadorias_parcelas=instancia.valor_mercadorias_parcelas / divisoes,
+                    valor_mercadorias_parcelas=round(instancia.valor_mercadorias_parcelas / divisoes, 2),
                     valor_mercadorias_parcelas_nao_dividido=instancia.valor_mercadorias_parcelas_nao_dividido,
                     abatimentos_totais=instancia.abatimentos_totais,
                     frete_item=instancia.frete_item,
