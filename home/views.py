@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils.text import slugify
 from .services import (get_tabela_precos, migrar_cidades, migrar_unidades, migrar_produtos, migrar_estados,
                        migrar_estados_icms, migrar_vendedores, migrar_canais_vendas, migrar_regioes, migrar_comissoes)
-from .forms import ConfirmacaoMigrar, ConfirmacaoMigrarData
+from .forms import ConfirmacaoMigrar, ConfirmacaoMigrarDataFimNonRequired
 from django.contrib.auth.decorators import user_passes_test
 from collections import Counter
 
@@ -57,11 +57,16 @@ def migracao(request):
                 extra_tags = 'vendedores'
 
         elif 'comissoes-submit' in request.POST:
-            formulario_migrar_comissoes = ConfirmacaoMigrarData(request.POST, id_confirma=id_confirma_comissoes)
+            formulario_migrar_comissoes = ConfirmacaoMigrarDataFimNonRequired(
+                request.POST, id_confirma=id_confirma_comissoes)
             if formulario_migrar_comissoes.is_valid() and formulario_migrar_comissoes.cleaned_data['confirma']:
                 inicio = str(formulario_migrar_comissoes.cleaned_data['inicio'])
-                fim = str(formulario_migrar_comissoes.cleaned_data['fim'])
+                fim = None
+                if formulario_migrar_comissoes.cleaned_data['fim']:
+                    fim = str(formulario_migrar_comissoes.cleaned_data['fim'])
+
                 migrar_comissoes(inicio, fim)
+
                 mensagem = "Migração de comissões concluída!"
                 extra_tags = 'comissoes'
 
@@ -72,7 +77,7 @@ def migracao(request):
     formulario_migrar_unidades = ConfirmacaoMigrar(id_confirma=id_confirma_unidades)
     formulario_migrar_produtos = ConfirmacaoMigrar(id_confirma=id_confirma_produtos)
     formulario_migrar_vendedores = ConfirmacaoMigrar(id_confirma=id_confirma_vendedores)
-    formulario_migrar_comissoes = ConfirmacaoMigrarData(id_confirma=id_confirma_comissoes)
+    formulario_migrar_comissoes = ConfirmacaoMigrarDataFimNonRequired(id_confirma=id_confirma_comissoes)
 
     contexto = {
         'titulo_pagina': titulo_pagina,

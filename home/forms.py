@@ -16,5 +16,11 @@ class PesquisarForm(FormPesquisarMixIn, forms.Form):
     ...
 
 
+class ConfirmacaoMigrarDataFimNonRequired(FormPeriodoInicioFimMixIn, ConfirmacaoMigrar):
+    def __init__(self, *args, id_confirma: str, **kwargs):
+        super().__init__(*args, id_confirma=id_confirma, **kwargs)
+        self.fields['fim'].required = False
+
+
 class ConfirmacaoMigrarData(FormPeriodoInicioFimMixIn, ConfirmacaoMigrar):
     ...

@@ -1663,7 +1663,8 @@ def insvestimento_retiradas_ano_mes_a_mes():
             INVEST.MES,
             SUM(INVEST.INVESTIMENTO_1_C) AS INVESTIMENTO_1_C,
             SUM(INVEST.RETIRADA_C) AS RETIRADA_C,
-            SUM(INVEST.INVESTIMENTO_3_O) AS INVESTIMENTO_3_O
+            SUM(INVEST.INVESTIMENTO_3_O) AS INVESTIMENTO_3_O,
+            SUM(INVEST.INVESTIMENTO_FLUXUS) AS INVESTIMENTO_FLUXUS
 
         FROM
             (
@@ -1671,7 +1672,8 @@ def insvestimento_retiradas_ano_mes_a_mes():
                     EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) AS MES,
                     ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '4.%' AND PLANO_DE_CONTAS.CONTA NOT LIKE '4.02.01.001' AND PLANO_DE_CONTAS.CONTA NOT LIKE '4.9_.%' AND PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND PAGAR_JOB.CHAVE_JOB IN (22, 24) THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS INVESTIMENTO_1_C,
                     ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA = '4.02.01.001' AND PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND PAGAR_JOB.CHAVE_JOB IN (22, 24) THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS RETIRADA_C,
-                    ROUND(SUM(CASE WHEN PAGAR_CENTRORESULTADO.CHAVE_CENTRO = 41 THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS INVESTIMENTO_3_O
+                    ROUND(SUM(CASE WHEN PAGAR_CENTRORESULTADO.CHAVE_CENTRO = 41 THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS INVESTIMENTO_3_O,
+                    ROUND(SUM(CASE WHEN PAGAR_CENTRORESULTADO.CHAVE_CENTRO = 48 THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS INVESTIMENTO_FLUXUS
 
                 FROM
                     COPLAS.PAGAR,
@@ -1698,7 +1700,8 @@ def insvestimento_retiradas_ano_mes_a_mes():
                     EXTRACT(MONTH FROM MOVBAN.DATA) AS MES,
                     ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '4.%' AND PLANO_DE_CONTAS.CONTA NOT LIKE '4.02.01.001' AND PLANO_DE_CONTAS.CONTA NOT LIKE '4.9_.%' AND MOVBAN_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND MOVBAN_JOB.CHAVE_JOB IN (22, 24) THEN MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS INVESTIMENTO_1_C,
                     ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA = '4.02.01.001' AND MOVBAN_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND MOVBAN_JOB.CHAVE_JOB IN (22, 24) THEN MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS RETIRADA_C,
-                    ROUND(SUM(CASE WHEN MOVBAN_CENTRORESULTADO.CHAVE_CENTRO = 41 THEN MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS INVESTIMENTO_3_O
+                    ROUND(SUM(CASE WHEN MOVBAN_CENTRORESULTADO.CHAVE_CENTRO = 41 THEN MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS INVESTIMENTO_3_O,
+                    ROUND(SUM(CASE WHEN MOVBAN_CENTRORESULTADO.CHAVE_CENTRO = 48 THEN MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS INVESTIMENTO_FLUXUS
 
                 FROM
                     COPLAS.MOVBAN,
@@ -3892,6 +3895,29 @@ def migrar_vendedores():
 
 
 def migrar_comissoes(data_inicio, data_fim):
+    if data_fim:
+        valor_para_comissao = "RECEBER.VALORRECEBIDO"
+        data_para_comissao = """
+            RECEBER.DATALIQUIDACAO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
+            RECEBER.DATALIQUIDACAO <= TO_DATE(:data_fim,'YYYY-MM-DD')
+        """
+        condicao_para_comissao = "RECEBER.CONDICAO = 'LIQUIDADO'"
+
+        valor = valor_para_comissao
+        data = data_para_comissao
+        condicao = condicao_para_comissao
+    else:
+        valor_para_rescisao = "RECEBER.VALORTOTAL"
+        data_para_rescisao = """
+                RECEBER.DATAVENCIMENTO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
+                RECEBER.DATALIQUIDACAO IS NULL
+            """
+        condicao_para_rescisao = "RECEBER.CONDICAO != 'LIQUIDADO'"
+
+        valor = valor_para_rescisao
+        data = data_para_rescisao
+        condicao = condicao_para_rescisao
+
     sql = """
         SELECT
             RECEBER.DATAVENCIMENTO,
@@ -3908,7 +3934,7 @@ def migrar_comissoes(data_inicio, data_fim):
             SEGUNDO_REPRESENTANTE.NOMERED AS SEGUNDO_REPRE_NOTA,
             VENDEDORES.NOMERED AS CARTEIRA_CLIENTE,
             CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END AS ESPECIE,
-            SUM(ROUND(NOTAS_ITENS.VALOR_MERCADORIAS / NOTAS.VALOR_TOTAL * RECEBER.VALORRECEBIDO, 2)) - COALESCE(FRETE_NO_ITEM.FRETE_NO_ITEM, 0) AS VALOR_MERCADORIAS_PARCELA,
+            SUM(ROUND(NOTAS_ITENS.VALOR_MERCADORIAS / NOTAS.VALOR_TOTAL * {valor}, 2)) - COALESCE(FRETE_NO_ITEM.FRETE_NO_ITEM, 0) AS VALOR_MERCADORIAS_PARCELA,
             RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0) AS ABATIMENTOS_TOTAIS,
             COALESCE(FRETE_NO_ITEM.FRETE_NO_ITEM, 0) AS FRETE_NO_ITEM,
             0 AS DIVISAO,
@@ -3932,10 +3958,7 @@ def migrar_comissoes(data_inicio, data_fim):
                 WHERE
                     NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND
 
-                    -- RECEBER.DATAVENCIMENTO >= TO_DATE(data_entrada_funcionario,'DD-MM-YYYY') AND
-                    -- RECEBER.DATALIQUIDACAO IS NULL
-                    RECEBER.DATALIQUIDACAO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
-                    RECEBER.DATALIQUIDACAO <= TO_DATE(:data_fim,'YYYY-MM-DD')
+                    {data}
             ) FRETE_NO_ITEM,
             (SELECT DISTINCT CHAVE_CLIENTE, 'INFRA' AS CONTEUDO FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CHAVE_INFORMACAO = 8) INFRA,
             (SELECT DISTINCT NOTAS.CHAVE, ORCAMENTOS.LOG_NOME_INCLUSAO FROM COPLAS.ORCAMENTOS, COPLAS.PEDIDOS, COPLAS.NOTAS_ITENS, COPLAS.NOTAS WHERE NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA(+) AND NOTAS_ITENS.NUMPED = PEDIDOS.CHAVE(+) AND PEDIDOS.CHAVE_ORCAMENTO = ORCAMENTOS.CHAVE(+)) NOTAS_ORCAMENTO,
@@ -3972,13 +3995,9 @@ def migrar_comissoes(data_inicio, data_fim):
             NOTAS.VALOR_COMERCIAL = 'SIM' AND
             (PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) OR PRODUTOS.CPROD IS NULL) AND
 
-            -- RECEBER.CONDICAO != 'LIQUIDADO' AND
-            RECEBER.CONDICAO = 'LIQUIDADO' AND
+            {condicao} AND
 
-            -- RECEBER.DATAVENCIMENTO >= TO_DATE(data_entrada_funcionario,'DD-MM-YYYY') AND
-            -- RECEBER.DATALIQUIDACAO IS NULL
-            RECEBER.DATALIQUIDACAO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
-            RECEBER.DATALIQUIDACAO <= TO_DATE(:data_fim,'YYYY-MM-DD')
+            {data}
 
         GROUP BY
             RECEBER.DATAVENCIMENTO,
@@ -4006,7 +4025,12 @@ def migrar_comissoes(data_inicio, data_fim):
             NOTAS.NF
     """
 
-    origem = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim)
+    sql = sql.format(valor=valor, condicao=condicao, data=data)
+
+    kwargs = {}
+    if data_fim:
+        kwargs.update({'data_fim': data_fim})
+    origem = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, **kwargs)
 
     if origem:
         Comissoes.objects.all().delete()
@@ -4155,7 +4179,7 @@ def migrar_comissoes(data_inicio, data_fim):
 
             divisoes = len(vendedores_divisao)
             if divisoes:
-                instancia.valor_mercadorias_parcelas = instancia.valor_mercadorias_parcelas / 2
+                instancia.valor_mercadorias_parcelas = round(instancia.valor_mercadorias_parcelas / 2, 2)
 
             instancia.full_clean()
             instancia.save()

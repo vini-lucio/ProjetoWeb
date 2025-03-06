@@ -81,6 +81,7 @@
                 <form method="POST" action="{% url "home:migracao" %}">
                     {% csrf_token %}
                     {{ formulario_migrar_comissoes.as_p }}
+                    <p>Para rescisão, preencher somente o inicio com a data de admissão do funcionario</p>
                     <p class="fonte-vermelho">ATENÇÃO: Serão excluidas todas as comissões atuais</p>
                     <button id="migrar-comissoes" name="comissoes-submit" onclick="mudarTextoComissoes()" class="botao" type="submit">Importar Comissões</button>
                     {% if messages %}
