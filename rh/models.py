@@ -1196,3 +1196,147 @@ class ComissoesVendedores(models.Model):
 
     def __str__(self) -> str:
         return f'{self.comissao} - {self.vendedor}'
+
+
+class Faturamentos(models.Model):
+    class Meta:
+        verbose_name = 'Faturamento'
+        verbose_name_plural = 'Faturamentos'
+
+    especies = {
+        'SAIDA': 'Saida',
+        'ENTRADA': 'Entrada',
+    }
+
+    statuss = {
+        'CANCELADA': 'Cancelada',
+    }
+
+    data_emissao = models.DateField("Data Emissão", auto_now=False, auto_now_add=False, null=True, blank=True)
+    nota_fiscal = models.IntegerField("Nota Fiscal", default=0)
+    parcelas = models.IntegerField("Parcelas", default=0)
+    cliente = models.CharField("Cliente", max_length=50, null=True, blank=True)
+    uf_cliente = models.ForeignKey(Estados, verbose_name="UF Cliente", on_delete=models.CASCADE,
+                                   related_name="%(class)s_uf_cliente", null=True, blank=True)
+    uf_entrega = models.ForeignKey(Estados, verbose_name="UF Entrega", on_delete=models.CASCADE,
+                                   related_name="%(class)s_uf_entrega", null=True, blank=True)
+    inclusao_orcamento = models.CharField("Inclusão Orçamento", max_length=50, null=True, blank=True)
+    representante_cliente = models.ForeignKey(Vendedores, verbose_name="Representante Cliente",
+                                              on_delete=models.CASCADE, related_name="%(class)s_representante_cliente",
+                                              null=True, blank=True)
+    representante_nota = models.ForeignKey(Vendedores, verbose_name="Representante Nota",
+                                           on_delete=models.CASCADE, related_name="%(class)s_representante_nota",
+                                           null=True, blank=True)
+    segundo_representante_cliente = models.ForeignKey(Vendedores, verbose_name="Segundo Representante Cliente",
+                                                      on_delete=models.CASCADE,
+                                                      related_name="%(class)s_segundo_representante_cliente",
+                                                      null=True, blank=True)
+    segundo_representante_nota = models.ForeignKey(Vendedores, verbose_name="Segundo Representante Nota",
+                                                   on_delete=models.CASCADE,
+                                                   related_name="%(class)s_segundo_representante_nota",
+                                                   null=True, blank=True)
+    carteira_cliente = models.ForeignKey(Vendedores, verbose_name="Carteira Cliente", on_delete=models.CASCADE,
+                                         related_name="%(class)s_carteira_cliente", null=True, blank=True)
+    especie = models.CharField("Especie", max_length=10, choices=especies, null=True, blank=True)  # type:ignore
+    status = models.CharField("Status", max_length=10, choices=statuss, null=True, blank=True)  # type:ignore
+    valor_mercadorias = models.DecimalField("Valor Mercadorias R$", max_digits=12, decimal_places=2,
+                                            default=0)  # type:ignore
+    valor_mercadorias_nao_dividido = models.DecimalField("Valor Mercadorias Não Dividido R$",
+                                                         max_digits=12, decimal_places=2, default=0)  # type:ignore
+    divisao = models.BooleanField("Divisão", default=False)
+    erro = models.BooleanField("Erro", default=False)
+    infra = models.BooleanField("Infra", default=False)
+    premoldado_poste = models.BooleanField("Pre-Moldado / Poste", default=False)
+
+    @property
+    def uf_cliente_(self):
+        campo = self.uf_cliente  # type:ignore
+        if campo:
+            return campo.sigla
+        return
+
+    uf_cliente_.fget.short_description = 'UF Cliente'  # type:ignore
+
+    @property
+    def uf_entrega_(self):
+        campo = self.uf_entrega  # type:ignore
+        if campo:
+            return campo.sigla
+        return
+
+    uf_entrega_.fget.short_description = 'UF Entrega'  # type:ignore
+
+    @property
+    def representante_cliente_(self):
+        campo = self.representante_cliente  # type:ignore
+        if campo:
+            return campo.nome
+        return
+
+    representante_cliente_.fget.short_description = 'Representante Cliente'  # type:ignore
+
+    @property
+    def representante_nota_(self):
+        campo = self.representante_nota  # type:ignore
+        if campo:
+            return campo.nome
+        return
+
+    representante_nota_.fget.short_description = 'Representante Nota'  # type:ignore
+
+    @property
+    def segundo_representante_cliente_(self):
+        campo = self.segundo_representante_cliente  # type:ignore
+        if campo:
+            return campo.nome
+        return
+
+    segundo_representante_cliente_.fget.short_description = 'Segundo Representante Cliente'  # type:ignore
+
+    @property
+    def segundo_representante_nota_(self):
+        campo = self.segundo_representante_nota  # type:ignore
+        if campo:
+            return campo.nome
+        return
+
+    segundo_representante_nota_.fget.short_description = 'Segundo Representante Nota'  # type:ignore
+
+    @property
+    def carteira_cliente_(self):
+        campo = self.carteira_cliente  # type:ignore
+        if campo:
+            return campo.nome
+        return
+
+    carteira_cliente_.fget.short_description = 'Carteira Cliente'  # type:ignore
+
+    @property
+    def conferir(self):
+        return self.divisao or self.erro
+
+    conferir.fget.short_description = 'Conferir'  # type:ignore
+
+    def __str__(self):
+        return f'{self.nota_fiscal}'
+
+
+class FaturamentosVendedores(models.Model):
+    class Meta:
+        verbose_name = 'Faturamento Divisão'
+        verbose_name_plural = 'Faturamento Divisões'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['vendedor', 'faturamento'],
+                name='faturamento_vendedores_unique',
+                violation_error_message="Faturamento e Vendedor são unicos em Faturamentos Vendedores"
+            ),
+        ]
+
+    faturamento = models.ForeignKey(Faturamentos, verbose_name="Faturamento", on_delete=models.CASCADE,
+                                    related_name="%(class)s")
+    vendedor = models.ForeignKey(Vendedores, verbose_name="Vendedor", on_delete=models.CASCADE,
+                                 related_name="%(class)s")
+
+    def __str__(self) -> str:
+        return f'{self.faturamento} - {self.vendedor}'

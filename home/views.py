@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils.text import slugify
 from .services import (get_tabela_precos, migrar_cidades, migrar_unidades, migrar_produtos, migrar_estados,
                        migrar_estados_icms, migrar_vendedores, migrar_canais_vendas, migrar_regioes, migrar_comissoes)
-from .forms import ConfirmacaoMigrar, ConfirmacaoMigrarDataFimNonRequired
+from .forms import ConfirmacaoMigrar, ConfirmacaoMigrarDataFimNonRequired, ConfirmacaoMigrarData
 from django.contrib.auth.decorators import user_passes_test
 from collections import Counter
 
@@ -21,6 +21,7 @@ def migracao(request):
     id_confirma_produtos = 'confirma-migrar-produtos'
     id_confirma_vendedores = 'confirma-migrar-vendedores'
     id_confirma_comissoes = 'confirma-migrar-comissoes'
+    id_confirma_faturamentos = 'confirma-migrar-faturamentos'
 
     if request.method == 'POST':
         if 'cidades-submit' in request.POST:
@@ -70,6 +71,18 @@ def migracao(request):
                 mensagem = "Migração de comissões concluída!"
                 extra_tags = 'comissoes'
 
+        elif 'faturamentos-submit' in request.POST:
+            formulario_migrar_faturamentos = ConfirmacaoMigrarData(
+                request.POST, id_confirma=id_confirma_faturamentos)
+            if formulario_migrar_faturamentos.is_valid() and formulario_migrar_faturamentos.cleaned_data['confirma']:
+                inicio = str(formulario_migrar_faturamentos.cleaned_data['inicio'])
+                fim = str(formulario_migrar_faturamentos.cleaned_data['fim'])
+
+                # migrar_faturamentos(inicio, fim)
+
+                mensagem = "Migração de faturamentos concluída!"
+                extra_tags = 'faturamentos'
+
         messages.success(request, mensagem, extra_tags=extra_tags)
         return redirect(reverse('home:migracao'))
 
@@ -78,6 +91,7 @@ def migracao(request):
     formulario_migrar_produtos = ConfirmacaoMigrar(id_confirma=id_confirma_produtos)
     formulario_migrar_vendedores = ConfirmacaoMigrar(id_confirma=id_confirma_vendedores)
     formulario_migrar_comissoes = ConfirmacaoMigrarDataFimNonRequired(id_confirma=id_confirma_comissoes)
+    formulario_migrar_faturamentos = ConfirmacaoMigrarData(id_confirma=id_confirma_faturamentos)
 
     contexto = {
         'titulo_pagina': titulo_pagina,
@@ -86,6 +100,7 @@ def migracao(request):
         'formulario_migrar_produtos': formulario_migrar_produtos,
         'formulario_migrar_vendedores': formulario_migrar_vendedores,
         'formulario_migrar_comissoes': formulario_migrar_comissoes,
+        'formulario_migrar_faturamentos': formulario_migrar_faturamentos,
     }
 
     return render(request, 'home/pages/migracao.html', contexto)

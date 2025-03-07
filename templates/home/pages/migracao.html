@@ -95,6 +95,24 @@
             </div>
         </div>
 
+        <div class="link-conteudo">
+            <div class="grid-simples">
+                <form method="POST" action="{% url "home:migracao" %}">
+                    {% csrf_token %}
+                    {{ formulario_migrar_faturamentos.as_p }}
+                    <p class="fonte-vermelho">ATENÇÃO: Serão excluidas todas os faturamentos atuais</p>
+                    <button id="migrar-faturamentos" name="faturamentos-submit" onclick="mudarTextoFaturamentos()" class="botao" type="submit">Importar Faturamentos</button>
+                    {% if messages %}
+                        {% for mensagem in messages %}
+                            {% if 'faturamentos' in mensagem.tags %}
+                                <p>{{ mensagem }}</p>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
     </section>
 
     <script>
@@ -133,6 +151,14 @@
         function mudarTextoComissoes() {
             var checkbox = document.getElementById("confirma-migrar-comissoes");
             var button = document.getElementById("migrar-comissoes");
+            if (checkbox.checked) {
+                button.innerText = "Aguarde...";
+            }
+        }
+
+        function mudarTextoFaturamentos() {
+            var checkbox = document.getElementById("confirma-migrar-faturamentos");
+            var button = document.getElementById("migrar-faturamentos");
             if (checkbox.checked) {
                 button.innerText = "Aguarde...";
             }
