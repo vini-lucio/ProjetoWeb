@@ -6,7 +6,7 @@ from django.http import HttpRequest, HttpResponse
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
                          ProdutosModelosTags, Unidades, Produtos, EstadosIcms, Vendedores, CanaisVendas, Regioes,
-                         VendedoresRegioes)
+                         VendedoresRegioes, VendedoresEstados)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn, ExportarXlsxMixIn)
@@ -351,13 +351,22 @@ class VendedoresRegioesInLine(admin.TabularInline):
     autocomplete_fields = 'regiao',
 
 
+class VendedoresEstadosInLine(admin.TabularInline):
+    model = VendedoresEstados
+    extra = 1
+    verbose_name = "Vendedor Estado"
+    verbose_name_plural = "Vendedor Estados"
+    ordering = 'estado__uf',
+    autocomplete_fields = 'estado',
+
+
 @admin.register(Vendedores)
 class VendedoresAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'nome', 'status',
     list_display_links = list_display
     ordering = 'nome',
     search_fields = 'nome',
-    inlines = VendedoresRegioesInLine,
+    inlines = VendedoresRegioesInLine, VendedoresEstadosInLine,
 
     def get_inlines(self, request, obj):
         if obj:
