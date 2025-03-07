@@ -3944,7 +3944,7 @@ def migrar_comissoes(data_inicio, data_fim):
 
         FROM
             (
-                SELECT
+                SELECT DISTINCT
                     NOTAS.CHAVE AS CHAVE_NOTA,
                     NOTAS.NF,
                     NOTAS.PARCELAS,
