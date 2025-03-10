@@ -2,7 +2,7 @@ from decimal import Decimal
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
 from home.models import Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores, CanaisVendas, Regioes
-from rh.models import Comissoes, ComissoesVendedores
+from rh.models import Comissoes, ComissoesVendedores, Faturamentos, FaturamentosVendedores
 from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES, PRODUTOS, CANAIS_VENDA, REGIOES
 from utils.site_setup import get_site_setup
 from utils.lfrete import notas as lfrete_notas
@@ -4211,6 +4211,242 @@ def migrar_comissoes(data_inicio, data_fim):
                     valor_mercadorias_parcelas_nao_dividido=instancia.valor_mercadorias_parcelas_nao_dividido,
                     abatimentos_totais=instancia.abatimentos_totais,
                     frete_item=instancia.frete_item,
+                    divisao=instancia.divisao,
+                    erro=instancia.erro,
+                    infra=instancia.infra,
+                    premoldado_poste=instancia.infra,
+                )
+                instancia_dividida.full_clean()
+                instancia_dividida.save()
+
+
+def migrar_faturamentos(data_inicio, data_fim):
+    sql = """
+        SELECT
+            NOTAS.DATA_EMISSAO,
+            NOTAS.NF,
+            NOTAS.PARCELAS,
+            CLIENTES.NOMERED AS CLIENTE,
+            ESTADOS.SIGLA AS UF_CLIENTE,
+            COALESCE(UF_ORDEM.UF_ORDEM, NOTAS.CLI_ENT_UF, ESTADOS.SIGLA) AS UF_ENTREGA,
+            NOTAS_ORCAMENTO.LOG_NOME_INCLUSAO AS LOG_INCLUSAO_ORCAMENTO,
+            REPRE_CAD.NOMERED AS REPRESENTANTE_CLIENTE,
+            REPRESENTANTES.NOMERED AS REPRESENTANTE_NOTA,
+            SEGUNDO_REPRE_CAD.NOMERED AS SEGUNDO_REPRE_CLIENTE,
+            SEGUNDO_REPRESENTANTE.NOMERED AS SEGUNDO_REPRE_NOTA,
+            VENDEDORES.NOMERED AS CARTEIRA_CLIENTE,
+            CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END AS ESPECIE,
+            CASE NOTAS.ATIVA WHEN 'NAO' THEN 'CANCELADA' END AS STATUS,
+            ROUND(SUM(COALESCE(NOTAS_ITENS.VALOR_MERCADORIAS, 0)) - COALESCE(SUM(NOTAS_ITENS.PESO_LIQUIDO / NOTAS_ORCAMENTO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM), 0), 2) AS VALOR_MERCADORIAS,
+            0 AS DIVISAO,
+            0 AS ERRO,
+            INFRA.CONTEUDO AS INFRA,
+            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END AS PREMOLDADO_POSTE
+
+        FROM
+            (SELECT DISTINCT CHAVE_CLIENTE, 'INFRA' AS CONTEUDO FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CHAVE_INFORMACAO = 8) INFRA,
+            (SELECT DISTINCT NOTAS.CHAVE, ORCAMENTOS.LOG_NOME_INCLUSAO, ORCAMENTOS.PESO_LIQUIDO FROM COPLAS.ORCAMENTOS, COPLAS.PEDIDOS, COPLAS.NOTAS_ITENS, COPLAS.NOTAS WHERE NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA(+) AND NOTAS_ITENS.NUMPED = PEDIDOS.CHAVE(+) AND PEDIDOS.CHAVE_ORCAMENTO = ORCAMENTOS.CHAVE(+)) NOTAS_ORCAMENTO,
+            (SELECT NOTAS_ORDEM.CHAVE AS CHAVE_NOTA, ESTADOS_ORDEM.SIGLA AS UF_ORDEM FROM COPLAS.ESTADOS ESTADOS_ORDEM, COPLAS.NOTAS NOTAS_ORDEM, COPLAS.CLIENTES CLIENTES_ORDEM WHERE NOTAS_ORDEM.CHAVE_CLIENTE_REMESSA = CLIENTES_ORDEM.CODCLI AND CLIENTES_ORDEM.UF = ESTADOS_ORDEM.CHAVE) UF_ORDEM,
+            COPLAS.ESTADOS,
+            COPLAS.VENDEDORES,
+            COPLAS.VENDEDORES REPRESENTANTES,
+            COPLAS.VENDEDORES SEGUNDO_REPRESENTANTE,
+            COPLAS.VENDEDORES REPRE_CAD,
+            COPLAS.VENDEDORES SEGUNDO_REPRE_CAD,
+            COPLAS.NOTAS,
+            COPLAS.NOTAS_ITENS,
+            COPLAS.PRODUTOS,
+            COPLAS.CLIENTES,
+            COPLAS.CLIENTES_TIPOS
+
+        WHERE
+            CLIENTES.CHAVE_TIPO = CLIENTES_TIPOS.CHAVE AND
+            CLIENTES.CODVEND = REPRE_CAD.CODVENDEDOR(+) AND
+            CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRE_CAD.CODVENDEDOR(+) AND
+            CLIENTES.CODCLI = INFRA.CHAVE_CLIENTE(+) AND
+            NOTAS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTE.CODVENDEDOR(+) AND
+            NOTAS.CHAVE = UF_ORDEM.CHAVE_NOTA(+) AND
+            NOTAS.CHAVE_VENDEDOR = REPRESENTANTES.CODVENDEDOR(+) AND
+            NOTAS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
+            CLIENTES.UF = ESTADOS.CHAVE AND
+            CLIENTES.CHAVE_VENDEDOR3 = VENDEDORES.CODVENDEDOR(+) AND
+            NOTAS.CHAVE = NOTAS_ORCAMENTO.CHAVE(+) AND
+            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA(+) AND
+            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD(+) AND
+            NOTAS.VALOR_COMERCIAL = 'SIM' AND
+            (PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) OR PRODUTOS.CPROD IS NULL) AND
+
+            NOTAS.DATA_EMISSAO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
+            NOTAS.DATA_EMISSAO <= TO_DATE(:data_fim,'YYYY-MM-DD')
+
+        GROUP BY
+            NOTAS.DATA_EMISSAO,
+            NOTAS.NF,
+            NOTAS.PARCELAS,
+            CLIENTES.NOMERED,
+            ESTADOS.SIGLA,
+            COALESCE(UF_ORDEM.UF_ORDEM, NOTAS.CLI_ENT_UF, ESTADOS.SIGLA),
+            NOTAS_ORCAMENTO.LOG_NOME_INCLUSAO,
+            REPRE_CAD.NOMERED,
+            REPRESENTANTES.NOMERED,
+            SEGUNDO_REPRE_CAD.NOMERED,
+            SEGUNDO_REPRESENTANTE.NOMERED,
+            VENDEDORES.NOMERED,
+            CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END,
+            CASE NOTAS.ATIVA WHEN 'NAO' THEN 'CANCELADA' END,
+            INFRA.CONTEUDO,
+            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END
+
+        ORDER BY
+            NOTAS.NF
+    """
+
+    origem = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim)
+
+    if origem:
+        Faturamentos.objects.all().delete()
+
+        estados = Estados.objects
+        vendedores = Vendedores.objects
+        representante_coplas = Vendedores.objects.get(nome='COPLAS')
+
+        for objeto_origem in origem:
+
+            fk_uf_cliente = None
+            if objeto_origem['UF_CLIENTE']:
+                fk_uf_cliente = estados.filter(sigla=objeto_origem['UF_CLIENTE']).first()
+
+            fk_uf_entrega = None
+            if objeto_origem['UF_ENTREGA']:
+                fk_uf_entrega = estados.filter(sigla=objeto_origem['UF_ENTREGA']).first()
+
+            fk_representante_cliente = None
+            if objeto_origem['REPRESENTANTE_CLIENTE']:
+                fk_representante_cliente = vendedores.filter(nome=objeto_origem['REPRESENTANTE_CLIENTE']).first()
+
+            fk_representante_nota = None
+            if objeto_origem['REPRESENTANTE_NOTA']:
+                fk_representante_nota = vendedores.filter(nome=objeto_origem['REPRESENTANTE_NOTA']).first()
+
+            fk_segundo_representante_cliente = None
+            if objeto_origem['SEGUNDO_REPRE_CLIENTE']:
+                fk_segundo_representante_cliente = vendedores.filter(
+                    nome=objeto_origem['SEGUNDO_REPRE_CLIENTE']).first()
+
+            fk_segundo_representante_nota = None
+            if objeto_origem['SEGUNDO_REPRE_NOTA']:
+                fk_segundo_representante_nota = vendedores.filter(nome=objeto_origem['SEGUNDO_REPRE_NOTA']).first()
+
+            fk_carteira_cliente = None
+            if objeto_origem['CARTEIRA_CLIENTE']:
+                fk_carteira_cliente = vendedores.filter(nome=objeto_origem['CARTEIRA_CLIENTE']).first()
+
+            instancia = Faturamentos(
+                data_emissao=objeto_origem['DATA_EMISSAO'],
+                nota_fiscal=objeto_origem['NF'],
+                parcelas=objeto_origem['PARCELAS'],
+                cliente=objeto_origem['CLIENTE'],
+                uf_cliente=fk_uf_cliente,
+                uf_entrega=fk_uf_entrega,
+                inclusao_orcamento=objeto_origem['LOG_INCLUSAO_ORCAMENTO'],
+                representante_cliente=fk_representante_cliente,
+                representante_nota=fk_representante_nota,
+                segundo_representante_cliente=fk_segundo_representante_cliente,
+                segundo_representante_nota=fk_segundo_representante_nota,
+                carteira_cliente=fk_carteira_cliente,
+                especie=objeto_origem['ESPECIE'],
+                status=objeto_origem['STATUS'],
+                valor_mercadorias=round(Decimal(objeto_origem['VALOR_MERCADORIAS']), 2),
+                valor_mercadorias_nao_dividido=round(Decimal(objeto_origem['VALOR_MERCADORIAS']), 2),
+                divisao=False,
+                erro=False,
+                infra=True if objeto_origem['INFRA'] else False,
+                premoldado_poste=True if objeto_origem['PREMOLDADO_POSTE'] else False,
+            )
+
+            vendedores_divisao: list[Vendedores] = []
+
+            # Conferencia Segundo Representante
+
+            segundo_cliente_diferente_representante = False
+            if instancia.segundo_representante_cliente:
+                if instancia.segundo_representante_cliente.canal_venda.descricao.upper() == 'REPRESENTANTE':
+                    if instancia.segundo_representante_cliente != instancia.representante_cliente:
+                        segundo_cliente_diferente_representante = True
+                        instancia.divisao = True
+                        if instancia.segundo_representante_cliente not in vendedores_divisao:
+                            vendedores_divisao.append(instancia.segundo_representante_cliente)
+
+            segundo_nota_diferente_representante = False
+            if instancia.segundo_representante_nota:
+                if instancia.segundo_representante_nota.canal_venda.descricao.upper() == 'REPRESENTANTE':
+                    if instancia.segundo_representante_nota != instancia.representante_nota:
+                        segundo_nota_diferente_representante = True
+                        instancia.divisao = True
+                        if instancia.segundo_representante_nota not in vendedores_divisao:
+                            vendedores_divisao.append(instancia.segundo_representante_nota)
+
+            if segundo_cliente_diferente_representante and segundo_nota_diferente_representante:
+                if instancia.segundo_representante_cliente != instancia.segundo_representante_nota:
+                    instancia.erro = True
+
+            # Listar atendimentos do representante
+
+            atendimentos_representante = []
+            if instancia.representante_nota:
+                atendimentos_representante = instancia.representante_nota.vendedoresestados.all()  # type:ignore
+                if atendimentos_representante:
+                    atendimentos_representante = [atendimento.estado for atendimento in atendimentos_representante]
+
+            # Conferencia do representante, UF faturamento e UF entrega
+
+            if atendimentos_representante:
+                if instancia.uf_cliente not in atendimentos_representante or \
+                        instancia.uf_entrega not in atendimentos_representante:
+                    instancia.divisao = True
+                    if representante_coplas not in vendedores_divisao:
+                        vendedores_divisao.append(representante_coplas)
+
+            if not instancia.representante_nota:
+                instancia.erro = True
+            else:
+                if instancia.representante_nota.canal_venda.descricao.upper() not in ('REPRESENTANTE', 'MERCADO LIVRE'):
+                    instancia.erro = True
+                if instancia.representante_nota != instancia.representante_cliente:
+                    instancia.erro = True
+
+            divisoes = len(vendedores_divisao)
+            if divisoes:
+                instancia.valor_mercadorias = round(instancia.valor_mercadorias / 2, 2)
+
+            instancia.full_clean()
+            instancia.save()
+
+            for vendedor in vendedores_divisao:
+                instancia_divisao = FaturamentosVendedores(
+                    faturamento=instancia,
+                    vendedor=vendedor,
+                )
+                instancia_divisao.full_clean()
+                instancia_divisao.save()
+
+                instancia_dividida = Faturamentos(
+                    data_emissao=instancia.data_emissao,
+                    nota_fiscal=instancia.nota_fiscal,
+                    parcelas=instancia.parcelas,
+                    cliente=instancia.cliente,
+                    uf_cliente=instancia.uf_cliente,
+                    uf_entrega=instancia.uf_entrega,
+                    inclusao_orcamento=instancia.inclusao_orcamento,
+                    representante_cliente=instancia.representante_cliente,
+                    representante_nota=instancia.representante_nota,
+                    segundo_representante_cliente=instancia.segundo_representante_cliente,
+                    segundo_representante_nota=vendedor,
+                    carteira_cliente=instancia.carteira_cliente,
+                    especie=instancia.especie,
+                    status=instancia.status,
+                    valor_mercadorias=round(instancia.valor_mercadorias / divisoes, 2),
+                    valor_mercadorias_nao_dividido=instancia.valor_mercadorias_nao_dividido,
                     divisao=instancia.divisao,
                     erro=instancia.erro,
                     infra=instancia.infra,

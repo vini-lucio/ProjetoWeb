@@ -597,6 +597,7 @@ class FaturamentosAdmin(BaseModelAdminRedRequired):
     autocomplete_fields = ('uf_cliente', 'uf_entrega', 'representante_cliente', 'representante_nota',
                            'segundo_representante_cliente', 'segundo_representante_nota', 'carteira_cliente')
     inlines = FaturamentosVendedoresInLine,
+    # TODO: ajustar exportação pelo admin
     # actions = 'exportar_excel',
 
     """Não usar chave estrangeira em campos_exportar criar uma property no model filho"""

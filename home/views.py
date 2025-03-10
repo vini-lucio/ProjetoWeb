@@ -7,7 +7,8 @@ from home.forms import PesquisarForm
 from django.db.models import Q
 from django.utils.text import slugify
 from .services import (get_tabela_precos, migrar_cidades, migrar_unidades, migrar_produtos, migrar_estados,
-                       migrar_estados_icms, migrar_vendedores, migrar_canais_vendas, migrar_regioes, migrar_comissoes)
+                       migrar_estados_icms, migrar_vendedores, migrar_canais_vendas, migrar_regioes, migrar_comissoes,
+                       migrar_faturamentos)
 from .forms import ConfirmacaoMigrar, ConfirmacaoMigrarDataFimNonRequired, ConfirmacaoMigrarData
 from django.contrib.auth.decorators import user_passes_test
 from collections import Counter
@@ -77,9 +78,7 @@ def migracao(request):
             if formulario_migrar_faturamentos.is_valid() and formulario_migrar_faturamentos.cleaned_data['confirma']:
                 inicio = str(formulario_migrar_faturamentos.cleaned_data['inicio'])
                 fim = str(formulario_migrar_faturamentos.cleaned_data['fim'])
-
-                # migrar_faturamentos(inicio, fim)
-
+                migrar_faturamentos(inicio, fim)
                 mensagem = "Migração de faturamentos concluída!"
                 extra_tags = 'faturamentos'
 
