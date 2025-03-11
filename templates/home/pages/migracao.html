@@ -100,7 +100,7 @@
                 <form method="POST" action="{% url "home:migracao" %}">
                     {% csrf_token %}
                     {{ formulario_migrar_faturamentos.as_p }}
-                    <p class="fonte-vermelho">ATENÇÃO: Serão excluidas todos os faturamentos atuais</p>
+                    <p class="fonte-vermelho">ATENÇÃO: Serão excluidos todos os faturamentos atuais</p>
                     <button id="migrar-faturamentos" name="faturamentos-submit" onclick="mudarTextoFaturamentos()" class="botao" type="submit">Importar Faturamentos</button>
                     {% if messages %}
                         {% for mensagem in messages %}

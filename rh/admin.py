@@ -10,8 +10,7 @@ from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, Transpor
                        ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios, Comissoes, ComissoesVendedores,
                        Faturamentos, FaturamentosVendedores)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
-from utils.exportar_excel import arquivo_excel
-from openpyxl.styles import PatternFill, Font
+from utils.exportar_excel import arquivo_excel, gerar_conteudo_excel, gerar_cabecalho, somar_coluna_formatada
 
 
 @admin.register(Cbo)
@@ -504,77 +503,45 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
         )
         response['Content-Disposition'] = 'attachment; filename={}.xlsx'.format(meta)
 
-        if self.campos_exportar:
-            cabecalho = [field for field in self.campos_exportar]
-        else:
-            cabecalho = [field for field in self.list_display]
+        cabecalho = gerar_cabecalho(self.campos_exportar)
 
-        conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset, cabecalho)
+        conteudo = gerar_conteudo_excel(queryset, cabecalho)
         titulo_aba = 'TOTAL'
         workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, cabecalho_negrito=True,
                                  formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-        ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
+        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBIDO')
 
         vendedores = Vendedores.objects.filter(canal_venda__descricao='CONSULTOR TECNICO').order_by('nome')
         for vendedor in vendedores:
             queryset_comissoes_vendedor = queryset.filter(carteira_cliente=vendedor)
             if queryset_comissoes_vendedor:
-                conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_vendedor, cabecalho)
+                conteudo = gerar_conteudo_excel(queryset_comissoes_vendedor, cabecalho)
                 titulo_aba = vendedor.nome
                 workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
                                          formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-                ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
+                somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBIDO')
 
         queryset_comissoes_infra = queryset.filter(infra=True)
         if queryset_comissoes_infra:
-            conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_infra, cabecalho)
+            conteudo = gerar_conteudo_excel(queryset_comissoes_infra, cabecalho)
             titulo_aba = 'INFRA'
             workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
                                      formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-        ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
+        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBIDO')
 
         queryset_comissoes_premoldado_poste = queryset.filter(premoldado_poste=True)
         if queryset_comissoes_premoldado_poste:
-            conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_premoldado_poste, cabecalho)
+            conteudo = gerar_conteudo_excel(queryset_comissoes_premoldado_poste, cabecalho)
             titulo_aba = 'PREMOLDADO POSTE'
             workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
                                      formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-        ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
+        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBIDO')
 
         workbook.save(response)
 
         return response
 
     exportar_excel.short_description = "Exportar .XLSX Selecionados"
-
-    @classmethod
-    def gerar_conteudo_excel(cls, queryset, cabecalho):
-        conteudo = []
-        for obj in queryset:
-            linha = [getattr(obj, field) for field in cabecalho]  # type:ignore
-            conteudo.append(linha)
-        return conteudo
-
-    @classmethod
-    def formatar_planilha(cls, conteudo, titulo_aba, workbook):
-        letra_coluna_soma = 'J'
-        total_linhas = len(conteudo)
-
-        worksheet = workbook[titulo_aba]
-
-        verde = PatternFill(start_color='00CC00', end_color='00CC00', fill_type='solid')
-        negrito = Font(bold=True)
-
-        celula = worksheet[f'{letra_coluna_soma}{total_linhas + 2}']
-        celula.value = f'=SUM({letra_coluna_soma}2:{letra_coluna_soma}{total_linhas + 1})'
-        celula.number_format = '#,##0.00'
-        celula.fill = verde
-        celula.font = negrito
-
-        celula = worksheet[f'{letra_coluna_soma}{total_linhas + 3}']
-        celula.value = 'RECEBIDO'
-        celula.fill = verde
-        celula.font = negrito
 
 
 class FaturamentosVendedoresInLine(admin.TabularInline):
@@ -597,96 +564,79 @@ class FaturamentosAdmin(BaseModelAdminRedRequired):
     autocomplete_fields = ('uf_cliente', 'uf_entrega', 'representante_cliente', 'representante_nota',
                            'segundo_representante_cliente', 'segundo_representante_nota', 'carteira_cliente')
     inlines = FaturamentosVendedoresInLine,
-    # TODO: ajustar exportação pelo admin
-    # actions = 'exportar_excel',
+
+    actions = 'exportar_excel',
 
     """Não usar chave estrangeira em campos_exportar criar uma property no model filho"""
-    # campos_exportar = ['data_liquidacao', 'nota_fiscal', 'cliente', 'uf_cliente_', 'uf_entrega_', 'inclusao_orcamento',
-    #                    'segundo_representante_cliente_', 'segundo_representante_nota_', 'carteira_cliente_',
-    #                    'valor_mercadorias_parcelas', 'abatimentos_totais', 'frete_item', 'divisao', 'infra',
-    #                    'premoldado_poste', 'valor_mercadorias_parcelas_nao_dividido']
+    campos_exportar = ['data_emissao', 'nota_fiscal', 'parcelas', 'cliente', 'uf_cliente_', 'uf_entrega_',
+                       'inclusao_orcamento', 'representante_cliente_', 'representante_nota_',
+                       'segundo_representante_cliente_', 'segundo_representante_nota_', 'carteira_cliente_', 'especie',
+                       'status', 'valor_mercadorias', 'divisao', 'infra', 'premoldado_poste',
+                       'valor_mercadorias_nao_dividido']
 
     def get_inlines(self, request, obj):
         if obj:
             return super().get_inlines(request, obj)
         return []
 
-    # def exportar_excel(self, request, queryset):
-    #     meta = self.model._meta
+    def exportar_excel(self, request, queryset):
+        meta = self.model._meta
 
-    #     response = HttpResponse(
-    #         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    #     )
-    #     response['Content-Disposition'] = 'attachment; filename={}.xlsx'.format(meta)
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename={}.xlsx'.format(meta)
 
-    #     if self.campos_exportar:
-    #         cabecalho = [field for field in self.campos_exportar]
-    #     else:
-    #         cabecalho = [field for field in self.list_display]
+        cabecalho = gerar_cabecalho(self.campos_exportar)
 
-    #     conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset, cabecalho)
-    #     titulo_aba = 'TOTAL'
-    #     workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, cabecalho_negrito=True,
-    #                              formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-    #     ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
+        conteudo = gerar_conteudo_excel(queryset, cabecalho)
+        titulo_aba = 'TOTAL'
+        workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, cabecalho_negrito=True,
+                                 formatar_numero=(['O', 'S'], 2), ajustar_largura_colunas=True)
+        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'O', 'FATURADO')
 
-    #     vendedores = Vendedores.objects.filter(canal_venda__descricao='CONSULTOR TECNICO').order_by('nome')
-    #     for vendedor in vendedores:
-    #         queryset_comissoes_vendedor = queryset.filter(carteira_cliente=vendedor)
-    #         if queryset_comissoes_vendedor:
-    #             conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_vendedor, cabecalho)
-    #             titulo_aba = vendedor.nome
-    #             workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
-    #                                      formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-    #             ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
+        representantes = Vendedores.objects.filter(canal_venda__descricao='REPRESENTANTE').order_by('nome')
+        for representante in representantes:
+            queryset_faturamentos_representante = queryset.filter(representante_nota=representante)
+            if queryset_faturamentos_representante:
+                cabecalho_customizado = ['data_emissao', 'nota_fiscal', 'parcelas', 'cliente', 'uf_cliente_',
+                                         'uf_entrega_', 'inclusao_orcamento', 'representante_nota_',
+                                         'segundo_representante_nota_', 'carteira_cliente_', 'especie', 'status',
+                                         'valor_mercadorias', 'divisao', 'valor_mercadorias_nao_dividido']
+                conteudo = gerar_conteudo_excel(queryset_faturamentos_representante, cabecalho_customizado)
+                titulo_aba = representante.nome
+                workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
+                                         formatar_numero=(['M', 'O'], 2), ajustar_largura_colunas=True)
+                somar_coluna_formatada(conteudo, titulo_aba, workbook, 'M', 'FATURADO')
 
-    #     queryset_comissoes_infra = queryset.filter(infra=True)
-    #     if queryset_comissoes_infra:
-    #         conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_infra, cabecalho)
-    #         titulo_aba = 'INFRA'
-    #         workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
-    #                                  formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-    #     ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
+        vendedores = Vendedores.objects.filter(canal_venda__descricao='CONSULTOR TECNICO').order_by('nome')
+        for vendedor in vendedores:
+            queryset_faturamentos_vendedor = queryset.filter(carteira_cliente=vendedor)
+            if queryset_faturamentos_vendedor:
+                conteudo = gerar_conteudo_excel(queryset_faturamentos_vendedor, cabecalho)
+                titulo_aba = vendedor.nome
+                workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
+                                         formatar_numero=(['O', 'S'], 2), ajustar_largura_colunas=True)
+                somar_coluna_formatada(conteudo, titulo_aba, workbook, 'O', 'FATURADO')
 
-    #     queryset_comissoes_premoldado_poste = queryset.filter(premoldado_poste=True)
-    #     if queryset_comissoes_premoldado_poste:
-    #         conteudo = ComissoesAdmin.gerar_conteudo_excel(queryset_comissoes_premoldado_poste, cabecalho)
-    #         titulo_aba = 'PREMOLDADO POSTE'
-    #         workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
-    #                                  formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-    #     ComissoesAdmin.formatar_planilha(conteudo, titulo_aba, workbook)
+        queryset_faturamentos_infra = queryset.filter(infra=True)
+        if queryset_faturamentos_infra:
+            conteudo = gerar_conteudo_excel(queryset_faturamentos_infra, cabecalho)
+            titulo_aba = 'INFRA'
+            workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
+                                     formatar_numero=(['O', 'S'], 2), ajustar_largura_colunas=True)
+        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'O', 'FATURADO')
 
-    #     workbook.save(response)
+        queryset_faturamentos_premoldado_poste = queryset.filter(premoldado_poste=True)
+        if queryset_faturamentos_premoldado_poste:
+            conteudo = gerar_conteudo_excel(queryset_faturamentos_premoldado_poste, cabecalho)
+            titulo_aba = 'PREMOLDADO POSTE'
+            workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
+                                     formatar_numero=(['O', 'S'], 2), ajustar_largura_colunas=True)
+        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'O', 'FATURADO')
 
-    #     return response
+        workbook.save(response)
 
-    # exportar_excel.short_description = "Exportar .XLSX Selecionados"
+        return response
 
-    # @classmethod
-    # def gerar_conteudo_excel(cls, queryset, cabecalho):
-    #     conteudo = []
-    #     for obj in queryset:
-    #         linha = [getattr(obj, field) for field in cabecalho]  # type:ignore
-    #         conteudo.append(linha)
-    #     return conteudo
-
-    # @classmethod
-    # def formatar_planilha(cls, conteudo, titulo_aba, workbook):
-    #     letra_coluna_soma = 'J'
-    #     total_linhas = len(conteudo)
-
-    #     worksheet = workbook[titulo_aba]
-
-    #     verde = PatternFill(start_color='00CC00', end_color='00CC00', fill_type='solid')
-    #     negrito = Font(bold=True)
-
-    #     celula = worksheet[f'{letra_coluna_soma}{total_linhas + 2}']
-    #     celula.value = f'=SUM({letra_coluna_soma}2:{letra_coluna_soma}{total_linhas + 1})'
-    #     celula.number_format = '#,##0.00'
-    #     celula.fill = verde
-    #     celula.font = negrito
-
-    #     celula = worksheet[f'{letra_coluna_soma}{total_linhas + 3}']
-    #     celula.value = 'RECEBIDO'
-    #     celula.fill = verde
-    #     celula.font = negrito
+    exportar_excel.short_description = "Exportar .XLSX Selecionados"

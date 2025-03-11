@@ -1,5 +1,5 @@
 import openpyxl
-from openpyxl.styles import Font
+from openpyxl.styles import Font, PatternFill
 from io import BytesIO
 
 
@@ -60,3 +60,39 @@ def salvar_excel_temporario(workbook: openpyxl.Workbook) -> BytesIO:
     workbook.save(byte_stream)
     byte_stream.seek(0)
     return byte_stream
+
+
+def gerar_cabecalho(campos):
+    """Retorna uma lista de campos, onde os campos são campos de um queryset"""
+    cabecalho = [campo for campo in campos]
+    return cabecalho
+
+
+def gerar_conteudo_excel(queryset, cabecalho):
+    """Retorna uma lista com o conteudo das linhas de uma planilha, onde o cabeçalho é uma lista de campos do queryset"""
+    conteudo = []
+    for obj in queryset:
+        linha = [getattr(obj, field) for field in cabecalho]  # type:ignore
+        conteudo.append(linha)
+    return conteudo
+
+
+def somar_coluna_formatada(conteudo, titulo_aba, workbook, letra_coluna_soma, cabecalho_soma):
+    """Soma a coluna informada com a cor verde"""
+    total_linhas = len(conteudo)
+
+    worksheet = workbook[titulo_aba]
+
+    verde = PatternFill(start_color='00CC00', end_color='00CC00', fill_type='solid')
+    negrito = Font(bold=True)
+
+    celula = worksheet[f'{letra_coluna_soma}{total_linhas + 2}']
+    celula.value = f'=SUM({letra_coluna_soma}2:{letra_coluna_soma}{total_linhas + 1})'
+    celula.number_format = '#,##0.00'
+    celula.fill = verde
+    celula.font = negrito
+
+    celula = worksheet[f'{letra_coluna_soma}{total_linhas + 3}']
+    celula.value = cabecalho_soma
+    celula.fill = verde
+    celula.font = negrito
