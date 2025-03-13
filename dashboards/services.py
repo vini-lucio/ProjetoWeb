@@ -3,7 +3,7 @@ from utils.lfrete import pedidos as lfrete_pedidos
 from utils.data_hora_atual import data_hora_atual
 from utils.cor_rentabilidade import cor_rentabilidade_css, falta_mudar_cor_mes
 from utils.site_setup import (get_site_setup, get_assistentes_tecnicos, get_assistentes_tecnicos_agenda,
-                              get_transportadoras)
+                              get_transportadoras, get_consultores_tecnicos_ativos)
 from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valores_atendimento
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -20,33 +20,31 @@ class DashBoardVendas():
             self.PRIMEIRO_DIA_UTIL_PROXIMO_MES = self.SITE_SETUP.primeiro_dia_util_proximo_mes_as_ddmmyyyy
             self.DESPESA_ADMINISTRATIVA_FIXA = self.SITE_SETUP.despesa_administrativa_fixa_as_float
 
-        self.PEDIDOS_DIA, self.TONELADAS_DIA = pedidos_dia(self.PRIMEIRO_DIA_UTIL_PROXIMO_MES)
+        self.PEDIDOS_DIA, self.TONELADAS_DIA, self.RENTABILIDADE_PEDIDOS_DIA = rentabilidade_pedidos_dia(
+            self.DESPESA_ADMINISTRATIVA_FIXA,
+            self.PRIMEIRO_DIA_UTIL_PROXIMO_MES
+        )
         self.PORCENTAGEM_META_DIA = int(self.PEDIDOS_DIA / self.META_DIARIA * 100)
         self.FALTAM_META_DIA = round(self.META_DIARIA - self.PEDIDOS_DIA, 2)
         self.CONVERSAO_DE_ORCAMENTOS = conversao_de_orcamentos()
         self.FALTAM_ABRIR_ORCAMENTOS_DIA = round(self.FALTAM_META_DIA / (self.CONVERSAO_DE_ORCAMENTOS / 100), 2)
-        self.PEDIDOS_MES, self.TONELADAS_MES = pedidos_mes(self.PRIMEIRO_DIA_MES, self.PRIMEIRO_DIA_UTIL_MES,
-                                                           self.ULTIMO_DIA_MES, self.PRIMEIRO_DIA_UTIL_PROXIMO_MES)
-        self.PORCENTAGEM_META_MES = int(self.PEDIDOS_MES / self.META_MES * 100)
-        self.FALTAM_META_MES = round(self.META_MES - self.PEDIDOS_MES, 2)
-
-        self.RENTABILIDADE_PEDIDOS_DIA = rentabilidade_pedidos_dia(self.DESPESA_ADMINISTRATIVA_FIXA,
-                                                                   self.PRIMEIRO_DIA_UTIL_PROXIMO_MES)
-        self.COR_RENTABILIDADE_PEDIDOS_DIA = cor_rentabilidade_css(self.RENTABILIDADE_PEDIDOS_DIA)
-
         self.RENTABILIDADE_PEDIDOS_MES = rentabilidade_pedidos_mes(self.DESPESA_ADMINISTRATIVA_FIXA,
                                                                    self.PRIMEIRO_DIA_MES,
                                                                    self.PRIMEIRO_DIA_UTIL_MES,
                                                                    self.ULTIMO_DIA_MES,
                                                                    self.PRIMEIRO_DIA_UTIL_PROXIMO_MES)
         self.RENTABILIDADE_PEDIDOS_MES_MC_MES = self.RENTABILIDADE_PEDIDOS_MES['mc_mes']
-        self.RENTABILIDADE_PEDIDOS_MES_TOTAL_MES_SEM_CONVERTER_MOEDA = (
-            self.RENTABILIDADE_PEDIDOS_MES['total_mes_sem_converter_moeda'])
+        self.RENTABILIDADE_PEDIDOS_MES_TOTAL_MES = self.RENTABILIDADE_PEDIDOS_MES['total_mes']
         self.RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE = self.RENTABILIDADE_PEDIDOS_MES['rentabilidade_mes']
+        self.TONELADAS_MES = self.RENTABILIDADE_PEDIDOS_MES['toneladas_mes']
+        self.PEDIDOS_MES = self.RENTABILIDADE_PEDIDOS_MES['total_mes']
+        self.PORCENTAGEM_META_MES = int(self.PEDIDOS_MES / self.META_MES * 100)
+        self.FALTAM_META_MES = round(self.META_MES - self.PEDIDOS_MES, 2)
+        self.COR_RENTABILIDADE_PEDIDOS_DIA = cor_rentabilidade_css(self.RENTABILIDADE_PEDIDOS_DIA)
         self.COR_RENTABILIDADE_PEDIDOS_MES = cor_rentabilidade_css(self.RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE)
 
         self.FALTA_MUDAR_COR_MES = falta_mudar_cor_mes(self.RENTABILIDADE_PEDIDOS_MES_MC_MES,
-                                                       self.RENTABILIDADE_PEDIDOS_MES_TOTAL_MES_SEM_CONVERTER_MOEDA,
+                                                       self.RENTABILIDADE_PEDIDOS_MES_TOTAL_MES,
                                                        self.RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE)
         self.FALTA_MUDAR_COR_MES_VALOR = round(self.FALTA_MUDAR_COR_MES[0], 2)
         self.FALTA_MUDAR_COR_MES_VALOR_RENTABILIDADE = round(self.FALTA_MUDAR_COR_MES[1], 2)
@@ -100,47 +98,50 @@ class DashboardVendasTv(DashBoardVendas):
         return dados
 
 
-def pedidos_dia(primeiro_dia_util_proximo_mes: str) -> tuple[float, float]:
-    """Valor mercadorias e toneladas dos pedidos com valor comercial no dia com entrega até o primeiro dia util do proximo mes"""
-    sql = """
-        SELECT
-            ROUND(SUM((PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END), 2) AS TOTAL,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.PESO_LIQUIDO ELSE 0 END) / 1000, 3) AS TONELADAS_PROPRIO
+class DashboardVendasSupervisao(DashBoardVendas):
+    def __init__(self) -> None:
+        super().__init__()
+        self.CARTEIRAS_MES = []
+        for carteira in get_consultores_tecnicos_ativos():
+            RENTABILIDADE_PEDIDOS_MES = rentabilidade_pedidos_mes(self.DESPESA_ADMINISTRATIVA_FIXA,
+                                                                  self.PRIMEIRO_DIA_MES,
+                                                                  self.PRIMEIRO_DIA_UTIL_MES,
+                                                                  self.ULTIMO_DIA_MES,
+                                                                  self.PRIMEIRO_DIA_UTIL_PROXIMO_MES, carteira.nome)
+            RENTABILIDADE_PEDIDOS_MES_MC_MES = RENTABILIDADE_PEDIDOS_MES['mc_mes']
+            RENTABILIDADE_PEDIDOS_MES_TOTAL_MES = RENTABILIDADE_PEDIDOS_MES['total_mes']
+            RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE = RENTABILIDADE_PEDIDOS_MES['rentabilidade_mes']
+            TONELADAS_MES = RENTABILIDADE_PEDIDOS_MES['toneladas_mes']
+            COR_RENTABILIDADE_PEDIDOS_MES = cor_rentabilidade_css(RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE)
+            dados_carteira = {
+                'carteira': carteira,
+                'mc_mes_carteira': RENTABILIDADE_PEDIDOS_MES_MC_MES,
+                'total_mes_carteira': RENTABILIDADE_PEDIDOS_MES_TOTAL_MES,
+                'rentabilidade_mes_carteira': RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE,
+                'toneladas_mes_carteira': TONELADAS_MES,
+                'cor_rentabilidade_mes_carteira': COR_RENTABILIDADE_PEDIDOS_MES,
+                # TODO: falta meta e porcentagem meta mes por carteira (atualizar no template a cor da borda)
+            }
+            self.CARTEIRAS_MES.append(dados_carteira)
 
-        FROM
-            COPLAS.VENDEDORES,
-            COPLAS.CLIENTES,
-            COPLAS.PRODUTOS,
-            COPLAS.PEDIDOS,
-            COPLAS.PEDIDOS_ITENS
+        # TODO: campo de frete cif
 
-        WHERE
-            PEDIDOS.CHAVE = PEDIDOS_ITENS.CHAVE_PEDIDO AND
-            PRODUTOS.CPROD = PEDIDOS_ITENS.CHAVE_PRODUTO AND
-            CLIENTES.CODCLI = PEDIDOS.CHAVE_CLIENTE AND
-            VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
-            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
-            PEDIDOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
-
-            -- hoje
-            PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
-            -- primeiro dia util proximo mes
-            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
-    """
-
-    resultado = executar_oracle(sql, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
-
-    if not resultado[0][0]:
-        return 0.00, 0.00
-
-    return float(resultado[0][0]), float(resultado[0][1])
+    def get_dados(self):
+        dados = super().get_dados()
+        dados.update({
+            'carteiras_mes': self.CARTEIRAS_MES,
+        })
+        return dados
 
 
-def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_util_proximo_mes: str) -> float:
-    """Rentabilidade dos pedidos com valor comercial no dia com entrega até o primeiro dia util do proximo mes"""
+def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_util_proximo_mes: str,
+                              carteira: str = '%%') -> tuple[float, float, float]:
+    """Valor mercadorias, toneladas de produto proprio e rentabilidade dos pedidos com valor comercial no dia com entrega até o primeiro dia util do proximo mes"""
     sql = """
         SELECT
             -- despesa administrativa (ultima subtração)
+            TOTAL_MES_MOEDA,
+            TONELADAS_PROPRIO,
             ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - :despesa_administrativa_fixa AS RENTABILIDADE
 
         FROM
@@ -148,16 +149,19 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
                 SELECT
                     ROUND(LFRETE.MC_SEM_FRETE / (SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM))) * 100, 2) AS RENTABILIDADE,
                     ROUND(LFRETE.MC_SEM_FRETE, 2) AS MC_MES,
+                    -- Sem conversão de moeda
                     ROUND(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 2) AS TOTAL_MES,
-                    ROUND(NVL(LFRETE.MC_SEM_FRETE_PP / (NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END), 0)), 0) * 100, 2) AS RENTABILIDADE_PP,
+                    ROUND(SUM((PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END), 2) AS TOTAL_MES_MOEDA,
+                    COALESCE(ROUND(NVL(LFRETE.MC_SEM_FRETE_PP / (NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END), 0)), 0) * 100, 2), 0) AS RENTABILIDADE_PP,
                     ROUND(LFRETE.MC_SEM_FRETE_PP, 2) AS MC_MES_PP,
                     ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS TOTAL_MES_PP,
-                    ROUND(NVL(LFRETE.MC_SEM_FRETE_PT / (NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END), 0)), 0) * 100, 2) AS RENTABILIDADE_PT,
+                    COALESCE(ROUND(NVL(LFRETE.MC_SEM_FRETE_PT / (NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END), 0)), 0) * 100, 2), 0) AS RENTABILIDADE_PT,
                     ROUND(LFRETE.MC_SEM_FRETE_PT, 2) AS MC_MES_PT,
                     ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS TOTAL_MES_PT,
-                    ROUND(NVL(LFRETE.MC_SEM_FRETE_PQ / (NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END), 0)), 0) * 100, 2) AS RENTABILIDADE_PQ,
+                    COALESCE(ROUND(NVL(LFRETE.MC_SEM_FRETE_PQ / (NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END), 0)), 0) * 100, 2), 0) AS RENTABILIDADE_PQ,
                     ROUND(LFRETE.MC_SEM_FRETE_PQ, 2) AS MC_MES_PQ,
-                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS TOTAL_MES_PQ
+                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS TOTAL_MES_PQ,
+                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.PESO_LIQUIDO ELSE 0 END) / 1000, 3) AS TONELADAS_PROPRIO
 
                 FROM
                     (
@@ -170,6 +174,9 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
                         FROM
                             (
                                 {lfrete} AND
+
+                                    -- place holder para selecionar carteira
+                                    VENDEDORES.NOMERED LIKE :carteira AND
 
                                     -- hoje
                                     PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
@@ -190,6 +197,9 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
                     VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
                     PEDIDOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
 
+                    -- place holder para selecionar carteira
+                    VENDEDORES.NOMERED LIKE :carteira AND
+
                     -- hoje
                     PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
                     -- primeiro dia util do proximo mes
@@ -206,13 +216,13 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
     sql = sql.format(lfrete=lfrete_pedidos)
 
     resultado = executar_oracle(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
-                                primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
+                                primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes, carteira=carteira)
 
     # não consegui identificar o porque, não esta retornado [(none,),] e sim [], indice [0][0] não funciona
     if not resultado:
-        return 0.00
+        return 0.00, 0.00, 0.00,
 
-    return float(resultado[0][0])
+    return float(resultado[0][0]), float(resultado[0][1]), float(resultado[0][2]),
 
 
 def conversao_de_orcamentos():
@@ -378,106 +388,37 @@ def conversao_de_orcamentos():
     return float(resultado[0][0])
 
 
-def pedidos_mes(primeiro_dia_mes: str, primeiro_dia_util_mes: str,
-                ultimo_dia_mes: str, primeiro_dia_util_proximo_mes: str) -> tuple[float, float]:
-    """Valor mercadorias e toneladas dos pedidos com valor comercial no mes com entrega até o primeiro dia util do proximo mes, debitando as notas de devolução"""
-    sql = """
-        SELECT
-            ROUND(SUM((PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) + DEVOLUCOES.TOTAL, 2) AS TOTAL,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.PESO_LIQUIDO ELSE 0 END) / 1000, 3) AS TONELADAS_PROPRIO
-
-        FROM
-            (
-                SELECT
-                    CASE WHEN SUM(NOTAS_ITENS.VALOR_MERCADORIAS) IS NULL THEN 0 ELSE SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)) END AS TOTAL
-
-                FROM
-                    (SELECT CHAVE_NOTA, SUM(PESO_LIQUIDO) AS PESO_LIQUIDO FROM COPLAS.NOTAS_ITENS GROUP BY CHAVE_NOTA) NOTAS_PESO_LIQUIDO,
-                    COPLAS.PRODUTOS,
-                    COPLAS.NOTAS_ITENS,
-                    COPLAS.NOTAS
-
-                WHERE
-                    NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
-                    NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-                    PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
-                    NOTAS.VALOR_COMERCIAL = 'SIM' AND
-                    NOTAS.ESPECIE = 'E' AND
-                    PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
-
-                    -- primeiro dia do mes
-                    NOTAS.DATA_EMISSAO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-                    -- ultimo dia do mes
-                    NOTAS.DATA_EMISSAO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY')
-            ) DEVOLUCOES,
-            COPLAS.PRODUTOS,
-            COPLAS.PEDIDOS,
-            COPLAS.PEDIDOS_ITENS
-
-        WHERE
-            PEDIDOS.CHAVE = PEDIDOS_ITENS.CHAVE_PEDIDO AND
-            PRODUTOS.CPROD = PEDIDOS_ITENS.CHAVE_PRODUTO AND
-            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
-            PEDIDOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
-            (
-                (
-                    -- primeiro dia do mes
-                    PEDIDOS.DATA_PEDIDO < TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-                    -- primeiro dia util do mes
-                    PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE(:primeiro_dia_util_mes,'DD-MM-YYYY') AND
-                    -- primeiro dia util do proximo mes
-                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
-                ) OR
-                (
-                    -- primeiro dia do mes
-                    PEDIDOS.DATA_PEDIDO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-                    -- ultimo dia do mes
-                    PEDIDOS.DATA_PEDIDO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY') AND
-                    -- primeiro dia util do proximo mes
-                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
-                )
-            )
-
-        GROUP BY
-            DEVOLUCOES.TOTAL
-    """
-
-    resultado = executar_oracle(sql, primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
-                                ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
-
-    if not resultado[0][0]:
-        return 0.00, 0.00
-
-    return float(resultado[0][0]), float(resultado[0][1])
-
-
 def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_mes: str,
                               primeiro_dia_util_mes: str, ultimo_dia_mes: str,
-                              primeiro_dia_util_proximo_mes: str) -> dict[str, float]:
-    """Rentabilidade dos pedidos com valor comercial no mes com entrega até o primeiro dia util do proximo mes"""
+                              primeiro_dia_util_proximo_mes: str, carteira: str = '%%') -> dict[str, float]:
+    """Valor mercadorias, toneladas de produto proprio e rentabilidade dos pedidos com valor comercial no mes com entrega até o primeiro dia util do proximo mes"""
     sql = """
         SELECT
             ROUND((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100), 2) AS MC_MES,
-            TOTAL_MES,
+            TOTAL_MES_MOEDA,
 
             -- despesa administrativa (ultima subtração)
-            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - :despesa_administrativa_fixa AS RENTABILIDADE
+            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - :despesa_administrativa_fixa AS RENTABILIDADE,
+            TONELADAS_PROPRIO
 
         FROM
             (
                 SELECT
                     ROUND((LFRETE.MC_SEM_FRETE + DEVOLUCOES.RENTABILIDADE) / (SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) + DEVOLUCOES.TOTAL) * 100, 2) AS RENTABILIDADE,
                     ROUND(LFRETE.MC_SEM_FRETE + DEVOLUCOES.RENTABILIDADE, 2) AS MC_MES,
+                    -- Total sem converter moeda
                     ROUND(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) + DEVOLUCOES.TOTAL, 2) AS TOTAL_MES,
-                    ROUND((LFRETE.MC_SEM_FRETE_PP + DEVOLUCOES.RENTABILIDADE_PP) / (SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END) + DEVOLUCOES.PP) * 100, 2) AS RENTABILIDADE_PP,
+                    ROUND(SUM((PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) + DEVOLUCOES.TOTAL, 2) AS TOTAL_MES_MOEDA,
+                    COALESCE(ROUND((LFRETE.MC_SEM_FRETE_PP + DEVOLUCOES.RENTABILIDADE_PP) / (SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END) + DEVOLUCOES.PP) * 100, 2), 0) AS RENTABILIDADE_PP,
                     ROUND(LFRETE.MC_SEM_FRETE_PP + DEVOLUCOES.RENTABILIDADE_PP, 2) AS MC_MES_PP,
                     ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) ELSE 0 END) + DEVOLUCOES.PP, 2) AS TOTAL_MES_PP,
-                    ROUND((LFRETE.MC_SEM_FRETE_PT + DEVOLUCOES.RENTABILIDADE_PT) / (SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END) + DEVOLUCOES.PT) * 100, 2) AS RENTABILIDADE_PT,
+                    COALESCE(ROUND((LFRETE.MC_SEM_FRETE_PT + DEVOLUCOES.RENTABILIDADE_PT) / (SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END) + DEVOLUCOES.PT) * 100, 2), 0) AS RENTABILIDADE_PT,
                     ROUND(LFRETE.MC_SEM_FRETE_PT + DEVOLUCOES.RENTABILIDADE_PT, 2) AS MC_MES_PT,
                     ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN (PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) ELSE 0 END) + DEVOLUCOES.PT, 2) AS TOTAL_MES_PT,
-                    ROUND((LFRETE.MC_SEM_FRETE_PQ + DEVOLUCOES.RENTABILIDADE_PQ) / (SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END) + DEVOLUCOES.PQ) * 100, 2) AS RENTABILIDADE_PQ,
+                    COALESCE(ROUND((LFRETE.MC_SEM_FRETE_PQ + DEVOLUCOES.RENTABILIDADE_PQ) / (SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END) + DEVOLUCOES.PQ) * 100, 2), 0) AS RENTABILIDADE_PQ,
                     ROUND(LFRETE.MC_SEM_FRETE_PQ + DEVOLUCOES.RENTABILIDADE_PQ, 2) AS MC_MES_PQ,
-                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN (PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) ELSE 0 END) + DEVOLUCOES.PQ, 2) AS TOTAL_MES_PQ
+                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN (PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) ELSE 0 END) + DEVOLUCOES.PQ, 2) AS TOTAL_MES_PQ,
+                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.PESO_LIQUIDO ELSE 0 END) / 1000, 3) AS TONELADAS_PROPRIO
 
                 FROM
                     (
@@ -509,6 +450,9 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
                             NOTAS.ESPECIE = 'E' AND
                             PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
 
+                            -- place holder para selecionar carteira
+                            VENDEDORES.NOMERED LIKE :carteira AND
+
                             -- primeiro dia do mes
                             NOTAS.DATA_EMISSAO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
                             -- ultimo dia do mes
@@ -524,6 +468,9 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
                         FROM
                             (
                                 {lfrete} AND
+
+                                    -- place holder para selecionar carteira
+                                    VENDEDORES.NOMERED LIKE :carteira AND
 
                                     (
                                         (
@@ -557,6 +504,9 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
                     CLIENTES.CODCLI = PEDIDOS.CHAVE_CLIENTE AND
                     VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
                     PEDIDOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
+
+                    -- place holder para selecionar carteira
+                    VENDEDORES.NOMERED LIKE :carteira AND
 
                     (
                         (
@@ -597,16 +547,29 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
 
     resultado = executar_oracle(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
                                 primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
-                                ultimo_dia_mes=ultimo_dia_mes, primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes)
+                                ultimo_dia_mes=ultimo_dia_mes,
+                                primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes, carteira=carteira)
+
+    if not resultado:
+        dicionario = {
+            'mc_mes': 0.0,
+            'total_mes': 0.0,
+            'rentabilidade_mes': 0.0,
+            'toneladas_mes': 0.0,
+        }
+
+        return dicionario
 
     mc_mes = 0.0 if not resultado[0][0] else resultado[0][0]
-    total_mes_sem_converter_moeda = 0.0 if not resultado[0][1] else resultado[0][1]
+    total_mes = 0.0 if not resultado[0][1] else resultado[0][1]
     rentabilidade_mes = 0.0 if not resultado[0][2] else resultado[0][2]
+    toneladas_mes = 0.0 if not resultado[0][3] else resultado[0][3]
 
     dicionario = {
         'mc_mes': float(mc_mes),
-        'total_mes_sem_converter_moeda': float(total_mes_sem_converter_moeda),
-        'rentabilidade_mes': float(rentabilidade_mes)
+        'total_mes': float(total_mes),
+        'rentabilidade_mes': float(rentabilidade_mes),
+        'toneladas_mes': float(toneladas_mes),
     }
 
     return dicionario

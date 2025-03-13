@@ -1,5 +1,5 @@
 from home.models import (SiteSetup, AssistentesTecnicos, AssistentesTecnicosAgenda, Estados, Cidades, Jobs, Paises,
-                         Bancos, Unidades, Produtos, EstadosIcms)
+                         Bancos, Unidades, Produtos, EstadosIcms, Vendedores)
 from rh.models import (Cbo, Escolaridades, Funcionarios, DependentesTipos, Horarios, TransporteLinhas, TransporteTipos,
                        ValeTransportes, Setores, Funcoes)
 from frete.models import (Transportadoras, TransportadorasOrigemDestino, TransportadorasRegioesValores,
@@ -119,3 +119,7 @@ def get_transportadoras_regioes_valores():
 
 def get_transportadoras_regioes_cidades():
     return TransportadorasRegioesCidades.objects
+
+
+def get_consultores_tecnicos_ativos():
+    return Vendedores.objects.filter(canal_venda__descricao='CONSULTOR TECNICO', status='ativo').exclude(nome='MERCADO LIVRE').order_by('nome')

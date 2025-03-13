@@ -1,0 +1,137 @@
+{% extends "dashboards/base.html" %}
+
+{% block conteudo %}
+
+    {% if dados.confere_pedidos %}
+        <section class="principal principal-escuro">
+            <div class="dashboard-vendas-conteudo dashboard-vendas-conteudo-escuro">
+                <div class="moldura-vermelha-dashboard div-dashboard-erros principal-escuro-2">
+                    <div class="div-dashboard">
+                        <p class="fonte-vermelho">ERROS</p>
+                    </div>
+                    {% for pedido in dados.confere_pedidos %}
+                        <p><span class="fonte-verde">{{ pedido.PEDIDO }} - {{ pedido.CONSULTOR }}</span> - {{ pedido.ERRO }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
+    <section class="principal principal-escuro">
+        <div class="dashboard-vendas-conteudo">
+
+            <div class="grid-dashboard-2">
+
+                <div class="moldura-verde-dashboard principal-escuro-2 alinhar-topo" style="{% if dados.porcentagem_meta_dia >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
+                    {% comment %} <div>
+                        <div class="grafico-barra" style="--largura: {{ dados.porcentagem_meta_dia }}%; --cor-barra: var({{ dados.cor_rentabilidade_css_dia }})"></div>
+                    </div> {% endcomment %}
+                    <div class="grid-dashboard">
+
+                        <div>
+                            <div class="div-dashboard">
+                                <p class="fonte-verde">Meta Diaria</p>
+                                <p>R$ {{ dados.meta_diaria | floatformat:"2" }}</p>
+                            </div>
+
+                            {% comment %} O estilo --largura-grafico:33rem não carrega direito no safari, usar em pixel ou script que reaplica depois de um timeout {% endcomment %}
+                            <div 
+                                class="pie animate no-round" 
+                                style="--valor-pizza:{{ dados.porcentagem_meta_dia }};--largura-barra:3rem;--cor-barra:var({{ dados.cor_rentabilidade_css_dia }});--largura-grafico:33rem;--tamanho-fonte:8.5rem"
+                            >
+                            {{ dados.porcentagem_meta_dia }}%<br>
+                            <p>R$ {{ dados.faltam_meta_dia | floatformat:"2" }}<br><span class="fonte-verde">Faltam no dia</span></p>
+                            </div>
+
+                            <div class="div-dashboard">
+                                <p class="fonte-verde">Pedidos Hoje</p>
+                                <p>R$ {{ dados.pedidos_dia | floatformat:"2" }}</p>
+                            </div>
+
+                            <div class="div-dashboard">
+                                <p class="fonte-verde">Toneladas Hoje</p>
+                                <p>{{ dados.toneladas_dia | floatformat:"3" }} t</p>
+                            </div>
+
+                            <div class="div-dashboard">
+                                <p class="fonte-verde">Conversão de Orç.*</p>
+                                <p>{{ dados.conversao_de_orcamentos | floatformat:"2" }}%</p>
+                                <p class="fonte-muito-pequena-dashboard">* Ultimos 90 dias</p>
+
+                                <p class="fonte-verde">Faltam Orç. Dia**</p>
+                                <p>R$ {{ dados.faltam_abrir_orcamentos_dia | floatformat:"2" }}</p>
+                                <p class="fonte-muito-pequena-dashboard">** Novos orçs. para a meta do dia</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="moldura-verde-dashboard grid-dashboard principal-escuro-2 alinhar-topo" style="{% if dados.porcentagem_meta_mes >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
+
+                    <div>
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Meta Mensal</p>
+                            <p>R$ {{ dados.meta_mes | floatformat:"2" }}</p>
+                        </div>
+
+                        {% comment %} O estilo --largura-grafico:33rem não carrega direito no safari, usar em pixel ou script que reaplica depois de um timeout {% endcomment %}
+                        <div 
+                            class="pie animate no-round" 
+                            style="--valor-pizza:{{ dados.porcentagem_meta_mes }};--largura-barra:3rem;--cor-barra:var({{ dados.cor_rentabilidade_css_mes }});--largura-grafico:33rem;--tamanho-fonte:8.5rem"
+                        >
+                        {{ dados.porcentagem_meta_mes }}%<br>
+                        <p>R$ {{ dados.faltam_meta_mes | floatformat:"2" }}<br><span class="fonte-verde">Faltam no mês</span></p>
+                        </div>
+
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Pedidos Mês</p>
+                            <p>R$ {{ dados.pedidos_mes | floatformat:"2" }}</p>
+                        </div>
+
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Toneladas Mês</p>
+                            <p>{{ dados.toneladas_mes | floatformat:"3" }} t</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div>
+                    {% for carteira in dados.carteiras_mes %}
+                        <div class="moldura-verde-dashboard-2 principal-escuro-2 alinhar-topo" style="{% if dados.porcentagem_meta_mes >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
+                            <div>
+                                <div class="grafico-barra" style="--largura: {{ dados.porcentagem_meta_dia }}%; --cor-barra: var({{ carteira.cor_rentabilidade_mes_carteira }})"></div>
+                            </div>
+                            <div>
+                                <p>{{ carteira.carteira }} {{ carteira.total_mes_carteira }} {{ carteira.rentabilidade_mes_carteira }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+
+            <div class="div-dashboard principal-escuro">
+                <p>Atualizado em: {{ dados.data_hora_atual }}</p>
+            </div>
+
+            <div class="div-dashboard principal-escuro">
+                <p class="fonte-muito-pequena-dashboard">Faltam R$ {{ dados.falta_mudar_cor_mes_valor | floatformat:"2" }} com margem de {{ dados.falta_mudar_cor_mes_valor_rentabilidade | floatformat:"2" }}% para {{ dados.falta_mudar_cor_mes_cor }} no mês. ({{ dados.falta_mudar_cor_mes_porcentagem | floatformat:"2" }})</p>
+            </div>
+
+        </div>
+
+    </section>
+
+    {% comment %} O estilo --largura-grafico:33rem não carrega direito no safari, usar em pixel ou script que reaplica depois de um timeout {% endcomment %}
+    <script>
+        setTimeout(function() {
+            var elements = document.querySelectorAll('.pie');
+            elements.forEach(function(element) {
+                element.style.setProperty('--largura-grafico', '33.1rem');
+            });
+        }, 2000); // Delay for 1000 milliseconds = 1 second, tempo 100 milesegundos a mais que o definido na animação do grafico no css
+    </script>
+    
+{% endblock conteudo %}

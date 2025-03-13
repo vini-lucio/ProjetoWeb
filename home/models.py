@@ -868,6 +868,7 @@ class Vendedores(models.Model):
     canal_venda = models.ForeignKey(CanaisVendas, verbose_name="Canal de Venda", on_delete=models.PROTECT,
                                     related_name="%(class)s")
     status = models.CharField("Status", max_length=10, choices=status_vendedores, default='ativo')  # type:ignore
+    # TODO: campo de meta
 
     @classmethod
     def filter_ativos(cls):

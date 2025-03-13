@@ -20,6 +20,9 @@
 
     --tamanho-borda-icones: 0.2rem;
 
+    --tamanho-fonte-grande: 8.5rem;
+    --tamanho-linha-grande: 9rem;
+
     --tamanho-fonte-h1: 5rem;
     --tamanho-fonte-h2: 4rem;
     --tamanho-fonte-h3: 3rem;
@@ -394,6 +397,11 @@ textarea:focus {
     text-align: left;
 }
 
+.alinhar-topo {
+    align-content: start !important;
+    justify-content: start !important;
+}
+
 .centralizar {
     text-align: center;
     align-content: center;
@@ -666,6 +674,11 @@ textarea:focus {
     font-size: var(--tamanho-fonte-p-dashboard-muito-pequeno);
 }
 
+.div-dashboard .fonte-grande-dashboard {
+    font-size: var(--tamanho-fonte-grande);
+    line-height: var(--tamanho-linha-grande);
+}
+
 .pie p {
     font-size: var(--tamanho-fonte-p-dashboard-pequeno);
     line-height: var(--tamanho-linha-p-dashboard-pequeno);
@@ -679,6 +692,18 @@ textarea:focus {
     text-align: center;
     align-content: center;
     justify-content: center;
+    overflow: hidden;
+}
+
+.moldura-verde-dashboard-2 {
+    border: var(--tamanho-borda-icones) solid var(--verde-claro);
+    border-radius: 1.5rem;
+    width: 100%;
+    text-align: center;
+    align-content: center;
+    justify-content: center;
+    overflow: hidden;
+    margin: 0.5rem 0;
 }
 
 .moldura-vermelha-dashboard {
@@ -689,6 +714,7 @@ textarea:focus {
     text-align: center;
     align-content: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 .div-dashboard-erros {
@@ -729,6 +755,22 @@ textarea:focus {
     text-align: center;
     align-content: center;
     justify-content: center;
+}
+
+.grafico-barra {
+    --largura: 70%;
+    --cor-barra: var(--verde-rentabilidade);
+
+    background-color: var(--cor-barra);
+    height: 2rem;
+    width: 0%;
+    animation: tamanho-barra 1.5s ease-in-out forwards;
+}
+
+@keyframes tamanho-barra {
+    to {
+        width: var(--largura);
+    }
 }
 
 .tabela-preco {
@@ -802,6 +844,10 @@ textarea:focus {
     width: 100%;
     border-bottom: 1px solid var(--azul-escuro);
     margin-top: 10px;
+}
+
+.sem-padding {
+    padding: 0rem;
 }
 
 iframe {
