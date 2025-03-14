@@ -1796,19 +1796,24 @@ def imposto_faturado_ano_mes_a_mes():
     return resultado
 
 
-def faturado_mercadorias_ano_mes_a_mes():
+def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
     """Totaliza o faturamento do valor das mercadorias do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        if not mes_atual:
+            data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+            data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        else:
+            data_ano_inicio = site_setup.primeiro_dia_mes_as_ddmmyyyy
+            data_ano_fim = site_setup.ultimo_dia_mes_as_ddmmyyyy
 
     sql = """
         SELECT
             EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
             ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS FATURADO_PP,
             ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS FATURADO_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS FATURADO_PQ
+            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS FATURADO_PQ,
+            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS FATURADO_TOTAL
 
         FROM
             (
@@ -1845,22 +1850,30 @@ def faturado_mercadorias_ano_mes_a_mes():
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
 
+    if mes_atual and resultado:
+        resultado = resultado[0]
+
     return resultado
 
 
-def faturado_bruto_ano_mes_a_mes():
+def faturado_bruto_ano_mes_a_mes(*, mes_atual: bool = False):
     """Totaliza o faturamento bruto do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        if not mes_atual:
+            data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+            data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        else:
+            data_ano_inicio = site_setup.primeiro_dia_mes_as_ddmmyyyy
+            data_ano_fim = site_setup.ultimo_dia_mes_as_ddmmyyyy
 
     sql = """
         SELECT
             EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
             ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_CONTABIL ELSE 0 END), 2) AS FATURADO_PP,
             ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.VALOR_CONTABIL ELSE 0 END), 2) AS FATURADO_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_CONTABIL ELSE 0 END), 2) AS FATURADO_PQ
+            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_CONTABIL ELSE 0 END), 2) AS FATURADO_PQ,
+            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) THEN NOTAS_ITENS.VALOR_CONTABIL ELSE 0 END), 2) AS FATURADO_TOTAL
 
         FROM
             COPLAS.NOTAS,
@@ -1884,6 +1897,9 @@ def faturado_bruto_ano_mes_a_mes():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
+
+    if mes_atual and resultado:
+        resultado = resultado[0]
 
     return resultado
 
@@ -2832,12 +2848,16 @@ def horas_produtivas_ano_mes_a_mes():
     return resultado
 
 
-def frete_cif_ano_mes_a_mes():
-    """Totaliza o valor dos fretes CIF do periodo informado em site setup mes a mes"""
+def frete_cif_ano_mes_a_mes(*, mes_atual: bool = False):
+    """Totaliza o valor dos fretes CIF do periodo informado em site setup mes a mes. Parametro para sobreescrever a data das atualizações"""
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        if not mes_atual:
+            data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
+            data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        else:
+            data_ano_inicio = site_setup.primeiro_dia_mes_as_ddmmyyyy
+            data_ano_fim = site_setup.ultimo_dia_mes_as_ddmmyyyy
 
     sql = """
         SELECT
@@ -2877,6 +2897,9 @@ def frete_cif_ano_mes_a_mes():
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
                                 data_ano_fim=data_ano_fim)
+
+    if mes_atual and resultado:
+        resultado = resultado[0]
 
     return resultado
 

@@ -362,7 +362,7 @@ class VendedoresEstadosInLine(admin.TabularInline):
 
 @admin.register(Vendedores)
 class VendedoresAdmin(BaseModelAdminRedRequired):
-    list_display = 'id', 'nome', 'status',
+    list_display = 'id', 'nome', 'meta_mes', 'status',
     list_display_links = list_display
     ordering = 'nome',
     search_fields = 'nome',

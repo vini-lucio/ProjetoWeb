@@ -23,9 +23,6 @@
             <div class="grid-dashboard-2">
 
                 <div class="moldura-verde-dashboard principal-escuro-2 alinhar-topo" style="{% if dados.porcentagem_meta_dia >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
-                    {% comment %} <div>
-                        <div class="grafico-barra" style="--largura: {{ dados.porcentagem_meta_dia }}%; --cor-barra: var({{ dados.cor_rentabilidade_css_dia }})"></div>
-                    </div> {% endcomment %}
                     <div class="grid-dashboard">
 
                         <div>
@@ -49,18 +46,23 @@
                             </div>
 
                             <div class="div-dashboard">
+                                <p class="fonte-verde">Rentabilidade Hoje*</p>
+                                <p>{{ dados.rentabilidade_pedidos_dia | floatformat:"2" }}%</p>
+                            </div>
+
+                            <div class="div-dashboard">
                                 <p class="fonte-verde">Toneladas Hoje</p>
                                 <p>{{ dados.toneladas_dia | floatformat:"3" }} t</p>
                             </div>
 
                             <div class="div-dashboard">
-                                <p class="fonte-verde">Conversão de Orç.*</p>
+                                <p class="fonte-verde">Conversão de Orç.**</p>
                                 <p>{{ dados.conversao_de_orcamentos | floatformat:"2" }}%</p>
-                                <p class="fonte-muito-pequena-dashboard">* Ultimos 90 dias</p>
+                            </div>
 
-                                <p class="fonte-verde">Faltam Orç. Dia**</p>
+                            <div class="div-dashboard">
+                                <p class="fonte-verde">Faltam Orç. Dia***</p>
                                 <p>R$ {{ dados.faltam_abrir_orcamentos_dia | floatformat:"2" }}</p>
-                                <p class="fonte-muito-pequena-dashboard">** Novos orçs. para a meta do dia</p>
                             </div>
                         </div>
 
@@ -90,21 +92,60 @@
                         </div>
 
                         <div class="div-dashboard">
+                            <p class="fonte-verde">Rentabilidade Mês*</p>
+                            <p>{{ dados.rentabilidade_pedidos_mes_rentabilidade_mes | floatformat:"2" }}%</p>
+                        </div>
+
+                        <div class="div-dashboard">
                             <p class="fonte-verde">Toneladas Mês</p>
                             <p>{{ dados.toneladas_mes | floatformat:"3" }} t</p>
+                        </div>
+
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Frete CIF</p>
+                            <p>{{ dados.frete_cif | floatformat:"2" }}%</p>
                         </div>
                     </div>
 
                 </div>
 
                 <div>
-                    {% for carteira in dados.carteiras_mes %}
-                        <div class="moldura-verde-dashboard-2 principal-escuro-2 alinhar-topo" style="{% if dados.porcentagem_meta_mes >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
+                    <div class="moldura-verde-dashboard-2 principal-escuro-2 alinhar-topo">
+                        <div>
+                            <div class="centralizar fonte-muito-pequena-dashboard">
+                                Rentabilidade %*
+                            </div>
+                        </div>
+                        <div class="grid-3-colunas">
                             <div>
-                                <div class="grafico-barra" style="--largura: {{ dados.porcentagem_meta_dia }}%; --cor-barra: var({{ carteira.cor_rentabilidade_mes_carteira }})"></div>
+                                <p>Carteira</p>
                             </div>
                             <div>
-                                <p>{{ carteira.carteira }} {{ carteira.total_mes_carteira }} {{ carteira.rentabilidade_mes_carteira }}</p>
+                                <p>Pedidos Mês / <span class="fonte-verde">Meta Mês Carteira</span></p>
+                            </div>
+                            <div>
+                                <p><span class="fonte-vermelho">(Falta Meta)</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    {% for carteira in dados.carteiras_mes %}
+                        <div class="moldura-verde-dashboard-2 principal-escuro-2 alinhar-topo" style="{% if carteira.porcentagem_meta_mes >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
+                            <div style="position: relative;">
+                                <div class="centralizar fonte-muito-pequena-dashboard" style="width: 100%; position: absolute; z-index: 2;">
+                                    {{ carteira.rentabilidade_mes_carteira | floatformat:"2" }}%*
+                                </div>
+                                <div class="grafico-barra" style="position: relative; z-index: 1; --largura: {% if carteira.porcentagem_meta_mes > 100 %}100{% else %}{{ carteira.porcentagem_meta_mes }}{% endif %}%; --cor-barra: {% if carteira.rentabilidade_mes_carteira != 0 %}var({{ carteira.cor_rentabilidade_mes_carteira }}){% else %}transparent{% endif %}"></div>
+                            </div>
+                            <div class="grid-3-colunas">
+                                <div>
+                                    <p>{{ carteira.carteira }}</p>
+                                </div>
+                                <div>
+                                    <p>R$ {{ carteira.total_mes_carteira | floatformat:"2" }} / <span class="fonte-verde">R$ {{ carteira.meta_mes | floatformat:"2" }}</span></p>
+                                </div>
+                                <div>
+                                    <p><span class="fonte-vermelho">(R$ {{ carteira.falta_meta | floatformat:"2" }})</span></p>
+                                </div>
                             </div>
                         </div>
                     {% endfor %}
@@ -118,6 +159,9 @@
 
             <div class="div-dashboard principal-escuro">
                 <p class="fonte-muito-pequena-dashboard">Faltam R$ {{ dados.falta_mudar_cor_mes_valor | floatformat:"2" }} com margem de {{ dados.falta_mudar_cor_mes_valor_rentabilidade | floatformat:"2" }}% para {{ dados.falta_mudar_cor_mes_cor }} no mês. ({{ dados.falta_mudar_cor_mes_porcentagem | floatformat:"2" }})</p>
+                <p class="fonte-muito-pequena-dashboard">* Rentabilidade já está subtraindo a despesa fixa</p>
+                <p class="fonte-muito-pequena-dashboard">** Ultimos 90 dias</p>
+                <p class="fonte-muito-pequena-dashboard">*** Novos orçs. para a meta do dia</p>
             </div>
 
         </div>

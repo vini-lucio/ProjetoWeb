@@ -5,6 +5,7 @@ from utils.cor_rentabilidade import cor_rentabilidade_css, falta_mudar_cor_mes
 from utils.site_setup import (get_site_setup, get_assistentes_tecnicos, get_assistentes_tecnicos_agenda,
                               get_transportadoras, get_consultores_tecnicos_ativos)
 from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valores_atendimento
+from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes
 from django.core.exceptions import ObjectDoesNotExist
 
 
@@ -101,6 +102,21 @@ class DashboardVendasTv(DashBoardVendas):
 class DashboardVendasSupervisao(DashBoardVendas):
     def __init__(self) -> None:
         super().__init__()
+
+        faturado_bruto = faturado_bruto_ano_mes_a_mes(mes_atual=True)
+        try:
+            faturado_bruto = faturado_bruto['FATURADO_TOTAL']  # type:ignore
+        except TypeError:
+            faturado_bruto = 0
+
+        frete_cif = frete_cif_ano_mes_a_mes(mes_atual=True)
+        try:
+            frete_cif = frete_cif['AGILLI'] + frete_cif['OUTRAS_TRANSPORTADORAS']  # type:ignore
+        except TypeError:
+            frete_cif = 0
+        frete_cif = 0 if faturado_bruto == 0 else frete_cif / faturado_bruto * 100
+
+        self.FRETE_CIF = frete_cif
         self.CARTEIRAS_MES = []
         for carteira in get_consultores_tecnicos_ativos():
             RENTABILIDADE_PEDIDOS_MES = rentabilidade_pedidos_mes(self.DESPESA_ADMINISTRATIVA_FIXA,
@@ -113,23 +129,25 @@ class DashboardVendasSupervisao(DashBoardVendas):
             RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE = RENTABILIDADE_PEDIDOS_MES['rentabilidade_mes']
             TONELADAS_MES = RENTABILIDADE_PEDIDOS_MES['toneladas_mes']
             COR_RENTABILIDADE_PEDIDOS_MES = cor_rentabilidade_css(RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE)
+            meta_mes_float = float(carteira.meta_mes)
             dados_carteira = {
-                'carteira': carteira,
+                'carteira': carteira.nome,
                 'mc_mes_carteira': RENTABILIDADE_PEDIDOS_MES_MC_MES,
+                'meta_mes': meta_mes_float,
                 'total_mes_carteira': RENTABILIDADE_PEDIDOS_MES_TOTAL_MES,
+                'falta_meta': meta_mes_float - RENTABILIDADE_PEDIDOS_MES_TOTAL_MES,
+                'porcentagem_meta_mes': 0 if meta_mes_float == 0 else int(RENTABILIDADE_PEDIDOS_MES_TOTAL_MES / meta_mes_float * 100),
                 'rentabilidade_mes_carteira': RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE,
                 'toneladas_mes_carteira': TONELADAS_MES,
                 'cor_rentabilidade_mes_carteira': COR_RENTABILIDADE_PEDIDOS_MES,
-                # TODO: falta meta e porcentagem meta mes por carteira (atualizar no template a cor da borda)
             }
             self.CARTEIRAS_MES.append(dados_carteira)
-
-        # TODO: campo de frete cif
 
     def get_dados(self):
         dados = super().get_dados()
         dados.update({
             'carteiras_mes': self.CARTEIRAS_MES,
+            'frete_cif': self.FRETE_CIF,
         })
         return dados
 

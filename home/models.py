@@ -867,8 +867,8 @@ class Vendedores(models.Model):
     nome = models.CharField("Nome", max_length=30)
     canal_venda = models.ForeignKey(CanaisVendas, verbose_name="Canal de Venda", on_delete=models.PROTECT,
                                     related_name="%(class)s")
+    meta_mes = models.DecimalField("Meta do Mês", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
     status = models.CharField("Status", max_length=10, choices=status_vendedores, default='ativo')  # type:ignore
-    # TODO: campo de meta
 
     @classmethod
     def filter_ativos(cls):

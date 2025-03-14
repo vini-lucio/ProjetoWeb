@@ -389,6 +389,11 @@ textarea:focus {
     margin: 0 auto;
 }
 
+.grid-3-colunas {
+    display: grid;
+    grid-template-columns: 20rem auto auto;
+}
+
 .alinhar-direta {
     text-align: right;
 }
@@ -674,6 +679,10 @@ textarea:focus {
     font-size: var(--tamanho-fonte-p-dashboard-muito-pequeno);
 }
 
+.fonte-muito-pequena-dashboard {
+    font-size: var(--tamanho-fonte-p-dashboard-muito-pequeno) !important;
+}
+
 .div-dashboard .fonte-grande-dashboard {
     font-size: var(--tamanho-fonte-grande);
     line-height: var(--tamanho-linha-grande);
@@ -869,6 +878,12 @@ iframe {
 
 @media (max-width: 1349px) {
     .grid-dashboard {
+        display: block;
+    }
+}
+
+@media (max-width: 700px) {
+    .grid-3-colunas {
         display: block;
     }
 }
