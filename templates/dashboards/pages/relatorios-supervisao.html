@@ -1,0 +1,65 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>Relatorios Faturamento</h1>
+            </div>
+
+            <form method="get">
+                <div class="grid-simples link-conteudo">
+                    {{ formulario.as_p }}
+                </div>
+                <button class="botao" type="submit">Listar</button>
+            </form>
+        </div>
+
+        
+
+        <div class="link-conteudo">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if dados %}
+                <div class="tabela-simples">
+                    <table>
+                        <tr>
+                            {% if coluna_carteira %}<th>Carteira</th>{% endif %}
+                            {% if coluna_grupo_economico %}<th>Grupo Economico</th>{% endif %}
+                            {% if coluna_tipo_cliente %}<th>Tipo de Cliente</th>{% endif %}
+                            {% if coluna_produto %}<th>Produto</th>{% endif %}
+                            <th>R$ Valor Mercadorias</th>
+                            {% if coluna_rentabilidade %}<th>Rentabilidade %</th>{% endif %}
+                        </tr>
+                        {% for valor in dados %}
+                            <tr class="{% cycle 'principal-azul-claro' '' %}">
+                                {% if coluna_carteira %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
+                                {% if coluna_grupo_economico %}<td>{{ valor.GRUPO }}</td>{% endif %}
+                                {% if coluna_tipo_cliente %}<td>{{ valor.TIPO_CLIENTE }}</td>{% endif %}
+                                {% if coluna_produto %}<td>{{ valor.PRODUTO }}</td>{% endif %}
+                                <td>{{ valor.VALOR_MERCADORIAS | floatformat:2 }}</td>
+                                {% if coluna_rentabilidade %}<td>{{ valor.RENTABILIDADE | floatformat:2 }}</td>{% endif %}
+                            </tr>
+                        {% endfor %}
+                        <tr>
+                            {% if coluna_carteira %}<td></td>{% endif %}
+                            {% if coluna_grupo_economico %}<td></td>{% endif %}
+                            {% if coluna_tipo_cliente %}<td></td>{% endif %}
+                            {% if coluna_produto %}<td></td>{% endif %}
+                            <td class="azul-negrito">{{ valor_mercadorias_total | floatformat:2 }}</td>
+                            {% if coluna_rentabilidade %}<td></td>{% endif %}
+                        </tr>
+                    </table>
+                </div>
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

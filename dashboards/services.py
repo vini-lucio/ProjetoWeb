@@ -4,6 +4,7 @@ from utils.data_hora_atual import data_hora_atual
 from utils.cor_rentabilidade import cor_rentabilidade_css, falta_mudar_cor_mes
 from utils.site_setup import (get_site_setup, get_assistentes_tecnicos, get_assistentes_tecnicos_agenda,
                               get_transportadoras, get_consultores_tecnicos_ativos)
+from utils.lfrete import notas as lfrete_notas
 from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valores_atendimento
 from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes
 from django.core.exceptions import ObjectDoesNotExist
@@ -634,3 +635,172 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
                 erros.append({'PEDIDO': pedido, 'CONSULTOR': consultor, 'ERRO': erro})
 
     return erros
+
+
+def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: bool, grupo_economico,
+                              coluna_carteira: bool, chave_carteira, coluna_tipo_cliente: bool, chave_tipo_cliente,
+                              coluna_produto: bool, produto, coluna_rentabilidade: bool):
+    kwargs_sql = {}
+    kwargs_ora = {}
+
+    # Grupo Economico coluna e filtro
+
+    grupo_economico_campo_alias = ""
+    grupo_economico_campo = ""
+    if coluna_grupo_economico:
+        grupo_economico_campo_alias = "GRUPO_ECONOMICO.DESCRICAO AS GRUPO,"
+        grupo_economico_campo = "GRUPO_ECONOMICO.DESCRICAO,"
+    kwargs_sql.update({'grupo_economico_campo_alias': grupo_economico_campo_alias,
+                       'grupo_economico_campo': grupo_economico_campo})
+
+    grupo_economico_pesquisa = ""
+    if grupo_economico:
+        grupo_economico_pesquisa = "UPPER(GRUPO_ECONOMICO.DESCRICAO) LIKE UPPER(:grupo_economico) AND"
+        kwargs_ora.update({'grupo_economico': grupo_economico, })
+    kwargs_sql.update({'grupo_economico_pesquisa': grupo_economico_pesquisa, })
+
+    # Carteira coluna e filtro
+
+    carteira_campo_alias = ""
+    carteira_campo = ""
+    if coluna_carteira:
+        carteira_campo_alias = "VENDEDORES.NOMERED AS CARTEIRA,"
+        carteira_campo = "VENDEDORES.NOMERED,"
+    kwargs_sql.update({'carteira_campo_alias': carteira_campo_alias,
+                       'carteira_campo': carteira_campo})
+
+    carteira_pesquisa = ""
+    if chave_carteira:
+        carteira_pesquisa = "VENDEDORES.CODVENDEDOR = :chave_carteira AND"
+        kwargs_ora.update({'chave_carteira': chave_carteira, })
+    kwargs_sql.update({'carteira_pesquisa': carteira_pesquisa, })
+
+    # Tipo de Cliente coluna e filtro
+
+    tipo_cliente_campo_alias = ""
+    tipo_cliente_campo = ""
+    if coluna_tipo_cliente:
+        tipo_cliente_campo_alias = "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,"
+        tipo_cliente_campo = "CLIENTES_TIPOS.DESCRICAO,"
+    kwargs_sql.update({'tipo_cliente_campo_alias': tipo_cliente_campo_alias,
+                       'tipo_cliente_campo': tipo_cliente_campo})
+
+    tipo_cliente_pesquisa = ""
+    if chave_tipo_cliente:
+        tipo_cliente_pesquisa = "CLIENTES_TIPOS.CHAVE = :chave_tipo_cliente AND"
+        kwargs_ora.update({'chave_tipo_cliente': chave_tipo_cliente, })
+    kwargs_sql.update({'tipo_cliente_pesquisa': tipo_cliente_pesquisa, })
+
+    # Produto coluna e filtro
+
+    produto_campo_alias = ""
+    produto_campo = ""
+    if coluna_produto:
+        produto_campo_alias = "PRODUTOS.CODIGO AS PRODUTO,"
+        produto_campo = "PRODUTOS.CODIGO,"
+    kwargs_sql.update({'produto_campo_alias': produto_campo_alias,
+                       'produto_campo': produto_campo})
+
+    produto_pesquisa = ""
+    if produto:
+        produto_pesquisa = "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND"
+        kwargs_ora.update({'produto': produto, })
+    kwargs_sql.update({'produto_pesquisa': produto_pesquisa, })
+
+    # Rentabilidade coluna
+
+    lfrete_coluna = ""
+    lfrete_from = ""
+    lfrete_join = ""
+    if coluna_rentabilidade:
+        lfrete_coluna = ", ROUND(SUM(LFRETE.MC_SEM_FRETE) / SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)) * 100, 2) AS RENTABILIDADE"
+        lfrete_from = """
+            (
+                SELECT
+                    CHAVE_NOTA_ITEM,
+                    ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE
+
+                FROM
+                    (
+                        {lfrete_notas} AND
+
+                            NOTAS.DATA_EMISSAO >= :data_inicio AND
+                            NOTAS.DATA_EMISSAO <= :data_fim
+                    ) LFRETE
+
+                GROUP BY
+                    CHAVE_NOTA_ITEM
+            ) LFRETE,
+        """
+        lfrete_from = lfrete_from.format(lfrete_notas=lfrete_notas)
+        lfrete_join = "LFRETE.CHAVE_NOTA_ITEM = NOTAS_ITENS.CHAVE AND"
+    kwargs_sql.update({'lfrete_coluna': lfrete_coluna, 'lfrete_from': lfrete_from, 'lfrete_join': lfrete_join, })
+
+    sql = """
+        SELECT
+            {carteira_campo_alias}
+            {grupo_economico_campo_alias}
+            {tipo_cliente_campo_alias}
+            {produto_campo_alias}
+            SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)) AS VALOR_MERCADORIAS
+            {lfrete_coluna}
+
+        FROM
+            {lfrete_from}
+            (
+                SELECT
+                    NOTAS_ITENS.CHAVE_NOTA,
+                    SUM(NOTAS_ITENS.PESO_LIQUIDO) AS PESO_LIQUIDO
+
+                FROM
+                    COPLAS.NOTAS_ITENS
+
+                GROUP BY
+                    NOTAS_ITENS.CHAVE_NOTA
+            ) NOTAS_PESO_LIQUIDO,
+            COPLAS.VENDEDORES,
+            COPLAS.NOTAS_ITENS,
+            COPLAS.NOTAS,
+            COPLAS.PRODUTOS,
+            COPLAS.GRUPO_ECONOMICO,
+            COPLAS.CLIENTES,
+            COPLAS.CLIENTES_TIPOS
+
+        WHERE
+            {lfrete_join}
+            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
+            CLIENTES.CHAVE_TIPO = CLIENTES_TIPOS.CHAVE AND
+            NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
+            VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
+            CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
+            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+            CLIENTES.CHAVE_GRUPOECONOMICO = GRUPO_ECONOMICO.CHAVE AND
+            NOTAS.VALOR_COMERCIAL = 'SIM' AND
+
+            {grupo_economico_pesquisa}
+            {carteira_pesquisa}
+            {tipo_cliente_pesquisa}
+            {produto_pesquisa}
+
+            NOTAS.DATA_EMISSAO >= :data_inicio AND
+            NOTAS.DATA_EMISSAO <= :data_fim
+
+        GROUP BY
+            {carteira_campo}
+            {grupo_economico_campo}
+            {tipo_cliente_campo}
+            {produto_campo}
+            1
+
+        ORDER BY
+            {carteira_campo}
+            {tipo_cliente_campo}
+            {produto_campo}
+            VALOR_MERCADORIAS DESC
+    """
+
+    sql = sql.format(**kwargs_sql)
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim, **kwargs_ora)
+
+    return resultado

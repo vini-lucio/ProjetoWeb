@@ -56,12 +56,12 @@
                             </div>
 
                             <div class="div-dashboard">
-                                <p class="fonte-verde">Conversão de Orç.**</p>
+                                <p class="fonte-verde">Conversão de Orç.*¹</p>
                                 <p>{{ dados.conversao_de_orcamentos | floatformat:"2" }}%</p>
                             </div>
 
                             <div class="div-dashboard">
-                                <p class="fonte-verde">Faltam Orç. Dia***</p>
+                                <p class="fonte-verde">Faltam Orç. Dia*²</p>
                                 <p>R$ {{ dados.faltam_abrir_orcamentos_dia | floatformat:"2" }}</p>
                             </div>
                         </div>
@@ -102,7 +102,7 @@
                         </div>
 
                         <div class="div-dashboard">
-                            <p class="fonte-verde">Frete CIF</p>
+                            <p class="fonte-verde">Frete CIF*³</p>
                             <p>{{ dados.frete_cif | floatformat:"2" }}%</p>
                         </div>
                     </div>
@@ -160,8 +160,17 @@
             <div class="div-dashboard principal-escuro">
                 <p class="fonte-muito-pequena-dashboard">Faltam R$ {{ dados.falta_mudar_cor_mes_valor | floatformat:"2" }} com margem de {{ dados.falta_mudar_cor_mes_valor_rentabilidade | floatformat:"2" }}% para {{ dados.falta_mudar_cor_mes_cor }} no mês. ({{ dados.falta_mudar_cor_mes_porcentagem | floatformat:"2" }})</p>
                 <p class="fonte-muito-pequena-dashboard">* Rentabilidade já está subtraindo a despesa fixa</p>
-                <p class="fonte-muito-pequena-dashboard">** Ultimos 90 dias</p>
-                <p class="fonte-muito-pequena-dashboard">*** Novos orçs. para a meta do dia</p>
+                <p class="fonte-muito-pequena-dashboard">*¹ Ultimos 90 dias</p>
+                <p class="fonte-muito-pequena-dashboard">*² Novos orçs. para a meta do dia</p>
+                <p class="fonte-muito-pequena-dashboard">*³ Porcentagem sobre faturamento</p>
+            </div>
+
+            <div class="grid-simples">
+                <a target="_blanck" href="{% url "dashboards:relatorios-supervisao" %}">
+                    <div class="botao-div botao-escuro">
+                        Relatorios Faturamento
+                    </div>
+                </a>
             </div>
 
         </div>

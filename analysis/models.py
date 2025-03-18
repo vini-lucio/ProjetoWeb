@@ -150,3 +150,17 @@ class PRODUTOS(ReadOnlyMixin, models.Model):
 
     def __str__(self):
         return self.CODIGO
+
+
+class CLIENTES_TIPOS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."CLIENTES_TIPOS"'
+        verbose_name = 'Tipo de Clientes'
+        verbose_name_plural = 'Tipos de Clientes'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    DESCRICAO = models.CharField("Descrição", max_length=20, null=True, blank=True)
+
+    def __str__(self):
+        return self.DESCRICAO
