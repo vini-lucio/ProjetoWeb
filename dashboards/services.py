@@ -411,6 +411,22 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
                               primeiro_dia_util_mes: str, ultimo_dia_mes: str,
                               primeiro_dia_util_proximo_mes: str, carteira: str = '%%') -> dict[str, float]:
     """Valor mercadorias, toneladas de produto proprio e rentabilidade dos pedidos com valor comercial no mes com entrega até o primeiro dia util do proximo mes"""
+    carteira_actions_mapping = {
+        'PREMOLDADO / POSTE': {
+            'carteira': "%%",
+            'filtro_nao_carteira': "CLIENTES.CHAVE_TIPO IN (7908, 7904) AND"
+        },
+        'PAREDE DE CONCRETO': {
+            'carteira': "%%",
+            'filtro_nao_carteira': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=23) AND"
+        }
+    }
+
+    filtro_nao_carteira = ""
+    if carteira in carteira_actions_mapping:
+        filtro_nao_carteira = carteira_actions_mapping[carteira]['filtro_nao_carteira']
+        carteira = carteira_actions_mapping[carteira]['carteira']
+
     sql = """
         SELECT
             ROUND((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100), 2) AS MC_MES,
@@ -471,6 +487,7 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
 
                             -- place holder para selecionar carteira
                             VENDEDORES.NOMERED LIKE :carteira AND
+                            {filtro_nao_carteira}
 
                             -- primeiro dia do mes
                             NOTAS.DATA_EMISSAO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
@@ -490,6 +507,7 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
 
                                     -- place holder para selecionar carteira
                                     VENDEDORES.NOMERED LIKE :carteira AND
+                                    {filtro_nao_carteira}
 
                                     (
                                         (
@@ -526,6 +544,7 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
 
                     -- place holder para selecionar carteira
                     VENDEDORES.NOMERED LIKE :carteira AND
+                    {filtro_nao_carteira}
 
                     (
                         (
@@ -562,7 +581,7 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
             )
     """
 
-    sql = sql.format(lfrete=lfrete_pedidos)
+    sql = sql.format(lfrete=lfrete_pedidos, filtro_nao_carteira=filtro_nao_carteira)
 
     resultado = executar_oracle(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
                                 primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
@@ -737,7 +756,7 @@ def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: boo
     lfrete_from = ""
     lfrete_join = ""
     if coluna_rentabilidade:
-        lfrete_coluna = ", ROUND(SUM(LFRETE.MC_SEM_FRETE) / SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)) * 100, 2) AS RENTABILIDADE"
+        lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
         lfrete_from = """
             (
                 SELECT

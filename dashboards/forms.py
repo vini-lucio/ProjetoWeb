@@ -27,4 +27,4 @@ class RelatoriosSupervisaoForm(FormPeriodoInicioFimMixIn, forms.Form):
 
     nao_compraram_depois = forms.BooleanField(label="Não Compraram Depois do Periodo", initial=False, required=False)
 
-    coluna_rentabilidade = forms.BooleanField(label="Coluna Rentabilidade", initial=False, required=False)
+    coluna_rentabilidade = forms.BooleanField(label="Coluna Margem de Contribuição", initial=False, required=False)

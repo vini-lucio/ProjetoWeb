@@ -39,7 +39,7 @@
                             {% if coluna_tipo_cliente %}<th>Tipo de Cliente</th>{% endif %}
                             {% if coluna_produto %}<th>Produto</th>{% endif %}
                             <th>R$ Valor Mercadorias</th>
-                            {% if coluna_rentabilidade %}<th>Rentabilidade %</th>{% endif %}
+                            {% if coluna_rentabilidade %}<th>MC %</th>{% endif %}
                         </tr>
                         {% for valor in dados %}
                             <tr class="{% cycle 'principal-azul-claro' '' %}">
@@ -48,7 +48,7 @@
                                 {% if coluna_tipo_cliente %}<td>{{ valor.TIPO_CLIENTE }}</td>{% endif %}
                                 {% if coluna_produto %}<td>{{ valor.PRODUTO }}</td>{% endif %}
                                 <td>{{ valor.VALOR_MERCADORIAS | floatformat:2 }}</td>
-                                {% if coluna_rentabilidade %}<td>{{ valor.RENTABILIDADE | floatformat:2 }}</td>{% endif %}
+                                {% if coluna_rentabilidade %}<td>{{ valor.MC | floatformat:2 }}</td>{% endif %}
                             </tr>
                         {% endfor %}
                         <tr>

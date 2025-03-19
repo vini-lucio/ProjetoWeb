@@ -392,7 +392,7 @@ textarea:focus {
 
 .grid-3-colunas {
     display: grid;
-    grid-template-columns: 20rem auto auto;
+    grid-template-columns: 23rem auto auto;
 }
 
 .alinhar-direta {
