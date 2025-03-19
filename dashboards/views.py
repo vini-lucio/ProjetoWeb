@@ -1,7 +1,9 @@
 from typing import Dict
+from django.http import HttpResponse
 from django.shortcuts import render
 from .services import DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_supervisao
 from .forms import RelatoriosSupervisaoForm
+from utils.exportar_excel import arquivo_excel, salvar_excel_temporario
 
 
 def vendas_tv(request):
@@ -36,47 +38,62 @@ def relatorios_supervisao(request):
     if request.method == 'GET' and request.GET:
         formulario = RelatoriosSupervisaoForm(request.GET)
         if formulario.is_valid():
-            data_inicio = formulario.cleaned_data.get('inicio')
-            data_fim = formulario.cleaned_data.get('fim')
+            if request.GET:
+                data_inicio = formulario.cleaned_data.get('inicio')
+                data_fim = formulario.cleaned_data.get('fim')
 
-            coluna_carteira = formulario.cleaned_data.get('coluna_carteira')
-            carteira = formulario.cleaned_data.get('carteira')
-            chave_carteira = carteira.pk if carteira else None
+                coluna_carteira = formulario.cleaned_data.get('coluna_carteira')
+                carteira = formulario.cleaned_data.get('carteira')
+                chave_carteira = carteira.pk if carteira else None
 
-            coluna_grupo_economico = formulario.cleaned_data.get('coluna_grupo_economico')
-            grupo_economico = formulario.cleaned_data.get('grupo_economico')
+                coluna_grupo_economico = formulario.cleaned_data.get('coluna_grupo_economico')
+                grupo_economico = formulario.cleaned_data.get('grupo_economico')
 
-            coluna_tipo_cliente = formulario.cleaned_data.get('coluna_tipo_cliente')
-            tipo_cliente = formulario.cleaned_data.get('tipo_cliente')
-            chave_tipo_cliente = tipo_cliente.pk if tipo_cliente else None
+                coluna_tipo_cliente = formulario.cleaned_data.get('coluna_tipo_cliente')
+                tipo_cliente = formulario.cleaned_data.get('tipo_cliente')
+                chave_tipo_cliente = tipo_cliente.pk if tipo_cliente else None
 
-            coluna_produto = formulario.cleaned_data.get('coluna_produto')
-            produto = formulario.cleaned_data.get('produto')
+                coluna_produto = formulario.cleaned_data.get('coluna_produto')
+                produto = formulario.cleaned_data.get('produto')
 
-            coluna_rentabilidade = formulario.cleaned_data.get('coluna_rentabilidade')
+                nao_compraram_depois = formulario.cleaned_data.get('nao_compraram_depois')
 
-            dados = get_relatorios_supervisao(
-                data_inicio, data_fim,
-                coluna_grupo_economico, grupo_economico,  # type:ignore
-                coluna_carteira, chave_carteira,  # type:ignore
-                coluna_tipo_cliente, chave_tipo_cliente,  # type:ignore
-                coluna_produto, produto,  # type:ignore
-                coluna_rentabilidade,  # type:ignore
-            )
+                coluna_rentabilidade = formulario.cleaned_data.get('coluna_rentabilidade')
 
-            valor_mercadorias_total = 0
-            for dado in dados:
-                valor_mercadorias_total += dado['VALOR_MERCADORIAS']
+                dados = get_relatorios_supervisao(
+                    data_inicio, data_fim,
+                    coluna_grupo_economico, grupo_economico,  # type:ignore
+                    coluna_carteira, chave_carteira,  # type:ignore
+                    coluna_tipo_cliente, chave_tipo_cliente,  # type:ignore
+                    coluna_produto, produto,  # type:ignore
+                    nao_compraram_depois,  # type:ignore
+                    coluna_rentabilidade,  # type:ignore
+                )
 
-            contexto.update({
-                'dados': dados,
-                'valor_mercadorias_total': valor_mercadorias_total,
-                'coluna_grupo_economico': coluna_grupo_economico,
-                'coluna_carteira': coluna_carteira,
-                'coluna_tipo_cliente': coluna_tipo_cliente,
-                'coluna_produto': coluna_produto,
-                'coluna_rentabilidade': coluna_rentabilidade,
-            })
+                valor_mercadorias_total = 0
+                for dado in dados:
+                    valor_mercadorias_total += dado['VALOR_MERCADORIAS']
+
+                contexto.update({
+                    'dados': dados,
+                    'valor_mercadorias_total': valor_mercadorias_total,
+                    'coluna_grupo_economico': coluna_grupo_economico,
+                    'coluna_carteira': coluna_carteira,
+                    'coluna_tipo_cliente': coluna_tipo_cliente,
+                    'coluna_produto': coluna_produto,
+                    'coluna_rentabilidade': coluna_rentabilidade,
+                })
+
+            if 'exportar-submit' in request.GET:
+                excel = arquivo_excel(dados, cabecalho_negrito=True, ajustar_largura_colunas=True)
+                arquivo = salvar_excel_temporario(excel)
+
+                response = HttpResponse(
+                    arquivo,
+                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+                response['Content-Disposition'] = 'attachment; filename="relatorio_faturamento.xlsx"'
+                return response
 
     contexto.update({'formulario': formulario, })
 

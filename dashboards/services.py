@@ -639,7 +639,7 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
 
 def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: bool, grupo_economico,
                               coluna_carteira: bool, chave_carteira, coluna_tipo_cliente: bool, chave_tipo_cliente,
-                              coluna_produto: bool, produto, coluna_rentabilidade: bool):
+                              coluna_produto: bool, produto, nao_compraram_depois: bool, coluna_rentabilidade: bool):
     kwargs_sql = {}
     kwargs_ora = {}
 
@@ -706,6 +706,30 @@ def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: boo
         produto_pesquisa = "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND"
         kwargs_ora.update({'produto': produto, })
     kwargs_sql.update({'produto_pesquisa': produto_pesquisa, })
+
+    # Não compraram depois filtro
+
+    nao_compraram_depois_pesquisa = ""
+    if nao_compraram_depois:
+        nao_compraram_depois_pesquisa = """
+            CLIENTES.STATUS != 'X' AND
+            NOT EXISTS (
+                SELECT DISTINCT
+                    CLIENTES.CHAVE_GRUPOECONOMICO
+
+                FROM
+                    COPLAS.CLIENTES,
+                    COPLAS.NOTAS
+
+                WHERE
+                    CLIENTES.CHAVE_GRUPOECONOMICO = GRUPO_ECONOMICO.CHAVE AND
+                    CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
+                    NOTAS.VALOR_COMERCIAL = 'SIM' AND
+
+                    NOTAS.DATA_EMISSAO > :data_fim
+            ) AND
+        """
+    kwargs_sql.update({'nao_compraram_depois_pesquisa': nao_compraram_depois_pesquisa, })
 
     # Rentabilidade coluna
 
@@ -781,6 +805,7 @@ def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: boo
             {carteira_pesquisa}
             {tipo_cliente_pesquisa}
             {produto_pesquisa}
+            {nao_compraram_depois_pesquisa}
 
             NOTAS.DATA_EMISSAO >= :data_inicio AND
             NOTAS.DATA_EMISSAO <= :data_fim

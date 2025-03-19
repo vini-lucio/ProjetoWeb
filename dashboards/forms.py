@@ -25,4 +25,6 @@ class RelatoriosSupervisaoForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_produto = forms.BooleanField(label="Coluna Produto", initial=False, required=False)
     produto = forms.CharField(label="Produto", max_length=300, required=False)
 
+    nao_compraram_depois = forms.BooleanField(label="Não Compraram Depois do Periodo", initial=False, required=False)
+
     coluna_rentabilidade = forms.BooleanField(label="Coluna Rentabilidade", initial=False, required=False)

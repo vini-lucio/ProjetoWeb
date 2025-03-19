@@ -13,7 +13,12 @@
                 <div class="grid-simples link-conteudo">
                     {{ formulario.as_p }}
                 </div>
-                <button class="botao" type="submit">Listar</button>
+                <div class="grid-simples">
+                    <button class="botao" name="listar-submit" type="submit">Listar</button>
+                    {% if dados %}
+                        <button class="botao" name="exportar-submit" type="submit">Exportar .xlsx</button>
+                    {% endif %}
+                </div>
             </form>
         </div>
 
