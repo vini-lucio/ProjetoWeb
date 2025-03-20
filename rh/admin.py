@@ -8,7 +8,7 @@ from home.models import Vendedores
 from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, TransporteTipos, DependentesTipos, Setores,
                        Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa,
                        ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios, Comissoes, ComissoesVendedores,
-                       Faturamentos, FaturamentosVendedores)
+                       Faturamentos, FaturamentosVendedores, PremioAssiduidadeBasesCalculo)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
 from utils.exportar_excel import arquivo_excel, gerar_conteudo_excel, gerar_cabecalho, somar_coluna_formatada
 
@@ -640,3 +640,12 @@ class FaturamentosAdmin(BaseModelAdminRedRequired):
         return response
 
     exportar_excel.short_description = "Exportar .XLSX Selecionados"
+
+
+@admin.register(PremioAssiduidadeBasesCalculo)
+class PremioAssiduidadeBasesCalculoAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'ano_referencia', 'mes_referencia', 'margem_contribuicao',
+    list_display_links = list_display
+    ordering = '-ano_referencia', '-mes_referencia',
+    search_fields = 'ano_referencia',
+    readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',

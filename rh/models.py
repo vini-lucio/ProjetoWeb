@@ -1340,3 +1340,39 @@ class FaturamentosVendedores(models.Model):
 
     def __str__(self) -> str:
         return f'{self.faturamento} - {self.vendedor}'
+
+
+class PremioAssiduidadeBasesCalculo(BaseLogModel):
+    class Meta:
+        verbose_name = 'Premio Assiduidade Bases de Calculo'
+        verbose_name_plural = 'Premio Assiduidade Base de Calculo'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['ano_referencia', 'mes_referencia',],
+                name='premioassiduidadebasescalculo_unique',
+                violation_error_message="Ano e Mes de referencia são unicos em Premio Assiduidade Bases Calculo"
+            ),
+        ]
+
+    meses = {
+        1: '01 - Janeiro',
+        2: '02 - Fevereiro',
+        3: '03 - Março',
+        4: '04 - Abril',
+        5: '05 - Maio',
+        6: '06 - Junho',
+        7: '07 - Julho',
+        8: '08 - Agosto',
+        9: '09 - Setembro',
+        10: '10 - Outubro',
+        11: '11 - Novembro',
+        12: '12 - Dezembro',
+    }
+
+    ano_referencia = models.IntegerField("Ano Referencia")
+    mes_referencia = models.IntegerField("Mes Referencia", choices=meses)  # type:ignore
+    margem_contribuicao = models.DecimalField("Margem de Contribuição R$", max_digits=10, decimal_places=2,
+                                              default=0)  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.ano_referencia}/{self.mes_referencia} - {self.margem_contribuicao}'

@@ -153,9 +153,31 @@ class DashboardVendasSupervisao(DashBoardVendas):
         return dados
 
 
+def carteira_mapping(carteira):
+    carteira_actions_mapping = {
+        'PREMOLDADO / POSTE': {
+            'carteira': "%%",
+            'filtro_nao_carteira': "CLIENTES.CHAVE_TIPO IN (7908, 7904) AND"
+        },
+        'PAREDE DE CONCRETO': {
+            'carteira': "%%",
+            'filtro_nao_carteira': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=23) AND"
+        }
+    }
+
+    filtro_nao_carteira = ""
+    if carteira in carteira_actions_mapping:
+        filtro_nao_carteira = carteira_actions_mapping[carteira]['filtro_nao_carteira']
+        carteira = carteira_actions_mapping[carteira]['carteira']
+
+    return carteira, filtro_nao_carteira
+
+
 def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_util_proximo_mes: str,
                               carteira: str = '%%') -> tuple[float, float, float]:
     """Valor mercadorias, toneladas de produto proprio e rentabilidade dos pedidos com valor comercial no dia com entrega até o primeiro dia util do proximo mes"""
+    carteira, filtro_nao_carteira = carteira_mapping(carteira)
+
     sql = """
         SELECT
             -- despesa administrativa (ultima subtração)
@@ -196,6 +218,7 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
 
                                     -- place holder para selecionar carteira
                                     VENDEDORES.NOMERED LIKE :carteira AND
+                                    {filtro_nao_carteira}
 
                                     -- hoje
                                     PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
@@ -218,6 +241,7 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
 
                     -- place holder para selecionar carteira
                     VENDEDORES.NOMERED LIKE :carteira AND
+                    {filtro_nao_carteira}
 
                     -- hoje
                     PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
@@ -232,7 +256,7 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
             )
     """
 
-    sql = sql.format(lfrete=lfrete_pedidos)
+    sql = sql.format(lfrete=lfrete_pedidos, filtro_nao_carteira=filtro_nao_carteira)
 
     resultado = executar_oracle(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
                                 primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes, carteira=carteira)
@@ -244,8 +268,10 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
     return float(resultado[0][0]), float(resultado[0][1]), float(resultado[0][2]),
 
 
-def conversao_de_orcamentos():
+def conversao_de_orcamentos(carteira: str = '%%'):
     """Taxa de conversão de orçamentos com valor comercial dos ultimos 90 dias, ignorando orçamentos oportunidade e palavras chave de erros internos"""
+    carteira, filtro_nao_carteira = carteira_mapping(carteira)
+
     sql = """
         SELECT
             ROUND(SUM(CONVERSAO.FECHADO) / SUM(CONVERSAO.TOTAL) * 100, 2) AS CONVERSAO
@@ -258,13 +284,20 @@ def conversao_de_orcamentos():
 
                 FROM
                     COPLAS.ORCAMENTOS,
-                    COPLAS.ORCAMENTOS_ITENS
+                    COPLAS.ORCAMENTOS_ITENS,
+                    COPLAS.CLIENTES,
+                    COPLAS.VENDEDORES
 
                 WHERE
+                    CLIENTES.CODCLI = ORCAMENTOS.CHAVE_CLIENTE AND
+                    VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
                     ORCAMENTOS.CHAVE = ORCAMENTOS_ITENS.CHAVE_PEDIDO AND
                     ORCAMENTOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
                     ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND
                     ORCAMENTOS.DATA_PEDIDO >= SYSDATE - 90 AND
+
+                    VENDEDORES.NOMERED LIKE :carteira AND
+                    {filtro_nao_carteira}
 
                     (
                         ORCAMENTOS_ITENS.STATUS NOT IN ('CANCELADO', 'PERDA P/ OUTROS') OR
@@ -332,13 +365,21 @@ def conversao_de_orcamentos():
 
                 FROM
                     COPLAS.ORCAMENTOS,
-                    COPLAS.ORCAMENTOS_ITENS_EXCLUIDOS
+                    COPLAS.ORCAMENTOS_ITENS_EXCLUIDOS,
+                    COPLAS.CLIENTES,
+                    COPLAS.VENDEDORES
 
                 WHERE
+                    CLIENTES.CODCLI = ORCAMENTOS.CHAVE_CLIENTE AND
+                    VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
                     ORCAMENTOS.CHAVE = ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE_ORCAMENTO AND
                     ORCAMENTOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
                     ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND
                     ORCAMENTOS.DATA_PEDIDO >= SYSDATE - 90 AND
+
+                    VENDEDORES.NOMERED LIKE :carteira AND
+                    {filtro_nao_carteira}
+
                     (
                         ORCAMENTOS_ITENS_EXCLUIDOS.STATUS NOT IN ('CANCELADO', 'PERDA P/ OUTROS') OR
                         (
@@ -399,7 +440,9 @@ def conversao_de_orcamentos():
             ) CONVERSAO
     """
 
-    resultado = executar_oracle(sql)
+    sql = sql.format(filtro_nao_carteira=filtro_nao_carteira)
+
+    resultado = executar_oracle(sql, carteira=carteira)
 
     if not resultado[0][0]:
         return 0.00
@@ -411,21 +454,7 @@ def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_m
                               primeiro_dia_util_mes: str, ultimo_dia_mes: str,
                               primeiro_dia_util_proximo_mes: str, carteira: str = '%%') -> dict[str, float]:
     """Valor mercadorias, toneladas de produto proprio e rentabilidade dos pedidos com valor comercial no mes com entrega até o primeiro dia util do proximo mes"""
-    carteira_actions_mapping = {
-        'PREMOLDADO / POSTE': {
-            'carteira': "%%",
-            'filtro_nao_carteira': "CLIENTES.CHAVE_TIPO IN (7908, 7904) AND"
-        },
-        'PAREDE DE CONCRETO': {
-            'carteira': "%%",
-            'filtro_nao_carteira': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=23) AND"
-        }
-    }
-
-    filtro_nao_carteira = ""
-    if carteira in carteira_actions_mapping:
-        filtro_nao_carteira = carteira_actions_mapping[carteira]['filtro_nao_carteira']
-        carteira = carteira_actions_mapping[carteira]['carteira']
+    carteira, filtro_nao_carteira = carteira_mapping(carteira)
 
     sql = """
         SELECT
