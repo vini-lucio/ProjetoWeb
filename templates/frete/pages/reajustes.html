@@ -43,7 +43,7 @@
                             <tr class="{% cycle 'principal-azul-claro' '' %}">
                                 <td>{% if campo != 'margem_kg_valor' %}{{ valor.transportadora_origem_destino }} / {{ valor.descricao }}{% else %}{{ valor.transportadora_regiao_valor }} - até {{ valor.ate_kg }} kg{% endif %}</td>
                                 <td>{% if campo != 'margem_kg_valor' %}{{ valor|get_attr:campo }}{% else %}{{ valor.valor }}{% endif %}</td>
-                                <td>{% if campo != 'margem_kg_valor' %}{{ valor|get_attr:campo|multiplicar:reajuste | floatformat:2 }}{% else %}{{ valor.valor|multiplicar:reajuste | floatformat:2 }}{% endif %}</td>
+                                <td>{% if campo != 'margem_kg_valor' %}{{ valor|get_attr:campo|multiplicar_porcentagem:reajuste | floatformat:2 }}{% else %}{{ valor.valor|multiplicar_porcentagem:reajuste | floatformat:2 }}{% endif %}</td>
                             </tr>
                         {% endfor %}
                     </table>

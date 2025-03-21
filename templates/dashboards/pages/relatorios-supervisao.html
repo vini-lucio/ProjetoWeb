@@ -1,5 +1,7 @@
 {% extends "home/base.html" %}
 
+{% load custom_filters %}
+
 {% block conteudo %}
 
     <section class="principal">
@@ -51,6 +53,7 @@
                             {% if coluna_preco_venda_medio %}<th>R$ Preço Venda Medio</th>{% endif %}
                             {% if coluna_quantidade %}<th>Qtd.</th>{% endif %}
                             <th>R$ Valor Mercadorias</th>
+                            {% if coluna_proporcao %}<th>Proporção %</th>{% endif %}
                             {% if coluna_rentabilidade_valor %}<th>MC R$</th>{% endif %}
                             {% if coluna_rentabilidade %}<th>MC %</th>{% endif %}
                         </tr>
@@ -68,6 +71,7 @@
                                 {% if coluna_preco_venda_medio %}<td>{{ valor.PRECO_VENDA_MEDIO | floatformat:2 }}</td>{% endif %}
                                 {% if coluna_quantidade %}<td>{{ valor.QUANTIDADE | floatformat:3 }}</td>{% endif %}
                                 <td>{{ valor.VALOR_MERCADORIAS | floatformat:2 }}</td>
+                                {% if coluna_proporcao %}<td>{{ valor.VALOR_MERCADORIAS|dividir_porcentagem:valor_mercadorias_total | floatformat:2 }}</td>{% endif %}
                                 {% if coluna_rentabilidade_valor %}<td>{{ valor.MC_VALOR | floatformat:2 }}</td>{% endif %}
                                 {% if coluna_rentabilidade %}<td>{{ valor.MC | floatformat:2 }}</td>{% endif %}
                             </tr>
@@ -85,6 +89,7 @@
                             {% if coluna_preco_venda_medio %}<td></td>{% endif %}
                             {% if coluna_quantidade %}<td></td>{% endif %}
                             <td class="azul-negrito">{{ valor_mercadorias_total | floatformat:2 }}</td>
+                            {% if coluna_proporcao %}<td class="azul-negrito">100,00</td>{% endif %}
                             {% if coluna_rentabilidade_valor %}<td class="azul-negrito">{{ mc_valor_total | floatformat:2 }}</td>{% endif %}
                             {% if coluna_rentabilidade %}<td class="azul-negrito">{{ mc_total | floatformat:2 }}</td>{% endif %}
                         </tr>

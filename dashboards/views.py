@@ -81,6 +81,8 @@ def relatorios_supervisao(request):
 
                 coluna_rentabilidade_valor = formulario.cleaned_data.get('coluna_rentabilidade_valor')
 
+                coluna_proporcao = formulario.cleaned_data.get('coluna_proporcao')
+
                 dados = get_relatorios_supervisao(
                     data_inicio, data_fim,
                     coluna_grupo_economico, grupo_economico,  # type:ignore
@@ -127,9 +129,11 @@ def relatorios_supervisao(request):
                     'coluna_estado': coluna_estado,
                     'coluna_rentabilidade': coluna_rentabilidade,
                     'coluna_rentabilidade_valor': coluna_rentabilidade_valor,
+                    'coluna_proporcao': coluna_proporcao,
                 })
 
             if 'exportar-submit' in request.GET:
+                # TODO: botão para exportar com base de email
                 excel = arquivo_excel(dados, cabecalho_negrito=True, ajustar_largura_colunas=True)
                 arquivo = salvar_excel_temporario(excel)
 

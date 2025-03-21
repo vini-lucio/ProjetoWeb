@@ -31,7 +31,7 @@ class RelatoriosSupervisaoForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_rentabilidade = forms.BooleanField(label="Coluna % Margem de Contribuição", initial=False, required=False)
     coluna_rentabilidade_valor = forms.BooleanField(label="Coluna Valor Margem de Contribuição", initial=False,
                                                     required=False)
-    # TODO: coluna de porcentagem (proporção)
+    coluna_proporcao = forms.BooleanField(label="Coluna % Proporção", initial=True, required=False)
 
     grupo_economico = forms.CharField(label="Grupo Economico", max_length=300, required=False)
     carteira = forms.ModelChoiceField(carteiras, label="Carteira", required=False)
@@ -40,4 +40,5 @@ class RelatoriosSupervisaoForm(FormPeriodoInicioFimMixIn, forms.Form):
     estado = forms.ModelChoiceField(estados, label="Estado Principal", required=False)
     familia_produto = forms.ModelChoiceField(familias_produtos, label="Familia Produto", required=False)
     produto = forms.CharField(label="Produto", max_length=300, required=False)
-    nao_compraram_depois = forms.BooleanField(label="Não Compraram Depois do Periodo", initial=False, required=False)
+    nao_compraram_depois = forms.BooleanField(label="Não Compraram Depois do Periodo",
+                                              help_text="e sem orçamentos em aberto", initial=False, required=False)

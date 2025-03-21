@@ -684,6 +684,8 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
 
     return erros
 
+# TODO: forçar somente usuarios do grupo de supervisao dashboardS e relatorios
+
 
 def get_relatorios_supervisao(
     data_inicio, data_fim,
@@ -863,7 +865,7 @@ def get_relatorios_supervisao(
     if nao_compraram_depois:
         nao_compraram_depois_pesquisa = """
             CLIENTES.STATUS != 'X' AND
-            NOT EXISTS (
+            NOT EXISTS(
                 SELECT DISTINCT
                     CLIENTES.CHAVE_GRUPOECONOMICO
 
@@ -877,6 +879,18 @@ def get_relatorios_supervisao(
                     NOTAS.VALOR_COMERCIAL = 'SIM' AND
 
                     NOTAS.DATA_EMISSAO > :data_fim
+            ) AND
+            NOT EXISTS(
+                SELECT DISTINCT
+                    ORCAMENTOS.CHAVE_CLIENTE
+
+                FROM
+                    COPLAS.ORCAMENTOS
+
+                WHERE
+                    ORCAMENTOS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
+                    ORCAMENTOS.STATUS = 'EM ABERTO' AND
+                    ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO'
             ) AND
         """
     kwargs_sql.update({'nao_compraram_depois_pesquisa': nao_compraram_depois_pesquisa, })
