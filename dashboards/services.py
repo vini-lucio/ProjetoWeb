@@ -685,9 +685,23 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
     return erros
 
 
-def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: bool, grupo_economico,
-                              coluna_carteira: bool, chave_carteira, coluna_tipo_cliente: bool, chave_tipo_cliente,
-                              coluna_produto: bool, produto, nao_compraram_depois: bool, coluna_rentabilidade: bool):
+def get_relatorios_supervisao(
+    data_inicio, data_fim,
+    coluna_grupo_economico: bool, grupo_economico,
+    coluna_carteira: bool, chave_carteira,
+    coluna_tipo_cliente: bool, chave_tipo_cliente,
+    coluna_familia_produto: bool, chave_familia_produto,
+    coluna_produto: bool, produto,
+    coluna_unidade: bool,
+    coluna_preco_tabela_inclusao: bool,
+    coluna_preco_venda_medio: bool,
+    coluna_quantidade: bool,
+    coluna_cidade: bool, cidade,
+    coluna_estado: bool, chave_estado,
+    nao_compraram_depois: bool,
+    coluna_rentabilidade: bool,
+    coluna_rentabilidade_valor: bool
+):
     kwargs_sql = {}
     kwargs_ora = {}
 
@@ -739,6 +753,22 @@ def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: boo
         kwargs_ora.update({'chave_tipo_cliente': chave_tipo_cliente, })
     kwargs_sql.update({'tipo_cliente_pesquisa': tipo_cliente_pesquisa, })
 
+    # Familia de Produto coluna e filtro
+
+    familia_produto_campo_alias = ""
+    familia_produto_campo = ""
+    if coluna_familia_produto:
+        familia_produto_campo_alias = "FAMILIA_PRODUTOS.FAMILIA AS FAMILIA_PRODUTO,"
+        familia_produto_campo = "FAMILIA_PRODUTOS.FAMILIA,"
+    kwargs_sql.update({'familia_produto_campo_alias': familia_produto_campo_alias,
+                       'familia_produto_campo': familia_produto_campo})
+
+    familia_produto_pesquisa = ""
+    if chave_familia_produto:
+        familia_produto_pesquisa = "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND"
+        kwargs_ora.update({'chave_familia_produto': chave_familia_produto, })
+    kwargs_sql.update({'familia_produto_pesquisa': familia_produto_pesquisa, })
+
     # Produto coluna e filtro
 
     produto_campo_alias = ""
@@ -754,6 +784,78 @@ def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: boo
         produto_pesquisa = "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND"
         kwargs_ora.update({'produto': produto, })
     kwargs_sql.update({'produto_pesquisa': produto_pesquisa, })
+
+    # Unidade coluna
+
+    unidade_campo_alias = ""
+    unidade_campo = ""
+    if coluna_unidade:
+        unidade_campo_alias = "UNIDADES.UNIDADE,"
+        unidade_campo = "UNIDADES.UNIDADE,"
+    kwargs_sql.update({'unidade_campo_alias': unidade_campo_alias,
+                       'unidade_campo': unidade_campo})
+
+    # Preco Tabela Item Nota coluna
+
+    preco_tabela_inclusao_campo_alias = ""
+    preco_tabela_inclusao_campo = ""
+    if coluna_preco_tabela_inclusao:
+        preco_tabela_inclusao_campo_alias = "NOTAS_ITENS.PRECO_TABELA AS PRECO_TABELA_INCLUSAO,"
+        preco_tabela_inclusao_campo = "NOTAS_ITENS.PRECO_TABELA,"
+    kwargs_sql.update({'preco_tabela_inclusao_campo_alias': preco_tabela_inclusao_campo_alias,
+                       'preco_tabela_inclusao_campo': preco_tabela_inclusao_campo})
+
+    # Preco Venda Medio Item Nota coluna
+
+    preco_venda_medio_campo_alias = ""
+    preco_venda_medio_campo = ""
+    if coluna_preco_venda_medio:
+        preco_venda_medio_campo_alias = "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2) AS PRECO_VENDA_MEDIO,"
+        preco_venda_medio_campo = "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2),"
+    kwargs_sql.update({'preco_venda_medio_campo_alias': preco_venda_medio_campo_alias,
+                       'preco_venda_medio_campo': preco_venda_medio_campo})
+
+    # Quantidade Item Nota coluna
+
+    quantidade_campo_alias = ""
+    quantidade_campo = ""
+    if coluna_quantidade:
+        quantidade_campo_alias = "SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE,"
+        quantidade_campo = "SUM(NOTAS_ITENS.QUANTIDADE),"
+    kwargs_sql.update({'quantidade_campo_alias': quantidade_campo_alias,
+                       'quantidade_campo': quantidade_campo})
+
+    # Cidade coluna e filtro
+
+    cidade_campo_alias = ""
+    cidade_campo = ""
+    if coluna_cidade:
+        cidade_campo_alias = "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,"
+        cidade_campo = "CLIENTES.CIDADE,"
+    kwargs_sql.update({'cidade_campo_alias': cidade_campo_alias,
+                       'cidade_campo': cidade_campo})
+
+    cidade_pesquisa = ""
+    if cidade:
+        cidade_pesquisa = "UPPER(CLIENTES.CIDADE) LIKE UPPER(:cidade) AND"
+        kwargs_ora.update({'cidade': cidade, })
+    kwargs_sql.update({'cidade_pesquisa': cidade_pesquisa, })
+
+    # Estado coluna e filtro
+
+    estado_campo_alias = ""
+    estado_campo = ""
+    if coluna_estado:
+        estado_campo_alias = "ESTADOS.SIGLA AS UF_PRINCIPAL,"
+        estado_campo = "ESTADOS.SIGLA,"
+    kwargs_sql.update({'estado_campo_alias': estado_campo_alias,
+                       'estado_campo': estado_campo})
+
+    estado_pesquisa = ""
+    if chave_estado:
+        estado_pesquisa = "ESTADOS.CHAVE = :chave_estado AND"
+        kwargs_ora.update({'chave_estado': chave_estado, })
+    kwargs_sql.update({'estado_pesquisa': estado_pesquisa, })
 
     # Não compraram depois filtro
 
@@ -782,10 +884,12 @@ def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: boo
     # Rentabilidade coluna
 
     lfrete_coluna = ""
+    lfrete_valor_coluna = ""
     lfrete_from = ""
     lfrete_join = ""
-    if coluna_rentabilidade:
+    if coluna_rentabilidade or coluna_rentabilidade_valor:
         lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
+        lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE), 0), 2) AS MC_VALOR"
         lfrete_from = """
             (
                 SELECT
@@ -806,16 +910,25 @@ def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: boo
         """
         lfrete_from = lfrete_from.format(lfrete_notas=lfrete_notas)
         lfrete_join = "LFRETE.CHAVE_NOTA_ITEM = NOTAS_ITENS.CHAVE AND"
-    kwargs_sql.update({'lfrete_coluna': lfrete_coluna, 'lfrete_from': lfrete_from, 'lfrete_join': lfrete_join, })
+    kwargs_sql.update({'lfrete_coluna': lfrete_coluna, 'lfrete_valor_coluna': lfrete_valor_coluna,
+                       'lfrete_from': lfrete_from, 'lfrete_join': lfrete_join, })
 
     sql = """
         SELECT
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
+            {cidade_campo_alias}
+            {estado_campo_alias}
             {tipo_cliente_campo_alias}
+            {familia_produto_campo_alias}
             {produto_campo_alias}
+            {unidade_campo_alias}
+            {preco_tabela_inclusao_campo_alias}
+            {preco_venda_medio_campo_alias}
+            {quantidade_campo_alias}
             SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)) AS VALOR_MERCADORIAS
             {lfrete_coluna}
+            {lfrete_valor_coluna}
 
         FROM
             {lfrete_from}
@@ -833,13 +946,19 @@ def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: boo
             COPLAS.VENDEDORES,
             COPLAS.NOTAS_ITENS,
             COPLAS.NOTAS,
+            COPLAS.FAMILIA_PRODUTOS,
             COPLAS.PRODUTOS,
+            COPLAS.UNIDADES,
             COPLAS.GRUPO_ECONOMICO,
             COPLAS.CLIENTES,
-            COPLAS.CLIENTES_TIPOS
+            COPLAS.CLIENTES_TIPOS,
+            COPLAS.ESTADOS
 
         WHERE
             {lfrete_join}
+            PRODUTOS.CHAVE_UNIDADE = UNIDADES.CHAVE AND
+            FAMILIA_PRODUTOS.CHAVE = PRODUTOS.CHAVE_FAMILIA AND
+            CLIENTES.UF = ESTADOS.CHAVE AND
             PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
             CLIENTES.CHAVE_TIPO = CLIENTES_TIPOS.CHAVE AND
             NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
@@ -852,7 +971,10 @@ def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: boo
             {grupo_economico_pesquisa}
             {carteira_pesquisa}
             {tipo_cliente_pesquisa}
+            {familia_produto_pesquisa}
             {produto_pesquisa}
+            {cidade_pesquisa}
+            {estado_pesquisa}
             {nao_compraram_depois_pesquisa}
 
             NOTAS.DATA_EMISSAO >= :data_inicio AND
@@ -862,12 +984,18 @@ def get_relatorios_supervisao(data_inicio, data_fim, coluna_grupo_economico: boo
             {carteira_campo}
             {grupo_economico_campo}
             {tipo_cliente_campo}
+            {familia_produto_campo}
             {produto_campo}
+            {unidade_campo}
+            {preco_tabela_inclusao_campo}
+            {cidade_campo}
+            {estado_campo}
             1
 
         ORDER BY
             {carteira_campo}
             {tipo_cliente_campo}
+            {familia_produto_campo}
             {produto_campo}
             VALOR_MERCADORIAS DESC
     """

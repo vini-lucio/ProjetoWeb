@@ -53,35 +53,80 @@ def relatorios_supervisao(request):
                 tipo_cliente = formulario.cleaned_data.get('tipo_cliente')
                 chave_tipo_cliente = tipo_cliente.pk if tipo_cliente else None
 
+                coluna_familia_produto = formulario.cleaned_data.get('coluna_familia_produto')
+                familia_produto = formulario.cleaned_data.get('familia_produto')
+                chave_familia_produto = familia_produto.pk if familia_produto else None
+
                 coluna_produto = formulario.cleaned_data.get('coluna_produto')
                 produto = formulario.cleaned_data.get('produto')
+
+                coluna_unidade = formulario.cleaned_data.get('coluna_unidade')
+
+                coluna_preco_tabela_inclusao = formulario.cleaned_data.get('coluna_preco_tabela_inclusao')
+
+                coluna_preco_venda_medio = formulario.cleaned_data.get('coluna_preco_venda_medio')
+
+                coluna_quantidade = formulario.cleaned_data.get('coluna_quantidade')
+
+                coluna_cidade = formulario.cleaned_data.get('coluna_cidade')
+                cidade = formulario.cleaned_data.get('cidade')
+
+                coluna_estado = formulario.cleaned_data.get('coluna_estado')
+                estado = formulario.cleaned_data.get('estado')
+                chave_estado = estado.pk if estado else None
 
                 nao_compraram_depois = formulario.cleaned_data.get('nao_compraram_depois')
 
                 coluna_rentabilidade = formulario.cleaned_data.get('coluna_rentabilidade')
+
+                coluna_rentabilidade_valor = formulario.cleaned_data.get('coluna_rentabilidade_valor')
 
                 dados = get_relatorios_supervisao(
                     data_inicio, data_fim,
                     coluna_grupo_economico, grupo_economico,  # type:ignore
                     coluna_carteira, chave_carteira,  # type:ignore
                     coluna_tipo_cliente, chave_tipo_cliente,  # type:ignore
+                    coluna_familia_produto, chave_familia_produto,  # type:ignore
                     coluna_produto, produto,  # type:ignore
+                    coluna_unidade,  # type:ignore
+                    coluna_preco_tabela_inclusao,  # type:ignore
+                    coluna_preco_venda_medio,  # type:ignore
+                    coluna_quantidade,  # type:ignore
+                    coluna_cidade, cidade,  # type:ignore
+                    coluna_estado, chave_estado,  # type:ignore
                     nao_compraram_depois,  # type:ignore
                     coluna_rentabilidade,  # type:ignore
+                    coluna_rentabilidade_valor,  # type:ignore
                 )
 
                 valor_mercadorias_total = 0
+                mc_total = 0
+                mc_valor_total = 0
                 for dado in dados:
-                    valor_mercadorias_total += dado['VALOR_MERCADORIAS']
+                    valor_mercadorias_total += dado.get('VALOR_MERCADORIAS')
+                    if coluna_rentabilidade or coluna_rentabilidade_valor:
+                        mc_valor_total += dado.get('MC_VALOR')
+                if mc_valor_total and valor_mercadorias_total:
+                    mc_total = mc_valor_total / valor_mercadorias_total * 100
 
                 contexto.update({
                     'dados': dados,
                     'valor_mercadorias_total': valor_mercadorias_total,
+                    'mc_total': mc_total,
+                    'mc_valor_total': mc_valor_total,
                     'coluna_grupo_economico': coluna_grupo_economico,
                     'coluna_carteira': coluna_carteira,
                     'coluna_tipo_cliente': coluna_tipo_cliente,
+                    'coluna_familia_produto': coluna_familia_produto,
                     'coluna_produto': coluna_produto,
+                    'coluna_unidade': coluna_unidade,
+                    'coluna_preco_tabela_inclusao': coluna_preco_tabela_inclusao,
+                    'coluna_preco_venda_medio': coluna_preco_venda_medio,
+                    'coluna_quantidade': coluna_quantidade,
+                    'coluna_cidade': coluna_cidade,
+                    'coluna_estado': coluna_estado,
                     'coluna_rentabilidade': coluna_rentabilidade,
+                    'coluna_rentabilidade_valor': coluna_rentabilidade_valor,
                 })
 
             if 'exportar-submit' in request.GET:

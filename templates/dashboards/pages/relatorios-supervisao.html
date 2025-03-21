@@ -15,6 +15,11 @@
                 </div>
                 <div class="grid-simples">
                     <button class="botao" name="listar-submit" type="submit">Listar</button>
+                    <a href="{% url "dashboards:relatorios-supervisao" %}">
+                        <div class="botao-div">
+                            Limpar Pesquisa
+                        </div>
+                    </a>
                     {% if dados %}
                         <button class="botao" name="exportar-submit" type="submit">Exportar .xlsx</button>
                     {% endif %}
@@ -36,28 +41,52 @@
                         <tr>
                             {% if coluna_carteira %}<th>Carteira</th>{% endif %}
                             {% if coluna_grupo_economico %}<th>Grupo Economico</th>{% endif %}
+                            {% if coluna_cidade %}<th>Cidade Principal</th>{% endif %}
+                            {% if coluna_estado %}<th>Estado Principal</th>{% endif %}
                             {% if coluna_tipo_cliente %}<th>Tipo de Cliente</th>{% endif %}
+                            {% if coluna_familia_produto %}<th>Familia Produto</th>{% endif %}
                             {% if coluna_produto %}<th>Produto</th>{% endif %}
+                            {% if coluna_unidade %}<th>Un.</th>{% endif %}
+                            {% if coluna_preco_tabela_inclusao %}<th>R$ Preço Tabela (Inclusão)</th>{% endif %}
+                            {% if coluna_preco_venda_medio %}<th>R$ Preço Venda Medio</th>{% endif %}
+                            {% if coluna_quantidade %}<th>Qtd.</th>{% endif %}
                             <th>R$ Valor Mercadorias</th>
+                            {% if coluna_rentabilidade_valor %}<th>MC R$</th>{% endif %}
                             {% if coluna_rentabilidade %}<th>MC %</th>{% endif %}
                         </tr>
                         {% for valor in dados %}
                             <tr class="{% cycle 'principal-azul-claro' '' %}">
                                 {% if coluna_carteira %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
                                 {% if coluna_grupo_economico %}<td>{{ valor.GRUPO }}</td>{% endif %}
+                                {% if coluna_cidade %}<td>{{ valor.CIDADE_PRINCIPAL }}</td>{% endif %}
+                                {% if coluna_estado %}<td>{{ valor.UF_PRINCIPAL }}</td>{% endif %}
                                 {% if coluna_tipo_cliente %}<td>{{ valor.TIPO_CLIENTE }}</td>{% endif %}
+                                {% if coluna_familia_produto %}<td>{{ valor.FAMILIA_PRODUTO }}</td>{% endif %}
                                 {% if coluna_produto %}<td>{{ valor.PRODUTO }}</td>{% endif %}
+                                {% if coluna_unidade %}<td>{{ valor.UNIDADE }}</td>{% endif %}
+                                {% if coluna_preco_tabela_inclusao %}<td>{{ valor.PRECO_TABELA_INCLUSAO | floatformat:2 }}</td>{% endif %}
+                                {% if coluna_preco_venda_medio %}<td>{{ valor.PRECO_VENDA_MEDIO | floatformat:2 }}</td>{% endif %}
+                                {% if coluna_quantidade %}<td>{{ valor.QUANTIDADE | floatformat:3 }}</td>{% endif %}
                                 <td>{{ valor.VALOR_MERCADORIAS | floatformat:2 }}</td>
+                                {% if coluna_rentabilidade_valor %}<td>{{ valor.MC_VALOR | floatformat:2 }}</td>{% endif %}
                                 {% if coluna_rentabilidade %}<td>{{ valor.MC | floatformat:2 }}</td>{% endif %}
                             </tr>
                         {% endfor %}
                         <tr>
                             {% if coluna_carteira %}<td></td>{% endif %}
                             {% if coluna_grupo_economico %}<td></td>{% endif %}
+                            {% if coluna_cidade %}<td></td>{% endif %}
+                            {% if coluna_estado %}<td></td>{% endif %}
                             {% if coluna_tipo_cliente %}<td></td>{% endif %}
+                            {% if coluna_familia_produto %}<td></td>{% endif %}
                             {% if coluna_produto %}<td></td>{% endif %}
+                            {% if coluna_unidade %}<td></td>{% endif %}
+                            {% if coluna_preco_tabela_inclusao %}<td></td>{% endif %}
+                            {% if coluna_preco_venda_medio %}<td></td>{% endif %}
+                            {% if coluna_quantidade %}<td></td>{% endif %}
                             <td class="azul-negrito">{{ valor_mercadorias_total | floatformat:2 }}</td>
-                            {% if coluna_rentabilidade %}<td></td>{% endif %}
+                            {% if coluna_rentabilidade_valor %}<td class="azul-negrito">{{ mc_valor_total | floatformat:2 }}</td>{% endif %}
+                            {% if coluna_rentabilidade %}<td class="azul-negrito">{{ mc_total | floatformat:2 }}</td>{% endif %}
                         </tr>
                     </table>
                 </div>
