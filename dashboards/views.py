@@ -83,6 +83,8 @@ def relatorios_supervisao(request):
 
                 coluna_proporcao = formulario.cleaned_data.get('coluna_proporcao')
 
+                coluna_quantidade_notas = formulario.cleaned_data.get('coluna_quantidade_notas')
+
                 dados = get_relatorios_supervisao(
                     data_inicio, data_fim,
                     coluna_grupo_economico, grupo_economico,  # type:ignore
@@ -97,6 +99,8 @@ def relatorios_supervisao(request):
                     coluna_cidade, cidade,  # type:ignore
                     coluna_estado, chave_estado,  # type:ignore
                     nao_compraram_depois,  # type:ignore
+                    coluna_proporcao,  # type:ignore
+                    coluna_quantidade_notas,  # type:ignore
                     coluna_rentabilidade,  # type:ignore
                     coluna_rentabilidade_valor,  # type:ignore
                 )
@@ -104,10 +108,13 @@ def relatorios_supervisao(request):
                 valor_mercadorias_total = 0
                 mc_total = 0
                 mc_valor_total = 0
+                quantidade_notas_total = 0
                 for dado in dados:
                     valor_mercadorias_total += dado.get('VALOR_MERCADORIAS')
                     if coluna_rentabilidade or coluna_rentabilidade_valor:
                         mc_valor_total += dado.get('MC_VALOR')
+                    if coluna_quantidade_notas:
+                        quantidade_notas_total += dado.get('QUANTIDADE_NOTAS')
                 if mc_valor_total and valor_mercadorias_total:
                     mc_total = mc_valor_total / valor_mercadorias_total * 100
 
@@ -116,6 +123,7 @@ def relatorios_supervisao(request):
                     'valor_mercadorias_total': valor_mercadorias_total,
                     'mc_total': mc_total,
                     'mc_valor_total': mc_valor_total,
+                    'quantidade_notas_total': quantidade_notas_total,
                     'coluna_grupo_economico': coluna_grupo_economico,
                     'coluna_carteira': coluna_carteira,
                     'coluna_tipo_cliente': coluna_tipo_cliente,
@@ -130,6 +138,7 @@ def relatorios_supervisao(request):
                     'coluna_rentabilidade': coluna_rentabilidade,
                     'coluna_rentabilidade_valor': coluna_rentabilidade_valor,
                     'coluna_proporcao': coluna_proporcao,
+                    'coluna_quantidade_notas': coluna_quantidade_notas,
                 })
 
             if 'exportar-submit' in request.GET:

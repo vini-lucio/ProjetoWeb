@@ -12,9 +12,36 @@
             </div>
 
             <form method="get">
-                <div class="grid-simples link-conteudo">
+                {% comment %} <div class="grid-simples link-conteudo">
                     {{ formulario.as_p }}
+                </div> {% endcomment %}
+
+                <div class="grid-simples link-conteudo">
+                    {% for agrupamento, campos in formulario.get_agrupamentos_campos.items %}
+                        <div class="grid-simples link-conteudo">
+                            <h3>{{ agrupamento }}</h3>
+                            {% for field in formulario %}
+                                {% if field.name in campos %}
+                                    <div class="grid-2-colunas">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.help_text %}
+                                            <spam class="helptext">
+                                                {{ field.help_text }}
+                                            </spam>
+                                        {% endif %}
+                                        {% if field.errors %}
+                                            <spam class="error">
+                                                {{ field.errors }}
+                                            </spam>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
                 </div>
+
                 <div class="grid-simples">
                     <button class="botao" name="listar-submit" type="submit">Listar</button>
                     <a href="{% url "dashboards:relatorios-supervisao" %}">
@@ -43,6 +70,7 @@
                         <tr>
                             {% if coluna_carteira %}<th>Carteira</th>{% endif %}
                             {% if coluna_grupo_economico %}<th>Grupo Economico</th>{% endif %}
+                            {% if coluna_quantidade_notas %}<th>Qtd. Notas</th>{% endif %}
                             {% if coluna_cidade %}<th>Cidade Principal</th>{% endif %}
                             {% if coluna_estado %}<th>Estado Principal</th>{% endif %}
                             {% if coluna_tipo_cliente %}<th>Tipo de Cliente</th>{% endif %}
@@ -61,6 +89,7 @@
                             <tr class="{% cycle 'principal-azul-claro' '' %}">
                                 {% if coluna_carteira %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
                                 {% if coluna_grupo_economico %}<td>{{ valor.GRUPO }}</td>{% endif %}
+                                {% if coluna_quantidade_notas %}<td>{{ valor.QUANTIDADE_NOTAS | floatformat:0 }}</td>{% endif %}
                                 {% if coluna_cidade %}<td>{{ valor.CIDADE_PRINCIPAL }}</td>{% endif %}
                                 {% if coluna_estado %}<td>{{ valor.UF_PRINCIPAL }}</td>{% endif %}
                                 {% if coluna_tipo_cliente %}<td>{{ valor.TIPO_CLIENTE }}</td>{% endif %}
@@ -79,6 +108,7 @@
                         <tr>
                             {% if coluna_carteira %}<td></td>{% endif %}
                             {% if coluna_grupo_economico %}<td></td>{% endif %}
+                            {% if coluna_quantidade_notas %}<td class="azul-negrito">{{ quantidade_notas_total | floatformat:0 }}</td>{% endif %}
                             {% if coluna_cidade %}<td></td>{% endif %}
                             {% if coluna_estado %}<td></td>{% endif %}
                             {% if coluna_tipo_cliente %}<td></td>{% endif %}

@@ -395,7 +395,12 @@ textarea:focus {
     grid-template-columns: 23rem auto auto;
 }
 
-.alinhar-direta {
+.grid-2-colunas {
+    display: grid;
+    grid-template-columns: 35rem auto;
+}
+
+.alinhar-direita {
     text-align: right;
 }
 
@@ -864,6 +869,12 @@ iframe {
     width: 100%;
     max-width: 56rem;
     height: calc(56rem * 0.5625);
+}
+
+@media (max-width: 900px) {
+    .grid-2-colunas {
+        display: block;
+    }
 }
 
 @media (max-width: 570px) {

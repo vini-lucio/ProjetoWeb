@@ -684,10 +684,9 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
 
     return erros
 
-# TODO: forçar somente usuarios do grupo de supervisao dashboardS e relatorios
-
 
 def get_relatorios_supervisao(
+    # TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
     data_inicio, data_fim,
     coluna_grupo_economico: bool, grupo_economico,
     coluna_carteira: bool, chave_carteira,
@@ -701,6 +700,8 @@ def get_relatorios_supervisao(
     coluna_cidade: bool, cidade,
     coluna_estado: bool, chave_estado,
     nao_compraram_depois: bool,
+    coluna_proporcao: bool,
+    coluna_quantidade_notas: bool,
     coluna_rentabilidade: bool,
     coluna_rentabilidade_valor: bool
 ):
@@ -895,6 +896,23 @@ def get_relatorios_supervisao(
         """
     kwargs_sql.update({'nao_compraram_depois_pesquisa': nao_compraram_depois_pesquisa, })
 
+    # Proporção coluna
+
+    proporcao_campo = ""
+    if coluna_proporcao:
+        proporcao_campo = "VALOR_MERCADORIAS DESC,"
+    kwargs_sql.update({'proporcao_campo': proporcao_campo})
+
+    # Quantidade de Notas coluna
+
+    quantidade_notas_campo_alias = ""
+    quantidade_notas_campo = ""
+    if coluna_quantidade_notas:
+        quantidade_notas_campo_alias = "COUNT(DISTINCT NOTAS.NF) AS QUANTIDADE_NOTAS,"
+        quantidade_notas_campo = "COUNT(DISTINCT NOTAS.NF),"
+    kwargs_sql.update({'quantidade_notas_campo_alias': quantidade_notas_campo_alias,
+                       'quantidade_notas_campo': quantidade_notas_campo})
+
     # Rentabilidade coluna
 
     lfrete_coluna = ""
@@ -931,6 +949,7 @@ def get_relatorios_supervisao(
         SELECT
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
+            {quantidade_notas_campo_alias}
             {cidade_campo_alias}
             {estado_campo_alias}
             {tipo_cliente_campo_alias}
@@ -1010,6 +1029,7 @@ def get_relatorios_supervisao(
             {carteira_campo}
             {tipo_cliente_campo}
             {familia_produto_campo}
+            {proporcao_campo}
             {produto_campo}
             VALOR_MERCADORIAS DESC
     """
