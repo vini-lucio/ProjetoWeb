@@ -166,9 +166,14 @@
             </div>
 
             <div class="grid-simples">
-                <a target="_blanck" href="{% url "dashboards:relatorios-supervisao" %}">
+                <a target="_blank" href="{% url "dashboards:relatorios-supervisao" 'faturamentos' %}">
                     <div class="botao-div botao-escuro">
-                        Relatorios Faturamento
+                        Relatorios Faturamentos
+                    </div>
+                </a>
+                <a target="_blank" href="{% url "dashboards:relatorios-supervisao" 'orcamentos' %}">
+                    <div class="botao-div botao-escuro">
+                        Relatorios Orçamentos
                     </div>
                 </a>
             </div>

@@ -3,7 +3,6 @@ from django.shortcuts import render
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import user_passes_test
 from django.views.generic import ListView
-from django.http import HttpResponse
 from django.core.cache import cache
 from frete.services import (calcular_frete, get_prazos, get_dados_notas, get_dados_notas_monitoramento,
                             get_dados_itens_frete)
@@ -13,7 +12,7 @@ from frete.models import TransportadorasRegioesValores, TransportadorasRegioesMa
 from home.models import Produtos
 from utils.site_setup import get_transportadoras_regioes_valores
 from utils.base_forms import FormPesquisarMixIn
-from utils.exportar_excel import arquivo_excel, salvar_excel_temporario
+from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.converter import converter_datetime_para_str_ddmmyy, converter_datetime_para_str_ddmmyyyy
 from pandas import offsets
 from decimal import Decimal
@@ -180,11 +179,7 @@ def relatorios(request):
                 arquivo = salvar_excel_temporario(excel)
                 nome_arquivo = 'relatorio_rastreamento'
 
-            response = HttpResponse(
-                arquivo,
-                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-            response['Content-Disposition'] = 'attachment; filename="{}.xlsx"'.format(nome_arquivo)
+            response = arquivo_excel_response(arquivo, nome_arquivo)
             return response
 
     contexto.update({'formulario': PeriodoInicioFimForm()})

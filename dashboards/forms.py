@@ -4,7 +4,7 @@ from analysis.models import VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAM
 from utils.data_hora_atual import hoje_as_yyyymmdd
 
 
-class RelatoriosSupervisaoForm(FormPeriodoInicioFimMixIn, forms.Form):
+class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['inicio'].initial = hoje_as_yyyymmdd()
@@ -24,7 +24,7 @@ class RelatoriosSupervisaoForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_familia_produto = forms.BooleanField(label="Coluna Familia", initial=False, required=False)
     coluna_produto = forms.BooleanField(label="Coluna Produto", initial=False, required=False)
     coluna_unidade = forms.BooleanField(label="Coluna Unidade", initial=False, required=False)
-    coluna_preco_tabela_inclusao = forms.BooleanField(label="Coluna Preço de Tabela", help_text="na inclusão",
+    coluna_preco_tabela_inclusao = forms.BooleanField(label="Coluna Preço de Tabela", help_text="na inclusão, maior",
                                                       initial=False, required=False)
     coluna_preco_venda_medio = forms.BooleanField(label="Coluna Preço Medio", initial=False, required=False)
     coluna_quantidade = forms.BooleanField(label="Coluna Quantidade", initial=False, required=False)
@@ -32,7 +32,8 @@ class RelatoriosSupervisaoForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_rentabilidade_valor = forms.BooleanField(label="Coluna Valor MC", initial=False,
                                                     required=False)
     coluna_proporcao = forms.BooleanField(label="Coluna % Proporção", initial=True, required=False)
-    coluna_quantidade_notas = forms.BooleanField(label="Coluna Quantidade de Notas", initial=False, required=False)
+    coluna_quantidade_documentos = forms.BooleanField(label="Coluna Quantidade de Documentos", initial=False,
+                                                      required=False)
 
     # TODO: resto das colunas relatorios Salomão
 
@@ -43,8 +44,6 @@ class RelatoriosSupervisaoForm(FormPeriodoInicioFimMixIn, forms.Form):
     estado = forms.ModelChoiceField(estados, label="Estado Principal", required=False)
     familia_produto = forms.ModelChoiceField(familias_produtos, label="Familia Produto", required=False)
     produto = forms.CharField(label="Produto", max_length=300, required=False)
-    nao_compraram_depois = forms.BooleanField(label="Não Compraram Depois do Periodo",
-                                              help_text="e sem orçamentos em aberto", initial=False, required=False)
 
     def get_agrupamentos_campos(self):
         agrupamentos = {
@@ -56,12 +55,25 @@ class RelatoriosSupervisaoForm(FormPeriodoInicioFimMixIn, forms.Form):
                                             'coluna_preco_tabela_inclusao', 'coluna_preco_venda_medio',
                                             'coluna_quantidade',],
             'Visualizações Gerais': ['coluna_rentabilidade', 'coluna_rentabilidade_valor', 'coluna_proporcao',
-                                     'coluna_quantidade_notas',],
+                                     'coluna_quantidade_documentos',],
 
             'Filtros sobre Cliente': ['grupo_economico', 'carteira', 'tipo_cliente',
                                       'cidade', 'estado',],
             'Filtros sobre Produto': ['familia_produto', 'produto',],
-            'Filtros Gerais': ['nao_compraram_depois',],
         }
 
         return agrupamentos
+
+
+class RelatoriosSupervisaoFaturamentosForm(RelatoriosSupervisaoBaseForm):
+    nao_compraram_depois = forms.BooleanField(label="Não Compraram Depois do Periodo",
+                                              help_text="e sem orçamentos em aberto", initial=False, required=False)
+
+    def get_agrupamentos_campos(self):
+        super_agrupamento = super().get_agrupamentos_campos()
+        super_agrupamento.update({'Filtros Gerais': ['nao_compraram_depois',]})
+        return super_agrupamento
+
+
+class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
+    ...

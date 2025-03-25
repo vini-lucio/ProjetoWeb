@@ -6,7 +6,7 @@ app_name = 'dashboards'
 urlpatterns = [
     path('vendas-tv/', vendas_tv, name='vendas-tv'),
     path('vendas-supervisao/', vendas_supervisao, name='vendas-supervisao'),
-    path('relatorios-supervisao/', relatorios_supervisao, name='relatorios-supervisao'),
+    path('relatorios-supervisao/<str:fonte>/', relatorios_supervisao, name='relatorios-supervisao'),
 ]
 
 # TODO: atalhos para dashboards

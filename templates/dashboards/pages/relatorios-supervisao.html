@@ -8,7 +8,7 @@
 
         <div class="link-conteudo">
             <div class="titulo">
-                <h1>Relatorios Faturamento</h1>
+                <h1>{{  titulo_pagina_2  }}</h1>
             </div>
 
             <form method="get">
@@ -44,7 +44,7 @@
 
                 <div class="grid-simples">
                     <button class="botao" name="listar-submit" type="submit">Listar</button>
-                    <a href="{% url "dashboards:relatorios-supervisao" %}">
+                    <a href="{% url "dashboards:relatorios-supervisao" fonte_relatorio %}">
                         <div class="botao-div">
                             Limpar Pesquisa
                         </div>
@@ -68,60 +68,60 @@
                 <div class="tabela-simples">
                     <table>
                         <tr>
-                            {% if coluna_carteira %}<th>Carteira</th>{% endif %}
-                            {% if coluna_grupo_economico %}<th>Grupo Economico</th>{% endif %}
-                            {% if coluna_quantidade_notas %}<th>Qtd. Notas</th>{% endif %}
-                            {% if coluna_cidade %}<th>Cidade Principal</th>{% endif %}
-                            {% if coluna_estado %}<th>Estado Principal</th>{% endif %}
-                            {% if coluna_tipo_cliente %}<th>Tipo de Cliente</th>{% endif %}
-                            {% if coluna_familia_produto %}<th>Familia Produto</th>{% endif %}
-                            {% if coluna_produto %}<th>Produto</th>{% endif %}
-                            {% if coluna_unidade %}<th>Un.</th>{% endif %}
-                            {% if coluna_preco_tabela_inclusao %}<th>R$ Preço Tabela (Inclusão)</th>{% endif %}
-                            {% if coluna_preco_venda_medio %}<th>R$ Preço Venda Medio</th>{% endif %}
-                            {% if coluna_quantidade %}<th>Qtd.</th>{% endif %}
+                            {% if formulario.coluna_carteira.value %}<th>Carteira</th>{% endif %}
+                            {% if formulario.coluna_grupo_economico.value %}<th>Grupo Economico</th>{% endif %}
+                            {% if formulario.coluna_quantidade_documentos.value %}<th>Qtd. Documentos</th>{% endif %}
+                            {% if formulario.coluna_cidade.value %}<th>Cidade Principal</th>{% endif %}
+                            {% if formulario.coluna_estado.value %}<th>Estado Principal</th>{% endif %}
+                            {% if formulario.coluna_tipo_cliente.value %}<th>Tipo de Cliente</th>{% endif %}
+                            {% if formulario.coluna_familia_produto.value %}<th>Familia Produto</th>{% endif %}
+                            {% if formulario.coluna_produto.value %}<th>Produto</th>{% endif %}
+                            {% if formulario.coluna_unidade.value %}<th>Un.</th>{% endif %}
+                            {% if formulario.coluna_preco_tabela_inclusao.value %}<th>R$ Preço Tabela (Inclusão)</th>{% endif %}
+                            {% if formulario.coluna_preco_venda_medio.value %}<th>R$ Preço Venda Medio</th>{% endif %}
+                            {% if formulario.coluna_quantidade.value %}<th>Qtd.</th>{% endif %}
                             <th>R$ Valor Mercadorias</th>
-                            {% if coluna_proporcao %}<th>Proporção %</th>{% endif %}
-                            {% if coluna_rentabilidade_valor %}<th>MC R$</th>{% endif %}
-                            {% if coluna_rentabilidade %}<th>MC %</th>{% endif %}
+                            {% if formulario.coluna_proporcao.value %}<th>Proporção %</th>{% endif %}
+                            {% if formulario.coluna_rentabilidade_valor.value %}<th>MC R$</th>{% endif %}
+                            {% if formulario.coluna_rentabilidade.value %}<th>MC %</th>{% endif %}
                         </tr>
                         {% for valor in dados %}
                             <tr class="{% cycle 'principal-azul-claro' '' %}">
-                                {% if coluna_carteira %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
-                                {% if coluna_grupo_economico %}<td>{{ valor.GRUPO }}</td>{% endif %}
-                                {% if coluna_quantidade_notas %}<td>{{ valor.QUANTIDADE_NOTAS | floatformat:0 }}</td>{% endif %}
-                                {% if coluna_cidade %}<td>{{ valor.CIDADE_PRINCIPAL }}</td>{% endif %}
-                                {% if coluna_estado %}<td>{{ valor.UF_PRINCIPAL }}</td>{% endif %}
-                                {% if coluna_tipo_cliente %}<td>{{ valor.TIPO_CLIENTE }}</td>{% endif %}
-                                {% if coluna_familia_produto %}<td>{{ valor.FAMILIA_PRODUTO }}</td>{% endif %}
-                                {% if coluna_produto %}<td>{{ valor.PRODUTO }}</td>{% endif %}
-                                {% if coluna_unidade %}<td>{{ valor.UNIDADE }}</td>{% endif %}
-                                {% if coluna_preco_tabela_inclusao %}<td>{{ valor.PRECO_TABELA_INCLUSAO | floatformat:2 }}</td>{% endif %}
-                                {% if coluna_preco_venda_medio %}<td>{{ valor.PRECO_VENDA_MEDIO | floatformat:2 }}</td>{% endif %}
-                                {% if coluna_quantidade %}<td>{{ valor.QUANTIDADE | floatformat:3 }}</td>{% endif %}
+                                {% if formulario.coluna_carteira.value %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
+                                {% if formulario.coluna_grupo_economico.value %}<td>{{ valor.GRUPO }}</td>{% endif %}
+                                {% if formulario.coluna_quantidade_documentos.value %}<td>{{ valor.QUANTIDADE_DOCUMENTOS | floatformat:0 }}</td>{% endif %}
+                                {% if formulario.coluna_cidade.value %}<td>{{ valor.CIDADE_PRINCIPAL }}</td>{% endif %}
+                                {% if formulario.coluna_estado.value %}<td>{{ valor.UF_PRINCIPAL }}</td>{% endif %}
+                                {% if formulario.coluna_tipo_cliente.value %}<td>{{ valor.TIPO_CLIENTE }}</td>{% endif %}
+                                {% if formulario.coluna_familia_produto.value %}<td>{{ valor.FAMILIA_PRODUTO }}</td>{% endif %}
+                                {% if formulario.coluna_produto.value %}<td>{{ valor.PRODUTO }}</td>{% endif %}
+                                {% if formulario.coluna_unidade.value %}<td>{{ valor.UNIDADE }}</td>{% endif %}
+                                {% if formulario.coluna_preco_tabela_inclusao.value %}<td>{{ valor.PRECO_TABELA_INCLUSAO | floatformat:2 }}</td>{% endif %}
+                                {% if formulario.coluna_preco_venda_medio.value %}<td>{{ valor.PRECO_VENDA_MEDIO | floatformat:2 }}</td>{% endif %}
+                                {% if formulario.coluna_quantidade.value %}<td>{{ valor.QUANTIDADE | floatformat:3 }}</td>{% endif %}
                                 <td>{{ valor.VALOR_MERCADORIAS | floatformat:2 }}</td>
-                                {% if coluna_proporcao %}<td>{{ valor.VALOR_MERCADORIAS|dividir_porcentagem:valor_mercadorias_total | floatformat:2 }}</td>{% endif %}
-                                {% if coluna_rentabilidade_valor %}<td>{{ valor.MC_VALOR | floatformat:2 }}</td>{% endif %}
-                                {% if coluna_rentabilidade %}<td>{{ valor.MC | floatformat:2 }}</td>{% endif %}
+                                {% if formulario.coluna_proporcao.value %}<td>{{ valor.VALOR_MERCADORIAS|dividir_porcentagem:valor_mercadorias_total | floatformat:2 }}</td>{% endif %}
+                                {% if formulario.coluna_rentabilidade_valor.value %}<td>{{ valor.MC_VALOR | floatformat:2 }}</td>{% endif %}
+                                {% if formulario.coluna_rentabilidade.value %}<td>{{ valor.MC | floatformat:2 }}</td>{% endif %}
                             </tr>
                         {% endfor %}
                         <tr>
-                            {% if coluna_carteira %}<td></td>{% endif %}
-                            {% if coluna_grupo_economico %}<td></td>{% endif %}
-                            {% if coluna_quantidade_notas %}<td class="azul-negrito">{{ quantidade_notas_total | floatformat:0 }}</td>{% endif %}
-                            {% if coluna_cidade %}<td></td>{% endif %}
-                            {% if coluna_estado %}<td></td>{% endif %}
-                            {% if coluna_tipo_cliente %}<td></td>{% endif %}
-                            {% if coluna_familia_produto %}<td></td>{% endif %}
-                            {% if coluna_produto %}<td></td>{% endif %}
-                            {% if coluna_unidade %}<td></td>{% endif %}
-                            {% if coluna_preco_tabela_inclusao %}<td></td>{% endif %}
-                            {% if coluna_preco_venda_medio %}<td></td>{% endif %}
-                            {% if coluna_quantidade %}<td></td>{% endif %}
+                            {% if formulario.coluna_carteira.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_grupo_economico.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_quantidade_documentos.value %}<td class="azul-negrito">{{ quantidade_documentos_total | floatformat:0 }}</td>{% endif %}
+                            {% if formulario.coluna_cidade.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_estado.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_tipo_cliente.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_familia_produto.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_produto.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_unidade.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_preco_tabela_inclusao.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_preco_venda_medio.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_quantidade.value %}<td></td>{% endif %}
                             <td class="azul-negrito">{{ valor_mercadorias_total | floatformat:2 }}</td>
-                            {% if coluna_proporcao %}<td class="azul-negrito">100,00</td>{% endif %}
-                            {% if coluna_rentabilidade_valor %}<td class="azul-negrito">{{ mc_valor_total | floatformat:2 }}</td>{% endif %}
-                            {% if coluna_rentabilidade %}<td class="azul-negrito">{{ mc_total | floatformat:2 }}</td>{% endif %}
+                            {% if formulario.coluna_proporcao.value %}<td class="azul-negrito">100,00</td>{% endif %}
+                            {% if formulario.coluna_rentabilidade_valor.value %}<td class="azul-negrito">{{ mc_valor_total | floatformat:2 }}</td>{% endif %}
+                            {% if formulario.coluna_rentabilidade.value %}<td class="azul-negrito">{{ mc_total | floatformat:2 }}</td>{% endif %}
                         </tr>
                     </table>
                 </div>

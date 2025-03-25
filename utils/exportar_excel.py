@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 import openpyxl
 from openpyxl.styles import Font, PatternFill
 from io import BytesIO
@@ -96,3 +97,12 @@ def somar_coluna_formatada(conteudo, titulo_aba, workbook, letra_coluna_soma, ca
     celula.value = cabecalho_soma
     celula.fill = verde
     celula.font = negrito
+
+
+def arquivo_excel_response(arquivo_salvo_excel, nome_arquivo):
+    response = HttpResponse(
+        arquivo_salvo_excel,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="{}.xlsx"'.format(nome_arquivo)
+    return response

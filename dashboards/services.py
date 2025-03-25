@@ -4,7 +4,7 @@ from utils.data_hora_atual import data_hora_atual
 from utils.cor_rentabilidade import cor_rentabilidade_css, falta_mudar_cor_mes
 from utils.site_setup import (get_site_setup, get_assistentes_tecnicos, get_assistentes_tecnicos_agenda,
                               get_transportadoras, get_consultores_tecnicos_ativos)
-from utils.lfrete import notas as lfrete_notas
+from utils.lfrete import notas as lfrete_notas, orcamentos as lfrete_orcamentos
 from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valores_atendimento
 from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes
 from django.core.exceptions import ObjectDoesNotExist
@@ -685,28 +685,36 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
     return erros
 
 
-def get_relatorios_supervisao(
+def get_relatorios_supervisao(orcamento: bool, **kwargs):
     # TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
-    data_inicio, data_fim,
-    coluna_grupo_economico: bool, grupo_economico,
-    coluna_carteira: bool, chave_carteira,
-    coluna_tipo_cliente: bool, chave_tipo_cliente,
-    coluna_familia_produto: bool, chave_familia_produto,
-    coluna_produto: bool, produto,
-    coluna_unidade: bool,
-    coluna_preco_tabela_inclusao: bool,
-    coluna_preco_venda_medio: bool,
-    coluna_quantidade: bool,
-    coluna_cidade: bool, cidade,
-    coluna_estado: bool, chave_estado,
-    nao_compraram_depois: bool,
-    coluna_proporcao: bool,
-    coluna_quantidade_notas: bool,
-    coluna_rentabilidade: bool,
-    coluna_rentabilidade_valor: bool
-):
     kwargs_sql = {}
     kwargs_ora = {}
+
+    data_inicio = kwargs.get('inicio')
+    data_fim = kwargs.get('fim')
+    coluna_grupo_economico = kwargs.get('coluna_grupo_economico')
+    grupo_economico = kwargs.get('grupo_economico')
+    coluna_carteira = kwargs.get('coluna_carteira')
+    carteira = kwargs.get('carteira')
+    coluna_tipo_cliente = kwargs.get('coluna_tipo_cliente')
+    tipo_cliente = kwargs.get('tipo_cliente')
+    coluna_familia_produto = kwargs.get('coluna_familia_produto')
+    familia_produto = kwargs.get('familia_produto')
+    coluna_produto = kwargs.get('coluna_produto')
+    produto = kwargs.get('produto')
+    coluna_unidade = kwargs.get('coluna_unidade')
+    coluna_preco_tabela_inclusao = kwargs.get('coluna_preco_tabela_inclusao')
+    coluna_preco_venda_medio = kwargs.get('coluna_preco_venda_medio')
+    coluna_quantidade = kwargs.get('coluna_quantidade')
+    coluna_cidade = kwargs.get('coluna_cidade')
+    cidade = kwargs.get('cidade')
+    coluna_estado = kwargs.get('coluna_estado')
+    estado = kwargs.get('estado')
+    nao_compraram_depois = kwargs.get('nao_compraram_depois')
+    coluna_proporcao = kwargs.get('coluna_proporcao')
+    coluna_quantidade_documentos = kwargs.get('coluna_quantidade_documentos')
+    coluna_rentabilidade = kwargs.get('coluna_rentabilidade')
+    coluna_rentabilidade_valor = kwargs.get('coluna_rentabilidade_valor')
 
     # Grupo Economico coluna e filtro
 
@@ -735,7 +743,8 @@ def get_relatorios_supervisao(
                        'carteira_campo': carteira_campo})
 
     carteira_pesquisa = ""
-    if chave_carteira:
+    if carteira:
+        chave_carteira = carteira.pk
         carteira_pesquisa = "VENDEDORES.CODVENDEDOR = :chave_carteira AND"
         kwargs_ora.update({'chave_carteira': chave_carteira, })
     kwargs_sql.update({'carteira_pesquisa': carteira_pesquisa, })
@@ -751,7 +760,8 @@ def get_relatorios_supervisao(
                        'tipo_cliente_campo': tipo_cliente_campo})
 
     tipo_cliente_pesquisa = ""
-    if chave_tipo_cliente:
+    if tipo_cliente:
+        chave_tipo_cliente = tipo_cliente.pk
         tipo_cliente_pesquisa = "CLIENTES_TIPOS.CHAVE = :chave_tipo_cliente AND"
         kwargs_ora.update({'chave_tipo_cliente': chave_tipo_cliente, })
     kwargs_sql.update({'tipo_cliente_pesquisa': tipo_cliente_pesquisa, })
@@ -767,7 +777,8 @@ def get_relatorios_supervisao(
                        'familia_produto_campo': familia_produto_campo})
 
     familia_produto_pesquisa = ""
-    if chave_familia_produto:
+    if familia_produto:
+        chave_familia_produto = familia_produto.pk
         familia_produto_pesquisa = "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND"
         kwargs_ora.update({'chave_familia_produto': chave_familia_produto, })
     kwargs_sql.update({'familia_produto_pesquisa': familia_produto_pesquisa, })
@@ -803,8 +814,11 @@ def get_relatorios_supervisao(
     preco_tabela_inclusao_campo_alias = ""
     preco_tabela_inclusao_campo = ""
     if coluna_preco_tabela_inclusao:
-        preco_tabela_inclusao_campo_alias = "NOTAS_ITENS.PRECO_TABELA AS PRECO_TABELA_INCLUSAO,"
-        preco_tabela_inclusao_campo = "NOTAS_ITENS.PRECO_TABELA,"
+        preco_tabela_inclusao_campo_alias = "MAX(NOTAS_ITENS.PRECO_TABELA) AS PRECO_TABELA_INCLUSAO,"
+        preco_tabela_inclusao_campo = "MAX(NOTAS_ITENS.PRECO_TABELA),"
+        if orcamento:
+            preco_tabela_inclusao_campo_alias = "MAX(ORCAMENTOS_ITENS.PRECO_TABELA) AS PRECO_TABELA_INCLUSAO,"
+            preco_tabela_inclusao_campo = "MAX(ORCAMENTOS_ITENS.PRECO_TABELA),"
     kwargs_sql.update({'preco_tabela_inclusao_campo_alias': preco_tabela_inclusao_campo_alias,
                        'preco_tabela_inclusao_campo': preco_tabela_inclusao_campo})
 
@@ -815,6 +829,9 @@ def get_relatorios_supervisao(
     if coluna_preco_venda_medio:
         preco_venda_medio_campo_alias = "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2) AS PRECO_VENDA_MEDIO,"
         preco_venda_medio_campo = "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2),"
+        if orcamento:
+            preco_venda_medio_campo_alias = "ROUND(AVG(ORCAMENTOS_ITENS.PRECO_VENDA), 2) AS PRECO_VENDA_MEDIO,"
+            preco_venda_medio_campo = "ROUND(AVG(ORCAMENTOS_ITENS.PRECO_VENDA), 2),"
     kwargs_sql.update({'preco_venda_medio_campo_alias': preco_venda_medio_campo_alias,
                        'preco_venda_medio_campo': preco_venda_medio_campo})
 
@@ -825,6 +842,9 @@ def get_relatorios_supervisao(
     if coluna_quantidade:
         quantidade_campo_alias = "SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE,"
         quantidade_campo = "SUM(NOTAS_ITENS.QUANTIDADE),"
+        if orcamento:
+            quantidade_campo_alias = "SUM(ORCAMENTOS_ITENS.QUANTIDADE) AS QUANTIDADE,"
+            quantidade_campo = "SUM(ORCAMENTOS_ITENS.QUANTIDADE),"
     kwargs_sql.update({'quantidade_campo_alias': quantidade_campo_alias,
                        'quantidade_campo': quantidade_campo})
 
@@ -855,7 +875,8 @@ def get_relatorios_supervisao(
                        'estado_campo': estado_campo})
 
     estado_pesquisa = ""
-    if chave_estado:
+    if estado:
+        chave_estado = estado.pk
         estado_pesquisa = "ESTADOS.CHAVE = :chave_estado AND"
         kwargs_ora.update({'chave_estado': chave_estado, })
     kwargs_sql.update({'estado_pesquisa': estado_pesquisa, })
@@ -894,6 +915,8 @@ def get_relatorios_supervisao(
                     ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO'
             ) AND
         """
+        if orcamento:
+            nao_compraram_depois_pesquisa = ""
     kwargs_sql.update({'nao_compraram_depois_pesquisa': nao_compraram_depois_pesquisa, })
 
     # Proporção coluna
@@ -905,13 +928,16 @@ def get_relatorios_supervisao(
 
     # Quantidade de Notas coluna
 
-    quantidade_notas_campo_alias = ""
-    quantidade_notas_campo = ""
-    if coluna_quantidade_notas:
-        quantidade_notas_campo_alias = "COUNT(DISTINCT NOTAS.NF) AS QUANTIDADE_NOTAS,"
-        quantidade_notas_campo = "COUNT(DISTINCT NOTAS.NF),"
-    kwargs_sql.update({'quantidade_notas_campo_alias': quantidade_notas_campo_alias,
-                       'quantidade_notas_campo': quantidade_notas_campo})
+    quantidade_documentos_campo_alias = ""
+    quantidade_documentos_campo = ""
+    if coluna_quantidade_documentos:
+        quantidade_documentos_campo_alias = "COUNT(DISTINCT NOTAS.NF) AS QUANTIDADE_DOCUMENTOS,"
+        quantidade_documentos_campo = "COUNT(DISTINCT NOTAS.NF),"
+        if orcamento:
+            quantidade_documentos_campo_alias = "COUNT(DISTINCT ORCAMENTOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,"
+            quantidade_documentos_campo = "COUNT(DISTINCT ORCAMENTOS.NUMPED),"
+    kwargs_sql.update({'quantidade_documentos_campo_alias': quantidade_documentos_campo_alias,
+                       'quantidade_documentos_campo': quantidade_documentos_campo})
 
     # Rentabilidade coluna
 
@@ -942,14 +968,97 @@ def get_relatorios_supervisao(
         """
         lfrete_from = lfrete_from.format(lfrete_notas=lfrete_notas)
         lfrete_join = "LFRETE.CHAVE_NOTA_ITEM = NOTAS_ITENS.CHAVE AND"
+        if orcamento:
+            lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
+            lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE), 0), 2) AS MC_VALOR"
+            lfrete_from = """
+                (
+                    SELECT
+                        CHAVE_ORCAMENTO_ITEM,
+                        ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE
+
+                    FROM
+                        (
+                            {lfrete_orcamentos} AND
+
+                                ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND
+                                ORCAMENTOS.DATA_PEDIDO >= :data_inicio AND
+                                ORCAMENTOS.DATA_PEDIDO <= :data_fim
+                        ) LFRETE
+
+                    GROUP BY
+                        CHAVE_ORCAMENTO_ITEM
+                ) LFRETE,
+            """
+            lfrete_from = lfrete_from.format(lfrete_orcamentos=lfrete_orcamentos)
+            lfrete_join = "LFRETE.CHAVE_ORCAMENTO_ITEM = ORCAMENTOS_ITENS.CHAVE AND"
     kwargs_sql.update({'lfrete_coluna': lfrete_coluna, 'lfrete_valor_coluna': lfrete_valor_coluna,
                        'lfrete_from': lfrete_from, 'lfrete_join': lfrete_join, })
+
+    # Fonte Notas / Orçamentos
+
+    valor_mercadorias = "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)) AS VALOR_MERCADORIAS"
+    notas_peso_liquido_from = """
+        (
+            SELECT
+                NOTAS_ITENS.CHAVE_NOTA,
+                SUM(NOTAS_ITENS.PESO_LIQUIDO) AS PESO_LIQUIDO
+
+            FROM
+                COPLAS.NOTAS_ITENS
+
+            GROUP BY
+                NOTAS_ITENS.CHAVE_NOTA
+        ) NOTAS_PESO_LIQUIDO,
+    """
+    fonte_itens = "COPLAS.NOTAS_ITENS,"
+    fonte = "COPLAS.NOTAS,"
+    fonte_joins = """
+        PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
+        CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
+        NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+        NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
+    """
+    fonte_where = "NOTAS.VALOR_COMERCIAL = 'SIM' AND"
+    fonte_where_data = """
+        NOTAS.DATA_EMISSAO >= :data_inicio AND
+        NOTAS.DATA_EMISSAO <= :data_fim
+    """
+    if orcamento:
+        # TODO: converter moeda EM TODOS OS LUGARES COM VALOR DE ORÇAMENTO
+        valor_mercadorias = "SUM(ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)) AS VALOR_MERCADORIAS"
+        notas_peso_liquido_from = ""
+        fonte_itens = "COPLAS.ORCAMENTOS_ITENS,"
+        fonte = "COPLAS.ORCAMENTOS,"
+        fonte_joins = """
+            PRODUTOS.CPROD = ORCAMENTOS_ITENS.CHAVE_PRODUTO AND
+            CLIENTES.CODCLI = ORCAMENTOS.CHAVE_CLIENTE AND
+            ORCAMENTOS.CHAVE = ORCAMENTOS_ITENS.CHAVE_PEDIDO AND
+        """
+        fonte_where = """
+            ORCAMENTOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
+            ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND
+        """
+        fonte_where_data = """
+            ORCAMENTOS.DATA_PEDIDO >= :data_inicio AND
+            ORCAMENTOS.DATA_PEDIDO <= :data_fim
+        """
+
+    kwargs_sql.update({
+        'valor_mercadorias': valor_mercadorias,
+        'notas_peso_liquido_from': notas_peso_liquido_from,
+        'fonte_itens': fonte_itens,
+        'fonte': fonte,
+        'fonte_joins': fonte_joins,
+        'fonte_where': fonte_where,
+        'fonte_where_data': fonte_where_data,
+    })
 
     sql = """
         SELECT
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
-            {quantidade_notas_campo_alias}
+            {quantidade_documentos_campo_alias}
             {cidade_campo_alias}
             {estado_campo_alias}
             {tipo_cliente_campo_alias}
@@ -959,26 +1068,18 @@ def get_relatorios_supervisao(
             {preco_tabela_inclusao_campo_alias}
             {preco_venda_medio_campo_alias}
             {quantidade_campo_alias}
-            SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)) AS VALOR_MERCADORIAS
+
+            {valor_mercadorias}
+
             {lfrete_coluna}
             {lfrete_valor_coluna}
 
         FROM
             {lfrete_from}
-            (
-                SELECT
-                    NOTAS_ITENS.CHAVE_NOTA,
-                    SUM(NOTAS_ITENS.PESO_LIQUIDO) AS PESO_LIQUIDO
-
-                FROM
-                    COPLAS.NOTAS_ITENS
-
-                GROUP BY
-                    NOTAS_ITENS.CHAVE_NOTA
-            ) NOTAS_PESO_LIQUIDO,
+            {notas_peso_liquido_from}
             COPLAS.VENDEDORES,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.NOTAS,
+            {fonte_itens}
+            {fonte}
             COPLAS.FAMILIA_PRODUTOS,
             COPLAS.PRODUTOS,
             COPLAS.UNIDADES,
@@ -992,14 +1093,11 @@ def get_relatorios_supervisao(
             PRODUTOS.CHAVE_UNIDADE = UNIDADES.CHAVE AND
             FAMILIA_PRODUTOS.CHAVE = PRODUTOS.CHAVE_FAMILIA AND
             CLIENTES.UF = ESTADOS.CHAVE AND
-            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
+            {fonte_joins}
             CLIENTES.CHAVE_TIPO = CLIENTES_TIPOS.CHAVE AND
-            NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
             VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
-            CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
             CLIENTES.CHAVE_GRUPOECONOMICO = GRUPO_ECONOMICO.CHAVE AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
+            {fonte_where}
 
             {grupo_economico_pesquisa}
             {carteira_pesquisa}
@@ -1010,8 +1108,7 @@ def get_relatorios_supervisao(
             {estado_pesquisa}
             {nao_compraram_depois_pesquisa}
 
-            NOTAS.DATA_EMISSAO >= :data_inicio AND
-            NOTAS.DATA_EMISSAO <= :data_fim
+            {fonte_where_data}
 
         GROUP BY
             {carteira_campo}
@@ -1020,7 +1117,6 @@ def get_relatorios_supervisao(
             {familia_produto_campo}
             {produto_campo}
             {unidade_campo}
-            {preco_tabela_inclusao_campo}
             {cidade_campo}
             {estado_campo}
             1
