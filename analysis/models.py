@@ -164,3 +164,18 @@ class CLIENTES_TIPOS(ReadOnlyMixin, models.Model):
 
     def __str__(self):
         return self.DESCRICAO
+
+
+class STATUS_ORCAMENTOS_ITENS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."STATUS_ORCAMENTOS_ITENS"'
+        verbose_name = 'Status Orçamentos Produtos'
+        verbose_name_plural = 'Status Orçamentos Produtos'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    DESCRICAO = models.CharField("Descrição", max_length=50, null=True, blank=True)
+    TIPO = models.CharField("Tipo", max_length=20, null=True, blank=True)
+
+    def __str__(self):
+        return self.DESCRICAO

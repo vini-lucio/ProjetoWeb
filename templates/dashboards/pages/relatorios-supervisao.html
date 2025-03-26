@@ -77,6 +77,8 @@
                             {% if formulario.coluna_familia_produto.value %}<th>Familia Produto</th>{% endif %}
                             {% if formulario.coluna_produto.value %}<th>Produto</th>{% endif %}
                             {% if formulario.coluna_unidade.value %}<th>Un.</th>{% endif %}
+                            {% if formulario.coluna_status_produto_orcamento.value %}<th>Status</th>{% endif %}
+                            {% if formulario.coluna_status_produto_orcamento_tipo.value %}<th>Status Tipo</th>{% endif %}
                             {% if formulario.coluna_preco_tabela_inclusao.value %}<th>R$ Preço Tabela (Inclusão)</th>{% endif %}
                             {% if formulario.coluna_preco_venda_medio.value %}<th>R$ Preço Venda Medio</th>{% endif %}
                             {% if formulario.coluna_quantidade.value %}<th>Qtd.</th>{% endif %}
@@ -96,6 +98,8 @@
                                 {% if formulario.coluna_familia_produto.value %}<td>{{ valor.FAMILIA_PRODUTO }}</td>{% endif %}
                                 {% if formulario.coluna_produto.value %}<td>{{ valor.PRODUTO }}</td>{% endif %}
                                 {% if formulario.coluna_unidade.value %}<td>{{ valor.UNIDADE }}</td>{% endif %}
+                                {% if formulario.coluna_status_produto_orcamento.value %}<td>{{ valor.STATUS }}</td>{% endif %}
+                                {% if formulario.coluna_status_produto_orcamento_tipo.value %}<td>{{ valor.STATUS_TIPO }}</td>{% endif %}
                                 {% if formulario.coluna_preco_tabela_inclusao.value %}<td>{{ valor.PRECO_TABELA_INCLUSAO | floatformat:2 }}</td>{% endif %}
                                 {% if formulario.coluna_preco_venda_medio.value %}<td>{{ valor.PRECO_VENDA_MEDIO | floatformat:2 }}</td>{% endif %}
                                 {% if formulario.coluna_quantidade.value %}<td>{{ valor.QUANTIDADE | floatformat:3 }}</td>{% endif %}
@@ -115,6 +119,8 @@
                             {% if formulario.coluna_familia_produto.value %}<td></td>{% endif %}
                             {% if formulario.coluna_produto.value %}<td></td>{% endif %}
                             {% if formulario.coluna_unidade.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_status_produto_orcamento.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_status_produto_orcamento_tipo.value %}<td></td>{% endif %}
                             {% if formulario.coluna_preco_tabela_inclusao.value %}<td></td>{% endif %}
                             {% if formulario.coluna_preco_venda_medio.value %}<td></td>{% endif %}
                             {% if formulario.coluna_quantidade.value %}<td></td>{% endif %}

@@ -5,6 +5,7 @@ from utils.cor_rentabilidade import cor_rentabilidade_css, falta_mudar_cor_mes
 from utils.site_setup import (get_site_setup, get_assistentes_tecnicos, get_assistentes_tecnicos_agenda,
                               get_transportadoras, get_consultores_tecnicos_ativos)
 from utils.lfrete import notas as lfrete_notas, orcamentos as lfrete_orcamentos
+from utils.perdidos_justificativas import justificativas
 from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valores_atendimento
 from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes
 from django.core.exceptions import ObjectDoesNotExist
@@ -272,6 +273,9 @@ def conversao_de_orcamentos(carteira: str = '%%'):
     """Taxa de conversão de orçamentos com valor comercial dos ultimos 90 dias, ignorando orçamentos oportunidade e palavras chave de erros internos"""
     carteira, filtro_nao_carteira = carteira_mapping(carteira)
 
+    justificativas_itens = justificativas(False)
+    justificativas_itens_excluidos = justificativas(True)
+
     sql = """
         SELECT
             ROUND(SUM(CONVERSAO.FECHADO) / SUM(CONVERSAO.TOTAL) * 100, 2) AS CONVERSAO
@@ -299,63 +303,7 @@ def conversao_de_orcamentos(carteira: str = '%%'):
                     VENDEDORES.NOMERED LIKE :carteira AND
                     {filtro_nao_carteira}
 
-                    (
-                        ORCAMENTOS_ITENS.STATUS NOT IN ('CANCELADO', 'PERDA P/ OUTROS') OR
-                        (
-                            ORCAMENTOS_ITENS.STATUS IN ('CANCELADO', 'PERDA P/ OUTROS') AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA LIKE '____%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%ABRIU OUTRO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%ALTE_%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%AMOSTRA%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%DUAS V%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%DUPLI%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE 'ERRAD_%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '% ERRAD_' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '% ERRAD_%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE 'ERRO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '% ERRO' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '% ERRO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%MUDOU%MEDIDA%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRA%MEDIDA%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCA%MEDIDA%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%MUDEI%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%MUDOU%CNPJ%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%MUDOU%QUANTIDADE%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%MUDOU%MATERIAL%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%MUDOU%CPF%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%MUDOU%PRODUTO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%MUDOU%MEDIDA%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%MUDOU%ITE_%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%MUDOU%MODELO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRO%CNPJ%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRO%QUANTIDADE%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRO%MATERIAL%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRO%CPF%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRO%PRODUTO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRO%MEDIDA%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRO%ITE_%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRO%MODELO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRO%OR_AMENTO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRO%PEDIDO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%OUTRO%CADASTRO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%REPLI%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%SEPARA%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%SUBS%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TESTE%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCA%ITE_%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCA%MATERIA%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCA%MEDIDA%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCO%CNPJ%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCO%QUANTIDADE%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCO%MATERIAL%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCO%CPF%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCO%PRODUTO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCO%MEDIDA%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCO%ITE_%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROCO%MODELO%' AND
-                            ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA NOT LIKE '%TROQU%'
-                        )
-                    )
+                    {justificativas_itens}
 
                 UNION ALL
 
@@ -380,67 +328,13 @@ def conversao_de_orcamentos(carteira: str = '%%'):
                     VENDEDORES.NOMERED LIKE :carteira AND
                     {filtro_nao_carteira}
 
-                    (
-                        ORCAMENTOS_ITENS_EXCLUIDOS.STATUS NOT IN ('CANCELADO', 'PERDA P/ OUTROS') OR
-                        (
-                            ORCAMENTOS_ITENS_EXCLUIDOS.STATUS IN ('CANCELADO', 'PERDA P/ OUTROS') AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA LIKE '____%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%ABRIU OUTRO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%ALTE_%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%AMOSTRA%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%DUAS V%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%DUPLI%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE 'ERRAD_%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '% ERRAD_' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '% ERRAD_%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE 'ERRO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '% ERRO' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '% ERRO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%MUDOU%MEDIDA%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRA%MEDIDA%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCA%MEDIDA%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%MUDEI%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%MUDOU%CNPJ%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%MUDOU%QUANTIDADE%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%MUDOU%MATERIAL%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%MUDOU%CPF%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%MUDOU%PRODUTO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%MUDOU%MEDIDA%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%MUDOU%ITE_%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%MUDOU%MODELO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRO%CNPJ%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRO%QUANTIDADE%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRO%MATERIAL%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRO%CPF%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRO%PRODUTO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRO%MEDIDA%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRO%ITE_%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRO%MODELO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRO%OR_AMENTO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRO%PEDIDO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%OUTRO%CADASTRO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%REPLI%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%SEPARA%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%SUBS%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TESTE%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCA%ITE_%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCA%MATERIA%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCA%MEDIDA%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCO%CNPJ%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCO%QUANTIDADE%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCO%MATERIAL%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCO%CPF%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCO%PRODUTO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCO%MEDIDA%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCO%ITE_%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROCO%MODELO%' AND
-                            ORCAMENTOS_ITENS_EXCLUIDOS.JUSTIFICATIVA_PERDA NOT LIKE '%TROQU%'
-                        )
-                    )
+                    {justificativas_itens_excluidos}
             ) CONVERSAO
     """
 
-    sql = sql.format(filtro_nao_carteira=filtro_nao_carteira)
+    sql = sql.format(filtro_nao_carteira=filtro_nao_carteira,
+                     justificativas_itens=justificativas_itens,
+                     justificativas_itens_excluidos=justificativas_itens_excluidos)
 
     resultado = executar_oracle(sql, carteira=carteira)
 
@@ -715,6 +609,11 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
     coluna_quantidade_documentos = kwargs.get('coluna_quantidade_documentos')
     coluna_rentabilidade = kwargs.get('coluna_rentabilidade')
     coluna_rentabilidade_valor = kwargs.get('coluna_rentabilidade_valor')
+    coluna_status_produto_orcamento = kwargs.get('coluna_status_produto_orcamento')
+    status_produto_orcamento = kwargs.get('status_produto_orcamento')
+    coluna_status_produto_orcamento_tipo = kwargs.get('coluna_status_produto_orcamento_tipo')
+    status_produto_orcamento_tipo = kwargs.get('status_produto_orcamento_tipo')
+    desconsiderar_justificativas = kwargs.get('desconsiderar_justificativas')
 
     # Grupo Economico coluna e filtro
 
@@ -919,6 +818,16 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
             nao_compraram_depois_pesquisa = ""
     kwargs_sql.update({'nao_compraram_depois_pesquisa': nao_compraram_depois_pesquisa, })
 
+    # Desconsiderar justificativas invalidas filtro
+
+    desconsiderar_justificativa_pesquisa = ""
+    if desconsiderar_justificativas:
+        desconsiderar_justificativa_pesquisa = ""
+        if orcamento:
+            justificativas_itens = justificativas(False)
+            desconsiderar_justificativa_pesquisa = "{} AND".format(justificativas_itens)
+    kwargs_sql.update({'desconsiderar_justificativa_pesquisa': desconsiderar_justificativa_pesquisa, })
+
     # Proporção coluna
 
     proporcao_campo = ""
@@ -938,6 +847,60 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
             quantidade_documentos_campo = "COUNT(DISTINCT ORCAMENTOS.NUMPED),"
     kwargs_sql.update({'quantidade_documentos_campo_alias': quantidade_documentos_campo_alias,
                        'quantidade_documentos_campo': quantidade_documentos_campo})
+
+    # Status do produto coluna e filtro
+
+    status_produto_orcamento_campo_alias = ""
+    status_produto_orcamento_campo = ""
+    if coluna_status_produto_orcamento:
+        status_produto_orcamento_campo_alias = ""
+        status_produto_orcamento_campo = ""
+        if orcamento:
+            status_produto_orcamento_campo_alias = "ORCAMENTOS_ITENS.STATUS,"
+            status_produto_orcamento_campo = "ORCAMENTOS_ITENS.STATUS,"
+    kwargs_sql.update({'status_produto_orcamento_campo_alias': status_produto_orcamento_campo_alias,
+                       'status_produto_orcamento_campo': status_produto_orcamento_campo})
+
+    status_produto_orcamento_pesquisa = ""
+    if status_produto_orcamento:
+        status_produto_orcamento_pesquisa = ""
+        if orcamento:
+            chave_status_produto_orcamento = status_produto_orcamento.DESCRICAO
+            status_produto_orcamento_pesquisa = "ORCAMENTOS_ITENS.STATUS = :chave_status_produto_orcamento AND"
+            kwargs_ora.update({'chave_status_produto_orcamento': chave_status_produto_orcamento, })
+    kwargs_sql.update({'status_produto_orcamento_pesquisa': status_produto_orcamento_pesquisa, })
+
+    # Status Tipo do produto coluna, filtro, from e join
+
+    status_produto_orcamento_tipo_campo_alias = ""
+    status_produto_orcamento_tipo_campo = ""
+    if coluna_status_produto_orcamento_tipo:
+        status_produto_orcamento_tipo_campo_alias = ""
+        status_produto_orcamento_tipo_campo = ""
+        if orcamento:
+            status_produto_orcamento_tipo_campo_alias = "STATUS_ORCAMENTOS_ITENS.TIPO AS STATUS_TIPO,"
+            status_produto_orcamento_tipo_campo = "STATUS_ORCAMENTOS_ITENS.TIPO,"
+    kwargs_sql.update({'status_produto_orcamento_tipo_campo_alias': status_produto_orcamento_tipo_campo_alias,
+                       'status_produto_orcamento_tipo_campo': status_produto_orcamento_tipo_campo})
+
+    status_produto_orcamento_tipo_pesquisa = ""
+    if status_produto_orcamento_tipo:
+        status_produto_orcamento_tipo_pesquisa = ""
+        if orcamento:
+            status_produto_orcamento_tipo_pesquisa = "STATUS_ORCAMENTOS_ITENS.TIPO = :status_produto_orcamento_tipo AND"
+            kwargs_ora.update({'status_produto_orcamento_tipo': status_produto_orcamento_tipo, })
+    kwargs_sql.update({'status_produto_orcamento_tipo_pesquisa': status_produto_orcamento_tipo_pesquisa, })
+
+    status_produto_orcamento_tipo_from = ""
+    status_produto_orcamento_tipo_join = ""
+    if coluna_status_produto_orcamento_tipo or status_produto_orcamento_tipo:
+        status_produto_orcamento_tipo_from = ""
+        status_produto_orcamento_tipo_join = ""
+        if orcamento:
+            status_produto_orcamento_tipo_from = "COPLAS.STATUS_ORCAMENTOS_ITENS,"
+            status_produto_orcamento_tipo_join = "STATUS_ORCAMENTOS_ITENS.DESCRICAO = ORCAMENTOS_ITENS.STATUS AND"
+    kwargs_sql.update({'status_produto_orcamento_tipo_from': status_produto_orcamento_tipo_from,
+                       'status_produto_orcamento_tipo_join': status_produto_orcamento_tipo_join})
 
     # Rentabilidade coluna
 
@@ -970,7 +933,7 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
         lfrete_join = "LFRETE.CHAVE_NOTA_ITEM = NOTAS_ITENS.CHAVE AND"
         if orcamento:
             lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
-            lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE), 0), 2) AS MC_VALOR"
+            lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END), 0), 2) AS MC_VALOR"
             lfrete_from = """
                 (
                     SELECT
@@ -1025,8 +988,7 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
         NOTAS.DATA_EMISSAO <= :data_fim
     """
     if orcamento:
-        # TODO: converter moeda EM TODOS OS LUGARES COM VALOR DE ORÇAMENTO
-        valor_mercadorias = "SUM(ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)) AS VALOR_MERCADORIAS"
+        valor_mercadorias = "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS"
         notas_peso_liquido_from = ""
         fonte_itens = "COPLAS.ORCAMENTOS_ITENS,"
         fonte = "COPLAS.ORCAMENTOS,"
@@ -1065,6 +1027,8 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
             {familia_produto_campo_alias}
             {produto_campo_alias}
             {unidade_campo_alias}
+            {status_produto_orcamento_campo_alias}
+            {status_produto_orcamento_tipo_campo_alias}
             {preco_tabela_inclusao_campo_alias}
             {preco_venda_medio_campo_alias}
             {quantidade_campo_alias}
@@ -1077,6 +1041,7 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
         FROM
             {lfrete_from}
             {notas_peso_liquido_from}
+            {status_produto_orcamento_tipo_from}
             COPLAS.VENDEDORES,
             {fonte_itens}
             {fonte}
@@ -1090,6 +1055,7 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
 
         WHERE
             {lfrete_join}
+            {status_produto_orcamento_tipo_join}
             PRODUTOS.CHAVE_UNIDADE = UNIDADES.CHAVE AND
             FAMILIA_PRODUTOS.CHAVE = PRODUTOS.CHAVE_FAMILIA AND
             CLIENTES.UF = ESTADOS.CHAVE AND
@@ -1107,6 +1073,9 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
             {cidade_pesquisa}
             {estado_pesquisa}
             {nao_compraram_depois_pesquisa}
+            {status_produto_orcamento_pesquisa}
+            {status_produto_orcamento_tipo_pesquisa}
+            {desconsiderar_justificativa_pesquisa}
 
             {fonte_where_data}
 
@@ -1117,6 +1086,8 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
             {familia_produto_campo}
             {produto_campo}
             {unidade_campo}
+            {status_produto_orcamento_campo}
+            {status_produto_orcamento_tipo_campo}
             {cidade_campo}
             {estado_campo}
             1
@@ -1127,6 +1098,8 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
             {familia_produto_campo}
             {proporcao_campo}
             {produto_campo}
+            {status_produto_orcamento_campo}
+            {status_produto_orcamento_tipo_campo}
             VALOR_MERCADORIAS DESC
     """
 

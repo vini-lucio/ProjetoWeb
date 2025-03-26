@@ -87,7 +87,9 @@ def relatorios_supervisao(request, fonte: str):
                 # TODO: botão para exportar com base de email
                 excel = arquivo_excel(dados, cabecalho_negrito=True, ajustar_largura_colunas=True)
                 arquivo = salvar_excel_temporario(excel)
-                nome_arquivo = 'relatorio_faturamento'
+                nome_arquivo = 'relatorio_faturamentos'
+                if orcamento:
+                    nome_arquivo = 'relatorio_orcamentos'
                 response = arquivo_excel_response(arquivo, nome_arquivo)
                 return response
 

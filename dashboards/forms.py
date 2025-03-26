@@ -1,6 +1,6 @@
 from django import forms
 from utils.base_forms import FormPeriodoInicioFimMixIn
-from analysis.models import VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS
+from analysis.models import VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS, STATUS_ORCAMENTOS_ITENS
 from utils.data_hora_atual import hoje_as_yyyymmdd
 
 
@@ -71,9 +71,39 @@ class RelatoriosSupervisaoFaturamentosForm(RelatoriosSupervisaoBaseForm):
 
     def get_agrupamentos_campos(self):
         super_agrupamento = super().get_agrupamentos_campos()
+
         super_agrupamento.update({'Filtros Gerais': ['nao_compraram_depois',]})
+
         return super_agrupamento
 
 
 class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
-    ...
+    STATUS = STATUS_ORCAMENTOS_ITENS.objects.using('analysis')
+
+    status_orcamentos_itens = STATUS.all().order_by('DESCRICAO')
+    status_orcamentos_itens_tipos = list(STATUS.values_list('TIPO', 'TIPO').distinct())
+    status_orcamentos_itens_tipos.insert(0, ('', '---------'))
+
+    coluna_status_produto_orcamento = forms.BooleanField(label="Coluna Status", initial=False, required=False)
+    coluna_status_produto_orcamento_tipo = forms.BooleanField(label="Coluna Status Tipo", initial=False,
+                                                              required=False)
+
+    status_produto_orcamento = forms.ModelChoiceField(status_orcamentos_itens, label="Status", required=False)
+    status_produto_orcamento_tipo = forms.ChoiceField(label="Status Tipo", choices=status_orcamentos_itens_tipos,
+                                                      initial=False, required=False)
+    desconsiderar_justificativas = forms.BooleanField(label="Desconsiderar Justificativas Invalidas",
+                                                      help_text="de orçamentos não fechados", initial=True,
+                                                      required=False)
+
+    def get_agrupamentos_campos(self):
+        super_agrupamento = super().get_agrupamentos_campos()
+
+        super_agrupamento['Visualizações sobre Produto'].append('coluna_status_produto_orcamento')
+        super_agrupamento['Visualizações sobre Produto'].append('coluna_status_produto_orcamento_tipo')
+
+        super_agrupamento['Filtros sobre Produto'].append('status_produto_orcamento')
+        super_agrupamento['Filtros sobre Produto'].append('status_produto_orcamento_tipo')
+
+        super_agrupamento.update({'Filtros Gerais': ['desconsiderar_justificativas',]})
+
+        return super_agrupamento
