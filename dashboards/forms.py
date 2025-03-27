@@ -35,14 +35,12 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_quantidade_documentos = forms.BooleanField(label="Coluna Quantidade de Documentos", initial=False,
                                                       required=False)
 
-    # TODO: resto das colunas relatorios Salomão
-
     grupo_economico = forms.CharField(label="Grupo Economico", max_length=300, required=False)
     carteira = forms.ModelChoiceField(carteiras, label="Carteira", required=False)
     tipo_cliente = forms.ModelChoiceField(clientes_tipos, label="Tipo", required=False)
     cidade = forms.CharField(label="Cidade Principal", max_length=300, required=False)
     estado = forms.ModelChoiceField(estados, label="Estado Principal", required=False)
-    familia_produto = forms.ModelChoiceField(familias_produtos, label="Familia Produto", required=False)
+    familia_produto = forms.ModelChoiceField(familias_produtos, label="Familia", required=False)
     produto = forms.CharField(label="Produto", max_length=300, required=False)
 
     def get_agrupamentos_campos(self):
@@ -72,7 +70,7 @@ class RelatoriosSupervisaoFaturamentosForm(RelatoriosSupervisaoBaseForm):
     def get_agrupamentos_campos(self):
         super_agrupamento = super().get_agrupamentos_campos()
 
-        super_agrupamento.update({'Filtros Gerais': ['nao_compraram_depois',]})
+        super_agrupamento['Filtros sobre Cliente'].append('nao_compraram_depois')
 
         return super_agrupamento
 
@@ -83,17 +81,21 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
     status_orcamentos_itens = STATUS.all().order_by('DESCRICAO')
     status_orcamentos_itens_tipos = list(STATUS.values_list('TIPO', 'TIPO').distinct())
     status_orcamentos_itens_tipos.insert(0, ('', '---------'))
+    status_orcamentos_itens_tipos.insert(1, ('PERDIDO_CANCELADO', 'PERDIDO OU CANCELADO'))
 
-    coluna_status_produto_orcamento = forms.BooleanField(label="Coluna Status", initial=False, required=False)
-    coluna_status_produto_orcamento_tipo = forms.BooleanField(label="Coluna Status Tipo", initial=False,
-                                                              required=False)
+    coluna_status_produto_orcamento = forms.BooleanField(label="Coluna Status", help_text="exceto excluidos",
+                                                         initial=False, required=False)
+    coluna_status_produto_orcamento_tipo = forms.BooleanField(label="Coluna Status Tipo", help_text="exceto excluidos",
+                                                              initial=False, required=False)
 
-    status_produto_orcamento = forms.ModelChoiceField(status_orcamentos_itens, label="Status", required=False)
-    status_produto_orcamento_tipo = forms.ChoiceField(label="Status Tipo", choices=status_orcamentos_itens_tipos,
-                                                      initial=False, required=False)
-    desconsiderar_justificativas = forms.BooleanField(label="Desconsiderar Justificativas Invalidas",
-                                                      help_text="de orçamentos não fechados", initial=True,
+    status_produto_orcamento = forms.ModelChoiceField(status_orcamentos_itens, label="Status",
+                                                      help_text="exceto excluidos", required=False)
+    status_produto_orcamento_tipo = forms.ChoiceField(label="Status Tipo", help_text="exceto excluidos",
+                                                      choices=status_orcamentos_itens_tipos, initial=False,
                                                       required=False)
+    desconsiderar_justificativas = forms.BooleanField(label="Desconsiderar Justificativas Invalidas",
+                                                      help_text="de orçamentos não fechados (exceto excluidos)",
+                                                      initial=True, required=False)
 
     def get_agrupamentos_campos(self):
         super_agrupamento = super().get_agrupamentos_campos()
@@ -103,7 +105,6 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
 
         super_agrupamento['Filtros sobre Produto'].append('status_produto_orcamento')
         super_agrupamento['Filtros sobre Produto'].append('status_produto_orcamento_tipo')
-
-        super_agrupamento.update({'Filtros Gerais': ['desconsiderar_justificativas',]})
+        super_agrupamento['Filtros sobre Produto'].append('desconsiderar_justificativas')
 
         return super_agrupamento

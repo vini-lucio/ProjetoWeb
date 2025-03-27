@@ -819,6 +819,7 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
     kwargs_sql.update({'nao_compraram_depois_pesquisa': nao_compraram_depois_pesquisa, })
 
     # Desconsiderar justificativas invalidas filtro
+    # Inviavel incluir a tabela de itens excluidos em um relatorio tão dinamico
 
     desconsiderar_justificativa_pesquisa = ""
     if desconsiderar_justificativas:
@@ -887,8 +888,11 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
     if status_produto_orcamento_tipo:
         status_produto_orcamento_tipo_pesquisa = ""
         if orcamento:
-            status_produto_orcamento_tipo_pesquisa = "STATUS_ORCAMENTOS_ITENS.TIPO = :status_produto_orcamento_tipo AND"
-            kwargs_ora.update({'status_produto_orcamento_tipo': status_produto_orcamento_tipo, })
+            if status_produto_orcamento_tipo != "PERDIDO_CANCELADO":
+                status_produto_orcamento_tipo_pesquisa = "STATUS_ORCAMENTOS_ITENS.TIPO = :status_produto_orcamento_tipo AND"
+                kwargs_ora.update({'status_produto_orcamento_tipo': status_produto_orcamento_tipo, })
+            else:
+                status_produto_orcamento_tipo_pesquisa = "STATUS_ORCAMENTOS_ITENS.TIPO IN ('PERDIDO', 'CANCELADO') AND"
     kwargs_sql.update({'status_produto_orcamento_tipo_pesquisa': status_produto_orcamento_tipo_pesquisa, })
 
     status_produto_orcamento_tipo_from = ""
