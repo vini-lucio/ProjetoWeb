@@ -24,16 +24,20 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_familia_produto = forms.BooleanField(label="Coluna Familia", initial=False, required=False)
     coluna_produto = forms.BooleanField(label="Coluna Produto", initial=False, required=False)
     coluna_unidade = forms.BooleanField(label="Coluna Unidade", initial=False, required=False)
-    coluna_preco_tabela_inclusao = forms.BooleanField(label="Coluna Preço de Tabela", help_text="na inclusão, maior",
+    coluna_preco_tabela_inclusao = forms.BooleanField(label="Coluna Preço de Tabela R$", help_text="na inclusão, maior",
                                                       initial=False, required=False)
-    coluna_preco_venda_medio = forms.BooleanField(label="Coluna Preço Medio", initial=False, required=False)
+    coluna_preco_venda_medio = forms.BooleanField(label="Coluna Preço Medio R$", initial=False, required=False)
     coluna_quantidade = forms.BooleanField(label="Coluna Quantidade", initial=False, required=False)
     coluna_rentabilidade = forms.BooleanField(label="Coluna % MC", initial=False, required=False)
-    coluna_rentabilidade_valor = forms.BooleanField(label="Coluna Valor MC", initial=False,
+    coluna_rentabilidade_valor = forms.BooleanField(label="Coluna R$ MC", initial=False,
                                                     required=False)
     coluna_proporcao = forms.BooleanField(label="Coluna % Proporção", initial=True, required=False)
     coluna_quantidade_documentos = forms.BooleanField(label="Coluna Quantidade de Documentos", initial=False,
                                                       required=False)
+    coluna_ano_emissao = forms.BooleanField(label="Coluna Ano Emissão", initial=False, required=False)
+    coluna_mes_emissao = forms.BooleanField(label="Coluna Mês Emissão", initial=False, required=False)
+    coluna_media_dia = forms.BooleanField(label="Coluna R$ Médio por Dia", help_text="de venda", initial=False,
+                                          required=False)
 
     grupo_economico = forms.CharField(label="Grupo Economico", max_length=300, required=False)
     carteira = forms.ModelChoiceField(carteiras, label="Carteira", required=False)
@@ -53,7 +57,8 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
                                             'coluna_preco_tabela_inclusao', 'coluna_preco_venda_medio',
                                             'coluna_quantidade',],
             'Visualizações Gerais': ['coluna_rentabilidade', 'coluna_rentabilidade_valor', 'coluna_proporcao',
-                                     'coluna_quantidade_documentos',],
+                                     'coluna_quantidade_documentos', 'coluna_ano_emissao', 'coluna_mes_emissao',
+                                     'coluna_media_dia',],
 
             'Filtros sobre Cliente': ['grupo_economico', 'carteira', 'tipo_cliente',
                                       'cidade', 'estado',],

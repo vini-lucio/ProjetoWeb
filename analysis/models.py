@@ -179,3 +179,48 @@ class STATUS_ORCAMENTOS_ITENS(ReadOnlyMixin, models.Model):
 
     def __str__(self):
         return self.DESCRICAO
+
+
+class GRUPO_ECONOMICO(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."GRUPO_ECONOMICO"'
+        verbose_name = 'Grupo Economico'
+        verbose_name_plural = 'Grupos Economicos'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    DESCRICAO = models.CharField("Descrição", max_length=50, null=True, blank=True)
+
+    def __str__(self):
+        return self.DESCRICAO
+
+
+class CLIENTES(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."CLIENTES"'
+        verbose_name = 'Cliente'
+        verbose_name_plural = 'Clientes'
+
+    CODCLI = models.IntegerField("ID", primary_key=True)
+    NOMERED = models.CharField("Nome Reduzido", max_length=20, null=True, blank=True)
+    CODVEND = models.ForeignKey(VENDEDORES, db_column="CODVEND", verbose_name="1º Representante",
+                                on_delete=models.PROTECT, related_name="%(class)s_codvend", null=True, blank=True)
+    CHAVE_VENDEDOR2 = models.ForeignKey(VENDEDORES, db_column="CHAVE_VENDEDOR2", verbose_name="2º Representante",
+                                        on_delete=models.PROTECT, related_name="%(class)s_chave_vendedor2", null=True,
+                                        blank=True)
+    CHAVE_VENDEDOR3 = models.ForeignKey(VENDEDORES, db_column="CHAVE_VENDEDOR3", verbose_name="Consultor Tecnico",
+                                        on_delete=models.PROTECT, related_name="%(class)s_chave_vendedor3", null=True,
+                                        blank=True)
+    STATUS = models.CharField("Status", max_length=1, null=True, blank=True)
+    UF = models.ForeignKey(ESTADOS, db_column="UF", verbose_name="Estado Principal", on_delete=models.PROTECT,
+                           related_name="%(class)s_uf", null=True, blank=True)
+    CGC = models.CharField("CNPJ / CPF", max_length=18, null=True, blank=True)
+    CHAVE_TIPO = models.ForeignKey(CLIENTES_TIPOS, db_column="CHAVE_TIPO", verbose_name="Tipo de Cliente",
+                                   on_delete=models.PROTECT, related_name="%(class)s_uf", null=True, blank=True)
+    CHAVE_GRUPOECONOMICO = models.ForeignKey(GRUPO_ECONOMICO, db_column="CHAVE_GRUPOECONOMICO",
+                                             verbose_name="Grupo Economico", on_delete=models.PROTECT,
+                                             related_name="%(class)s", null=True, blank=True)
+
+    def __str__(self):
+        return self.NOMERED

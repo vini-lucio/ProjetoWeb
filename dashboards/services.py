@@ -614,14 +614,52 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
     coluna_status_produto_orcamento_tipo = kwargs.get('coluna_status_produto_orcamento_tipo')
     status_produto_orcamento_tipo = kwargs.get('status_produto_orcamento_tipo')
     desconsiderar_justificativas = kwargs.get('desconsiderar_justificativas')
+    coluna_ano_emissao = kwargs.get('coluna_ano_emissao')
+    coluna_mes_emissao = kwargs.get('coluna_mes_emissao')
+    coluna_media_dia = kwargs.get('coluna_media_dia')
+
+    # Media por dia coluna
+
+    media_dia_campo_alias = ""
+    if coluna_media_dia:
+        media_dia_campo_alias = "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 0), 0))) / COUNT(DISTINCT NOTAS.DATA_EMISSAO) AS MEDIA_DIA,"
+        if orcamento:
+            media_dia_campo_alias = "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) / COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS MEDIA_DIA,"
+    kwargs_sql.update({'media_dia_campo_alias': media_dia_campo_alias, })
+
+    # Ano Emissão coluna
+
+    ano_emissao_campo_alias = ""
+    ano_emissao_campo = ""
+    if coluna_ano_emissao:
+        ano_emissao_campo_alias = "EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS ANO_EMISSAO,"
+        ano_emissao_campo = "EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),"
+        if orcamento:
+            ano_emissao_campo_alias = "EXTRACT(YEAR FROM ORCAMENTOS.DATA_PEDIDO) AS ANO_EMISSAO,"
+            ano_emissao_campo = "EXTRACT(YEAR FROM ORCAMENTOS.DATA_PEDIDO),"
+    kwargs_sql.update({'ano_emissao_campo_alias': ano_emissao_campo_alias,
+                       'ano_emissao_campo': ano_emissao_campo})
+
+    # Mês Emissão coluna
+
+    mes_emissao_campo_alias = ""
+    mes_emissao_campo = ""
+    if coluna_mes_emissao:
+        mes_emissao_campo_alias = "EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES_EMISSAO,"
+        mes_emissao_campo = "EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO),"
+        if orcamento:
+            mes_emissao_campo_alias = "EXTRACT(MONTH FROM ORCAMENTOS.DATA_PEDIDO) AS MES_EMISSAO,"
+            mes_emissao_campo = "EXTRACT(MONTH FROM ORCAMENTOS.DATA_PEDIDO),"
+    kwargs_sql.update({'mes_emissao_campo_alias': mes_emissao_campo_alias,
+                       'mes_emissao_campo': mes_emissao_campo})
 
     # Grupo Economico coluna e filtro
 
     grupo_economico_campo_alias = ""
     grupo_economico_campo = ""
     if coluna_grupo_economico:
-        grupo_economico_campo_alias = "GRUPO_ECONOMICO.DESCRICAO AS GRUPO,"
-        grupo_economico_campo = "GRUPO_ECONOMICO.DESCRICAO,"
+        grupo_economico_campo_alias = "GRUPO_ECONOMICO.CHAVE AS CHAVE_GRUPO_ECONOMICO, GRUPO_ECONOMICO.DESCRICAO AS GRUPO,"
+        grupo_economico_campo = "GRUPO_ECONOMICO.CHAVE, GRUPO_ECONOMICO.DESCRICAO,"
     kwargs_sql.update({'grupo_economico_campo_alias': grupo_economico_campo_alias,
                        'grupo_economico_campo': grupo_economico_campo})
 
@@ -964,7 +1002,7 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
 
     # Fonte Notas / Orçamentos
 
-    valor_mercadorias = "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)) AS VALOR_MERCADORIAS"
+    valor_mercadorias = "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 0), 0))) AS VALOR_MERCADORIAS"
     notas_peso_liquido_from = """
         (
             SELECT
@@ -992,7 +1030,7 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
         NOTAS.DATA_EMISSAO <= :data_fim
     """
     if orcamento:
-        valor_mercadorias = "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS"
+        valor_mercadorias = "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS"
         notas_peso_liquido_from = ""
         fonte_itens = "COPLAS.ORCAMENTOS_ITENS,"
         fonte = "COPLAS.ORCAMENTOS,"
@@ -1022,6 +1060,8 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
 
     sql = """
         SELECT
+            {ano_emissao_campo_alias}
+            {mes_emissao_campo_alias}
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
             {quantidade_documentos_campo_alias}
@@ -1036,6 +1076,7 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
             {preco_tabela_inclusao_campo_alias}
             {preco_venda_medio_campo_alias}
             {quantidade_campo_alias}
+            {media_dia_campo_alias}
 
             {valor_mercadorias}
 
@@ -1066,7 +1107,7 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
             {fonte_joins}
             CLIENTES.CHAVE_TIPO = CLIENTES_TIPOS.CHAVE AND
             VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
-            CLIENTES.CHAVE_GRUPOECONOMICO = GRUPO_ECONOMICO.CHAVE AND
+            CLIENTES.CHAVE_GRUPOECONOMICO = GRUPO_ECONOMICO.CHAVE(+) AND
             {fonte_where}
 
             {grupo_economico_pesquisa}
@@ -1084,6 +1125,8 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
             {fonte_where_data}
 
         GROUP BY
+            {ano_emissao_campo}
+            {mes_emissao_campo}
             {carteira_campo}
             {grupo_economico_campo}
             {tipo_cliente_campo}
@@ -1097,6 +1140,8 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
             1
 
         ORDER BY
+            {ano_emissao_campo}
+            {mes_emissao_campo}
             {carteira_campo}
             {tipo_cliente_campo}
             {familia_produto_campo}

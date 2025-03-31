@@ -1,6 +1,6 @@
 from typing import Dict
 from django.shortcuts import render
-from django.http import Http404
+from django.http import HttpResponse
 from .services import DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_supervisao
 from .forms import RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
@@ -31,7 +31,7 @@ def vendas_supervisao(request):
 def relatorios_supervisao(request, fonte: str):
     fonte_relatorio = fonte
     if fonte_relatorio not in ('faturamentos', 'orcamentos'):
-        return Http404("Pagina invalida")
+        return HttpResponse("Pagina invalida", status=404)
 
     orcamento = False
     if fonte_relatorio == 'orcamentos':

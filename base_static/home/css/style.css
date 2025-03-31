@@ -1,7 +1,8 @@
 :root {
     --azul-escuro: rgb(0, 50, 105);
     --azul-escuro-2: hsl(211, 100%, 15%);
-    --azul-claro: rgb(95, 144, 196);
+    /* --azul-claro: rgb(95, 144, 196); */
+    --azul-claro: hsl(220, 70%, 85%);
 
     --verde-claro: rgb(189, 198, 56);
 
@@ -166,9 +167,13 @@ textarea:focus {
     color: var(--branco);
 }
 
-.principal-azul-claro {
+/* .principal-azul-claro {
     background-color: var(--azul-claro);
     color: var(--branco);
+} */
+
+.principal-azul-claro {
+    background-color: var(--azul-claro);
 }
 
 .logo-img {
@@ -832,9 +837,13 @@ textarea:focus {
     border: none;
 }
 
+.tabela-simples td {
+    border-bottom: 0.2rem solid var(--verde-claro);
+}
+
 .tabela-simples td,
 .tabela-simples th {
-    padding: 0rem 1rem;
+    padding: 0.3rem 1rem;
 }
 
 .linha-pontilhada::after {

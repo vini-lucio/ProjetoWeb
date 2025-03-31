@@ -1,4 +1,4 @@
-{% extends "home/base.html" %}
+{% extends "analysis/base.html" %}
 
 {% load custom_filters %}
 
@@ -8,13 +8,13 @@
 
         <div class="link-conteudo">
             <div class="titulo">
-                <h1>{{  titulo_pagina_2  }}</h1>
+                <h1>{{  titulo_pagina  }}</h1>
             </div>
 
-            <form method="get">
-                {% comment %} <div class="grid-simples link-conteudo">
+            {% comment %} <form method="get">
+                <div class="grid-simples link-conteudo">
                     {{ formulario.as_p }}
-                </div> {% endcomment %}
+                </div>
 
                 <div class="grid-simples link-conteudo">
                     {% for agrupamento, campos in formulario.get_agrupamentos_campos.items %}
@@ -53,7 +53,7 @@
                         <button class="botao" name="exportar-submit" type="submit">Exportar .xlsx</button>
                     {% endif %}
                 </div>
-            </form>
+            </form> {% endcomment %}
         </div>
 
         
@@ -64,12 +64,14 @@
                 <p>{{ erros }}</p>
             {% endif %}
 
-            {% if dados %}
+            {% for cliente in grupo_economico.clientes.all %}
+                <p>{{  cliente  }}</p>
+            {% endfor %}
+
+            {% comment %} {% if dados %}
                 <div class="tabela-simples">
                     <table>
                         <tr>
-                            {% if formulario.coluna_ano_emissao.value %}<th>Ano</th>{% endif %}
-                            {% if formulario.coluna_mes_emissao.value %}<th>Mês</th>{% endif %}
                             {% if formulario.coluna_carteira.value %}<th>Carteira</th>{% endif %}
                             {% if formulario.coluna_grupo_economico.value %}<th>Grupo Economico</th>{% endif %}
                             {% if formulario.coluna_quantidade_documentos.value %}<th>Qtd. Documentos</th>{% endif %}
@@ -84,7 +86,6 @@
                             {% if formulario.coluna_preco_tabela_inclusao.value %}<th>R$ Preço Tabela (Inclusão)</th>{% endif %}
                             {% if formulario.coluna_preco_venda_medio.value %}<th>R$ Preço Venda Medio</th>{% endif %}
                             {% if formulario.coluna_quantidade.value %}<th>Qtd.</th>{% endif %}
-                            {% if formulario.coluna_media_dia.value %}<th>R$ Média por Dia</th>{% endif %}
                             <th>R$ Valor Mercadorias</th>
                             {% if formulario.coluna_proporcao.value %}<th>Proporção %</th>{% endif %}
                             {% if formulario.coluna_rentabilidade_valor.value %}<th>MC R$</th>{% endif %}
@@ -92,8 +93,6 @@
                         </tr>
                         {% for valor in dados %}
                             <tr class="{% cycle 'principal-azul-claro' '' %}">
-                                {% if formulario.coluna_ano_emissao.value %}<td>{{ valor.ANO_EMISSAO }}</td>{% endif %}
-                                {% if formulario.coluna_mes_emissao.value %}<td>{{ valor.MES_EMISSAO }}</td>{% endif %}
                                 {% if formulario.coluna_carteira.value %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
                                 {% if formulario.coluna_grupo_economico.value %}<td>{{ valor.GRUPO }}</td>{% endif %}
                                 {% if formulario.coluna_quantidade_documentos.value %}<td>{{ valor.QUANTIDADE_DOCUMENTOS | floatformat:0 }}</td>{% endif %}
@@ -108,7 +107,6 @@
                                 {% if formulario.coluna_preco_tabela_inclusao.value %}<td>R$ {{ valor.PRECO_TABELA_INCLUSAO | floatformat:2 }}</td>{% endif %}
                                 {% if formulario.coluna_preco_venda_medio.value %}<td>R$ {{ valor.PRECO_VENDA_MEDIO | floatformat:2 }}</td>{% endif %}
                                 {% if formulario.coluna_quantidade.value %}<td>{{ valor.QUANTIDADE | floatformat:3 }}</td>{% endif %}
-                                {% if formulario.coluna_media_dia.value %}<td>{{ valor.MEDIA_DIA | floatformat:2 }}</td>{% endif %}
                                 <td>R$ {{ valor.VALOR_MERCADORIAS | floatformat:2 }}</td>
                                 {% if formulario.coluna_proporcao.value %}<td>{{ valor.VALOR_MERCADORIAS|dividir_porcentagem:valor_mercadorias_total | floatformat:2 }}%</td>{% endif %}
                                 {% if formulario.coluna_rentabilidade_valor.value %}<td>R$ {{ valor.MC_VALOR | floatformat:2 }}</td>{% endif %}
@@ -116,8 +114,6 @@
                             </tr>
                         {% endfor %}
                         <tr>
-                            {% if formulario.coluna_ano_emissao.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_mes_emissao.value %}<td></td>{% endif %}
                             {% if formulario.coluna_carteira.value %}<td></td>{% endif %}
                             {% if formulario.coluna_grupo_economico.value %}<td></td>{% endif %}
                             {% if formulario.coluna_quantidade_documentos.value %}<td class="azul-negrito">{{ quantidade_documentos_total | floatformat:0 }}</td>{% endif %}
@@ -132,7 +128,6 @@
                             {% if formulario.coluna_preco_tabela_inclusao.value %}<td></td>{% endif %}
                             {% if formulario.coluna_preco_venda_medio.value %}<td></td>{% endif %}
                             {% if formulario.coluna_quantidade.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_media_dia.value %}<td></td>{% endif %}
                             <td class="azul-negrito">R$ {{ valor_mercadorias_total | floatformat:2 }}</td>
                             {% if formulario.coluna_proporcao.value %}<td class="azul-negrito">100,00%</td>{% endif %}
                             {% if formulario.coluna_rentabilidade_valor.value %}<td class="azul-negrito">R$ {{ mc_valor_total | floatformat:2 }}</td>{% endif %}
@@ -140,7 +135,7 @@
                         </tr>
                     </table>
                 </div>
-            {% endif %}
+            {% endif %} {% endcomment %}
 
         </div>
 
