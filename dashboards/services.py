@@ -9,6 +9,7 @@ from utils.perdidos_justificativas import justificativas
 from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valores_atendimento
 from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes
 from django.core.exceptions import ObjectDoesNotExist
+from datetime import datetime
 
 
 class DashBoardVendas():
@@ -579,7 +580,7 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
     return erros
 
 
-def get_relatorios_supervisao(orcamento: bool, **kwargs):
+def get_relatorios_vendas(orcamento: bool, **kwargs):
     # TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
     kwargs_sql = {}
     kwargs_ora = {}
@@ -617,6 +618,12 @@ def get_relatorios_supervisao(orcamento: bool, **kwargs):
     coluna_ano_emissao = kwargs.get('coluna_ano_emissao')
     coluna_mes_emissao = kwargs.get('coluna_mes_emissao')
     coluna_media_dia = kwargs.get('coluna_media_dia')
+
+    if not data_inicio:
+        data_inicio = datetime.date(datetime(2010, 1, 1))
+
+    if not data_fim:
+        data_fim = datetime.date(datetime(2999, 12, 31))
 
     # Media por dia coluna
 

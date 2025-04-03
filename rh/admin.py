@@ -605,7 +605,7 @@ class FaturamentosAdmin(BaseModelAdminRedRequired):
                                          'valor_mercadorias', 'divisao', 'valor_mercadorias_nao_dividido']
                 conteudo = gerar_conteudo_excel(queryset_faturamentos_representante, cabecalho_customizado)
                 titulo_aba = representante.nome
-                workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
+                workbook = arquivo_excel(conteudo, cabecalho_customizado, titulo_aba, workbook, cabecalho_negrito=True,
                                          formatar_numero=(['M', 'O'], 2), ajustar_largura_colunas=True)
                 somar_coluna_formatada(conteudo, titulo_aba, workbook, 'M', 'FATURADO')
 

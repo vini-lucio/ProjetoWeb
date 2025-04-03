@@ -64,8 +64,37 @@
                 <p>{{ erros }}</p>
             {% endif %}
 
-            {% for cliente in grupo_economico.clientes.all %}
-                <p>{{  cliente  }}</p>
+            <p>Cadastros</p>
+            {% if quantidade_clientes %}
+                <p>{{  quantidade_clientes  }}</p>
+            {% endif %}
+
+            <br>
+
+            <p>Eventos Em Aberto</p>
+            {% if quantidade_eventos_em_aberto %}
+                <p>{{  quantidade_eventos_em_aberto  }}</p>
+            {% endif %}
+
+            <br>
+
+            <p>Tipos</p>
+            {% for tipo in quantidade_tipos %}
+                <p>{{  tipo.TIPO  }} ({{  tipo.QUANTIDADE  }})</p>
+            {% endfor %}
+
+            <br>
+
+            <p>Carteiras</p>
+            {% for carteira in quantidade_carteiras %}
+                <p>{{  carteira.CARTEIRA  }} ({{  carteira.QUANTIDADE  }})</p>
+            {% endfor %}
+
+            <br>
+
+            <p>Historico Faturamento</p>
+            {% for ano in historico_faturamento_anual %}
+                <p>{{  ano.ANO_EMISSAO  }} R$ {{  ano.VALOR_MERCADORIAS | floatformat:2  }} ({{  ano.QUANTIDADE_DOCUMENTOS  }})</p>
             {% endfor %}
 
             {% comment %} {% if dados %}

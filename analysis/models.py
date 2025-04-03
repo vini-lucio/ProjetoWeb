@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import F, Count
 from utils.base_models import ReadOnlyMixin
 
 
@@ -191,6 +192,40 @@ class GRUPO_ECONOMICO(ReadOnlyMixin, models.Model):
     CHAVE = models.IntegerField("ID", primary_key=True)
     DESCRICAO = models.CharField("Descrição", max_length=50, null=True, blank=True)
 
+    @property
+    def clientes_ativos(self):
+        ativos = self.clientes.all()  # type:ignore
+        ativos = ativos.exclude(STATUS='X')
+        return ativos
+
+    @property
+    def quantidade_clientes_ativos(self):
+        clientes_ativos = self.clientes_ativos.count()
+        return clientes_ativos
+
+    @property
+    def quantidade_clientes_ativos_por_tipo(self):
+        clientes_ativos = self.clientes_ativos
+        quantidade_tipos = clientes_ativos.values(TIPO=F('CHAVE_TIPO__DESCRICAO')).annotate(
+            QUANTIDADE=Count('CHAVE_TIPO')).order_by('-QUANTIDADE')
+        return quantidade_tipos
+
+    @property
+    def quantidade_clientes_ativos_por_carteira(self):
+        clientes_ativos = self.clientes_ativos
+        quantidade_carteiras = clientes_ativos.values(CARTEIRA=F('CHAVE_VENDEDOR3__NOMERED')).annotate(
+            QUANTIDADE=Count('CHAVE_VENDEDOR3')).order_by('-QUANTIDADE')
+        return quantidade_carteiras
+
+    @property
+    def quantidade_eventos_em_aberto(self):
+        clientes = self.clientes.all()  # type:ignore
+        quantidade = 0
+        if clientes:
+            quantidade = CLIENTES_HISTORICO.objects.using('analysis').filter(DATA_REALIZADO__isnull=True,
+                                                                             CHAVE_CLIENTE__in=clientes).count()
+        return quantidade
+
     def __str__(self):
         return self.DESCRICAO
 
@@ -224,3 +259,55 @@ class CLIENTES(ReadOnlyMixin, models.Model):
 
     def __str__(self):
         return self.NOMERED
+
+
+class TIPOS_HISTORICO(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."TIPOS_HISTORICO"'
+        verbose_name = 'Tipo de Evento'
+        verbose_name_plural = 'Tipos de Evento'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    TIPO = models.CharField("Tipo", max_length=20, null=True, blank=True)
+
+    def __str__(self):
+        return self.TIPO
+
+
+class V_COLABORADORES(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."V_COLABORADORES"'
+        verbose_name = 'Usuario'
+        verbose_name_plural = 'Usuarios'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    USUARIO = models.CharField("Usuario", max_length=30, null=True, blank=True)
+
+    def __str__(self):
+        return self.USUARIO
+
+
+class CLIENTES_HISTORICO(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."CLIENTES_HISTORICO"'
+        verbose_name = 'Evento Cliente'
+        verbose_name_plural = 'Eventos Cliente'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CHAVE_CLIENTE = models.ForeignKey(CLIENTES, db_column="CHAVE_CLIENTE", verbose_name="Cliente",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    DATA = models.DateField("Data Previsão", auto_now=False, auto_now_add=False, null=True, blank=True)
+    DATA_REALIZADO = models.DateField("Data Realizado", auto_now=False, auto_now_add=False, null=True, blank=True)
+    CHAVE_TIPO = models.ForeignKey(TIPOS_HISTORICO, db_column="CHAVE_TIPO", verbose_name="Tipo",
+                                   on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    ASSUNTO = models.CharField("Assunto", max_length=40, null=True, blank=True)
+    CHAVE_RESPONSAVEL = models.ForeignKey(V_COLABORADORES, db_column="CHAVE_RESPONSAVEL", verbose_name="Responsavel",
+                                          on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    OBSERVACOES_EVENTO = models.TextField("Observações Evento", null=True, blank=True)
+    OBSERVACOES_EVENTO_FECHAMENTO = models.TextField("Observações Evento Fechamento", null=True, blank=True)
+
+    def __str__(self):
+        return self.CHAVE

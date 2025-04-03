@@ -1,7 +1,7 @@
 from typing import Dict
 from django.shortcuts import render
 from django.http import HttpResponse
-from .services import DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_supervisao
+from .services import DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas
 from .forms import RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 
@@ -56,7 +56,7 @@ def relatorios_supervisao(request, fonte: str):
         formulario = form(request.GET)
         if formulario.is_valid():
             if request.GET:
-                dados = get_relatorios_supervisao(orcamento, **formulario.cleaned_data)
+                dados = get_relatorios_vendas(orcamento, **formulario.cleaned_data)
 
                 coluna_rentabilidade = formulario.cleaned_data.get('coluna_rentabilidade')
                 coluna_rentabilidade_valor = formulario.cleaned_data.get('coluna_rentabilidade_valor')
