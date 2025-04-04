@@ -97,6 +97,16 @@
                 <p>{{  ano.ANO_EMISSAO  }} R$ {{  ano.VALOR_MERCADORIAS | floatformat:2  }} ({{  ano.QUANTIDADE_DOCUMENTOS  }})</p>
             {% endfor %}
 
+            <br>
+            <p>Grafico Teste</p>
+            {{  grafico_historico_html|safe}}
+            
+            {% comment %} <div id="bar-chart"></div>
+            <script>
+                const graphData = {{  grafico_json | safe  }};
+                Plotly.newPlot('bar-chart', graphData);
+            </script> {% endcomment %}
+
             {% comment %} {% if dados %}
                 <div class="tabela-simples">
                     <table>
