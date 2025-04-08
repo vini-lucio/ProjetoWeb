@@ -64,7 +64,7 @@
                 <p>{{ erros }}</p>
             {% endif %}
 
-            <p>Cadastros</p>
+            <p>Cadastros Ativos</p>
             {% if quantidade_clientes %}
                 <p>{{  quantidade_clientes  }}</p>
             {% endif %}
@@ -92,15 +92,12 @@
 
             <br>
 
-            <p>Historico Faturamento</p>
-            {% for ano in historico_faturamento_anual %}
-                <p>{{  ano.ANO_EMISSAO  }} R$ {{  ano.VALOR_MERCADORIAS | floatformat:2  }} ({{  ano.QUANTIDADE_DOCUMENTOS  }})</p>
-            {% endfor %}
-
-            <br>
-            <p>Grafico Teste</p>
             {{  grafico_historico_html|safe}}
             
+            <br>
+
+            {{  grafico_produtos_html|safe}}
+
             {% comment %} <div id="bar-chart"></div>
             <script>
                 const graphData = {{  grafico_json | safe  }};

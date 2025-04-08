@@ -1,4 +1,5 @@
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 
 def data_hora_atual() -> str:
@@ -17,3 +18,9 @@ def hoje_as_yyyymmdd() -> str:
     hoje_ = hoje()
     hoje_formatado = hoje_.strftime("%Y-%m-%d")
     return hoje_formatado
+
+
+def data_365_dias_atras():
+    data_12_meses = datetime.now() - relativedelta(days=365)
+    data_12_meses = datetime(data_12_meses.year, data_12_meses.month, data_12_meses.day).date()
+    return data_12_meses
