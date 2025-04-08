@@ -311,3 +311,99 @@ class CLIENTES_HISTORICO(ReadOnlyMixin, models.Model):
 
     def __str__(self):
         return self.CHAVE
+
+
+class PEDIDOS_TIPOS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."PEDIDOS_TIPOS"'
+        verbose_name = 'Tipo de Pedido'
+        verbose_name_plural = 'Tipos de Pedido'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    DESCRICAO = models.CharField("Descrição", max_length=50, null=True, blank=True)
+    VALOR_COMERCIAL = models.CharField("Valor Comercial", max_length=3, null=True, blank=True)
+
+    def __str__(self):
+        return self.DESCRICAO
+
+
+class ORCAMENTOS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."ORCAMENTOS"'
+        verbose_name = 'Orçamento'
+        verbose_name_plural = 'Orçamentos'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    NUMPED = models.IntegerField("Nº Orçamento")
+    DATA_PEDIDO = models.DateField("Data Orçamento", auto_now=False, auto_now_add=False, null=True, blank=True)
+    CHAVE_CLIENTE = models.ForeignKey(CLIENTES, db_column="CHAVE_CLIENTE", verbose_name="Cliente",
+                                      on_delete=models.PROTECT, related_name="%(class)s_chave_cliente", null=True,
+                                      blank=True)
+    VALOR_TOTAL = models.DecimalField("Valor Total", max_digits=22, decimal_places=6, null=True, blank=True)
+    STATUS = models.CharField("Status", max_length=15, null=True, blank=True)
+    VALOR_FRETE = models.DecimalField("Valor Frete", max_digits=22, decimal_places=6, null=True, blank=True)
+    CHAVE_TIPO = models.ForeignKey(PEDIDOS_TIPOS, db_column="CHAVE_TIPO", verbose_name="Tipo de Orçamento",
+                                   on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    REGISTRO_OPORTUNIDADE = models.CharField("Oportunidade", max_length=3, null=True, blank=True)
+    VALOR_FRETE_EMPRESA = models.DecimalField("Valor Frete Empresa", max_digits=22, decimal_places=6, null=True,
+                                              blank=True)
+    FRETE_INCL_ITEM = models.CharField("Frete Incluso nos Itens", max_length=3, null=True, blank=True)
+    VALOR_FRETE_INCL_ITEM = models.DecimalField("Valor Frete Incluso nos Itens", max_digits=22, decimal_places=6,
+                                                null=True, blank=True)
+
+    def __str__(self):
+        return self.NUMPED
+
+
+class ORCAMENTOS_ITENS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."ORCAMENTOS_ITENS"'
+        verbose_name = 'Item de Orçamento'
+        verbose_name_plural = 'Itens de Orçamento'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CHAVE_PEDIDO = models.ForeignKey(ORCAMENTOS, db_column="CHAVE_PEDIDO", verbose_name="Orçamento",
+                                     on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_PRODUTO = models.ForeignKey(PRODUTOS, db_column="CHAVE_PRODUTO", verbose_name="Produto",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    QUANTIDADE = models.DecimalField("Quantidade", max_digits=22, decimal_places=6, null=True, blank=True)
+    DATA_ENTREGA = models.DateField("Data de Entrega", auto_now=False, auto_now_add=False, null=True, blank=True)
+    PRECO_TABELA = models.DecimalField("Preço de Tabela", max_digits=22, decimal_places=6, null=True, blank=True)
+    PRECO_VENDA = models.DecimalField("Preço de Venda", max_digits=22, decimal_places=6, null=True, blank=True)
+    VALOR_TOTAL = models.DecimalField("Valor Total", max_digits=22, decimal_places=6, null=True, blank=True)
+    STATUS = models.CharField("Status", max_length=50, null=True, blank=True)
+    RATEIO_FRETE = models.DecimalField("Rateio Frete", max_digits=22, decimal_places=6, null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.CHAVE_PEDIDO} - {self.CHAVE_PRODUTO}'
+
+
+class PEDIDOS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."PEDIDOS"'
+        verbose_name = 'Pedido'
+        verbose_name_plural = 'Pedidos'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    NUMPED = models.IntegerField("Nº Pedido")
+    DATA_PEDIDO = models.DateField("Data Pedido", auto_now=False, auto_now_add=False, null=True, blank=True)
+    CHAVE_CLIENTE = models.ForeignKey(CLIENTES, db_column="CHAVE_CLIENTE", verbose_name="Cliente",
+                                      on_delete=models.PROTECT, related_name="%(class)s_chave_cliente", null=True,
+                                      blank=True)
+    VALOR_TOTAL = models.DecimalField("Valor Total", max_digits=22, decimal_places=6, null=True, blank=True)
+    STATUS = models.CharField("Status", max_length=15, null=True, blank=True)
+    VALOR_FRETE = models.DecimalField("Valor Frete", max_digits=22, decimal_places=6, null=True, blank=True)
+    CHAVE_TIPO = models.ForeignKey(PEDIDOS_TIPOS, db_column="CHAVE_TIPO", verbose_name="Tipo de Orçamento",
+                                   on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    VALOR_FRETE_EMPRESA = models.DecimalField("Valor Frete Empresa", max_digits=22, decimal_places=6, null=True,
+                                              blank=True)
+    FRETE_INCL_ITEM = models.CharField("Frete Incluso nos Itens", max_length=3, null=True, blank=True)
+    VALOR_FRETE_INCL_ITEM = models.DecimalField("Valor Frete Incluso nos Itens", max_digits=22, decimal_places=6,
+                                                null=True, blank=True)
+
+    def __str__(self):
+        return self.NUMPED

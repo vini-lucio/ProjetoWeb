@@ -582,6 +582,7 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
 
 def get_relatorios_vendas(orcamento: bool, **kwargs):
     # TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
+    # TODO: considerar itens perdidos excluidos?????
     kwargs_sql = {}
     kwargs_ora = {}
 
