@@ -78,6 +78,13 @@
 
             <br>
 
+            <p>Eventos Em Atraso</p>
+            {% if quantidade_eventos_em_atraso %}
+                <p>{{  quantidade_eventos_em_atraso  }}</p>
+            {% endif %}
+
+            <br>
+
             <p>Tipos</p>
             {% for tipo in quantidade_tipos %}
                 <p>{{  tipo.TIPO  }} ({{  tipo.QUANTIDADE  }})</p>
@@ -89,6 +96,20 @@
             {% for carteira in quantidade_carteiras %}
                 <p>{{  carteira.CARTEIRA  }} ({{  carteira.QUANTIDADE  }})</p>
             {% endfor %}
+
+            <br>
+
+            <p>Ultimo Orçamento Aberto</p>
+            {% if ultimo_orcamento_aberto %}
+                <p>{{  ultimo_orcamento_aberto | date:'d/m/Y' }}</p>
+            {% endif %}
+
+            <br>
+
+            <p>Ultimo Pedido</p>
+            {% if ultimo_pedido %}
+                <p>{{  ultimo_pedido | date:'d/m/Y' }}</p>
+            {% endif %}
 
             <br>
 

@@ -29,6 +29,9 @@ class GruposEconomicosDetailView(DetailView):
         quantidade_tipos = objeto.quantidade_clientes_ativos_por_tipo  # type:ignore
         quantidade_carteiras = objeto.quantidade_clientes_ativos_por_carteira  # type:ignore
         quantidade_eventos_em_aberto = objeto.quantidade_eventos_em_aberto  # type:ignore
+        quantidade_eventos_em_atraso = objeto.quantidade_eventos_em_atraso  # type:ignore
+        ultimo_orcamento_aberto = objeto.ultimo_orcamento_aberto  # type:ignore
+        ultimo_pedido = objeto.ultimo_pedido  # type:ignore
 
         # Dados Grafico Valor Anual
 
@@ -118,8 +121,11 @@ class GruposEconomicosDetailView(DetailView):
             'quantidade_carteiras': quantidade_carteiras,
             'historico_faturamento_anual': historico_faturamento_anual,
             'quantidade_eventos_em_aberto': quantidade_eventos_em_aberto,
+            'quantidade_eventos_em_atraso': quantidade_eventos_em_atraso,
             'grafico_historico_html': grafico_historico_html,
             'top_30_produtos_vendidos_12_meses': top_30_produtos_vendidos_12_meses,
             'grafico_produtos_html': grafico_produtos_html,
+            'ultimo_orcamento_aberto': ultimo_orcamento_aberto,
+            'ultimo_pedido': ultimo_pedido,
         })
         return context

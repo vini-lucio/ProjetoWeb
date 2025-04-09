@@ -20,6 +20,15 @@ def hoje_as_yyyymmdd() -> str:
     return hoje_formatado
 
 
+def data_x_dias(x: int, passado: bool):
+    if passado:
+        data_x_dias = datetime.now() - relativedelta(days=x)
+    else:
+        data_x_dias = datetime.now() + relativedelta(days=x)
+    data_x_dias = datetime(data_x_dias.year, data_x_dias.month, data_x_dias.day).date()
+    return data_x_dias
+
+
 def data_365_dias_atras():
     data_12_meses = datetime.now() - relativedelta(days=365)
     data_12_meses = datetime(data_12_meses.year, data_12_meses.month, data_12_meses.day).date()

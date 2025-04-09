@@ -1,6 +1,7 @@
 from django.db import models
-from django.db.models import F, Count
+from django.db.models import F, Count, Max
 from utils.base_models import ReadOnlyMixin
+from utils.data_hora_atual import hoje
 
 
 class CANAIS_VENDA(ReadOnlyMixin, models.Model):
@@ -222,9 +223,32 @@ class GRUPO_ECONOMICO(ReadOnlyMixin, models.Model):
         clientes = self.clientes.all()  # type:ignore
         quantidade = 0
         if clientes:
-            quantidade = CLIENTES_HISTORICO.objects.using('analysis').filter(DATA_REALIZADO__isnull=True,
-                                                                             CHAVE_CLIENTE__in=clientes).count()
+            quantidade = CLIENTES_HISTORICO.filter_em_aberto().filter(CHAVE_CLIENTE__in=clientes).count()
         return quantidade
+
+    @property
+    def quantidade_eventos_em_atraso(self):
+        clientes = self.clientes.all()  # type:ignore
+        quantidade = 0
+        if clientes:
+            quantidade = CLIENTES_HISTORICO.filter_em_atraso().filter(CHAVE_CLIENTE__in=clientes).count()
+        return quantidade
+
+    @property
+    def ultimo_orcamento_aberto(self):
+        clientes = self.clientes.all()  # type:ignore
+        orcamentos = ORCAMENTOS.filter_com_valor_comercial_nao_registro_oportunidade().filter(
+            CHAVE_CLIENTE__in=clientes
+        )
+        ultimo_orcamento = orcamentos.aggregate(ULTIMO_ORCAMENTO=Max('DATA_PEDIDO'))
+        return ultimo_orcamento.get('ULTIMO_ORCAMENTO')
+
+    @property
+    def ultimo_pedido(self):
+        clientes = self.clientes.all()  # type:ignore
+        pedidos = PEDIDOS.filter_com_valor_comercial().filter(CHAVE_CLIENTE__in=clientes)
+        ultimo_pedido = pedidos.aggregate(ULTIMO_PEDIDO=Max('DATA_PEDIDO'))
+        return ultimo_pedido.get('ULTIMO_PEDIDO')
 
     def __str__(self):
         return self.DESCRICAO
@@ -335,6 +359,14 @@ class CLIENTES_HISTORICO(ReadOnlyMixin, models.Model):
     OBSERVACOES_EVENTO = models.TextField("Observações Evento", null=True, blank=True)
     OBSERVACOES_EVENTO_FECHAMENTO = models.TextField("Observações Evento Fechamento", null=True, blank=True)
 
+    @classmethod
+    def filter_em_aberto(cls):
+        return cls.objects.using('analysis').filter(DATA_REALIZADO__isnull=True)
+
+    @classmethod
+    def filter_em_atraso(cls):
+        return cls.filter_em_aberto().filter(DATA__lt=hoje())
+
     def __str__(self):
         return self.CHAVE
 
@@ -379,8 +411,12 @@ class ORCAMENTOS(ReadOnlyMixin, models.Model):
     VALOR_FRETE_INCL_ITEM = models.DecimalField("Valor Frete Incluso nos Itens", max_digits=22, decimal_places=6,
                                                 null=True, blank=True)
 
+    @classmethod
+    def filter_com_valor_comercial_nao_registro_oportunidade(cls):
+        return cls.objects.using('analysis').filter(CHAVE_TIPO__VALOR_COMERCIAL='SIM', REGISTRO_OPORTUNIDADE='NAO')
+
     def __str__(self):
-        return self.NUMPED
+        return f'{self.NUMPED}'
 
 
 class ORCAMENTOS_ITENS(ReadOnlyMixin, models.Model):
@@ -416,6 +452,8 @@ class PEDIDOS(ReadOnlyMixin, models.Model):
 
     CHAVE = models.IntegerField("ID", primary_key=True)
     NUMPED = models.IntegerField("Nº Pedido")
+    CHAVE_ORCAMENTO = models.ForeignKey(ORCAMENTOS, db_column="CHAVE_ORCAMENTO", verbose_name="Orçamento",
+                                        on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
     DATA_PEDIDO = models.DateField("Data Pedido", auto_now=False, auto_now_add=False, null=True, blank=True)
     CHAVE_CLIENTE = models.ForeignKey(CLIENTES, db_column="CHAVE_CLIENTE", verbose_name="Cliente",
                                       on_delete=models.PROTECT, related_name="%(class)s_chave_cliente", null=True,
@@ -431,5 +469,91 @@ class PEDIDOS(ReadOnlyMixin, models.Model):
     VALOR_FRETE_INCL_ITEM = models.DecimalField("Valor Frete Incluso nos Itens", max_digits=22, decimal_places=6,
                                                 null=True, blank=True)
 
+    @classmethod
+    def filter_com_valor_comercial(cls):
+        return cls.objects.using('analysis').filter(CHAVE_TIPO__VALOR_COMERCIAL='SIM')
+
     def __str__(self):
-        return self.NUMPED
+        return f'{self.NUMPED}'
+
+
+class PEDIDOS_ITENS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."PEDIDOS_ITENS"'
+        verbose_name = 'Item de Pedido'
+        verbose_name_plural = 'Itens de Pedido'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CHAVE_PEDIDO = models.ForeignKey(PEDIDOS, db_column="CHAVE_PEDIDO", verbose_name="Orçamento",
+                                     on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_PRODUTO = models.ForeignKey(PRODUTOS, db_column="CHAVE_PRODUTO", verbose_name="Produto",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    QUANTIDADE = models.DecimalField("Quantidade", max_digits=22, decimal_places=6, null=True, blank=True)
+    DATA_ENTREGA = models.DateField("Data de Entrega", auto_now=False, auto_now_add=False, null=True, blank=True)
+    PRECO_TABELA = models.DecimalField("Preço de Tabela", max_digits=22, decimal_places=6, null=True, blank=True)
+    PRECO_VENDA = models.DecimalField("Preço de Venda", max_digits=22, decimal_places=6, null=True, blank=True)
+    VALOR_TOTAL = models.DecimalField("Valor Total", max_digits=22, decimal_places=6, null=True, blank=True)
+    STATUS = models.CharField("Status", max_length=15, null=True, blank=True)
+    RATEIO_FRETE = models.DecimalField("Rateio Frete", max_digits=22, decimal_places=6, null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.CHAVE_PEDIDO} - {self.CHAVE_PRODUTO}'
+
+
+class NOTAS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."NOTAS"'
+        verbose_name = 'Nota'
+        verbose_name_plural = 'Notas'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    NF = models.IntegerField("Nº Nota")
+    CHAVE_CLIENTE = models.ForeignKey(CLIENTES, db_column="CHAVE_CLIENTE", verbose_name="Cliente",
+                                      on_delete=models.PROTECT, related_name="%(class)s_chave_cliente", null=True,
+                                      blank=True)
+    ESPECIE = models.CharField("Especie", max_length=1, null=True, blank=True)
+    DATA_EMISSAO = models.DateField("Data Emissão", auto_now=False, auto_now_add=False, null=True, blank=True)
+    VALOR_FRETE = models.DecimalField("Valor Frete", max_digits=22, decimal_places=6, null=True, blank=True)
+    VALOR_MERCADORIAS = models.DecimalField("Valor Mercadorias", max_digits=22, decimal_places=6, null=True,
+                                            blank=True)
+    ATIVA = models.CharField("Ativa", max_length=3, null=True, blank=True)
+    VALOR_COMERCIAL = models.CharField("Valor Comercial", max_length=3, null=True, blank=True)
+    VALOR_FRETE_EMPRESA = models.DecimalField("Valor Frete Empresa", max_digits=22, decimal_places=6, null=True,
+                                              blank=True)
+    FRETE_INCL_ITEM = models.CharField("Frete Incluso nos Itens", max_length=3, null=True, blank=True)
+    VALOR_FRETE_INCL_ITEM = models.DecimalField("Valor Frete Incluso nos Itens", max_digits=22, decimal_places=6,
+                                                null=True, blank=True)
+
+    @classmethod
+    def filter_com_valor_comercial(cls):
+        return cls.objects.using('analysis').filter(VALOR_COMERCIAL='SIM')
+
+    def __str__(self):
+        return f'{self.NF}'
+
+
+class NOTAS_ITENS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."NOTAS_ITENS"'
+        verbose_name = 'Item da Nota'
+        verbose_name_plural = 'Itens da Nota'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CHAVE_NOTA = models.ForeignKey(NOTAS, db_column="CHAVE_NOTA", verbose_name="Nota",
+                                   on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    NUMPED = models.ForeignKey(PEDIDOS_ITENS, db_column="NUMPED", verbose_name="Item de Pedido",
+                               on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_PRODUTO = models.ForeignKey(PRODUTOS, db_column="CHAVE_PRODUTO", verbose_name="Produto",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    QUANTIDADE = models.DecimalField("Quantidade", max_digits=22, decimal_places=6, null=True, blank=True)
+    PRECO_TABELA = models.DecimalField("Preço de Tabela", max_digits=22, decimal_places=6, null=True, blank=True)
+    PRECO_FATURADO = models.DecimalField("Preço Faturado", max_digits=22, decimal_places=6, null=True, blank=True)
+    VALOR_MERCADORIAS = models.DecimalField("Valor Mercadorias", max_digits=22, decimal_places=6, null=True,
+                                            blank=True)
+    RATEIO_FRETE = models.DecimalField("Rateio Frete", max_digits=22, decimal_places=6, null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.CHAVE_NOTA} - {self.CHAVE_PRODUTO}'
