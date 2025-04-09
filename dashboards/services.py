@@ -1165,3 +1165,66 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim, **kwargs_ora)
 
     return resultado
+
+
+def get_email_contatos(condicao):
+    sql = """
+        SELECT DISTINCT
+            RTRIM(LTRIM(CONTATOS.EMAIL)) AS EMAIL
+
+        FROM
+            COPLAS.CONTATOS,
+            COPLAS.CLIENTES
+
+        WHERE
+            CLIENTES.CODCLI = CONTATOS.CHAVE_CLIENTE AND
+
+            {condicao} AND
+
+            CONTATOS.ATIVO = 'SIM' AND
+            CONTATOS.ENVIAR_MALA = 'SIM' AND
+            CLIENTES.STATUS IN ('Y', 'P') AND
+            CONTATOS.CHAVE NOT IN (
+                SELECT
+                    CHAVE
+
+                FROM
+                    COPLAS.CONTATOS
+
+                WHERE
+                    EMAIL LIKE '% %' OR
+                    EMAIL NOT LIKE '%_@_%' OR
+                    EMAIL LIKE '%,%' OR
+                    EMAIL LIKE '%>%' OR
+                    EMAIL LIKE '%<%' OR
+                    EMAIL LIKE '.%' OR
+                    EMAIL LIKE '%.' OR
+                    EMAIL LIKE '%..%' OR
+                    EMAIL LIKE '%"%' OR
+                    EMAIL LIKE '%(%' OR
+                    EMAIL LIKE '%)%' OR
+                    EMAIL LIKE '%;%' OR
+                    EMAIL LIKE '%\\%' OR
+                    EMAIL LIKE '%[%' OR
+                    EMAIL LIKE '%]%' OR
+                    EMAIL LIKE '%!%' OR
+                    EMAIL LIKE '%#%' OR
+                    EMAIL LIKE '%$%' OR
+                    EMAIL LIKE '%*%' OR
+                    EMAIL LIKE '%/%' OR
+                    EMAIL LIKE '%?%' OR
+                    EMAIL LIKE '%{{%' OR
+                    EMAIL LIKE '%}}%' OR
+                    EMAIL LIKE '%|%' OR
+                    EMAIL IS NULL
+            )
+
+        ORDER BY
+            EMAIL
+    """
+
+    sql = sql.format(condicao=condicao)
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True)
+
+    return resultado

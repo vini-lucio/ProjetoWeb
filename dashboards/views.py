@@ -1,7 +1,7 @@
 from typing import Dict
 from django.shortcuts import render
 from django.http import HttpResponse
-from .services import DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas
+from .services import DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos
 from .forms import RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 
@@ -33,6 +33,8 @@ def relatorios_supervisao(request, fonte: str):
     if fonte_relatorio not in ('faturamentos', 'orcamentos'):
         return HttpResponse("Pagina invalida", status=404)
 
+    direito_exportar_emails = request.user.has_perm('analysis.export_contatosemails')
+
     orcamento = False
     if fonte_relatorio == 'orcamentos':
         orcamento = True
@@ -44,7 +46,7 @@ def relatorios_supervisao(request, fonte: str):
         titulo_pagina_2 = 'Relatorios Orçamentos'
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, 'titulo_pagina_2': titulo_pagina_2,
-                      'fonte_relatorio': fonte_relatorio}
+                      'fonte_relatorio': fonte_relatorio, 'direito_exportar_emails': direito_exportar_emails, }
 
     form = RelatoriosSupervisaoFaturamentosForm
     if orcamento:
@@ -84,12 +86,24 @@ def relatorios_supervisao(request, fonte: str):
                 })
 
             if 'exportar-submit' in request.GET:
-                # TODO: botão para exportar com base de email
                 excel = arquivo_excel(dados, cabecalho_negrito=True, ajustar_largura_colunas=True)
                 arquivo = salvar_excel_temporario(excel)
                 nome_arquivo = 'relatorio_faturamentos'
                 if orcamento:
                     nome_arquivo = 'relatorio_orcamentos'
+                response = arquivo_excel_response(arquivo, nome_arquivo)
+                return response
+
+            if 'exportar-emails-submit' in request.GET:
+                chave_grupos = [f'(1, {dado['CHAVE_GRUPO_ECONOMICO']})' for dado in dados]
+                chave_grupos = ', '.join(chave_grupos)
+                condicao = '(1, CLIENTES.CHAVE_GRUPOECONOMICO) IN ({})'
+                condicao = condicao.format(chave_grupos)
+                emails = get_email_contatos(condicao)
+
+                excel = arquivo_excel(emails, cabecalho_negrito=True, ajustar_largura_colunas=True)
+                arquivo = salvar_excel_temporario(excel)
+                nome_arquivo = 'emails'
                 response = arquivo_excel_response(arquivo, nome_arquivo)
                 return response
 

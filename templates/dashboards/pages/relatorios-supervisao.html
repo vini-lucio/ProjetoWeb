@@ -51,6 +51,9 @@
                     </a>
                     {% if dados %}
                         <button class="botao" name="exportar-submit" type="submit">Exportar .xlsx</button>
+                        {% if formulario.coluna_grupo_economico.value and direito_exportar_emails %}
+                            <button class="botao" name="exportar-emails-submit" type="submit">Exportar e-mails .xlsx</button>
+                        {% endif %}
                     {% endif %}
                 </div>
             </form>

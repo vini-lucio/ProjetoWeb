@@ -261,6 +261,32 @@ class CLIENTES(ReadOnlyMixin, models.Model):
         return self.NOMERED
 
 
+class CONTATOS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."CONTATOS"'
+        verbose_name = 'Contato de Cliente'
+        verbose_name_plural = 'Contatos de Cliente'
+        permissions = [('export_contatosemails', 'Can export Contatos e-mails')]
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CHAVE_CLIENTE = models.ForeignKey(CLIENTES, db_column="CHAVE_CLIENTE", verbose_name="Cliente",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    NOME = models.CharField("Nome", max_length=50, null=True, blank=True)
+    AREA = models.CharField("Area", max_length=25, null=True, blank=True)
+    FONEC = models.CharField("Fone 1", max_length=20, null=True, blank=True)
+    DATA_NASC = models.DateField("Data Nascimento", auto_now=False, auto_now_add=False, null=True, blank=True)
+    EMAIL = models.CharField("e-mail", max_length=100, null=True, blank=True)
+    OBSERVACOES = models.CharField("Observações", max_length=100, null=True, blank=True)
+    ENVIAR_MALA = models.CharField("Enviar Mala", max_length=3, null=True, blank=True)
+    ATIVO = models.CharField("Ativo", max_length=3, null=True, blank=True)
+    CELULAR = models.CharField("Celular", max_length=20, null=True, blank=True)
+    GENERO = models.CharField("Genero", max_length=1, null=True, blank=True)
+
+    def __str__(self):
+        return self.NOME
+
+
 class TIPOS_HISTORICO(ReadOnlyMixin, models.Model):
     class Meta:
         managed = False
