@@ -11,6 +11,10 @@
                 <h1>{{  titulo_pagina  }}</h1>
             </div>
 
+            <div class="titulo">
+                <h1>!!! ESSA PAGINA É UM TESTE !!!</h1>
+            </div>
+
             {% comment %} <form method="get">
                 <div class="grid-simples link-conteudo">
                     {{ formulario.as_p }}
@@ -106,6 +110,13 @@
 
             <br>
 
+            <p>Média dias para orçamento virar pedido</p>
+            {% if media_dias_orcamento_para_pedido %}
+                <p>{{  media_dias_orcamento_para_pedido  }}</p>
+            {% endif %}
+
+            <br>
+
             <p>Ultimo Pedido</p>
             {% if ultimo_pedido %}
                 <p>{{  ultimo_pedido | date:'d/m/Y' }}</p>
@@ -118,6 +129,10 @@
             <br>
 
             {{  grafico_produtos_html|safe}}
+
+            <br>
+
+            {{  grafico_quantidade_orcamentos_html|safe}}
 
             {% comment %} <div id="bar-chart"></div>
             <script>

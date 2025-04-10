@@ -98,7 +98,7 @@
                                 {% if formulario.coluna_ano_emissao.value %}<td>{{ valor.ANO_EMISSAO }}</td>{% endif %}
                                 {% if formulario.coluna_mes_emissao.value %}<td>{{ valor.MES_EMISSAO }}</td>{% endif %}
                                 {% if formulario.coluna_carteira.value %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
-                                {% if formulario.coluna_grupo_economico.value %}<td>{{ valor.GRUPO }}</td>{% endif %}
+                                {% if formulario.coluna_grupo_economico.value %}<td><a target="blank" href="{% url "analysis:grupo-economico" valor.CHAVE_GRUPO_ECONOMICO %}">{{ valor.GRUPO }}</a></td>{% endif %}
                                 {% if formulario.coluna_quantidade_documentos.value %}<td>{{ valor.QUANTIDADE_DOCUMENTOS | floatformat:0 }}</td>{% endif %}
                                 {% if formulario.coluna_cidade.value %}<td>{{ valor.CIDADE_PRINCIPAL }}</td>{% endif %}
                                 {% if formulario.coluna_estado.value %}<td>{{ valor.UF_PRINCIPAL }}</td>{% endif %}

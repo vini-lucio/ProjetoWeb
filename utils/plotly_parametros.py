@@ -1,3 +1,5 @@
+import pandas as pd
+
 update_layout_kwargs = dict(
     title=dict(font_size=30, font_color='rgb(189, 198, 56)', x=0.5,),
     font=dict(color='rgb(0, 50, 105)', family='Arial',),
@@ -15,3 +17,11 @@ update_layout_kwargs = dict(
 update_traces_kwargs = dict(
     texttemplate='%{text:.2s}',
 )
+
+
+def lista_dict_para_dataframe(lista_dict, key_x, key_y, label_x, label_y):
+    x = [d[key_x] for d in lista_dict]
+    y = [d[key_y] for d in lista_dict]
+    dados_grafico = ({label_x: x, label_y: y})
+    dados_grafico = pd.DataFrame(dados_grafico)
+    return dados_grafico

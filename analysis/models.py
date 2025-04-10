@@ -1,7 +1,7 @@
 from django.db import models
-from django.db.models import F, Count, Max
+from django.db.models import F, Count, Max, Avg
 from utils.base_models import ReadOnlyMixin
-from utils.data_hora_atual import hoje
+from utils.data_hora_atual import hoje, data_inicio_analysis
 
 
 class CANAIS_VENDA(ReadOnlyMixin, models.Model):
@@ -249,6 +249,15 @@ class GRUPO_ECONOMICO(ReadOnlyMixin, models.Model):
         pedidos = PEDIDOS.filter_com_valor_comercial().filter(CHAVE_CLIENTE__in=clientes)
         ultimo_pedido = pedidos.aggregate(ULTIMO_PEDIDO=Max('DATA_PEDIDO'))
         return ultimo_pedido.get('ULTIMO_PEDIDO')
+
+    @property
+    def media_dias_orcamento_para_pedido(self):
+        clientes = self.clientes.all()  # type:ignore
+        pedidos = PEDIDOS.filter_com_valor_comercial().filter(CHAVE_CLIENTE__in=clientes,
+                                                              DATA_PEDIDO__gte=data_inicio_analysis())
+        dias = pedidos.values(DIAS_PARA_PEDIDO=F('DATA_PEDIDO') - F('CHAVE_ORCAMENTO__DATA_PEDIDO')).aggregate(
+            MEDIA_DIAS_PARA_PEDIDO=Avg('DIAS_PARA_PEDIDO'))
+        return dias.get('MEDIA_DIAS_PARA_PEDIDO').days  # type:ignore
 
     def __str__(self):
         return self.DESCRICAO

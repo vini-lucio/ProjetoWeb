@@ -33,3 +33,7 @@ def data_365_dias_atras():
     data_12_meses = datetime.now() - relativedelta(days=365)
     data_12_meses = datetime(data_12_meses.year, data_12_meses.month, data_12_meses.day).date()
     return data_12_meses
+
+
+def data_inicio_analysis():
+    return datetime(2010, 1, 1).date()
