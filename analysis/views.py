@@ -5,8 +5,8 @@ from dashboards.services import get_relatorios_vendas
 import plotly.express as px
 import plotly.io as pio
 import pandas as pd
-from utils.data_hora_atual import data_365_dias_atras, data_x_dias
-from utils.plotly_parametros import update_layout_kwargs, update_traces_kwargs, lista_dict_para_dataframe
+from utils.data_hora_atual import data_365_dias_atras, data_x_dias, hoje, relativedelta, data_inicio_analysis
+from utils.plotly_parametros import update_layout_kwargs, update_traces_kwargs
 
 
 class GruposEconomicosDetailView(DetailView):
@@ -18,8 +18,6 @@ class GruposEconomicosDetailView(DetailView):
         return super().get_queryset().using('analysis')
 
     def get_context_data(self, **kwargs):
-        # TODO: levar em consideração quando não tiver venda no mes/ano
-        # TODO: conferir valores
         context = super().get_context_data(**kwargs)
         objeto = self.get_object()
 
@@ -38,38 +36,33 @@ class GruposEconomicosDetailView(DetailView):
 
         # Dados Grafico Valor Anual
 
+        ano_inicio_historico = data_inicio_analysis().year
+        ano_fim_historico = hoje().year
+        lista_anos_historico = [ano_inicio_historico]
+        while ano_inicio_historico != ano_fim_historico:
+            ano_inicio_historico += 1
+            lista_anos_historico.append(ano_inicio_historico)
+
         historico_faturamento_anual = get_relatorios_vendas(orcamento=False, coluna_ano_emissao=True,
                                                             grupo_economico=objeto.DESCRICAO,)  # type: ignore
 
-        historico_orcamentos_anual = get_relatorios_vendas(orcamento=True, coluna_ano_emissao=True,
-                                                           desconsiderar_justificativas=True,
-                                                           grupo_economico=objeto.DESCRICAO,)  # type: ignore
+        lista_anos_historico = pd.DataFrame({'Ano Emissão': lista_anos_historico, })
+        dados_grafico_faturamento = pd.DataFrame(historico_faturamento_anual)
+        dados_grafico_faturamento = dados_grafico_faturamento.rename(columns={'ANO_EMISSAO': 'Ano Emissão',
+                                                                              'VALOR_MERCADORIAS': 'Valor'})
+        dados_grafico_faturamento = pd.merge(lista_anos_historico, dados_grafico_faturamento,
+                                             on='Ano Emissão', how='outer').fillna(0)
 
-        dados_grafico_faturamento = {}
-        dados_grafico_orcamentos = {}
-        if historico_orcamentos_anual:
-            dados_grafico_orcamentos = lista_dict_para_dataframe(historico_orcamentos_anual, 'ANO_EMISSAO',
-                                                                 'VALOR_MERCADORIAS', 'Ano Emissão', 'Valor')
-            dados_grafico_orcamentos['Fonte'] = 'Orçamentos'
-        if historico_faturamento_anual:
-            dados_grafico_faturamento = lista_dict_para_dataframe(historico_faturamento_anual, 'ANO_EMISSAO',
-                                                                  'VALOR_MERCADORIAS', 'Ano Emissão', 'Valor')
-            dados_grafico_faturamento['Fonte'] = 'Faturamento'
+        grafico_historico = px.bar(dados_grafico_faturamento, x='Ano Emissão', y='Valor',
+                                   title='Historico Anual Faturamento', text='Valor',
 
-        dados_grafico_final = pd.concat([dados_grafico_faturamento,
-                                         dados_grafico_orcamentos,], ignore_index=True)  # type: ignore
-
-        grafico_historico = px.line(dados_grafico_final, x='Ano Emissão', y='Valor', title='Historico Anual',
-                                    markers=True, text='Valor', color='Fonte',
-
-                                    hover_name='Fonte',
-                                    hover_data={
-                                        'Fonte': False,
-                                        'Ano Emissão': ':,.0f',
-                                        'Valor': ':,.2f',
-                                    },)
+                                   hover_name='Ano Emissão',
+                                   hover_data={
+                                       'Ano Emissão': False,
+                                       'Valor': ':,.2f',
+                                   },)
         grafico_historico.update_layout(update_layout_kwargs)
-        grafico_historico.update_traces(update_traces_kwargs, textposition='bottom right')
+        grafico_historico.update_traces(update_traces_kwargs)
         grafico_historico_html = pio.to_html(grafico_historico, full_html=False)
 
         # Dados Grafico Produtos
@@ -81,10 +74,9 @@ class GruposEconomicosDetailView(DetailView):
                                             reverse=True)
         top_30_produtos_vendidos_12_meses = produtos_vendidos_12_meses[:30]
 
-        dados_grafico_produto = {}
-        if top_30_produtos_vendidos_12_meses:
-            dados_grafico_produto = lista_dict_para_dataframe(top_30_produtos_vendidos_12_meses, 'PRODUTO',
-                                                              'VALOR_MERCADORIAS', 'Produto', 'Valor')
+        dados_grafico_produto = pd.DataFrame(top_30_produtos_vendidos_12_meses)
+        dados_grafico_produto = dados_grafico_produto.rename(columns={'PRODUTO': 'Produto',
+                                                                      'VALOR_MERCADORIAS': 'Valor'})
 
         grafico_produtos = px.bar(dados_grafico_produto, x='Produto', y='Valor',
                                   title='Historico Produtos (Top 30) Ultimos 12 Meses', text='Valor',
@@ -101,6 +93,15 @@ class GruposEconomicosDetailView(DetailView):
         # Dados Grafico Status de Orçamentos
 
         data_2_anos = data_x_dias(730, passado=True)
+
+        data_inicio_status = data_2_anos + relativedelta(day=1)
+        data_fim_status = hoje() + relativedelta(day=1)
+        lista_datas_status = [f'{data_inicio_status.year} | {data_inicio_status.month:02}']
+        while data_inicio_status != data_fim_status:
+            data_inicio_status = data_inicio_status + relativedelta(months=1)
+            lista_datas_status.append(
+                f'{data_inicio_status.year} | {data_inicio_status.month:02}')
+
         quantidade_orcamentos_todos = get_relatorios_vendas(orcamento=True, inicio=data_2_anos, coluna_ano_emissao=True,
                                                             coluna_mes_emissao=True, coluna_quantidade_documentos=True,
                                                             desconsiderar_justificativas=True,
@@ -113,44 +114,43 @@ class GruposEconomicosDetailView(DetailView):
                                                                status_produto_orcamento=status_fechado,
                                                                grupo_economico=objeto.DESCRICAO,)  # type: ignore
 
-        dados_grafico_quantidade_orcamentos_todos = {}
-        dados_grafico_quantidade_orcamentos_fechado = {}
-        if quantidade_orcamentos_todos:
-            for ano_mes in quantidade_orcamentos_todos:
-                documentos_nao_fechados = ano_mes['QUANTIDADE_DOCUMENTOS']
-                for ano_mes_fechado in quantidade_orcamentos_fechados:
-                    if ano_mes['ANO_EMISSAO'] == ano_mes_fechado['ANO_EMISSAO'] and ano_mes['MES_EMISSAO'] == ano_mes_fechado['MES_EMISSAO']:
-                        documentos_nao_fechados = ano_mes['QUANTIDADE_DOCUMENTOS'] - \
-                            ano_mes_fechado['QUANTIDADE_DOCUMENTOS']
-                ano_mes.update({'ANO_MES': f'{ano_mes['ANO_EMISSAO']} | {ano_mes['MES_EMISSAO']:02}',
-                                'QUANTIDADE_DOCUMENTOS': documentos_nao_fechados})
-            dados_grafico_quantidade_orcamentos_todos = lista_dict_para_dataframe(
-                quantidade_orcamentos_todos, 'ANO_MES', 'QUANTIDADE_DOCUMENTOS', 'Ano | Mês', 'Documentos'
-            )
-            dados_grafico_quantidade_orcamentos_todos['Fonte'] = 'Não Fechados'
-        if quantidade_orcamentos_fechados:
-            for ano_mes in quantidade_orcamentos_fechados:
-                ano_mes.update({'ANO_MES': f'{ano_mes['ANO_EMISSAO']} | {ano_mes['MES_EMISSAO']:02}'})
-            dados_grafico_quantidade_orcamentos_fechado = lista_dict_para_dataframe(
-                quantidade_orcamentos_fechados, 'ANO_MES', 'QUANTIDADE_DOCUMENTOS', 'Ano | Mês', 'Documentos'
-            )
-            dados_grafico_quantidade_orcamentos_fechado['Fonte'] = 'Fechados'
+        lista_datas_status = pd.DataFrame({'Ano | Mês': lista_datas_status, })
 
-        dados_grafico_quantidade_orcamentos_final = pd.concat(
-            [dados_grafico_quantidade_orcamentos_fechado, dados_grafico_quantidade_orcamentos_todos],  # type: ignore
-            ignore_index=True
-        ).sort_values(by='Ano | Mês')
+        quantidade_orcamentos_todos = pd.DataFrame(quantidade_orcamentos_todos)
+        quantidade_orcamentos_todos['Ano | Mês'] = quantidade_orcamentos_todos['ANO_EMISSAO'].astype(str) + \
+            ' | ' + quantidade_orcamentos_todos['MES_EMISSAO'].astype(str).str.zfill(2)
+        quantidade_orcamentos_todos = quantidade_orcamentos_todos.drop(
+            columns=['ANO_EMISSAO', 'MES_EMISSAO', 'VALOR_MERCADORIAS'])
+        quantidade_orcamentos_todos = quantidade_orcamentos_todos.rename(
+            columns={'QUANTIDADE_DOCUMENTOS': 'Todos', })
 
-        grafico_quantidade_orcamentos = px.bar(dados_grafico_quantidade_orcamentos_final, x='Ano | Mês', y='Documentos',
-                                               title='Quantidade de Orçamentos (Ultimos 2 anos)',
-                                               text='Documentos', color='Fonte',
+        quantidade_orcamentos_fechados = pd.DataFrame(quantidade_orcamentos_fechados)
+        quantidade_orcamentos_fechados['Ano | Mês'] = quantidade_orcamentos_fechados['ANO_EMISSAO'].astype(str) + \
+            ' | ' + quantidade_orcamentos_fechados['MES_EMISSAO'].astype(str).str.zfill(2)
+        quantidade_orcamentos_fechados = quantidade_orcamentos_fechados.drop(
+            columns=['ANO_EMISSAO', 'MES_EMISSAO', 'VALOR_MERCADORIAS'])
+        quantidade_orcamentos_fechados = quantidade_orcamentos_fechados.rename(
+            columns={'QUANTIDADE_DOCUMENTOS': 'Fechados', })
 
-                                               hover_name='Fonte',
+        dados_grafico_quantidade_orcamentos_final = pd.merge(lista_datas_status, quantidade_orcamentos_todos,
+                                                             'outer', 'Ano | Mês').fillna(0)
+        dados_grafico_quantidade_orcamentos_final = pd.merge(dados_grafico_quantidade_orcamentos_final,
+                                                             quantidade_orcamentos_fechados,
+                                                             'outer', 'Ano | Mês').fillna(0)
+        dados_grafico_quantidade_orcamentos_final['Não Fechados'] = dados_grafico_quantidade_orcamentos_final['Todos'] - \
+            dados_grafico_quantidade_orcamentos_final['Fechados']
+
+        grafico_quantidade_orcamentos = px.bar(dados_grafico_quantidade_orcamentos_final, x='Ano | Mês',
+                                               y=['Fechados', 'Não Fechados'],
+                                               title='Quantidade de Orçamentos (Ultimos 2 anos)', text_auto=True,
+
+                                               hover_name='Ano | Mês',
                                                hover_data={
-                                                   'Fonte': False,
-                                                   'Ano | Mês': True,
-                                                   'Documentos': ':,.0f',
-                                               },)
+                                                   'Ano | Mês': False,
+                                                   'variable': True,
+                                                   'value': ':,.0f',
+                                               },
+                                               )
         grafico_quantidade_orcamentos.update_layout(update_layout_kwargs, barmode='stack')
         grafico_quantidade_orcamentos.update_layout(yaxis=dict(tickformat=',.0f'))
         grafico_quantidade_orcamentos_html = pio.to_html(grafico_quantidade_orcamentos, full_html=False)
