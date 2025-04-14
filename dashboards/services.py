@@ -619,6 +619,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
     coluna_ano_emissao = kwargs.get('coluna_ano_emissao')
     coluna_mes_emissao = kwargs.get('coluna_mes_emissao')
     coluna_media_dia = kwargs.get('coluna_media_dia')
+    coluna_data_emissao = kwargs.get('coluna_data_emissao')
 
     if not data_inicio:
         data_inicio = datetime.date(datetime(2010, 1, 1))
@@ -634,6 +635,19 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
         if orcamento:
             media_dia_campo_alias = "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) / COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS MEDIA_DIA,"
     kwargs_sql.update({'media_dia_campo_alias': media_dia_campo_alias, })
+
+    # Ano Emissão coluna
+
+    data_emissao_campo_alias = ""
+    data_emissao_campo = ""
+    if coluna_data_emissao:
+        data_emissao_campo_alias = "NOTAS.DATA_EMISSAO,"
+        data_emissao_campo = "NOTAS.DATA_EMISSAO,"
+        if orcamento:
+            data_emissao_campo_alias = "ORCAMENTOS.DATA_PEDIDO AS DATA_EMISSAO,"
+            data_emissao_campo = "ORCAMENTOS.DATA_PEDIDO,"
+    kwargs_sql.update({'data_emissao_campo_alias': data_emissao_campo_alias,
+                       'data_emissao_campo': data_emissao_campo})
 
     # Ano Emissão coluna
 
@@ -1068,6 +1082,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
 
     sql = """
         SELECT
+            {data_emissao_campo_alias}
             {ano_emissao_campo_alias}
             {mes_emissao_campo_alias}
             {carteira_campo_alias}
@@ -1133,6 +1148,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
             {fonte_where_data}
 
         GROUP BY
+            {data_emissao_campo}
             {ano_emissao_campo}
             {mes_emissao_campo}
             {carteira_campo}
