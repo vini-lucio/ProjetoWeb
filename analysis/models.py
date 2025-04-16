@@ -257,7 +257,10 @@ class GRUPO_ECONOMICO(ReadOnlyMixin, models.Model):
                                                               DATA_PEDIDO__gte=data_inicio_analysis())
         dias = pedidos.values(DIAS_PARA_PEDIDO=F('DATA_PEDIDO') - F('CHAVE_ORCAMENTO__DATA_PEDIDO')).aggregate(
             MEDIA_DIAS_PARA_PEDIDO=Avg('DIAS_PARA_PEDIDO'))
-        return dias.get('MEDIA_DIAS_PARA_PEDIDO').days  # type:ignore
+        dias = dias.get('MEDIA_DIAS_PARA_PEDIDO')
+        if not dias:
+            return None
+        return dias.days  # type:ignore
 
     def __str__(self):
         return self.DESCRICAO

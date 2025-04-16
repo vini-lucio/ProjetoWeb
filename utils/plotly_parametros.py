@@ -5,7 +5,7 @@ update_layout_kwargs = dict(
     height=600,
     separators=',.',
     paper_bgcolor='rgba(0, 0, 0, 0)',
-    plot_bgcolor='rgba(0, 0, 0, 0)',
+    plot_bgcolor='rgb(233, 233, 233)',
     legend=dict(orientation='h', title=dict(side='top')),
 
     yaxis=dict(tickformat=',.2s', gridcolor='rgba(189, 198, 56, 0.5)', zerolinecolor="rgba(0, 50, 105, 0.2)",),

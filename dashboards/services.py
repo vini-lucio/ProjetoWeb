@@ -1,3 +1,4 @@
+from utils.custom import DefaultDict
 from utils.oracle.conectar import executar_oracle
 from utils.lfrete import pedidos as lfrete_pedidos
 from utils.data_hora_atual import data_hora_atual
@@ -580,271 +581,122 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
     return erros
 
 
-def get_relatorios_vendas(orcamento: bool, **kwargs):
-    # TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
-    # TODO: considerar itens perdidos excluidos?????
-    kwargs_sql = {}
-    kwargs_ora = {}
+def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, **kwargs_formulario):
+    """
+        SQLs estão em um dict onde a chave é o nome do campo do formulario e o valor é um dict com o placeholder como
+        chave e o codigo sql como valor
+    """
+    notas_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
+    notas_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE), 0), 2) AS MC_VALOR"
+    notas_lfrete_from = """
+        (
+            SELECT
+                CHAVE_NOTA_ITEM,
+                ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE
 
-    data_inicio = kwargs.get('inicio')
-    data_fim = kwargs.get('fim')
-    coluna_grupo_economico = kwargs.get('coluna_grupo_economico')
-    grupo_economico = kwargs.get('grupo_economico')
-    coluna_carteira = kwargs.get('coluna_carteira')
-    carteira = kwargs.get('carteira')
-    coluna_tipo_cliente = kwargs.get('coluna_tipo_cliente')
-    tipo_cliente = kwargs.get('tipo_cliente')
-    coluna_familia_produto = kwargs.get('coluna_familia_produto')
-    familia_produto = kwargs.get('familia_produto')
-    coluna_produto = kwargs.get('coluna_produto')
-    produto = kwargs.get('produto')
-    coluna_unidade = kwargs.get('coluna_unidade')
-    coluna_preco_tabela_inclusao = kwargs.get('coluna_preco_tabela_inclusao')
-    coluna_preco_venda_medio = kwargs.get('coluna_preco_venda_medio')
-    coluna_quantidade = kwargs.get('coluna_quantidade')
-    coluna_cidade = kwargs.get('coluna_cidade')
-    cidade = kwargs.get('cidade')
-    coluna_estado = kwargs.get('coluna_estado')
-    estado = kwargs.get('estado')
-    nao_compraram_depois = kwargs.get('nao_compraram_depois')
-    coluna_proporcao = kwargs.get('coluna_proporcao')
-    coluna_quantidade_documentos = kwargs.get('coluna_quantidade_documentos')
-    coluna_rentabilidade = kwargs.get('coluna_rentabilidade')
-    coluna_rentabilidade_valor = kwargs.get('coluna_rentabilidade_valor')
-    coluna_status_produto_orcamento = kwargs.get('coluna_status_produto_orcamento')
-    status_produto_orcamento = kwargs.get('status_produto_orcamento')
-    coluna_status_produto_orcamento_tipo = kwargs.get('coluna_status_produto_orcamento_tipo')
-    status_produto_orcamento_tipo = kwargs.get('status_produto_orcamento_tipo')
-    desconsiderar_justificativas = kwargs.get('desconsiderar_justificativas')
-    coluna_ano_emissao = kwargs.get('coluna_ano_emissao')
-    coluna_mes_emissao = kwargs.get('coluna_mes_emissao')
-    coluna_media_dia = kwargs.get('coluna_media_dia')
-    coluna_data_emissao = kwargs.get('coluna_data_emissao')
+            FROM
+                (
+                    {lfrete_notas} AND
 
-    if not data_inicio:
-        data_inicio = datetime.date(datetime(2010, 1, 1))
+                        NOTAS.DATA_EMISSAO >= :data_inicio AND
+                        NOTAS.DATA_EMISSAO <= :data_fim
+                ) LFRETE
 
-    if not data_fim:
-        data_fim = datetime.date(datetime(2999, 12, 31))
+            GROUP BY
+                CHAVE_NOTA_ITEM
+        ) LFRETE,
+    """.format(lfrete_notas=lfrete_notas)
+    notas_lfrete_join = "LFRETE.CHAVE_NOTA_ITEM = NOTAS_ITENS.CHAVE AND"
 
-    # Media por dia coluna
+    sql_notas_base = {
+        'valor_mercadorias': "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 0), 0))) AS VALOR_MERCADORIAS",
 
-    media_dia_campo_alias = ""
-    if coluna_media_dia:
-        media_dia_campo_alias = "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 0), 0))) / COUNT(DISTINCT NOTAS.DATA_EMISSAO) AS MEDIA_DIA,"
-        if orcamento:
-            media_dia_campo_alias = "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) / COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS MEDIA_DIA,"
-    kwargs_sql.update({'media_dia_campo_alias': media_dia_campo_alias, })
+        'notas_peso_liquido_from': """
+            (
+                SELECT
+                    NOTAS_ITENS.CHAVE_NOTA,
+                    SUM(NOTAS_ITENS.PESO_LIQUIDO) AS PESO_LIQUIDO
 
-    # Ano Emissão coluna
+                FROM
+                    COPLAS.NOTAS_ITENS
 
-    data_emissao_campo_alias = ""
-    data_emissao_campo = ""
-    if coluna_data_emissao:
-        data_emissao_campo_alias = "NOTAS.DATA_EMISSAO,"
-        data_emissao_campo = "NOTAS.DATA_EMISSAO,"
-        if orcamento:
-            data_emissao_campo_alias = "ORCAMENTOS.DATA_PEDIDO AS DATA_EMISSAO,"
-            data_emissao_campo = "ORCAMENTOS.DATA_PEDIDO,"
-    kwargs_sql.update({'data_emissao_campo_alias': data_emissao_campo_alias,
-                       'data_emissao_campo': data_emissao_campo})
+                GROUP BY
+                    NOTAS_ITENS.CHAVE_NOTA
+            ) NOTAS_PESO_LIQUIDO,
+        """,
 
-    # Ano Emissão coluna
+        'fonte_itens': "COPLAS.NOTAS_ITENS,",
 
-    ano_emissao_campo_alias = ""
-    ano_emissao_campo = ""
-    if coluna_ano_emissao:
-        ano_emissao_campo_alias = "EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS ANO_EMISSAO,"
-        ano_emissao_campo = "EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),"
-        if orcamento:
-            ano_emissao_campo_alias = "EXTRACT(YEAR FROM ORCAMENTOS.DATA_PEDIDO) AS ANO_EMISSAO,"
-            ano_emissao_campo = "EXTRACT(YEAR FROM ORCAMENTOS.DATA_PEDIDO),"
-    kwargs_sql.update({'ano_emissao_campo_alias': ano_emissao_campo_alias,
-                       'ano_emissao_campo': ano_emissao_campo})
+        'fonte': "COPLAS.NOTAS,",
 
-    # Mês Emissão coluna
+        'fonte_joins': """
+            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
+            CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
+            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+            NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
+        """,
 
-    mes_emissao_campo_alias = ""
-    mes_emissao_campo = ""
-    if coluna_mes_emissao:
-        mes_emissao_campo_alias = "EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES_EMISSAO,"
-        mes_emissao_campo = "EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO),"
-        if orcamento:
-            mes_emissao_campo_alias = "EXTRACT(MONTH FROM ORCAMENTOS.DATA_PEDIDO) AS MES_EMISSAO,"
-            mes_emissao_campo = "EXTRACT(MONTH FROM ORCAMENTOS.DATA_PEDIDO),"
-    kwargs_sql.update({'mes_emissao_campo_alias': mes_emissao_campo_alias,
-                       'mes_emissao_campo': mes_emissao_campo})
+        'fonte_where': "NOTAS.VALOR_COMERCIAL = 'SIM' AND",
 
-    # Grupo Economico coluna e filtro
+        'fonte_where_data': """
+            NOTAS.DATA_EMISSAO >= :data_inicio AND
+            NOTAS.DATA_EMISSAO <= :data_fim
+        """,
+    }
 
-    grupo_economico_campo_alias = ""
-    grupo_economico_campo = ""
-    if coluna_grupo_economico:
-        grupo_economico_campo_alias = "GRUPO_ECONOMICO.CHAVE AS CHAVE_GRUPO_ECONOMICO, GRUPO_ECONOMICO.DESCRICAO AS GRUPO,"
-        grupo_economico_campo = "GRUPO_ECONOMICO.CHAVE, GRUPO_ECONOMICO.DESCRICAO,"
-    kwargs_sql.update({'grupo_economico_campo_alias': grupo_economico_campo_alias,
-                       'grupo_economico_campo': grupo_economico_campo})
+    sql_notas = {
+        'coluna_media_dia': {'media_dia_campo_alias': "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 0), 0))) / COUNT(DISTINCT NOTAS.DATA_EMISSAO) AS MEDIA_DIA,", },
 
-    grupo_economico_pesquisa = ""
-    if grupo_economico:
-        grupo_economico_pesquisa = "UPPER(GRUPO_ECONOMICO.DESCRICAO) LIKE UPPER(:grupo_economico) AND"
-        kwargs_ora.update({'grupo_economico': grupo_economico, })
-    kwargs_sql.update({'grupo_economico_pesquisa': grupo_economico_pesquisa, })
+        'coluna_data_emissao': {'data_emissao_campo_alias': "NOTAS.DATA_EMISSAO,",
+                                'data_emissao_campo': "NOTAS.DATA_EMISSAO,", },
 
-    # Carteira coluna e filtro
+        'coluna_ano_emissao': {'ano_emissao_campo_alias': "EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS ANO_EMISSAO,",
+                               'ano_emissao_campo': "EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),", },
 
-    carteira_campo_alias = ""
-    carteira_campo = ""
-    if coluna_carteira:
-        carteira_campo_alias = "VENDEDORES.NOMERED AS CARTEIRA,"
-        carteira_campo = "VENDEDORES.NOMERED,"
-    kwargs_sql.update({'carteira_campo_alias': carteira_campo_alias,
-                       'carteira_campo': carteira_campo})
+        'coluna_mes_emissao': {'mes_emissao_campo_alias': "EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES_EMISSAO,",
+                               'mes_emissao_campo': "EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO),", },
 
-    carteira_pesquisa = ""
-    if carteira:
-        chave_carteira = carteira.pk
-        carteira_pesquisa = "VENDEDORES.CODVENDEDOR = :chave_carteira AND"
-        kwargs_ora.update({'chave_carteira': chave_carteira, })
-    kwargs_sql.update({'carteira_pesquisa': carteira_pesquisa, })
+        'coluna_grupo_economico': {'grupo_economico_campo_alias': "GRUPO_ECONOMICO.CHAVE AS CHAVE_GRUPO_ECONOMICO, GRUPO_ECONOMICO.DESCRICAO AS GRUPO,",
+                                   'grupo_economico_campo': "GRUPO_ECONOMICO.CHAVE, GRUPO_ECONOMICO.DESCRICAO,", },
+        'grupo_economico': {'grupo_economico_pesquisa': "UPPER(GRUPO_ECONOMICO.DESCRICAO) LIKE UPPER(:grupo_economico) AND", },
 
-    # Tipo de Cliente coluna e filtro
+        'coluna_carteira': {'carteira_campo_alias': "VENDEDORES.NOMERED AS CARTEIRA,",
+                            'carteira_campo': "VENDEDORES.NOMERED,", },
+        'carteira': {'carteira_pesquisa': "VENDEDORES.CODVENDEDOR = :chave_carteira AND", },
 
-    tipo_cliente_campo_alias = ""
-    tipo_cliente_campo = ""
-    if coluna_tipo_cliente:
-        tipo_cliente_campo_alias = "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,"
-        tipo_cliente_campo = "CLIENTES_TIPOS.DESCRICAO,"
-    kwargs_sql.update({'tipo_cliente_campo_alias': tipo_cliente_campo_alias,
-                       'tipo_cliente_campo': tipo_cliente_campo})
+        'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
+                                'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
+        'tipo_cliente': {'tipo_cliente_pesquisa': "CLIENTES_TIPOS.CHAVE = :chave_tipo_cliente AND", },
 
-    tipo_cliente_pesquisa = ""
-    if tipo_cliente:
-        chave_tipo_cliente = tipo_cliente.pk
-        tipo_cliente_pesquisa = "CLIENTES_TIPOS.CHAVE = :chave_tipo_cliente AND"
-        kwargs_ora.update({'chave_tipo_cliente': chave_tipo_cliente, })
-    kwargs_sql.update({'tipo_cliente_pesquisa': tipo_cliente_pesquisa, })
+        'coluna_familia_produto': {'familia_produto_campo_alias': "FAMILIA_PRODUTOS.FAMILIA AS FAMILIA_PRODUTO,",
+                                   'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
+        'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND", },
 
-    # Familia de Produto coluna e filtro
+        'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
+                           'produto_campo': "PRODUTOS.CODIGO,", },
+        'produto': {'produto_pesquisa': "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND", },
 
-    familia_produto_campo_alias = ""
-    familia_produto_campo = ""
-    if coluna_familia_produto:
-        familia_produto_campo_alias = "FAMILIA_PRODUTOS.FAMILIA AS FAMILIA_PRODUTO,"
-        familia_produto_campo = "FAMILIA_PRODUTOS.FAMILIA,"
-    kwargs_sql.update({'familia_produto_campo_alias': familia_produto_campo_alias,
-                       'familia_produto_campo': familia_produto_campo})
+        'coluna_unidade': {'unidade_campo_alias': "UNIDADES.UNIDADE,",
+                           'unidade_campo': "UNIDADES.UNIDADE,", },
 
-    familia_produto_pesquisa = ""
-    if familia_produto:
-        chave_familia_produto = familia_produto.pk
-        familia_produto_pesquisa = "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND"
-        kwargs_ora.update({'chave_familia_produto': chave_familia_produto, })
-    kwargs_sql.update({'familia_produto_pesquisa': familia_produto_pesquisa, })
+        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "MAX(NOTAS_ITENS.PRECO_TABELA) AS PRECO_TABELA_INCLUSAO,",
+                                         'preco_tabela_inclusao_campo': "MAX(NOTAS_ITENS.PRECO_TABELA),", },
 
-    # Produto coluna e filtro
+        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2) AS PRECO_VENDA_MEDIO,",
+                                     'preco_venda_medio_campo': "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2),", },
 
-    produto_campo_alias = ""
-    produto_campo = ""
-    if coluna_produto:
-        produto_campo_alias = "PRODUTOS.CODIGO AS PRODUTO,"
-        produto_campo = "PRODUTOS.CODIGO,"
-    kwargs_sql.update({'produto_campo_alias': produto_campo_alias,
-                       'produto_campo': produto_campo})
+        'coluna_quantidade': {'quantidade_campo_alias': "SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE,",
+                              'quantidade_campo': "SUM(NOTAS_ITENS.QUANTIDADE),", },
 
-    produto_pesquisa = ""
-    if produto:
-        produto_pesquisa = "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND"
-        kwargs_ora.update({'produto': produto, })
-    kwargs_sql.update({'produto_pesquisa': produto_pesquisa, })
+        'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
+                          'cidade_campo': "CLIENTES.CIDADE,", },
+        'cidade': {'cidade_pesquisa': "UPPER(CLIENTES.CIDADE) LIKE UPPER(:cidade) AND", },
 
-    # Unidade coluna
+        'coluna_estado': {'estado_campo_alias': "ESTADOS.SIGLA AS UF_PRINCIPAL,",
+                          'estado_campo': "ESTADOS.SIGLA,", },
+        'estado': {'estado_pesquisa': "ESTADOS.CHAVE = :chave_estado AND", },
 
-    unidade_campo_alias = ""
-    unidade_campo = ""
-    if coluna_unidade:
-        unidade_campo_alias = "UNIDADES.UNIDADE,"
-        unidade_campo = "UNIDADES.UNIDADE,"
-    kwargs_sql.update({'unidade_campo_alias': unidade_campo_alias,
-                       'unidade_campo': unidade_campo})
-
-    # Preco Tabela Item Nota coluna
-
-    preco_tabela_inclusao_campo_alias = ""
-    preco_tabela_inclusao_campo = ""
-    if coluna_preco_tabela_inclusao:
-        preco_tabela_inclusao_campo_alias = "MAX(NOTAS_ITENS.PRECO_TABELA) AS PRECO_TABELA_INCLUSAO,"
-        preco_tabela_inclusao_campo = "MAX(NOTAS_ITENS.PRECO_TABELA),"
-        if orcamento:
-            preco_tabela_inclusao_campo_alias = "MAX(ORCAMENTOS_ITENS.PRECO_TABELA) AS PRECO_TABELA_INCLUSAO,"
-            preco_tabela_inclusao_campo = "MAX(ORCAMENTOS_ITENS.PRECO_TABELA),"
-    kwargs_sql.update({'preco_tabela_inclusao_campo_alias': preco_tabela_inclusao_campo_alias,
-                       'preco_tabela_inclusao_campo': preco_tabela_inclusao_campo})
-
-    # Preco Venda Medio Item Nota coluna
-
-    preco_venda_medio_campo_alias = ""
-    preco_venda_medio_campo = ""
-    if coluna_preco_venda_medio:
-        preco_venda_medio_campo_alias = "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2) AS PRECO_VENDA_MEDIO,"
-        preco_venda_medio_campo = "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2),"
-        if orcamento:
-            preco_venda_medio_campo_alias = "ROUND(AVG(ORCAMENTOS_ITENS.PRECO_VENDA), 2) AS PRECO_VENDA_MEDIO,"
-            preco_venda_medio_campo = "ROUND(AVG(ORCAMENTOS_ITENS.PRECO_VENDA), 2),"
-    kwargs_sql.update({'preco_venda_medio_campo_alias': preco_venda_medio_campo_alias,
-                       'preco_venda_medio_campo': preco_venda_medio_campo})
-
-    # Quantidade Item Nota coluna
-
-    quantidade_campo_alias = ""
-    quantidade_campo = ""
-    if coluna_quantidade:
-        quantidade_campo_alias = "SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE,"
-        quantidade_campo = "SUM(NOTAS_ITENS.QUANTIDADE),"
-        if orcamento:
-            quantidade_campo_alias = "SUM(ORCAMENTOS_ITENS.QUANTIDADE) AS QUANTIDADE,"
-            quantidade_campo = "SUM(ORCAMENTOS_ITENS.QUANTIDADE),"
-    kwargs_sql.update({'quantidade_campo_alias': quantidade_campo_alias,
-                       'quantidade_campo': quantidade_campo})
-
-    # Cidade coluna e filtro
-
-    cidade_campo_alias = ""
-    cidade_campo = ""
-    if coluna_cidade:
-        cidade_campo_alias = "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,"
-        cidade_campo = "CLIENTES.CIDADE,"
-    kwargs_sql.update({'cidade_campo_alias': cidade_campo_alias,
-                       'cidade_campo': cidade_campo})
-
-    cidade_pesquisa = ""
-    if cidade:
-        cidade_pesquisa = "UPPER(CLIENTES.CIDADE) LIKE UPPER(:cidade) AND"
-        kwargs_ora.update({'cidade': cidade, })
-    kwargs_sql.update({'cidade_pesquisa': cidade_pesquisa, })
-
-    # Estado coluna e filtro
-
-    estado_campo_alias = ""
-    estado_campo = ""
-    if coluna_estado:
-        estado_campo_alias = "ESTADOS.SIGLA AS UF_PRINCIPAL,"
-        estado_campo = "ESTADOS.SIGLA,"
-    kwargs_sql.update({'estado_campo_alias': estado_campo_alias,
-                       'estado_campo': estado_campo})
-
-    estado_pesquisa = ""
-    if estado:
-        chave_estado = estado.pk
-        estado_pesquisa = "ESTADOS.CHAVE = :chave_estado AND"
-        kwargs_ora.update({'chave_estado': chave_estado, })
-    kwargs_sql.update({'estado_pesquisa': estado_pesquisa, })
-
-    # Não compraram depois filtro
-
-    nao_compraram_depois_pesquisa = ""
-    if nao_compraram_depois:
-        nao_compraram_depois_pesquisa = """
+        'nao_compraram_depois': {'nao_compraram_depois_pesquisa': """
             CLIENTES.STATUS != 'X' AND
             NOT EXISTS(
                 SELECT DISTINCT
@@ -873,212 +725,254 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
                     ORCAMENTOS.STATUS = 'EM ABERTO' AND
                     ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO'
             ) AND
-        """
-        if orcamento:
-            nao_compraram_depois_pesquisa = ""
-    kwargs_sql.update({'nao_compraram_depois_pesquisa': nao_compraram_depois_pesquisa, })
+        """, },
 
-    # Desconsiderar justificativas invalidas filtro
-    # Inviavel incluir a tabela de itens excluidos em um relatorio tão dinamico
+        'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "", },
 
-    desconsiderar_justificativa_pesquisa = ""
-    if desconsiderar_justificativas:
-        desconsiderar_justificativa_pesquisa = ""
-        if orcamento:
-            justificativas_itens = justificativas(False)
-            desconsiderar_justificativa_pesquisa = "{} AND".format(justificativas_itens)
-    kwargs_sql.update({'desconsiderar_justificativa_pesquisa': desconsiderar_justificativa_pesquisa, })
+        'coluna_proporcao': {'proporcao_campo': "VALOR_MERCADORIAS DESC,", },
 
-    # Proporção coluna
+        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT NOTAS.NF) AS QUANTIDADE_DOCUMENTOS,",
+                                         'quantidade_documentos_campo': "COUNT(DISTINCT NOTAS.NF),", },
 
-    proporcao_campo = ""
-    if coluna_proporcao:
-        proporcao_campo = "VALOR_MERCADORIAS DESC,"
-    kwargs_sql.update({'proporcao_campo': proporcao_campo})
+        'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "",
+                                            'status_produto_orcamento_campo': "", },
+        'status_produto_orcamento': {'status_produto_orcamento_pesquisa': "", },
 
-    # Quantidade de Notas coluna
+        'coluna_status_produto_orcamento_tipo': {'status_produto_orcamento_tipo_campo_alias': "",
+                                                 'status_produto_orcamento_tipo_campo': "",
+                                                 'status_produto_orcamento_tipo_from': "",
+                                                 'status_produto_orcamento_tipo_join': "", },
+        'status_produto_orcamento_tipo': {'status_produto_orcamento_tipo_pesquisa': "",
+                                          'status_produto_orcamento_tipo_from': "",
+                                          'status_produto_orcamento_tipo_join': "", },
 
-    quantidade_documentos_campo_alias = ""
-    quantidade_documentos_campo = ""
-    if coluna_quantidade_documentos:
-        quantidade_documentos_campo_alias = "COUNT(DISTINCT NOTAS.NF) AS QUANTIDADE_DOCUMENTOS,"
-        quantidade_documentos_campo = "COUNT(DISTINCT NOTAS.NF),"
-        if orcamento:
-            quantidade_documentos_campo_alias = "COUNT(DISTINCT ORCAMENTOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,"
-            quantidade_documentos_campo = "COUNT(DISTINCT ORCAMENTOS.NUMPED),"
-    kwargs_sql.update({'quantidade_documentos_campo_alias': quantidade_documentos_campo_alias,
-                       'quantidade_documentos_campo': quantidade_documentos_campo})
+        'coluna_rentabilidade': {'lfrete_coluna': notas_lfrete_coluna,
+                                 'lfrete_valor_coluna': notas_lfrete_valor_coluna,
+                                 'lfrete_from': notas_lfrete_from,
+                                 'lfrete_join': notas_lfrete_join, },
+        'coluna_rentabilidade_valor': {'lfrete_coluna': notas_lfrete_coluna,
+                                       'lfrete_valor_coluna': notas_lfrete_valor_coluna,
+                                       'lfrete_from': notas_lfrete_from,
+                                       'lfrete_join': notas_lfrete_join, },
+    }
 
-    # Status do produto coluna e filtro
+    orcamentos_status_produto_orcamento_tipo_from = "COPLAS.STATUS_ORCAMENTOS_ITENS,"
+    orcamentos_status_produto_orcamento_tipo_join = "STATUS_ORCAMENTOS_ITENS.DESCRICAO = ORCAMENTOS_ITENS.STATUS AND"
 
-    status_produto_orcamento_campo_alias = ""
-    status_produto_orcamento_campo = ""
-    if coluna_status_produto_orcamento:
-        status_produto_orcamento_campo_alias = ""
-        status_produto_orcamento_campo = ""
-        if orcamento:
-            status_produto_orcamento_campo_alias = "ORCAMENTOS_ITENS.STATUS,"
-            status_produto_orcamento_campo = "ORCAMENTOS_ITENS.STATUS,"
-    kwargs_sql.update({'status_produto_orcamento_campo_alias': status_produto_orcamento_campo_alias,
-                       'status_produto_orcamento_campo': status_produto_orcamento_campo})
-
-    status_produto_orcamento_pesquisa = ""
-    if status_produto_orcamento:
-        status_produto_orcamento_pesquisa = ""
-        if orcamento:
-            chave_status_produto_orcamento = status_produto_orcamento.DESCRICAO
-            status_produto_orcamento_pesquisa = "ORCAMENTOS_ITENS.STATUS = :chave_status_produto_orcamento AND"
-            kwargs_ora.update({'chave_status_produto_orcamento': chave_status_produto_orcamento, })
-    kwargs_sql.update({'status_produto_orcamento_pesquisa': status_produto_orcamento_pesquisa, })
-
-    # Status Tipo do produto coluna, filtro, from e join
-
-    status_produto_orcamento_tipo_campo_alias = ""
-    status_produto_orcamento_tipo_campo = ""
-    if coluna_status_produto_orcamento_tipo:
-        status_produto_orcamento_tipo_campo_alias = ""
-        status_produto_orcamento_tipo_campo = ""
-        if orcamento:
-            status_produto_orcamento_tipo_campo_alias = "STATUS_ORCAMENTOS_ITENS.TIPO AS STATUS_TIPO,"
-            status_produto_orcamento_tipo_campo = "STATUS_ORCAMENTOS_ITENS.TIPO,"
-    kwargs_sql.update({'status_produto_orcamento_tipo_campo_alias': status_produto_orcamento_tipo_campo_alias,
-                       'status_produto_orcamento_tipo_campo': status_produto_orcamento_tipo_campo})
-
-    status_produto_orcamento_tipo_pesquisa = ""
-    if status_produto_orcamento_tipo:
-        status_produto_orcamento_tipo_pesquisa = ""
-        if orcamento:
-            if status_produto_orcamento_tipo != "PERDIDO_CANCELADO":
-                status_produto_orcamento_tipo_pesquisa = "STATUS_ORCAMENTOS_ITENS.TIPO = :status_produto_orcamento_tipo AND"
-                kwargs_ora.update({'status_produto_orcamento_tipo': status_produto_orcamento_tipo, })
-            else:
-                status_produto_orcamento_tipo_pesquisa = "STATUS_ORCAMENTOS_ITENS.TIPO IN ('PERDIDO', 'CANCELADO') AND"
-    kwargs_sql.update({'status_produto_orcamento_tipo_pesquisa': status_produto_orcamento_tipo_pesquisa, })
-
-    status_produto_orcamento_tipo_from = ""
-    status_produto_orcamento_tipo_join = ""
-    if coluna_status_produto_orcamento_tipo or status_produto_orcamento_tipo:
-        status_produto_orcamento_tipo_from = ""
-        status_produto_orcamento_tipo_join = ""
-        if orcamento:
-            status_produto_orcamento_tipo_from = "COPLAS.STATUS_ORCAMENTOS_ITENS,"
-            status_produto_orcamento_tipo_join = "STATUS_ORCAMENTOS_ITENS.DESCRICAO = ORCAMENTOS_ITENS.STATUS AND"
-    kwargs_sql.update({'status_produto_orcamento_tipo_from': status_produto_orcamento_tipo_from,
-                       'status_produto_orcamento_tipo_join': status_produto_orcamento_tipo_join})
-
-    # Rentabilidade coluna
-
-    lfrete_coluna = ""
-    lfrete_valor_coluna = ""
-    lfrete_from = ""
-    lfrete_join = ""
-    if coluna_rentabilidade or coluna_rentabilidade_valor:
-        lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
-        lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE), 0), 2) AS MC_VALOR"
-        lfrete_from = """
-            (
-                SELECT
-                    CHAVE_NOTA_ITEM,
-                    ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE
-
-                FROM
-                    (
-                        {lfrete_notas} AND
-
-                            NOTAS.DATA_EMISSAO >= :data_inicio AND
-                            NOTAS.DATA_EMISSAO <= :data_fim
-                    ) LFRETE
-
-                GROUP BY
-                    CHAVE_NOTA_ITEM
-            ) LFRETE,
-        """
-        lfrete_from = lfrete_from.format(lfrete_notas=lfrete_notas)
-        lfrete_join = "LFRETE.CHAVE_NOTA_ITEM = NOTAS_ITENS.CHAVE AND"
-        if orcamento:
-            lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
-            lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END), 0), 2) AS MC_VALOR"
-            lfrete_from = """
-                (
-                    SELECT
-                        CHAVE_ORCAMENTO_ITEM,
-                        ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE
-
-                    FROM
-                        (
-                            {lfrete_orcamentos} AND
-
-                                ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND
-                                ORCAMENTOS.DATA_PEDIDO >= :data_inicio AND
-                                ORCAMENTOS.DATA_PEDIDO <= :data_fim
-                        ) LFRETE
-
-                    GROUP BY
-                        CHAVE_ORCAMENTO_ITEM
-                ) LFRETE,
-            """
-            lfrete_from = lfrete_from.format(lfrete_orcamentos=lfrete_orcamentos)
-            lfrete_join = "LFRETE.CHAVE_ORCAMENTO_ITEM = ORCAMENTOS_ITENS.CHAVE AND"
-    kwargs_sql.update({'lfrete_coluna': lfrete_coluna, 'lfrete_valor_coluna': lfrete_valor_coluna,
-                       'lfrete_from': lfrete_from, 'lfrete_join': lfrete_join, })
-
-    # Fonte Notas / Orçamentos
-
-    valor_mercadorias = "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 0), 0))) AS VALOR_MERCADORIAS"
-    notas_peso_liquido_from = """
+    orcamentos_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
+    orcamentos_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END), 0), 2) AS MC_VALOR"
+    orcamentos_lfrete_from = """
         (
             SELECT
-                NOTAS_ITENS.CHAVE_NOTA,
-                SUM(NOTAS_ITENS.PESO_LIQUIDO) AS PESO_LIQUIDO
+                CHAVE_ORCAMENTO_ITEM,
+                ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE
 
             FROM
-                COPLAS.NOTAS_ITENS
+                (
+                    {lfrete_orcamentos} AND
+
+                        ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND
+                        ORCAMENTOS.DATA_PEDIDO >= :data_inicio AND
+                        ORCAMENTOS.DATA_PEDIDO <= :data_fim
+                ) LFRETE
 
             GROUP BY
-                NOTAS_ITENS.CHAVE_NOTA
-        ) NOTAS_PESO_LIQUIDO,
-    """
-    fonte_itens = "COPLAS.NOTAS_ITENS,"
-    fonte = "COPLAS.NOTAS,"
-    fonte_joins = """
-        PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
-        CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
-        NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-        NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
-    """
-    fonte_where = "NOTAS.VALOR_COMERCIAL = 'SIM' AND"
-    fonte_where_data = """
-        NOTAS.DATA_EMISSAO >= :data_inicio AND
-        NOTAS.DATA_EMISSAO <= :data_fim
-    """
-    if orcamento:
-        valor_mercadorias = "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS"
-        notas_peso_liquido_from = ""
-        fonte_itens = "COPLAS.ORCAMENTOS_ITENS,"
-        fonte = "COPLAS.ORCAMENTOS,"
-        fonte_joins = """
+                CHAVE_ORCAMENTO_ITEM
+        ) LFRETE,
+    """.format(lfrete_orcamentos=lfrete_orcamentos)
+    orcamentos_lfrete_join = "LFRETE.CHAVE_ORCAMENTO_ITEM = ORCAMENTOS_ITENS.CHAVE AND"
+
+    sql_orcamentos_base = {
+        'valor_mercadorias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS",
+
+        'notas_peso_liquido_from': "",
+
+        'fonte_itens': "COPLAS.ORCAMENTOS_ITENS,",
+
+        'fonte': "COPLAS.ORCAMENTOS,",
+
+        'fonte_joins': """
             PRODUTOS.CPROD = ORCAMENTOS_ITENS.CHAVE_PRODUTO AND
             CLIENTES.CODCLI = ORCAMENTOS.CHAVE_CLIENTE AND
             ORCAMENTOS.CHAVE = ORCAMENTOS_ITENS.CHAVE_PEDIDO AND
-        """
-        fonte_where = """
+        """,
+
+        'fonte_where': """
             ORCAMENTOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
             ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND
-        """
-        fonte_where_data = """
+        """,
+
+        'fonte_where_data': """
             ORCAMENTOS.DATA_PEDIDO >= :data_inicio AND
             ORCAMENTOS.DATA_PEDIDO <= :data_fim
-        """
+        """,
+    }
 
-    kwargs_sql.update({
-        'valor_mercadorias': valor_mercadorias,
-        'notas_peso_liquido_from': notas_peso_liquido_from,
-        'fonte_itens': fonte_itens,
-        'fonte': fonte,
-        'fonte_joins': fonte_joins,
-        'fonte_where': fonte_where,
-        'fonte_where_data': fonte_where_data,
-    })
+    sql_orcamentos = {
+        'coluna_media_dia': {'media_dia_campo_alias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) / COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS MEDIA_DIA,"},
+
+        'coluna_data_emissao': {'data_emissao_campo_alias': "ORCAMENTOS.DATA_PEDIDO AS DATA_EMISSAO,",
+                                'data_emissao_campo': "ORCAMENTOS.DATA_PEDIDO,", },
+
+        'coluna_ano_emissao': {'ano_emissao_campo_alias': "EXTRACT(YEAR FROM ORCAMENTOS.DATA_PEDIDO) AS ANO_EMISSAO,",
+                               'ano_emissao_campo': "EXTRACT(YEAR FROM ORCAMENTOS.DATA_PEDIDO),", },
+
+        'coluna_mes_emissao': {'mes_emissao_campo_alias': "EXTRACT(MONTH FROM ORCAMENTOS.DATA_PEDIDO) AS MES_EMISSAO,",
+                               'mes_emissao_campo': "EXTRACT(MONTH FROM ORCAMENTOS.DATA_PEDIDO),", },
+
+        'coluna_grupo_economico': {'grupo_economico_campo_alias': "GRUPO_ECONOMICO.CHAVE AS CHAVE_GRUPO_ECONOMICO, GRUPO_ECONOMICO.DESCRICAO AS GRUPO,",
+                                   'grupo_economico_campo': "GRUPO_ECONOMICO.CHAVE, GRUPO_ECONOMICO.DESCRICAO,", },
+        'grupo_economico': {'grupo_economico_pesquisa': "UPPER(GRUPO_ECONOMICO.DESCRICAO) LIKE UPPER(:grupo_economico) AND", },
+
+        'coluna_carteira': {'carteira_campo_alias': "VENDEDORES.NOMERED AS CARTEIRA,",
+                            'carteira_campo': "VENDEDORES.NOMERED,", },
+        'carteira': {'carteira_pesquisa': "VENDEDORES.CODVENDEDOR = :chave_carteira AND", },
+
+        'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
+                                'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
+        'tipo_cliente': {'tipo_cliente_pesquisa': "CLIENTES_TIPOS.CHAVE = :chave_tipo_cliente AND", },
+
+        'coluna_familia_produto': {'familia_produto_campo_alias': "FAMILIA_PRODUTOS.FAMILIA AS FAMILIA_PRODUTO,",
+                                   'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
+        'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND", },
+
+        'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
+                           'produto_campo': "PRODUTOS.CODIGO,", },
+        'produto': {'produto_pesquisa': "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND", },
+
+        'coluna_unidade': {'unidade_campo_alias': "UNIDADES.UNIDADE,",
+                           'unidade_campo': "UNIDADES.UNIDADE,", },
+
+        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "MAX(ORCAMENTOS_ITENS.PRECO_TABELA) AS PRECO_TABELA_INCLUSAO,",
+                                         'preco_tabela_inclusao_campo': "MAX(ORCAMENTOS_ITENS.PRECO_TABELA),", },
+
+        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(ORCAMENTOS_ITENS.PRECO_VENDA), 2) AS PRECO_VENDA_MEDIO,",
+                                     'preco_venda_medio_campo': "ROUND(AVG(ORCAMENTOS_ITENS.PRECO_VENDA), 2),", },
+
+        'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS.QUANTIDADE) AS QUANTIDADE,",
+                              'quantidade_campo': "SUM(ORCAMENTOS_ITENS.QUANTIDADE),", },
+
+        'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
+                          'cidade_campo': "CLIENTES.CIDADE,", },
+        'cidade': {'cidade_pesquisa': "UPPER(CLIENTES.CIDADE) LIKE UPPER(:cidade) AND", },
+
+        'coluna_estado': {'estado_campo_alias': "ESTADOS.SIGLA AS UF_PRINCIPAL,",
+                          'estado_campo': "ESTADOS.SIGLA,", },
+        'estado': {'estado_pesquisa': "ESTADOS.CHAVE = :chave_estado AND", },
+
+        'nao_compraram_depois': {'nao_compraram_depois_pesquisa': "", },
+
+        'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "{} AND".format(justificativas(False)), },
+
+        'coluna_proporcao': {'proporcao_campo': "VALOR_MERCADORIAS DESC,", },
+
+        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT ORCAMENTOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,",
+                                         'quantidade_documentos_campo': "COUNT(DISTINCT ORCAMENTOS.NUMPED),", },
+
+        'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "ORCAMENTOS_ITENS.STATUS,",
+                                            'status_produto_orcamento_campo': "ORCAMENTOS_ITENS.STATUS,", },
+        'status_produto_orcamento': {'status_produto_orcamento_pesquisa': "ORCAMENTOS_ITENS.STATUS = :chave_status_produto_orcamento AND", },
+
+        'coluna_status_produto_orcamento_tipo': {'status_produto_orcamento_tipo_campo_alias': "STATUS_ORCAMENTOS_ITENS.TIPO AS STATUS_TIPO,",
+                                                 'status_produto_orcamento_tipo_campo': "STATUS_ORCAMENTOS_ITENS.TIPO,",
+                                                 'status_produto_orcamento_tipo_from': orcamentos_status_produto_orcamento_tipo_from,
+                                                 'status_produto_orcamento_tipo_join': orcamentos_status_produto_orcamento_tipo_join, },
+        'status_produto_orcamento_tipo': {'status_produto_orcamento_tipo_pesquisa': "STATUS_ORCAMENTOS_ITENS.TIPO = :status_produto_orcamento_tipo AND" if kwargs_formulario.get('status_produto_orcamento_tipo') != "PERDIDO_CANCELADO" else "STATUS_ORCAMENTOS_ITENS.TIPO IN ('PERDIDO', 'CANCELADO') AND",
+                                          'status_produto_orcamento_tipo_from': orcamentos_status_produto_orcamento_tipo_from,
+                                          'status_produto_orcamento_tipo_join': orcamentos_status_produto_orcamento_tipo_join, },
+
+        'coluna_rentabilidade': {'lfrete_coluna': orcamentos_lfrete_coluna,
+                                 'lfrete_valor_coluna': orcamentos_lfrete_valor_coluna,
+                                 'lfrete_from': orcamentos_lfrete_from,
+                                 'lfrete_join': orcamentos_lfrete_join, },
+        'coluna_rentabilidade_valor': {'lfrete_coluna': orcamentos_lfrete_coluna,
+                                       'lfrete_valor_coluna': orcamentos_lfrete_valor_coluna,
+                                       'lfrete_from': orcamentos_lfrete_from,
+                                       'lfrete_join': orcamentos_lfrete_join, },
+    }
+
+    sql_final = {}
+    if orcamento:
+        sql_final.update(sql_orcamentos_base)
+    else:
+        sql_final.update(sql_notas_base)
+
+    for chave, valor in kwargs_formulario.items():
+        if valor:
+            if orcamento:
+                if sql_orcamentos.get(chave):
+                    sql_final.update(sql_orcamentos.get(chave))  # type:ignore
+            else:
+                if sql_notas.get(chave):
+                    sql_final.update(sql_notas.get(chave))  # type:ignore
+
+    return sql_final
+
+
+def get_relatorios_vendas(orcamento: bool, **kwargs):
+    # TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
+    # TODO: considerar itens perdidos excluidos?????
+    # TODO: coluna de cada mes? cada ano?
+    kwargs_sql = {}
+    kwargs_ora = {}
+
+    data_inicio = kwargs.get('inicio')
+    data_fim = kwargs.get('fim')
+    grupo_economico = kwargs.get('grupo_economico')
+    carteira = kwargs.get('carteira')
+    tipo_cliente = kwargs.get('tipo_cliente')
+    familia_produto = kwargs.get('familia_produto')
+    produto = kwargs.get('produto')
+    cidade = kwargs.get('cidade')
+    estado = kwargs.get('estado')
+    status_produto_orcamento = kwargs.get('status_produto_orcamento')
+    status_produto_orcamento_tipo = kwargs.get('status_produto_orcamento_tipo')
+
+    if not data_inicio:
+        data_inicio = datetime.date(datetime(2010, 1, 1))
+
+    if not data_fim:
+        data_fim = datetime.date(datetime(2999, 12, 31))
+
+    kwargs_sql.update(map_relatorio_vendas_sql_string_placeholders(orcamento, **kwargs))
+
+    # TODO: ver se é possivel fazer um mapping
+    # kwargs_ora precisa conter os placeholders corretamente
+
+    if grupo_economico:
+        kwargs_ora.update({'grupo_economico': grupo_economico, })
+
+    if carteira:
+        chave_carteira = carteira.pk
+        kwargs_ora.update({'chave_carteira': chave_carteira, })
+
+    if tipo_cliente:
+        chave_tipo_cliente = tipo_cliente.pk
+        kwargs_ora.update({'chave_tipo_cliente': chave_tipo_cliente, })
+
+    if familia_produto:
+        chave_familia_produto = familia_produto.pk
+        kwargs_ora.update({'chave_familia_produto': chave_familia_produto, })
+
+    if produto:
+        kwargs_ora.update({'produto': produto, })
+
+    if cidade:
+        kwargs_ora.update({'cidade': cidade, })
+
+    if estado:
+        chave_estado = estado.pk
+        kwargs_ora.update({'chave_estado': chave_estado, })
+
+    if status_produto_orcamento:
+        if orcamento:
+            chave_status_produto_orcamento = status_produto_orcamento.DESCRICAO
+            kwargs_ora.update({'chave_status_produto_orcamento': chave_status_produto_orcamento, })
+
+    if status_produto_orcamento_tipo:
+        if orcamento:
+            if status_produto_orcamento_tipo != "PERDIDO_CANCELADO":
+                kwargs_ora.update({'status_produto_orcamento_tipo': status_produto_orcamento_tipo, })
 
     sql = """
         SELECT
@@ -1176,7 +1070,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
             VALOR_MERCADORIAS DESC
     """
 
-    sql = sql.format(**kwargs_sql)
+    sql = sql.format_map(DefaultDict(kwargs_sql))
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim, **kwargs_ora)
 
