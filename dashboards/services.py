@@ -11,6 +11,7 @@ from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valo
 from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes
 from django.core.exceptions import ObjectDoesNotExist
 from datetime import datetime
+import pandas as pd
 
 
 class DashBoardVendas():
@@ -581,7 +582,7 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
     return erros
 
 
-def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, **kwargs_formulario):
+def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_itens_excluidos: bool = False, **kwargs_formulario):
     """
         SQLs estão em um dict onde a chave é o nome do campo do formulario e o valor é um dict com o placeholder como
         chave e o codigo sql como valor
@@ -608,7 +609,7 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, **kwargs_formu
     """.format(lfrete_notas=lfrete_notas)
     notas_lfrete_join = "LFRETE.CHAVE_NOTA_ITEM = NOTAS_ITENS.CHAVE AND"
 
-    sql_notas_base = {
+    map_sql_notas_base = {
         'valor_mercadorias': "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 0), 0))) AS VALOR_MERCADORIAS",
 
         'notas_peso_liquido_from': """
@@ -644,7 +645,7 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, **kwargs_formu
         """,
     }
 
-    sql_notas = {
+    map_sql_notas = {
         'coluna_media_dia': {'media_dia_campo_alias': "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 0), 0))) / COUNT(DISTINCT NOTAS.DATA_EMISSAO) AS MEDIA_DIA,", },
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "NOTAS.DATA_EMISSAO,",
@@ -782,7 +783,7 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, **kwargs_formu
     """.format(lfrete_orcamentos=lfrete_orcamentos)
     orcamentos_lfrete_join = "LFRETE.CHAVE_ORCAMENTO_ITEM = ORCAMENTOS_ITENS.CHAVE AND"
 
-    sql_orcamentos_base = {
+    map_sql_orcamentos_base = {
         'valor_mercadorias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS",
 
         'notas_peso_liquido_from': "",
@@ -808,7 +809,7 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, **kwargs_formu
         """,
     }
 
-    sql_orcamentos = {
+    map_sql_orcamentos = {
         'coluna_media_dia': {'media_dia_campo_alias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) / COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS MEDIA_DIA,"},
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "ORCAMENTOS.DATA_PEDIDO AS DATA_EMISSAO,",
@@ -891,29 +892,101 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, **kwargs_formu
                                        'lfrete_join': orcamentos_lfrete_join, },
     }
 
+    # Itens de orçamento excluidos somente o que difere de orçamento
+
+    orcamentos_itens_excluidos_status_produto_orcamento_tipo_from = orcamentos_status_produto_orcamento_tipo_from
+    orcamentos_itens_excluidos_status_produto_orcamento_tipo_join = "STATUS_ORCAMENTOS_ITENS.DESCRICAO = ORCAMENTOS_ITENS_EXCLUIDOS.STATUS AND"
+
+    orcamentos_itens_excluidos_lfrete_coluna = ", 0 AS MC"
+    orcamentos_itens_excluidos_lfrete_valor_coluna = ", 0 AS MC_VALOR"
+    orcamentos_itens_excluidos_lfrete_from = ""
+    orcamentos_itens_excluidos_lfrete_join = ""
+
+    map_sql_orcamentos_base_itens_excluidos = {
+        'valor_mercadorias': "SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS",
+
+        'fonte_itens': "COPLAS.ORCAMENTOS_ITENS_EXCLUIDOS,",
+
+        'fonte_joins': """
+            PRODUTOS.CPROD = ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE_PRODUTO AND
+            CLIENTES.CODCLI = ORCAMENTOS.CHAVE_CLIENTE AND
+            ORCAMENTOS.CHAVE = ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE_ORCAMENTO AND
+        """,
+    }
+
+    map_sql_orcamentos_itens_excluidos = {
+        # TODO: calcular na junção de orçamentos e itens excluidos?
+        'coluna_media_dia': {'media_dia_campo_alias': "0 AS MEDIA_DIA,"},
+
+        # TODO: calcular na junção de orçamentos e itens excluidos?
+        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "0 AS PRECO_TABELA_INCLUSAO,",
+                                         'preco_tabela_inclusao_campo': "", },
+
+        # TODO: calcular na junção de orçamentos e itens excluidos?
+        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "0 AS PRECO_VENDA_MEDIO,",
+                                     'preco_venda_medio_campo': "", },
+
+        'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE) AS QUANTIDADE,",
+                              'quantidade_campo': "SUM(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE),", },
+
+        'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "{} AND".format(justificativas(True)), },
+
+        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "0 AS QUANTIDADE_DOCUMENTOS,",
+                                         'quantidade_documentos_campo': "", },
+
+        'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "ORCAMENTOS_ITENS_EXCLUIDOS.STATUS,",
+                                            'status_produto_orcamento_campo': "ORCAMENTOS_ITENS_EXCLUIDOS.STATUS,", },
+        'status_produto_orcamento': {'status_produto_orcamento_pesquisa': "ORCAMENTOS_ITENS_EXCLUIDOS.STATUS = :chave_status_produto_orcamento AND", },
+
+        'coluna_status_produto_orcamento_tipo': {'status_produto_orcamento_tipo_campo_alias': "STATUS_ORCAMENTOS_ITENS.TIPO AS STATUS_TIPO,",
+                                                 'status_produto_orcamento_tipo_campo': "STATUS_ORCAMENTOS_ITENS.TIPO,",
+                                                 'status_produto_orcamento_tipo_from': orcamentos_itens_excluidos_status_produto_orcamento_tipo_from,
+                                                 'status_produto_orcamento_tipo_join': orcamentos_itens_excluidos_status_produto_orcamento_tipo_join, },
+        'status_produto_orcamento_tipo': {'status_produto_orcamento_tipo_pesquisa': "STATUS_ORCAMENTOS_ITENS.TIPO = :status_produto_orcamento_tipo AND" if kwargs_formulario.get('status_produto_orcamento_tipo') != "PERDIDO_CANCELADO" else "STATUS_ORCAMENTOS_ITENS.TIPO IN ('PERDIDO', 'CANCELADO') AND",
+                                          'status_produto_orcamento_tipo_from': orcamentos_itens_excluidos_status_produto_orcamento_tipo_from,
+                                          'status_produto_orcamento_tipo_join': orcamentos_itens_excluidos_status_produto_orcamento_tipo_join, },
+
+        'coluna_rentabilidade': {'lfrete_coluna': orcamentos_itens_excluidos_lfrete_coluna,
+                                 'lfrete_valor_coluna': orcamentos_itens_excluidos_lfrete_valor_coluna,
+                                 'lfrete_from': orcamentos_itens_excluidos_lfrete_from,
+                                 'lfrete_join': orcamentos_itens_excluidos_lfrete_join, },
+        'coluna_rentabilidade_valor': {'lfrete_coluna': orcamentos_itens_excluidos_lfrete_coluna,
+                                       'lfrete_valor_coluna': orcamentos_itens_excluidos_lfrete_valor_coluna,
+                                       'lfrete_from': orcamentos_itens_excluidos_lfrete_from,
+                                       'lfrete_join': orcamentos_itens_excluidos_lfrete_join, },
+    }
+
     sql_final = {}
     if orcamento:
-        sql_final.update(sql_orcamentos_base)
+        sql_final.update(map_sql_orcamentos_base)
+        if trocar_para_itens_excluidos:
+            sql_final.update(map_sql_orcamentos_base_itens_excluidos)
     else:
-        sql_final.update(sql_notas_base)
+        sql_final.update(map_sql_notas_base)
 
     for chave, valor in kwargs_formulario.items():
         if valor:
             if orcamento:
-                if sql_orcamentos.get(chave):
-                    sql_final.update(sql_orcamentos.get(chave))  # type:ignore
+                get_map_orcamento = map_sql_orcamentos.get(chave)
+                if get_map_orcamento:
+                    sql_final.update(get_map_orcamento)  # type:ignore
+                    if trocar_para_itens_excluidos:
+                        get_map_orcamento_itens_excluidos = map_sql_orcamentos_itens_excluidos.get(chave)
+                        if get_map_orcamento_itens_excluidos:
+                            sql_final.update(get_map_orcamento_itens_excluidos)  # type:ignore
             else:
-                if sql_notas.get(chave):
-                    sql_final.update(sql_notas.get(chave))  # type:ignore
+                get_map_nota = map_sql_notas.get(chave)
+                if get_map_nota:
+                    sql_final.update(get_map_nota)  # type:ignore
 
     return sql_final
 
 
 def get_relatorios_vendas(orcamento: bool, **kwargs):
     # TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
-    # TODO: considerar itens perdidos excluidos?????
     # TODO: coluna de cada mes? cada ano?
     kwargs_sql = {}
+    kwargs_sql_itens_excluidos = {}
     kwargs_ora = {}
 
     data_inicio = kwargs.get('inicio')
@@ -927,6 +1000,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
     estado = kwargs.get('estado')
     status_produto_orcamento = kwargs.get('status_produto_orcamento')
     status_produto_orcamento_tipo = kwargs.get('status_produto_orcamento_tipo')
+    trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
 
     if not data_inicio:
         data_inicio = datetime.date(datetime(2010, 1, 1))
@@ -935,8 +1009,10 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
         data_fim = datetime.date(datetime(2999, 12, 31))
 
     kwargs_sql.update(map_relatorio_vendas_sql_string_placeholders(orcamento, **kwargs))
+    if trocar_para_itens_excluidos:
+        kwargs_sql_itens_excluidos.update(map_relatorio_vendas_sql_string_placeholders(
+            orcamento, trocar_para_itens_excluidos, **kwargs))  # type:ignore
 
-    # TODO: ver se é possivel fazer um mapping
     # kwargs_ora precisa conter os placeholders corretamente
 
     if grupo_economico:
@@ -974,7 +1050,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
             if status_produto_orcamento_tipo != "PERDIDO_CANCELADO":
                 kwargs_ora.update({'status_produto_orcamento_tipo': status_produto_orcamento_tipo, })
 
-    sql = """
+    sql_base = """
         SELECT
             {data_emissao_campo_alias}
             {ano_emissao_campo_alias}
@@ -1070,9 +1146,38 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
             VALOR_MERCADORIAS DESC
     """
 
-    sql = sql.format_map(DefaultDict(kwargs_sql))
-
+    sql = sql_base.format_map(DefaultDict(kwargs_sql))
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim, **kwargs_ora)
+
+    if trocar_para_itens_excluidos:
+        sql_itens_excluidos = sql_base.format_map(DefaultDict(kwargs_sql_itens_excluidos))
+        resultado_itens_excluidos = executar_oracle(sql_itens_excluidos, exportar_cabecalho=True,
+                                                    data_inicio=data_inicio, data_fim=data_fim, **kwargs_ora)
+
+        dt_resultado = pd.DataFrame(resultado)
+        dt_resultado_itens_excluidos = pd.DataFrame(resultado_itens_excluidos)
+
+        dt_resultado_final = pd.concat([dt_resultado, dt_resultado_itens_excluidos])
+
+        alias_para_header_groupby = ['DATA_EMISSAO', 'ANO_EMISSAO', 'MES_EMISSAO', 'CHAVE_GRUPO_ECONOMICO',
+                                     'GRUPO', 'CARTEIRA', 'TIPO_CLIENTE', 'FAMILIA_PRODUTO', 'PRODUTO', 'UNIDADE',
+                                     'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',]
+        # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
+        # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
+        #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',
+        #                          'QUANTIDADE_DOCUMENTOS': 'sum', }
+        cabecalhos = list(dt_resultado_final.columns)
+
+        alias_para_header_groupby = [header for header in alias_para_header_groupby if header in cabecalhos]
+        # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
+        # alias_para_header_agg = {key: value for key, value in alias_para_header_agg.items() if key in cabecalhos}
+
+        if alias_para_header_groupby:
+            dt_resultado_final = dt_resultado_final.groupby(alias_para_header_groupby).sum().reset_index()
+            resultado = dt_resultado_final.to_dict(orient='records')
+        else:
+            dt_resultado_final = dt_resultado_final.sum()
+            resultado = [dt_resultado_final.to_dict()]
 
     return resultado
 

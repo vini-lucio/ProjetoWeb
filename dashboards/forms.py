@@ -24,20 +24,23 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_familia_produto = forms.BooleanField(label="Coluna Familia", initial=False, required=False)
     coluna_produto = forms.BooleanField(label="Coluna Produto", initial=False, required=False)
     coluna_unidade = forms.BooleanField(label="Coluna Unidade", initial=False, required=False)
-    coluna_preco_tabela_inclusao = forms.BooleanField(label="Coluna Preço de Tabela R$", help_text="na inclusão, maior",
+    coluna_preco_tabela_inclusao = forms.BooleanField(label="Coluna Preço de Tabela R$",
+                                                      help_text="na inclusão, maior (exceto excluidos)",
                                                       initial=False, required=False)
-    coluna_preco_venda_medio = forms.BooleanField(label="Coluna Preço Medio R$", initial=False, required=False)
+    coluna_preco_venda_medio = forms.BooleanField(label="Coluna Preço Medio R$", help_text="exceto excluidos",
+                                                  initial=False, required=False)
     coluna_quantidade = forms.BooleanField(label="Coluna Quantidade", initial=False, required=False)
-    coluna_rentabilidade = forms.BooleanField(label="Coluna % MC", initial=False, required=False)
-    coluna_rentabilidade_valor = forms.BooleanField(label="Coluna R$ MC", initial=False,
+    coluna_rentabilidade = forms.BooleanField(label="Coluna % MC", help_text="exceto excluidos", initial=False,
+                                              required=False)
+    coluna_rentabilidade_valor = forms.BooleanField(label="Coluna R$ MC", help_text="exceto excluidos", initial=False,
                                                     required=False)
     coluna_proporcao = forms.BooleanField(label="Coluna % Proporção", initial=True, required=False)
     coluna_quantidade_documentos = forms.BooleanField(label="Coluna Quantidade de Documentos", initial=False,
                                                       required=False)
     coluna_ano_emissao = forms.BooleanField(label="Coluna Ano Emissão", initial=False, required=False)
     coluna_mes_emissao = forms.BooleanField(label="Coluna Mês Emissão", initial=False, required=False)
-    coluna_media_dia = forms.BooleanField(label="Coluna R$ Médio por Dia", help_text="de venda", initial=False,
-                                          required=False)
+    coluna_media_dia = forms.BooleanField(label="Coluna R$ Médio por Dia", help_text="de venda (exceto excluidos)",
+                                          initial=False, required=False)
 
     grupo_economico = forms.CharField(label="Grupo Economico", max_length=300, required=False)
     carteira = forms.ModelChoiceField(carteiras, label="Carteira", required=False)
@@ -88,19 +91,20 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
     status_orcamentos_itens_tipos.insert(0, ('', '---------'))
     status_orcamentos_itens_tipos.insert(1, ('PERDIDO_CANCELADO', 'PERDIDO OU CANCELADO'))
 
-    coluna_status_produto_orcamento = forms.BooleanField(label="Coluna Status", help_text="exceto excluidos",
-                                                         initial=False, required=False)
-    coluna_status_produto_orcamento_tipo = forms.BooleanField(label="Coluna Status Tipo", help_text="exceto excluidos",
-                                                              initial=False, required=False)
+    coluna_status_produto_orcamento = forms.BooleanField(label="Coluna Status", initial=False, required=False)
+    coluna_status_produto_orcamento_tipo = forms.BooleanField(label="Coluna Status Tipo", initial=False,
+                                                              required=False)
 
-    status_produto_orcamento = forms.ModelChoiceField(status_orcamentos_itens, label="Status",
-                                                      help_text="exceto excluidos", required=False)
-    status_produto_orcamento_tipo = forms.ChoiceField(label="Status Tipo", help_text="exceto excluidos",
-                                                      choices=status_orcamentos_itens_tipos, initial=False,
-                                                      required=False)
+    status_produto_orcamento = forms.ModelChoiceField(status_orcamentos_itens, label="Status", required=False)
+    status_produto_orcamento_tipo = forms.ChoiceField(label="Status Tipo", choices=status_orcamentos_itens_tipos,
+                                                      initial=False, required=False)
     desconsiderar_justificativas = forms.BooleanField(label="Desconsiderar Justificativas Invalidas",
-                                                      help_text="de orçamentos não fechados (exceto excluidos)",
+                                                      help_text="de orçamentos não fechados",
                                                       initial=True, required=False)
+
+    considerar_itens_excluidos = forms.BooleanField(label="Considerar Itens Excluidos",
+                                                    help_text="com justificativas validas",
+                                                    initial=True, required=False)
 
     def get_agrupamentos_campos(self):
         super_agrupamento = super().get_agrupamentos_campos()
@@ -111,5 +115,6 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
         super_agrupamento['Filtros sobre Produto'].append('status_produto_orcamento')
         super_agrupamento['Filtros sobre Produto'].append('status_produto_orcamento_tipo')
         super_agrupamento['Filtros sobre Produto'].append('desconsiderar_justificativas')
+        super_agrupamento['Filtros sobre Produto'].append('considerar_itens_excluidos')
 
         return super_agrupamento

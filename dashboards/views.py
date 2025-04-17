@@ -69,11 +69,11 @@ def relatorios_supervisao(request, fonte: str):
                 mc_valor_total = 0
                 quantidade_documentos_total = 0
                 for dado in dados:
-                    valor_mercadorias_total += dado.get('VALOR_MERCADORIAS')
+                    valor_mercadorias_total += dado.get('VALOR_MERCADORIAS')  # type:ignore
                     if coluna_rentabilidade or coluna_rentabilidade_valor:
-                        mc_valor_total += dado.get('MC_VALOR')
+                        mc_valor_total += dado.get('MC_VALOR')  # type:ignore
                     if coluna_quantidade_documentos:
-                        quantidade_documentos_total += dado.get('QUANTIDADE_DOCUMENTOS')
+                        quantidade_documentos_total += dado.get('QUANTIDADE_DOCUMENTOS')  # type:ignore
                 if mc_valor_total and valor_mercadorias_total:
                     mc_total = mc_valor_total / valor_mercadorias_total * 100
 
