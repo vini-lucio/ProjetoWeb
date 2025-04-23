@@ -6,7 +6,7 @@ import plotly.express as px
 import plotly.io as pio
 import pandas as pd
 from utils.data_hora_atual import data_365_dias_atras, data_x_dias, hoje, relativedelta, data_inicio_analysis
-from utils.plotly_parametros import update_layout_kwargs, update_traces_kwargs
+from utils.plotly_parametros import update_layout_kwargs
 
 
 class GruposEconomicosDetailView(DetailView):
@@ -94,27 +94,39 @@ class GruposEconomicosDetailView(DetailView):
             grafico_historico_html = pio.to_html(grafico_historico, full_html=False)
 
         # Dados Grafico Produtos
-        # TODO: incluir orçamentos não fechados no grafico. Filtro do top 30 ser a soma to total e não fechado
 
         grafico_produtos_html = ""
         if not dados_faturamento.empty:
             data_12_meses = data_365_dias_atras()
 
-            dados_grafico_produto = dados_faturamento[dados_faturamento['Data Emissão'].dt.date >= data_12_meses]
-            dados_grafico_produto = dados_grafico_produto.groupby('Produto', as_index=False)['Valor'].sum()
-            dados_grafico_produto = dados_grafico_produto.sort_values(by='Valor',
+            dados_faturamento_produto = dados_faturamento[dados_faturamento['Data Emissão'].dt.date >= data_12_meses]
+            dados_faturamento_produto = dados_faturamento_produto.groupby('Produto', as_index=False)['Valor'].sum()
+            dados_faturamento_produto = dados_faturamento_produto.rename(
+                columns={'Valor': 'Faturado', })  # type:ignore
+
+            dados_nao_fechados_produto = dados_orcamentos_nao_fechados[
+                dados_orcamentos_nao_fechados['Data Emissão'].dt.date >= data_12_meses]
+            dados_nao_fechados_produto = dados_nao_fechados_produto.groupby('Produto', as_index=False)['Valor'].sum()
+            dados_nao_fechados_produto = dados_nao_fechados_produto.rename(
+                columns={'Valor': 'Não Fechados', })  # type:ignore
+
+            dados_grafico_produto = pd.merge(dados_faturamento_produto, dados_nao_fechados_produto,
+                                             on='Produto', how='outer').fillna(0)
+            dados_grafico_produto['Valor Total'] = dados_grafico_produto['Faturado'] + \
+                dados_grafico_produto['Não Fechados']
+            dados_grafico_produto = dados_grafico_produto.sort_values(by='Valor Total',
                                                                       ascending=False).head(30)  # type:ignore
 
-            grafico_produtos = px.bar(dados_grafico_produto, x='Produto', y='Valor',
-                                      title='Top 30 Produtos (Ultimos 12 Meses)', text='Valor',
+            grafico_produtos = px.bar(dados_grafico_produto, x='Produto', y=['Faturado', 'Não Fechados'],
+                                      title='Top 30 Produtos (Ultimos 12 Meses)', text_auto=True,
+                                      labels={'variable': 'Status', 'value': 'Valor'},
 
                                       hover_name='Produto',
                                       hover_data={
                                           'Produto': False,
-                                          'Valor': ':,.2f',
-                                      },)
-            grafico_produtos.update_layout(update_layout_kwargs)
-            grafico_produtos.update_traces(update_traces_kwargs)
+                                          'variable': True,
+                                          'value': ':,.2f', },)
+            grafico_produtos.update_layout(update_layout_kwargs, barmode='stack')
             grafico_produtos_html = pio.to_html(grafico_produtos, full_html=False)
 
         # Dados Grafico Status de Orçamentos

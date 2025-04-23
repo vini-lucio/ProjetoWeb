@@ -39,6 +39,7 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
                                                       required=False)
     coluna_ano_emissao = forms.BooleanField(label="Coluna Ano Emissão", initial=False, required=False)
     coluna_mes_emissao = forms.BooleanField(label="Coluna Mês Emissão", initial=False, required=False)
+    coluna_dia_emissao = forms.BooleanField(label="Coluna Dia Emissão", initial=False, required=False)
     coluna_media_dia = forms.BooleanField(label="Coluna R$ Médio por Dia", help_text="de venda (exceto excluidos)",
                                           initial=False, required=False)
 
@@ -61,7 +62,7 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
                                             'coluna_quantidade',],
             'Visualizações Gerais': ['coluna_rentabilidade', 'coluna_rentabilidade_valor', 'coluna_proporcao',
                                      'coluna_quantidade_documentos', 'coluna_ano_emissao', 'coluna_mes_emissao',
-                                     'coluna_media_dia',],
+                                     'coluna_dia_emissao', 'coluna_media_dia',],
 
             'Filtros sobre Cliente': ['grupo_economico', 'carteira', 'tipo_cliente',
                                       'cidade', 'estado',],

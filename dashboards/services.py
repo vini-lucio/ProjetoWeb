@@ -660,6 +660,9 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_it
         'coluna_mes_emissao': {'mes_emissao_campo_alias': "EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES_EMISSAO,",
                                'mes_emissao_campo': "EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO),", },
 
+        'coluna_dia_emissao': {'dia_emissao_campo_alias': "EXTRACT(DAY FROM NOTAS.DATA_EMISSAO) AS DIA_EMISSAO,",
+                               'dia_emissao_campo': "EXTRACT(DAY FROM NOTAS.DATA_EMISSAO),", },
+
         'coluna_grupo_economico': {'grupo_economico_campo_alias': "GRUPO_ECONOMICO.CHAVE AS CHAVE_GRUPO_ECONOMICO, GRUPO_ECONOMICO.DESCRICAO AS GRUPO,",
                                    'grupo_economico_campo': "GRUPO_ECONOMICO.CHAVE, GRUPO_ECONOMICO.DESCRICAO,", },
         'grupo_economico': {'grupo_economico_pesquisa': "UPPER(GRUPO_ECONOMICO.DESCRICAO) LIKE UPPER(:grupo_economico) AND", },
@@ -826,6 +829,9 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_it
 
         'coluna_mes_emissao': {'mes_emissao_campo_alias': "EXTRACT(MONTH FROM ORCAMENTOS.DATA_PEDIDO) AS MES_EMISSAO,",
                                'mes_emissao_campo': "EXTRACT(MONTH FROM ORCAMENTOS.DATA_PEDIDO),", },
+
+        'coluna_dia_emissao': {'dia_emissao_campo_alias': "EXTRACT(DAY FROM ORCAMENTOS.DATA_PEDIDO) AS DIA_EMISSAO,",
+                               'dia_emissao_campo': "EXTRACT(DAY FROM ORCAMENTOS.DATA_PEDIDO),", },
 
         'coluna_grupo_economico': {'grupo_economico_campo_alias': "GRUPO_ECONOMICO.CHAVE AS CHAVE_GRUPO_ECONOMICO, GRUPO_ECONOMICO.DESCRICAO AS GRUPO,",
                                    'grupo_economico_campo': "GRUPO_ECONOMICO.CHAVE, GRUPO_ECONOMICO.DESCRICAO,", },
@@ -1062,6 +1068,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
             {ano_mes_emissao_campo_alias}
             {ano_emissao_campo_alias}
             {mes_emissao_campo_alias}
+            {dia_emissao_campo_alias}
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
             {quantidade_documentos_campo_alias}
@@ -1129,6 +1136,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
             {ano_mes_emissao_campo}
             {ano_emissao_campo}
             {mes_emissao_campo}
+            {dia_emissao_campo}
             {carteira_campo}
             {grupo_economico_campo}
             {tipo_cliente_campo}
@@ -1145,6 +1153,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
             {ano_mes_emissao_campo}
             {ano_emissao_campo}
             {mes_emissao_campo}
+            {dia_emissao_campo}
             {carteira_campo}
             {tipo_cliente_campo}
             {familia_produto_campo}
@@ -1168,9 +1177,9 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
 
         dt_resultado_final = pd.concat([dt_resultado, dt_resultado_itens_excluidos])
 
-        alias_para_header_groupby = ['DATA_EMISSAO', 'ANO_EMISSAO', 'MES_EMISSAO', 'CHAVE_GRUPO_ECONOMICO',
-                                     'GRUPO', 'CARTEIRA', 'TIPO_CLIENTE', 'FAMILIA_PRODUTO', 'PRODUTO', 'UNIDADE',
-                                     'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',]
+        alias_para_header_groupby = ['DATA_EMISSAO', 'ANO_EMISSAO', 'MES_EMISSAO', 'DIA_EMISSAO',
+                                     'CHAVE_GRUPO_ECONOMICO', 'GRUPO', 'CARTEIRA', 'TIPO_CLIENTE', 'FAMILIA_PRODUTO',
+                                     'PRODUTO', 'UNIDADE', 'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',
@@ -1183,6 +1192,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
 
         if alias_para_header_groupby:
             dt_resultado_final = dt_resultado_final.groupby(alias_para_header_groupby).sum().reset_index()
+            dt_resultado_final = dt_resultado_final.sort_values(by='VALOR_MERCADORIAS', ascending=False)
             resultado = dt_resultado_final.to_dict(orient='records')
         else:
             dt_resultado_final = dt_resultado_final.sum()
