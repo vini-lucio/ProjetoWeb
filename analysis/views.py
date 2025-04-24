@@ -5,8 +5,12 @@ from dashboards.services import get_relatorios_vendas
 import plotly.express as px
 import plotly.io as pio
 import pandas as pd
-from utils.data_hora_atual import data_365_dias_atras, data_x_dias, hoje, relativedelta, data_inicio_analysis
+import numpy as np
+from utils.data_hora_atual import data_365_dias_atras, data_x_dias, hoje, data_inicio_analysis
 from utils.plotly_parametros import update_layout_kwargs
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
 
 class GruposEconomicosDetailView(DetailView):
@@ -60,10 +64,7 @@ class GruposEconomicosDetailView(DetailView):
         if not dados_faturamento.empty:
             ano_inicio_historico = data_inicio_analysis().year
             ano_fim_historico = hoje().year
-            lista_anos_historico = [ano_inicio_historico]
-            while ano_inicio_historico != ano_fim_historico:
-                ano_inicio_historico += 1
-                lista_anos_historico.append(ano_inicio_historico)
+            lista_anos_historico = range(ano_inicio_historico, ano_fim_historico + 1)
             lista_anos_historico = pd.DataFrame({'Ano Emissão': lista_anos_historico, })
 
             dados_faturamento_historico = dados_faturamento.groupby('Ano Emissão', as_index=False)['Valor'].sum()
@@ -131,18 +132,14 @@ class GruposEconomicosDetailView(DetailView):
 
         # Dados Grafico Status de Orçamentos
 
+        previsao = {}
         grafico_historico_orcamentos_html = ""
         if not dados_orcamentos.empty:
             data_2_anos = data_x_dias(730, passado=True)
 
-            data_inicio_status = data_2_anos + relativedelta(day=1)
-            data_fim_status = hoje() + relativedelta(day=1)
-            lista_datas_status = [f'{data_inicio_status.year}|{data_inicio_status.month:02}']
-            while data_inicio_status != data_fim_status:
-                data_inicio_status = data_inicio_status + relativedelta(months=1)
-                lista_datas_status.append(
-                    f'{data_inicio_status.year}|{data_inicio_status.month:02}')
+            lista_datas_status = pd.date_range(data_2_anos, periods=25, freq='ME')
             lista_datas_status = pd.DataFrame({'Ano | Mês': lista_datas_status, })
+            lista_datas_status['Ano | Mês'] = lista_datas_status['Ano | Mês'].dt.strftime('%Y-%m')
 
             historico_orcamentos_nao_fechados = dados_orcamentos_nao_fechados[
                 dados_orcamentos_nao_fechados['Data Emissão'].dt.date >= data_2_anos]
@@ -177,7 +174,46 @@ class GruposEconomicosDetailView(DetailView):
                                                   },
                                                   )
             grafico_historico_orcamentos.update_layout(update_layout_kwargs, barmode='stack')
+            grafico_historico_orcamentos.update_xaxes(type='category')
             grafico_historico_orcamentos_html = pio.to_html(grafico_historico_orcamentos, full_html=False)
+
+            # Regressão polinomial e media movel
+
+            dados_grafico_historico_orcamentos['Mês Indice'] = range(1, len(dados_grafico_historico_orcamentos) + 1)
+
+            x = dados_grafico_historico_orcamentos[['Mês Indice']]
+            y = dados_grafico_historico_orcamentos['Fechados']
+
+            poly = PolynomialFeatures(degree=3, include_bias=False)
+            poly_features = poly.fit_transform(x)
+            poly_reg_model = LinearRegression()
+            poly_reg_model.fit(poly_features, y)
+            y_predicted = poly_reg_model.predict(poly_features)
+            dados_grafico_historico_orcamentos['Poly'] = y_predicted
+            poly_r_squared = poly_reg_model.score(poly_features, y)
+            poly_rmse = np.sqrt(mean_squared_error(y, y_predicted))
+
+            mes_seguinte_poly = pd.DataFrame({'Mês Indice': [len(dados_grafico_historico_orcamentos) + 1]})
+            mes_seguinte_poly = mes_seguinte_poly[['Mês Indice']]
+            mes_seguinte_poly = poly.fit_transform(mes_seguinte_poly)
+            mes_seguinte_poly = poly_reg_model.predict(mes_seguinte_poly)
+
+            dados_grafico_historico_orcamentos['Media Movel'] = dados_grafico_historico_orcamentos['Fechados'].rolling(
+                window=3
+            ).mean()
+            historico_orcamentos_media_movel = dados_grafico_historico_orcamentos.dropna(subset=['Media Movel'])
+            media_movel_rmse = np.sqrt(mean_squared_error(historico_orcamentos_media_movel['Fechados'],
+                                                          historico_orcamentos_media_movel['Media Movel']))
+            media_movel_r_squared = r2_score(historico_orcamentos_media_movel['Fechados'],
+                                             historico_orcamentos_media_movel['Media Movel'])
+            mes_seguinte_media_movel = historico_orcamentos_media_movel['Media Movel'].iloc[-1]
+
+            previsao['mes_seguinte_poly'] = float(mes_seguinte_poly[0])
+            previsao['poly_r_squared'] = poly_r_squared * 100
+            previsao['poly_rmse'] = float(poly_rmse)
+            previsao['mes_seguinte_media_movel'] = float(mes_seguinte_media_movel)
+            previsao['media_movel_r_squared'] = media_movel_r_squared * 100
+            previsao['media_movel_rmse'] = float(media_movel_rmse)
 
         # Contexto
 
@@ -194,5 +230,6 @@ class GruposEconomicosDetailView(DetailView):
             'ultimo_pedido': ultimo_pedido,
             'grafico_historico_orcamentos_html': grafico_historico_orcamentos_html,
             'media_dias_orcamento_para_pedido': media_dias_orcamento_para_pedido,
+            'previsao': previsao,
         })
         return context

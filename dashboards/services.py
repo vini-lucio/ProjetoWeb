@@ -651,8 +651,8 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_it
         'coluna_data_emissao': {'data_emissao_campo_alias': "NOTAS.DATA_EMISSAO,",
                                 'data_emissao_campo': "NOTAS.DATA_EMISSAO,", },
 
-        'coluna_ano_mes_emissao': {'ano_mes_emissao_campo_alias': "TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY||MM') AS ANO_MES_EMISSAO,",
-                                   'ano_mes_emissao_campo': "TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY||MM'),", },
+        'coluna_ano_mes_emissao': {'ano_mes_emissao_campo_alias': "TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM') AS ANO_MES_EMISSAO,",
+                                   'ano_mes_emissao_campo': "TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM'),", },
 
         'coluna_ano_emissao': {'ano_emissao_campo_alias': "EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS ANO_EMISSAO,",
                                'ano_emissao_campo': "EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),", },
@@ -821,8 +821,8 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_it
         'coluna_data_emissao': {'data_emissao_campo_alias': "ORCAMENTOS.DATA_PEDIDO AS DATA_EMISSAO,",
                                 'data_emissao_campo': "ORCAMENTOS.DATA_PEDIDO,", },
 
-        'coluna_ano_mes_emissao': {'ano_mes_emissao_campo_alias': "TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY||MM') AS ANO_MES_EMISSAO,",
-                                   'ano_mes_emissao_campo': "TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY||MM'),", },
+        'coluna_ano_mes_emissao': {'ano_mes_emissao_campo_alias': "TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM') AS ANO_MES_EMISSAO,",
+                                   'ano_mes_emissao_campo': "TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM'),", },
 
         'coluna_ano_emissao': {'ano_emissao_campo_alias': "EXTRACT(YEAR FROM ORCAMENTOS.DATA_PEDIDO) AS ANO_EMISSAO,",
                                'ano_emissao_campo': "EXTRACT(YEAR FROM ORCAMENTOS.DATA_PEDIDO),", },
