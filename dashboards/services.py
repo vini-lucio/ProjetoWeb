@@ -807,6 +807,7 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_it
         'fonte_where': """
             ORCAMENTOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
             ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND
+            ORCAMENTOS.NUMPED != 204565 AND
         """,
 
         'fonte_where_data': """
@@ -1177,7 +1178,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
 
         dt_resultado_final = pd.concat([dt_resultado, dt_resultado_itens_excluidos])
 
-        alias_para_header_groupby = ['DATA_EMISSAO', 'ANO_EMISSAO', 'MES_EMISSAO', 'DIA_EMISSAO',
+        alias_para_header_groupby = ['DATA_EMISSAO', 'ANO_EMISSAO', 'MES_EMISSAO', 'DIA_EMISSAO', 'ANO_MES_EMISSAO',
                                      'CHAVE_GRUPO_ECONOMICO', 'GRUPO', 'CARTEIRA', 'TIPO_CLIENTE', 'FAMILIA_PRODUTO',
                                      'PRODUTO', 'UNIDADE', 'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()

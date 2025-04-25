@@ -3919,25 +3919,21 @@ def migrar_vendedores():
 
 def migrar_comissoes(data_inicio, data_fim):
     if data_fim:
-        valor_para_comissao = "RECEBER.VALORRECEBIDO"
         data_para_comissao = """
-            RECEBER.DATALIQUIDACAO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
-            RECEBER.DATALIQUIDACAO <= TO_DATE(:data_fim,'YYYY-MM-DD')
+            RECEBER.DATAVENCIMENTO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
+            RECEBER.DATAVENCIMENTO <= TO_DATE(:data_fim,'YYYY-MM-DD')
         """
         condicao_para_comissao = "RECEBER.CONDICAO = 'LIQUIDADO'"
 
-        valor = valor_para_comissao
         data = data_para_comissao
         condicao = condicao_para_comissao
     else:
-        valor_para_rescisao = "RECEBER.VALORTOTAL"
         data_para_rescisao = """
                 RECEBER.DATAVENCIMENTO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
                 RECEBER.DATALIQUIDACAO IS NULL
             """
         condicao_para_rescisao = "RECEBER.CONDICAO != 'LIQUIDADO'"
 
-        valor = valor_para_rescisao
         data = data_para_rescisao
         condicao = condicao_para_rescisao
 
@@ -3957,7 +3953,7 @@ def migrar_comissoes(data_inicio, data_fim):
             SEGUNDO_REPRESENTANTE.NOMERED AS SEGUNDO_REPRE_NOTA,
             VENDEDORES.NOMERED AS CARTEIRA_CLIENTE,
             CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END AS ESPECIE,
-            SUM(ROUND(NOTAS_ITENS.VALOR_MERCADORIAS / NOTAS.VALOR_TOTAL * {valor}, 2)) - COALESCE(FRETE_NO_ITEM.FRETE_NO_ITEM, 0) AS VALOR_MERCADORIAS_PARCELA,
+            SUM(ROUND(NOTAS_ITENS.VALOR_MERCADORIAS / NOTAS.VALOR_TOTAL * (RECEBER.VALORTOTAL - (RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0))), 2)) - COALESCE(FRETE_NO_ITEM.FRETE_NO_ITEM, 0) AS VALOR_MERCADORIAS_PARCELA,
             RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0) AS ABATIMENTOS_TOTAIS,
             COALESCE(FRETE_NO_ITEM.FRETE_NO_ITEM, 0) AS FRETE_NO_ITEM,
             0 AS DIVISAO,
@@ -4048,7 +4044,7 @@ def migrar_comissoes(data_inicio, data_fim):
             NOTAS.NF
     """
 
-    sql = sql.format(valor=valor, condicao=condicao, data=data)
+    sql = sql.format(condicao=condicao, data=data)
 
     kwargs = {}
     if data_fim:

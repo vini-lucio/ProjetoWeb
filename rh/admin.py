@@ -485,7 +485,7 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
     actions = 'exportar_excel',
 
     """Não usar chave estrangeira em campos_exportar criar uma property no model filho"""
-    campos_exportar = ['data_liquidacao', 'nota_fiscal', 'cliente', 'uf_cliente_', 'uf_entrega_', 'inclusao_orcamento',
+    campos_exportar = ['data_vencimento', 'nota_fiscal', 'cliente', 'uf_cliente_', 'uf_entrega_', 'inclusao_orcamento',
                        'segundo_representante_cliente_', 'segundo_representante_nota_', 'carteira_cliente_',
                        'valor_mercadorias_parcelas', 'abatimentos_totais', 'frete_item', 'divisao', 'infra',
                        'premoldado_poste', 'valor_mercadorias_parcelas_nao_dividido']
@@ -498,9 +498,7 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
     def exportar_excel(self, request, queryset):
         meta = self.model._meta
 
-        response = HttpResponse(
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename={}.xlsx'.format(meta)
 
         cabecalho = gerar_cabecalho(self.campos_exportar)
@@ -509,7 +507,7 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
         titulo_aba = 'TOTAL'
         workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, cabecalho_negrito=True,
                                  formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBIDO')
+        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBER')
 
         vendedores = Vendedores.objects.filter(canal_venda__descricao='CONSULTOR TECNICO').order_by('nome')
         for vendedor in vendedores:
@@ -519,7 +517,7 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
                 titulo_aba = vendedor.nome
                 workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
                                          formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-                somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBIDO')
+                somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBER')
 
         queryset_comissoes_infra = queryset.filter(infra=True)
         if queryset_comissoes_infra:
@@ -527,7 +525,7 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
             titulo_aba = 'INFRA'
             workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
                                      formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBIDO')
+        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBER')
 
         queryset_comissoes_premoldado_poste = queryset.filter(premoldado_poste=True)
         if queryset_comissoes_premoldado_poste:
@@ -535,7 +533,7 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
             titulo_aba = 'PREMOLDADO POSTE'
             workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
                                      formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
-        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBIDO')
+        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBER')
 
         workbook.save(response)
 
@@ -582,9 +580,7 @@ class FaturamentosAdmin(BaseModelAdminRedRequired):
     def exportar_excel(self, request, queryset):
         meta = self.model._meta
 
-        response = HttpResponse(
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename={}.xlsx'.format(meta)
 
         cabecalho = gerar_cabecalho(self.campos_exportar)

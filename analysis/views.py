@@ -6,7 +6,7 @@ import plotly.express as px
 import plotly.io as pio
 import pandas as pd
 import numpy as np
-from utils.data_hora_atual import data_365_dias_atras, data_x_dias, hoje, data_inicio_analysis
+from utils.data_hora_atual import data_365_dias_atras, data_x_dias, hoje
 from utils.plotly_parametros import update_layout_kwargs
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
@@ -62,16 +62,22 @@ class GruposEconomicosDetailView(DetailView):
 
         grafico_historico_html = ""
         if not dados_faturamento.empty:
-            ano_inicio_historico = data_inicio_analysis().year
+            data_5_anos = data_x_dias(1825, passado=True, sempre_dia_1=True, sempre_mes_1=True)
+
+            ano_inicio_historico = data_5_anos.year
             ano_fim_historico = hoje().year
             lista_anos_historico = range(ano_inicio_historico, ano_fim_historico + 1)
             lista_anos_historico = pd.DataFrame({'Ano Emissão': lista_anos_historico, })
 
-            dados_faturamento_historico = dados_faturamento.groupby('Ano Emissão', as_index=False)['Valor'].sum()
+            dados_faturamento_historico = dados_faturamento[dados_faturamento['Data Emissão'].dt.date >= data_5_anos]
+            dados_faturamento_historico = dados_faturamento_historico.groupby(
+                'Ano Emissão', as_index=False)['Valor'].sum()
             dados_faturamento_historico = dados_faturamento_historico.rename(
                 columns={'Valor': 'Faturado', })  # type:ignore
 
-            dados_nao_fechados_historico = dados_orcamentos_nao_fechados.groupby('Ano Emissão', as_index=False)[
+            dados_nao_fechados_historico = dados_orcamentos_nao_fechados[
+                dados_orcamentos_nao_fechados['Data Emissão'].dt.date >= data_5_anos]
+            dados_nao_fechados_historico = dados_nao_fechados_historico.groupby('Ano Emissão', as_index=False)[
                 'Valor'].sum()
             dados_nao_fechados_historico = dados_nao_fechados_historico.rename(
                 columns={'Valor': 'Não Fechados', })  # type:ignore
@@ -82,7 +88,7 @@ class GruposEconomicosDetailView(DetailView):
                                                on='Ano Emissão', how='outer').fillna(0)
 
             grafico_historico = px.bar(dados_grafico_historico, x='Ano Emissão', y=['Faturado', 'Não Fechados'],
-                                       title='Historico Anual', text_auto=True,
+                                       title='Historico Anual (Ultimos 5 Anos)', text_auto=True,
                                        labels={'variable': 'Status', 'value': 'Valor'},
 
                                        hover_name='Ano Emissão',
@@ -135,7 +141,7 @@ class GruposEconomicosDetailView(DetailView):
         previsao = {}
         grafico_historico_orcamentos_html = ""
         if not dados_orcamentos.empty:
-            data_2_anos = data_x_dias(730, passado=True)
+            data_2_anos = data_x_dias(730, passado=True, sempre_dia_1=True)
 
             lista_datas_status = pd.date_range(data_2_anos, periods=25, freq='ME')
             lista_datas_status = pd.DataFrame({'Ano | Mês': lista_datas_status, })
@@ -197,6 +203,9 @@ class GruposEconomicosDetailView(DetailView):
             mes_seguinte_poly = mes_seguinte_poly[['Mês Indice']]
             mes_seguinte_poly = poly.fit_transform(mes_seguinte_poly)
             mes_seguinte_poly = poly_reg_model.predict(mes_seguinte_poly)
+            previsao['mes_seguinte_poly'] = float(mes_seguinte_poly[0])
+            previsao['poly_r_squared'] = poly_r_squared * 100
+            previsao['poly_rmse'] = float(poly_rmse)
 
             dados_grafico_historico_orcamentos['Media Movel'] = dados_grafico_historico_orcamentos['Fechados'].rolling(
                 window=3
@@ -207,10 +216,6 @@ class GruposEconomicosDetailView(DetailView):
             media_movel_r_squared = r2_score(historico_orcamentos_media_movel['Fechados'],
                                              historico_orcamentos_media_movel['Media Movel'])
             mes_seguinte_media_movel = historico_orcamentos_media_movel['Media Movel'].iloc[-1]
-
-            previsao['mes_seguinte_poly'] = float(mes_seguinte_poly[0])
-            previsao['poly_r_squared'] = poly_r_squared * 100
-            previsao['poly_rmse'] = float(poly_rmse)
             previsao['mes_seguinte_media_movel'] = float(mes_seguinte_media_movel)
             previsao['media_movel_r_squared'] = media_movel_r_squared * 100
             previsao['media_movel_rmse'] = float(media_movel_rmse)

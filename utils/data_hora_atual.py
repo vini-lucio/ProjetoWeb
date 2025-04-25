@@ -20,12 +20,17 @@ def hoje_as_yyyymmdd() -> str:
     return hoje_formatado
 
 
-def data_x_dias(x: int, passado: bool):
+def data_x_dias(x: int, passado: bool, sempre_dia_1: bool = False, sempre_mes_1: bool = False):
     if passado:
         data_x_dias = datetime.now() - relativedelta(days=x)
     else:
         data_x_dias = datetime.now() + relativedelta(days=x)
-    data_x_dias = datetime(data_x_dias.year, data_x_dias.month, data_x_dias.day).date()
+
+    ano = data_x_dias.year
+    mes = 1 if sempre_mes_1 else data_x_dias.month
+    dia = 1 if sempre_dia_1 else data_x_dias.day
+
+    data_x_dias = datetime(ano, mes, dia).date()
     return data_x_dias
 
 

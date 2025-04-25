@@ -137,6 +137,8 @@
             <br>
 
             {% if previsao %}
+                <p>RMSE: Menor melhor</p>
+                <p>R²: Maior melhor</p>
                 <p>Previsão mês seguinte com regressão polinomial: R$ {{  previsao.mes_seguinte_poly | floatformat:2  }} (RMSE: R$ {{  previsao.poly_rmse | floatformat:2  }} R²: {{  previsao.poly_r_squared | floatformat:0  }}%)</p>
                 <p>Previsão mês seguinte com média móvel: R$ {{  previsao.mes_seguinte_media_movel | floatformat:2  }} (RMSE: R$ {{  previsao.media_movel_rmse | floatformat:2  }} R²: {{  previsao.media_movel_r_squared | floatformat:0  }}%)</p>
             {% endif %}
