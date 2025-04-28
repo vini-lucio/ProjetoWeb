@@ -171,32 +171,35 @@ class GruposEconomicosDetailView(DetailView):
 
             dados_grafico_historico_orcamentos['Mês Indice'] = range(1, len(dados_grafico_historico_orcamentos) + 1)
 
-            x = dados_grafico_historico_orcamentos[['Mês Indice']]
-            y = dados_grafico_historico_orcamentos['Fechados']
+            historico_orcamentos_tratado = dados_grafico_historico_orcamentos.drop(
+                dados_grafico_historico_orcamentos.index[-1])
+
+            x = historico_orcamentos_tratado[['Mês Indice']]
+            y = historico_orcamentos_tratado['Fechados']
 
             poly = PolynomialFeatures(degree=3, include_bias=False)
             poly_features = poly.fit_transform(x)
             poly_reg_model = LinearRegression()
             poly_reg_model.fit(poly_features, y)
             y_predicted = poly_reg_model.predict(poly_features)
-            dados_grafico_historico_orcamentos['Poly'] = y_predicted
+            historico_orcamentos_tratado['Poly'] = y_predicted
             poly_r_squared = poly_reg_model.score(poly_features, y)
             poly_rmse = np.sqrt(mean_squared_error(y, y_predicted))
 
-            mes_seguinte_poly = pd.DataFrame({'Mês Indice': [len(dados_grafico_historico_orcamentos) + 1]})
+            mes_seguinte_poly = pd.DataFrame({'Mês Indice': [len(historico_orcamentos_tratado) + 1]})
             mes_seguinte_poly = mes_seguinte_poly[['Mês Indice']]
             mes_seguinte_poly = poly.fit_transform(mes_seguinte_poly)
             mes_seguinte_poly = poly_reg_model.predict(mes_seguinte_poly)
 
-            dados_grafico_historico_orcamentos['Media Movel'] = dados_grafico_historico_orcamentos['Fechados'].rolling(
+            historico_orcamentos_tratado['Media Movel'] = historico_orcamentos_tratado['Fechados'].rolling(
                 window=3
             ).mean()
-            historico_orcamentos_media_movel = dados_grafico_historico_orcamentos.dropna(subset=['Media Movel'])
-            media_movel_rmse = np.sqrt(mean_squared_error(historico_orcamentos_media_movel['Fechados'],
-                                                          historico_orcamentos_media_movel['Media Movel']))
-            media_movel_r_squared = r2_score(historico_orcamentos_media_movel['Fechados'],
-                                             historico_orcamentos_media_movel['Media Movel'])
-            mes_seguinte_media_movel = historico_orcamentos_media_movel['Media Movel'].iloc[-1]
+            historico_orcamentos_tratado = historico_orcamentos_tratado.dropna(subset=['Media Movel'])
+            media_movel_rmse = np.sqrt(mean_squared_error(historico_orcamentos_tratado['Fechados'],
+                                                          historico_orcamentos_tratado['Media Movel']))
+            media_movel_r_squared = r2_score(historico_orcamentos_tratado['Fechados'],
+                                             historico_orcamentos_tratado['Media Movel'])
+            mes_seguinte_media_movel = historico_orcamentos_tratado['Media Movel'].iloc[-1]
 
             if poly_r_squared >= media_movel_r_squared:
                 previsao['metodo'] = 'Regressão Polinomial'
@@ -210,7 +213,7 @@ class GruposEconomicosDetailView(DetailView):
                 previsao['rmse'] = float(media_movel_rmse)
 
             dados_grafico_historico_orcamentos['Previsão Fechamento'] = 0
-            linha_previsao = {'Ano | Mês': 'Proximo Mês', 'Previsão Fechamento': previsao['mes_seguinte'], }
+            linha_previsao = {'Ano | Mês': 'Previsão Mês Atual', 'Previsão Fechamento': previsao['mes_seguinte'], }
             dados_grafico_historico_orcamentos.loc[len(
                 dados_grafico_historico_orcamentos)] = linha_previsao  # type:ignore
 
