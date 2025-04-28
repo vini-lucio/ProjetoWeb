@@ -167,22 +167,6 @@ class GruposEconomicosDetailView(DetailView):
                                                           historico_orcamentos_fechados,
                                                           'outer', 'Ano | Mês').fillna(0)
 
-            grafico_historico_orcamentos = px.bar(dados_grafico_historico_orcamentos, x='Ano | Mês',
-                                                  y=['Fechados', 'Não Fechados'], text_auto=True,
-                                                  title='Historico de Orçamentos Mensais (Ultimos 2 anos)',
-                                                  labels={'variable': 'Status', 'value': 'Valor'},
-
-                                                  hover_name='Ano | Mês',
-                                                  hover_data={
-                                                      'Ano | Mês': False,
-                                                      'variable': True,
-                                                      'value': ':,.2f',
-                                                  },
-                                                  )
-            grafico_historico_orcamentos.update_layout(update_layout_kwargs, barmode='stack')
-            grafico_historico_orcamentos.update_xaxes(type='category')
-            grafico_historico_orcamentos_html = pio.to_html(grafico_historico_orcamentos, full_html=False)
-
             # Regressão polinomial e media movel
 
             dados_grafico_historico_orcamentos['Mês Indice'] = range(1, len(dados_grafico_historico_orcamentos) + 1)
@@ -203,9 +187,6 @@ class GruposEconomicosDetailView(DetailView):
             mes_seguinte_poly = mes_seguinte_poly[['Mês Indice']]
             mes_seguinte_poly = poly.fit_transform(mes_seguinte_poly)
             mes_seguinte_poly = poly_reg_model.predict(mes_seguinte_poly)
-            previsao['mes_seguinte_poly'] = float(mes_seguinte_poly[0])
-            previsao['poly_r_squared'] = poly_r_squared * 100
-            previsao['poly_rmse'] = float(poly_rmse)
 
             dados_grafico_historico_orcamentos['Media Movel'] = dados_grafico_historico_orcamentos['Fechados'].rolling(
                 window=3
@@ -216,9 +197,38 @@ class GruposEconomicosDetailView(DetailView):
             media_movel_r_squared = r2_score(historico_orcamentos_media_movel['Fechados'],
                                              historico_orcamentos_media_movel['Media Movel'])
             mes_seguinte_media_movel = historico_orcamentos_media_movel['Media Movel'].iloc[-1]
-            previsao['mes_seguinte_media_movel'] = float(mes_seguinte_media_movel)
-            previsao['media_movel_r_squared'] = media_movel_r_squared * 100
-            previsao['media_movel_rmse'] = float(media_movel_rmse)
+
+            if poly_r_squared >= media_movel_r_squared:
+                previsao['metodo'] = 'Regressão Polinomial'
+                previsao['mes_seguinte'] = float(mes_seguinte_poly[0])
+                previsao['r_squared'] = poly_r_squared * 100
+                previsao['rmse'] = float(poly_rmse)
+            else:
+                previsao['metodo'] = 'Media Movel'
+                previsao['mes_seguinte'] = float(mes_seguinte_media_movel)
+                previsao['r_squared'] = media_movel_r_squared * 100
+                previsao['rmse'] = float(media_movel_rmse)
+
+            dados_grafico_historico_orcamentos['Previsão Fechamento'] = 0
+            linha_previsao = {'Ano | Mês': 'Proximo Mês', 'Previsão Fechamento': previsao['mes_seguinte'], }
+            dados_grafico_historico_orcamentos.loc[len(
+                dados_grafico_historico_orcamentos)] = linha_previsao  # type:ignore
+
+            grafico_historico_orcamentos = px.bar(dados_grafico_historico_orcamentos, x='Ano | Mês',
+                                                  y=['Fechados', 'Não Fechados', 'Previsão Fechamento'], text_auto=True,
+                                                  title='Historico de Orçamentos Mensais (Ultimos 2 anos)',
+                                                  labels={'variable': 'Status', 'value': 'Valor'},
+
+                                                  hover_name='Ano | Mês',
+                                                  hover_data={
+                                                      'Ano | Mês': False,
+                                                      'variable': True,
+                                                      'value': ':,.2f',
+                                                  },
+                                                  )
+            grafico_historico_orcamentos.update_layout(update_layout_kwargs, barmode='stack')
+            grafico_historico_orcamentos.update_xaxes(type='category')
+            grafico_historico_orcamentos_html = pio.to_html(grafico_historico_orcamentos, full_html=False)
 
         # Contexto
 
