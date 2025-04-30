@@ -13,6 +13,9 @@ from .forms import ConfirmacaoMigrar, ConfirmacaoMigrarDataFimNonRequired, Confi
 from django.contrib.auth.decorators import user_passes_test
 from collections import Counter
 
+# TODO: criar testes automatizados
+# TODO: levantar excessões com melhores descrções
+
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
 def migracao(request):

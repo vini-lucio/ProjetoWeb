@@ -10,57 +10,7 @@
             <div class="titulo">
                 <h1>{{  titulo_pagina  }}</h1>
             </div>
-
-            <div class="titulo">
-                <h1>!!! ESSA PAGINA É UM TESTE !!!</h1>
-            </div>
-
-            {% comment %} <form method="get">
-                <div class="grid-simples link-conteudo">
-                    {{ formulario.as_p }}
-                </div>
-
-                <div class="grid-simples link-conteudo">
-                    {% for agrupamento, campos in formulario.get_agrupamentos_campos.items %}
-                        <div class="grid-simples link-conteudo">
-                            <h3>{{ agrupamento }}</h3>
-                            {% for field in formulario %}
-                                {% if field.name in campos %}
-                                    <div class="grid-2-colunas">
-                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        {{ field }}
-                                        {% if field.help_text %}
-                                            <spam class="helptext">
-                                                {{ field.help_text }}
-                                            </spam>
-                                        {% endif %}
-                                        {% if field.errors %}
-                                            <spam class="error">
-                                                {{ field.errors }}
-                                            </spam>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    {% endfor %}
-                </div>
-
-                <div class="grid-simples">
-                    <button class="botao" name="listar-submit" type="submit">Listar</button>
-                    <a href="{% url "dashboards:relatorios-supervisao" fonte_relatorio %}">
-                        <div class="botao-div">
-                            Limpar Pesquisa
-                        </div>
-                    </a>
-                    {% if dados %}
-                        <button class="botao" name="exportar-submit" type="submit">Exportar .xlsx</button>
-                    {% endif %}
-                </div>
-            </form> {% endcomment %}
         </div>
-
-        
 
         <div class="link-conteudo">
 
@@ -68,152 +18,93 @@
                 <p>{{ erros }}</p>
             {% endif %}
 
-            <p>Cadastros Ativos</p>
-            {% if quantidade_clientes %}
-                <p>{{  quantidade_clientes  }}</p>
-            {% endif %}
+            <div class="grid moldura-verde">
+                {% if quantidade_clientes %}
+                    <div>
+                        <p class="fonte-verde">Cadastros Ativos</p>
+                        <p>{{  quantidade_clientes  }}</p>
+                    </div>
+                {% endif %}
 
-            <br>
+                {% if quantidade_eventos_em_aberto %}
+                    <div>
+                        <p class="fonte-verde">Eventos Em Aberto</p>
+                        <p>{{  quantidade_eventos_em_aberto  }}</p>
+                    </div>
+                {% endif %}
 
-            <p>Eventos Em Aberto</p>
-            {% if quantidade_eventos_em_aberto %}
-                <p>{{  quantidade_eventos_em_aberto  }}</p>
-            {% endif %}
+                {% if quantidade_eventos_em_atraso %}
+                    <div>
+                        <p class="fonte-verde">Eventos Em Atraso</p>
+                        <p>{{  quantidade_eventos_em_atraso  }}</p>
+                    </div>
+                {% endif %}
+            </div>
 
-            <br>
-
-            <p>Eventos Em Atraso</p>
-            {% if quantidade_eventos_em_atraso %}
-                <p>{{  quantidade_eventos_em_atraso  }}</p>
-            {% endif %}
-
-            <br>
-
-            <p>Tipos</p>
-            {% for tipo in quantidade_tipos %}
-                <p>{{  tipo.TIPO  }} ({{  tipo.QUANTIDADE  }})</p>
-            {% endfor %}
-
-            <br>
-
-            <p>Carteiras</p>
-            {% for carteira in quantidade_carteiras %}
-                <p>{{  carteira.CARTEIRA  }} ({{  carteira.QUANTIDADE  }})</p>
-            {% endfor %}
-
-            <br>
-
-            <p>Ultimo Orçamento Aberto</p>
-            {% if ultimo_orcamento_aberto %}
-                <p>{{  ultimo_orcamento_aberto | date:'d/m/Y' }}</p>
-            {% endif %}
-
-            <br>
-
-            <p>Média dias para orçamento virar pedido</p>
-            {% if media_dias_orcamento_para_pedido %}
-                <p>{{  media_dias_orcamento_para_pedido  }}</p>
-            {% endif %}
-
-            <br>
-
-            <p>Ultimo Pedido</p>
-            {% if ultimo_pedido %}
-                <p>{{  ultimo_pedido | date:'d/m/Y' }}</p>
-            {% endif %}
-
-            <br>
-
-            {{  grafico_historico_html|safe  }}
-            
-            <br>
-
-            {{  grafico_produtos_html|safe  }}
-
-            <br>
-
-            {{  grafico_historico_orcamentos_html|safe  }}
-
-            <br>
-
-            {% if previsao %}
-                <p>RMSE da previsão: R$ {{  previsao.rmse | floatformat:2  }} (Menor melhor)</p>
-                <p>R² da previsão: {{  previsao.r_squared | floatformat:0  }}% (Maior melhor)</p>
-            {% endif %}
-            {% comment %} <div id="bar-chart"></div>
-            <script>
-                const graphData = {{  grafico_json | safe  }};
-                Plotly.newPlot('bar-chart', graphData);
-            </script> {% endcomment %}
-
-            {% comment %} {% if dados %}
-                <div class="tabela-simples">
-                    <table>
-                        <tr>
-                            {% if formulario.coluna_carteira.value %}<th>Carteira</th>{% endif %}
-                            {% if formulario.coluna_grupo_economico.value %}<th>Grupo Economico</th>{% endif %}
-                            {% if formulario.coluna_quantidade_documentos.value %}<th>Qtd. Documentos</th>{% endif %}
-                            {% if formulario.coluna_cidade.value %}<th>Cidade Principal</th>{% endif %}
-                            {% if formulario.coluna_estado.value %}<th>Estado Principal</th>{% endif %}
-                            {% if formulario.coluna_tipo_cliente.value %}<th>Tipo de Cliente</th>{% endif %}
-                            {% if formulario.coluna_familia_produto.value %}<th>Familia Produto</th>{% endif %}
-                            {% if formulario.coluna_produto.value %}<th>Produto</th>{% endif %}
-                            {% if formulario.coluna_unidade.value %}<th>Un.</th>{% endif %}
-                            {% if formulario.coluna_status_produto_orcamento.value %}<th>Status</th>{% endif %}
-                            {% if formulario.coluna_status_produto_orcamento_tipo.value %}<th>Status Tipo</th>{% endif %}
-                            {% if formulario.coluna_preco_tabela_inclusao.value %}<th>R$ Preço Tabela (Inclusão)</th>{% endif %}
-                            {% if formulario.coluna_preco_venda_medio.value %}<th>R$ Preço Venda Medio</th>{% endif %}
-                            {% if formulario.coluna_quantidade.value %}<th>Qtd.</th>{% endif %}
-                            <th>R$ Valor Mercadorias</th>
-                            {% if formulario.coluna_proporcao.value %}<th>Proporção %</th>{% endif %}
-                            {% if formulario.coluna_rentabilidade_valor.value %}<th>MC R$</th>{% endif %}
-                            {% if formulario.coluna_rentabilidade.value %}<th>MC %</th>{% endif %}
-                        </tr>
-                        {% for valor in dados %}
-                            <tr class="{% cycle 'principal-azul-claro' '' %}">
-                                {% if formulario.coluna_carteira.value %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
-                                {% if formulario.coluna_grupo_economico.value %}<td>{{ valor.GRUPO }}</td>{% endif %}
-                                {% if formulario.coluna_quantidade_documentos.value %}<td>{{ valor.QUANTIDADE_DOCUMENTOS | floatformat:0 }}</td>{% endif %}
-                                {% if formulario.coluna_cidade.value %}<td>{{ valor.CIDADE_PRINCIPAL }}</td>{% endif %}
-                                {% if formulario.coluna_estado.value %}<td>{{ valor.UF_PRINCIPAL }}</td>{% endif %}
-                                {% if formulario.coluna_tipo_cliente.value %}<td>{{ valor.TIPO_CLIENTE }}</td>{% endif %}
-                                {% if formulario.coluna_familia_produto.value %}<td>{{ valor.FAMILIA_PRODUTO }}</td>{% endif %}
-                                {% if formulario.coluna_produto.value %}<td>{{ valor.PRODUTO }}</td>{% endif %}
-                                {% if formulario.coluna_unidade.value %}<td>{{ valor.UNIDADE }}</td>{% endif %}
-                                {% if formulario.coluna_status_produto_orcamento.value %}<td>{{ valor.STATUS }}</td>{% endif %}
-                                {% if formulario.coluna_status_produto_orcamento_tipo.value %}<td>{{ valor.STATUS_TIPO }}</td>{% endif %}
-                                {% if formulario.coluna_preco_tabela_inclusao.value %}<td>R$ {{ valor.PRECO_TABELA_INCLUSAO | floatformat:2 }}</td>{% endif %}
-                                {% if formulario.coluna_preco_venda_medio.value %}<td>R$ {{ valor.PRECO_VENDA_MEDIO | floatformat:2 }}</td>{% endif %}
-                                {% if formulario.coluna_quantidade.value %}<td>{{ valor.QUANTIDADE | floatformat:3 }}</td>{% endif %}
-                                <td>R$ {{ valor.VALOR_MERCADORIAS | floatformat:2 }}</td>
-                                {% if formulario.coluna_proporcao.value %}<td>{{ valor.VALOR_MERCADORIAS|dividir_porcentagem:valor_mercadorias_total | floatformat:2 }}%</td>{% endif %}
-                                {% if formulario.coluna_rentabilidade_valor.value %}<td>R$ {{ valor.MC_VALOR | floatformat:2 }}</td>{% endif %}
-                                {% if formulario.coluna_rentabilidade.value %}<td>{{ valor.MC | floatformat:2 }}%</td>{% endif %}
-                            </tr>
+            <div class="grid moldura-verde">
+                {% if quantidade_tipos %}
+                    <div>
+                        <p class="fonte-verde">Tipos</p>
+                        {% for tipo in quantidade_tipos %}
+                            <p>{{  tipo.TIPO  }} ({{  tipo.QUANTIDADE  }})</p>
                         {% endfor %}
-                        <tr>
-                            {% if formulario.coluna_carteira.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_grupo_economico.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_quantidade_documentos.value %}<td class="azul-negrito">{{ quantidade_documentos_total | floatformat:0 }}</td>{% endif %}
-                            {% if formulario.coluna_cidade.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_estado.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_tipo_cliente.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_familia_produto.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_produto.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_unidade.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_status_produto_orcamento.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_status_produto_orcamento_tipo.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_preco_tabela_inclusao.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_preco_venda_medio.value %}<td></td>{% endif %}
-                            {% if formulario.coluna_quantidade.value %}<td></td>{% endif %}
-                            <td class="azul-negrito">R$ {{ valor_mercadorias_total | floatformat:2 }}</td>
-                            {% if formulario.coluna_proporcao.value %}<td class="azul-negrito">100,00%</td>{% endif %}
-                            {% if formulario.coluna_rentabilidade_valor.value %}<td class="azul-negrito">R$ {{ mc_valor_total | floatformat:2 }}</td>{% endif %}
-                            {% if formulario.coluna_rentabilidade.value %}<td class="azul-negrito">{{ mc_total | floatformat:2 }}%</td>{% endif %}
-                        </tr>
-                    </table>
+                    </div>
+                {% endif %}
+
+                {% if quantidade_carteiras %}
+                    <div>
+                        <p class="fonte-verde">Carteiras</p>
+                        {% for carteira in quantidade_carteiras %}
+                            <p>{{  carteira.CARTEIRA  }} ({{  carteira.QUANTIDADE  }})</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="grid moldura-verde">
+                {% if ultimo_orcamento_aberto %}
+                    <div>
+                        <p class="fonte-verde">Ultimo Orçamento</p>
+                        <p>{{  ultimo_orcamento_aberto | date:'d/m/Y' }}</p>
+                    </div>
+                {% endif %}
+
+                {% if media_dias_orcamento_para_pedido %}
+                    <div>
+                        <p class="fonte-verde">Média para fechar orçamento</p>
+                        <p>{{  media_dias_orcamento_para_pedido  }} dia(s)</p>
+                    </div>
+                {% endif %}
+
+                {% if ultimo_pedido %}
+                    <div>
+                        <p class="fonte-verde">Ultimo Pedido</p>
+                        <p>{{  ultimo_pedido | date:'d/m/Y' }}</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div>
+                {{  grafico_historico_html|safe  }}
+            </div>
+            
+            <div>
+                {{  grafico_produtos_html|safe  }}
+            </div>
+
+            <div>
+                <div>
+                    {{  grafico_historico_orcamentos_html|safe  }}
                 </div>
-            {% endif %} {% endcomment %}
+
+                <div>
+                    {% if previsao %}
+                        <p>RMSE da previsão: R$ {{  previsao.rmse | floatformat:2  }} (Menor melhor)</p>
+                        <p>R² da previsão: {{  previsao.r_squared | floatformat:0  }}% (Maior melhor)</p>
+                        <p>Método: {{  previsao.metodo  }}</p>
+                    {% endif %}
+                </div>
+            </div>
 
         </div>
 
