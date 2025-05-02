@@ -6,6 +6,17 @@ from .forms import RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrc
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 
 
+def vendas(request):
+    titulo_pagina = 'Dashboard Vendas'
+
+    dashboard_vendas_tv = DashboardVendasTv()
+    dados = dashboard_vendas_tv.get_dados()
+
+    contexto = {'titulo_pagina': titulo_pagina, 'dados': dados}
+
+    return render(request, 'dashboards/pages/vendas-tv.html', contexto)
+
+
 def vendas_tv(request):
     titulo_pagina = 'Dashboard Vendas - TV'
 
