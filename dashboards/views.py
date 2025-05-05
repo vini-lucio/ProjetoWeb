@@ -1,20 +1,35 @@
 from typing import Dict
 from django.shortcuts import render
 from django.http import HttpResponse
-from .services import DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos
-from .forms import RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm
+from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
+                       DashboardVendasCarteira)
+from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
+                    FormDashboardVendasCarteiras)
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 
 
-def vendas(request):
+def vendas_carteira(request):
     titulo_pagina = 'Dashboard Vendas'
 
-    dashboard_vendas_tv = DashboardVendasTv()
-    dados = dashboard_vendas_tv.get_dados()
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
 
-    contexto = {'titulo_pagina': titulo_pagina, 'dados': dados}
+    formulario = FormDashboardVendasCarteiras()
 
-    return render(request, 'dashboards/pages/vendas-tv.html', contexto)
+    if request.method == 'GET' and request.GET:
+        formulario = FormDashboardVendasCarteiras(request.GET)
+        if formulario.is_valid():
+            carteira = formulario.cleaned_data.get('carteira')
+            carteira = carteira.NOMERED if carteira else '%%'
+            contexto['titulo_pagina'] += f' {carteira}'
+
+            dashboard_vendas_carteira = DashboardVendasCarteira(carteira=carteira)
+            dados = dashboard_vendas_carteira.get_dados()
+
+            contexto.update({'dados': dados})
+
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/vendas-carteira.html', contexto)
 
 
 def vendas_tv(request):

@@ -9,42 +9,50 @@ from utils.lfrete import notas as lfrete_notas, orcamentos as lfrete_orcamentos
 from utils.perdidos_justificativas import justificativas
 from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valores_atendimento
 from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes
+from home.models import Vendedores
 from django.core.exceptions import ObjectDoesNotExist
 from datetime import datetime
 import pandas as pd
 
 
+# TODO: incluir coluna da rentabilidade real sem subtrair pela despesa adm
 class DashBoardVendas():
-    def __init__(self) -> None:
+    def __init__(self, carteira='%%') -> None:
+        self.CARTEIRA = carteira
         self.SITE_SETUP = get_site_setup()
         if self.SITE_SETUP:
-            self.META_DIARIA = self.SITE_SETUP.meta_diaria_as_float
-            self.META_MES = self.SITE_SETUP.meta_mes_as_float
+            self.DIAS_META = self.SITE_SETUP.dias_uteis_mes_as_float
             self.PRIMEIRO_DIA_MES = self.SITE_SETUP.primeiro_dia_mes_as_ddmmyyyy
             self.PRIMEIRO_DIA_UTIL_MES = self.SITE_SETUP.primeiro_dia_util_mes_as_ddmmyyyy
             self.ULTIMO_DIA_MES = self.SITE_SETUP.ultimo_dia_mes_as_ddmmyyyy
             self.PRIMEIRO_DIA_UTIL_PROXIMO_MES = self.SITE_SETUP.primeiro_dia_util_proximo_mes_as_ddmmyyyy
             self.DESPESA_ADMINISTRATIVA_FIXA = self.SITE_SETUP.despesa_administrativa_fixa_as_float
 
+            if self.CARTEIRA == '%%':
+                self.META_DIARIA = self.SITE_SETUP.meta_diaria_as_float
+                self.META_MES = self.SITE_SETUP.meta_mes_as_float
+            else:
+                vendedor = Vendedores.objects.get(nome=self.CARTEIRA)
+                self.META_MES = float(vendedor.meta_mes)
+                self.META_DIARIA = self.META_MES / self.DIAS_META
+
         self.PEDIDOS_DIA, self.TONELADAS_DIA, self.RENTABILIDADE_PEDIDOS_DIA = rentabilidade_pedidos_dia(
-            self.DESPESA_ADMINISTRATIVA_FIXA,
-            self.PRIMEIRO_DIA_UTIL_PROXIMO_MES
-        )
-        self.PORCENTAGEM_META_DIA = int(self.PEDIDOS_DIA / self.META_DIARIA * 100)
+            self.DESPESA_ADMINISTRATIVA_FIXA, self.PRIMEIRO_DIA_UTIL_PROXIMO_MES, self.CARTEIRA)
+        self.PORCENTAGEM_META_DIA = int(self.PEDIDOS_DIA / self.META_DIARIA * 100) if self.META_DIARIA else 0
         self.FALTAM_META_DIA = round(self.META_DIARIA - self.PEDIDOS_DIA, 2)
-        self.CONVERSAO_DE_ORCAMENTOS = conversao_de_orcamentos()
-        self.FALTAM_ABRIR_ORCAMENTOS_DIA = round(self.FALTAM_META_DIA / (self.CONVERSAO_DE_ORCAMENTOS / 100), 2)
+        self.CONVERSAO_DE_ORCAMENTOS = conversao_de_orcamentos(self.CARTEIRA)
+        self.FALTAM_ABRIR_ORCAMENTOS_DIA = round(
+            self.FALTAM_META_DIA / (self.CONVERSAO_DE_ORCAMENTOS / 100), 2) if self.CONVERSAO_DE_ORCAMENTOS else 0.0
         self.RENTABILIDADE_PEDIDOS_MES = rentabilidade_pedidos_mes(self.DESPESA_ADMINISTRATIVA_FIXA,
-                                                                   self.PRIMEIRO_DIA_MES,
-                                                                   self.PRIMEIRO_DIA_UTIL_MES,
+                                                                   self.PRIMEIRO_DIA_MES, self.PRIMEIRO_DIA_UTIL_MES,
                                                                    self.ULTIMO_DIA_MES,
-                                                                   self.PRIMEIRO_DIA_UTIL_PROXIMO_MES)
+                                                                   self.PRIMEIRO_DIA_UTIL_PROXIMO_MES, self.CARTEIRA)
         self.RENTABILIDADE_PEDIDOS_MES_MC_MES = self.RENTABILIDADE_PEDIDOS_MES['mc_mes']
         self.RENTABILIDADE_PEDIDOS_MES_TOTAL_MES = self.RENTABILIDADE_PEDIDOS_MES['total_mes']
         self.RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE = self.RENTABILIDADE_PEDIDOS_MES['rentabilidade_mes']
         self.TONELADAS_MES = self.RENTABILIDADE_PEDIDOS_MES['toneladas_mes']
         self.PEDIDOS_MES = self.RENTABILIDADE_PEDIDOS_MES['total_mes']
-        self.PORCENTAGEM_META_MES = int(self.PEDIDOS_MES / self.META_MES * 100)
+        self.PORCENTAGEM_META_MES = int(self.PEDIDOS_MES / self.META_MES * 100) if self.META_MES else 0
         self.FALTAM_META_MES = round(self.META_MES - self.PEDIDOS_MES, 2)
         self.COR_RENTABILIDADE_PEDIDOS_DIA = cor_rentabilidade_css(self.RENTABILIDADE_PEDIDOS_DIA)
         self.COR_RENTABILIDADE_PEDIDOS_MES = cor_rentabilidade_css(self.RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE)
@@ -59,10 +67,12 @@ class DashBoardVendas():
 
         self.DATA_HORA_ATUAL = data_hora_atual()
 
-        self.CONFERE_PEDIDOS = confere_pedidos()
+        self.CONFERE_PEDIDOS = confere_pedidos(self.CARTEIRA)
 
     def get_dados(self):
         dados = {
+            'dias_meta': self.DIAS_META,
+            'carteira': self.CARTEIRA,
             'meta_diaria': self.META_DIARIA,
             'pedidos_dia': self.PEDIDOS_DIA,
             'toneladas_dia': self.TONELADAS_DIA,
@@ -87,6 +97,10 @@ class DashBoardVendas():
             'confere_pedidos': self.CONFERE_PEDIDOS,
         }
         return dados
+
+
+class DashboardVendasCarteira(DashBoardVendas):
+    ...
 
 
 class DashboardVendasTv(DashBoardVendas):

@@ -15,6 +15,7 @@ from collections import Counter
 
 # TODO: criar testes automatizados
 # TODO: levantar excessões com melhores descrções
+# TODO: testar joins entrebases de dados e configurar routers?
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')

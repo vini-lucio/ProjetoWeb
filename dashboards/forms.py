@@ -1,7 +1,11 @@
 from django import forms
-from utils.base_forms import FormPeriodoInicioFimMixIn
+from utils.base_forms import FormPeriodoInicioFimMixIn, FormVendedoresMixIn
 from analysis.models import VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS, STATUS_ORCAMENTOS_ITENS
 from utils.data_hora_atual import hoje_as_yyyymmdd
+
+
+class FormDashboardVendasCarteiras(FormVendedoresMixIn, forms.Form):
+    ...
 
 
 class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
