@@ -1,5 +1,7 @@
 {% extends "home/base.html" %}
 
+{% load custom_filters %}
+
 {% block conteudo %}
 
     {% if dados.confere_pedidos %}
@@ -10,7 +12,7 @@
                         <p class="fonte-vermelho">ERROS</p>
                     </div>
                     {% for pedido in dados.confere_pedidos %}
-                        <p><span class="fonte-verde">{{ pedido.PEDIDO }} - {{ pedido.CONSULTOR }}</span> - {{ pedido.ERRO }}</p>
+                        <p><span class="fonte-verde">{{ pedido.PEDIDO | stringformat:"d" }} - {{ pedido.CONSULTOR }}</span> - {{ pedido.ERRO }}</p>
                     {% endfor %}
                 </div>
             </div>
@@ -49,7 +51,7 @@
                     <div class="moldura-verde-dashboard-2 principal-escuro-2 alinhar-topo" style="{% if dados.porcentagem_meta_mes >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
                         <div style="position: relative;">
                             <div class="centralizar fonte-muito-pequena-dashboard" style="width: 100%; position: absolute; z-index: 2;">
-                                {{ dados.rentabilidade_pedidos_mes_rentabilidade_mes | floatformat:"2" }}%*
+                                {{ dados.porcentagem_mc_mes | floatformat:"2" }}%
                             </div>
                             <div class="grafico-barra" style="position: relative; z-index: 1; --largura: {% if dados.porcentagem_meta_mes > 100 %}100{% else %}{{ dados.porcentagem_meta_mes }}{% endif %}%; --cor-barra: {% if dados.rentabilidade_pedidos_mes_rentabilidade_mes != 0 %}var({{ dados.cor_rentabilidade_css_mes }}){% else %}transparent{% endif %}"></div>
                         </div>
@@ -69,7 +71,7 @@
                     <div class="moldura-verde-dashboard-2 principal-escuro-2 alinhar-topo" style="{% if dados.porcentagem_meta_dia >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
                         <div style="position: relative;">
                             <div class="centralizar fonte-muito-pequena-dashboard" style="width: 100%; position: absolute; z-index: 2;">
-                                {{ dados.rentabilidade_pedidos_dia | floatformat:"2" }}%*
+                                {{ dados.porcentagem_mc_dia | floatformat:"2" }}%
                             </div>
                             <div class="grafico-barra" style="position: relative; z-index: 1; --largura: {% if dados.porcentagem_meta_dia > 100 %}100{% else %}{{ dados.porcentagem_meta_dia }}{% endif %}%; --cor-barra: {% if dados.rentabilidade_pedidos_dia != 0 %}var({{ dados.cor_rentabilidade_css_dia }}){% else %}transparent{% endif %}"></div>
                         </div>
@@ -108,6 +110,31 @@
                     <p class="fonte-muito-pequena-dashboard">*¹ Ultimos 90 dias</p>
                     <p class="fonte-muito-pequena-dashboard">*² Novos orçs. para a meta do dia</p>
                 </div>
+
+                {% if valores_periodo %}
+                    <div class="tabela-simples">
+                        <table>
+                            <tr class="principal-claro">
+                                <th>Documento</th>
+                                <th>Cliente</th>
+                                <th>Data Emissão</th>
+                                <th>Data Entrega</th>
+                                <th>R$ Valor Mercadorias</th>
+                                <th>MC %</th>
+                            </tr>
+                            {% for valor in valores_periodo %}
+                                <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
+                                    <td>{{ valor.DOCUMENTO | stringformat:"d" }}</td>
+                                    <td><a target="_blank" href="{% url "analysis:grupo-economico" valor.CHAVE_GRUPO_ECONOMICO %}">{{ valor.CLIENTE }}</a></td>
+                                    <td>{{ valor.DATA_EMISSAO | date:"d/m/Y" }}</td>
+                                    <td>{{ valor.DATA_ENTREGA | date:"d/m/Y" }}</td>
+                                    <td>R$ {{ valor.VALOR_MERCADORIAS | floatformat:2 }}</td>
+                                    <td class="fonte-cinza" style="background-color: var({{ valor.MC | cor_rentabilidade_css }});">{{ valor.MC | floatformat:2 }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                {% endif %}
 
             {% endif %}
 

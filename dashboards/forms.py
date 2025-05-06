@@ -2,10 +2,23 @@ from django import forms
 from utils.base_forms import FormPeriodoInicioFimMixIn, FormVendedoresMixIn
 from analysis.models import VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS, STATUS_ORCAMENTOS_ITENS
 from utils.data_hora_atual import hoje_as_yyyymmdd
+from datetime import date, timedelta
 
 
-class FormDashboardVendasCarteiras(FormVendedoresMixIn, forms.Form):
-    ...
+class FormDashboardVendasCarteiras(FormVendedoresMixIn, FormPeriodoInicioFimMixIn, forms.Form):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['inicio'].initial = hoje_as_yyyymmdd()
+        self.fields['fim'].initial = hoje_as_yyyymmdd()
+
+    def clean_inicio(self):
+        inicio = self.cleaned_data['inicio']
+        data_minima = date.today() - timedelta(days=365)
+
+        if inicio <= data_minima:
+            raise forms.ValidationError("Data de inicio não pode ser antes de um ano atras")
+
+        return inicio
 
 
 class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):

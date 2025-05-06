@@ -4,12 +4,16 @@ sugestao_rentabilidade_a_menos = -1.99
 sugestao_rentabilidade_a_mais = 3.0
 
 
-def cor_rentabilidade_css(rentabilidade: float) -> str:
+def cor_rentabilidade_css(rentabilidade: float, subtrair_despesa_adm: bool = False) -> str:
     """Retorna o nome da variavel do css referente a cor da rentabilidade"""
     cores = get_cores_rentabilidade()
     verde = cores['verde']
     amarelo = cores['amarelo']
     vermelho = cores['vermelho']
+
+    if subtrair_despesa_adm:
+        despesa_adm = cores['despesa_adm']
+        rentabilidade -= despesa_adm
 
     if rentabilidade >= verde:
         return '--verde-rentabilidade'

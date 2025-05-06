@@ -19,13 +19,22 @@ def vendas_carteira(request):
         formulario = FormDashboardVendasCarteiras(request.GET)
         if formulario.is_valid():
             carteira = formulario.cleaned_data.get('carteira')
-            carteira = carteira.NOMERED if carteira else '%%'
-            contexto['titulo_pagina'] += f' {carteira}'
+            carteira_nome = carteira.NOMERED if carteira else '%%'
+            contexto['titulo_pagina'] += f' {carteira_nome}'
 
-            dashboard_vendas_carteira = DashboardVendasCarteira(carteira=carteira)
+            dashboard_vendas_carteira = DashboardVendasCarteira(carteira=carteira_nome)
             dados = dashboard_vendas_carteira.get_dados()
 
-            contexto.update({'dados': dados})
+            inicio = formulario.cleaned_data.get('inicio')
+            fim = formulario.cleaned_data.get('fim')
+
+            valores_periodo = get_relatorios_vendas(fonte='pedidos', inicio=inicio, fim=fim, coluna_data_emissao=True,
+                                                    coluna_rentabilidade=True, coluna_documento=True,
+                                                    coluna_cliente=True, coluna_grupo_economico=True,
+                                                    coluna_data_entrega_itens=True,
+                                                    carteira=carteira)
+
+            contexto.update({'dados': dados, 'valores_periodo': valores_periodo})
 
     contexto.update({'formulario': formulario})
 
@@ -61,21 +70,17 @@ def relatorios_supervisao(request, fonte: str):
 
     direito_exportar_emails = request.user.has_perm('analysis.export_contatosemails')
 
-    orcamento = False
-    if fonte_relatorio == 'orcamentos':
-        orcamento = True
-
     titulo_pagina = 'Dashboard Vendas - Relatorios Supervisão'
 
     titulo_pagina_2 = 'Relatorios Faturamentos'
-    if orcamento:
+    if fonte_relatorio == 'orcamentos':
         titulo_pagina_2 = 'Relatorios Orçamentos'
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, 'titulo_pagina_2': titulo_pagina_2,
                       'fonte_relatorio': fonte_relatorio, 'direito_exportar_emails': direito_exportar_emails, }
 
     form = RelatoriosSupervisaoFaturamentosForm
-    if orcamento:
+    if fonte_relatorio == 'orcamentos':
         form = RelatoriosSupervisaoOrcamentosForm
 
     formulario = form()
@@ -84,7 +89,7 @@ def relatorios_supervisao(request, fonte: str):
         formulario = form(request.GET)
         if formulario.is_valid():
             if request.GET:
-                dados = get_relatorios_vendas(orcamento, **formulario.cleaned_data)
+                dados = get_relatorios_vendas(fonte_relatorio, **formulario.cleaned_data)
 
                 coluna_rentabilidade = formulario.cleaned_data.get('coluna_rentabilidade')
                 coluna_rentabilidade_valor = formulario.cleaned_data.get('coluna_rentabilidade_valor')
@@ -115,7 +120,7 @@ def relatorios_supervisao(request, fonte: str):
                 excel = arquivo_excel(dados, cabecalho_negrito=True, ajustar_largura_colunas=True)
                 arquivo = salvar_excel_temporario(excel)
                 nome_arquivo = 'relatorio_faturamentos'
-                if orcamento:
+                if fonte_relatorio == 'orcamentos':
                     nome_arquivo = 'relatorio_orcamentos'
                 response = arquivo_excel_response(arquivo, nome_arquivo)
                 return response

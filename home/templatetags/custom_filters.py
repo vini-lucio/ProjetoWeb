@@ -1,4 +1,5 @@
 from django import template
+from utils.cor_rentabilidade import cor_rentabilidade_css as cor_css
 
 register = template.Library()
 
@@ -28,3 +29,10 @@ def dividir_porcentagem(valor, valor_2):
 
 
 register.filter('dividir_porcentagem', dividir_porcentagem)
+
+
+def cor_rentabilidade_css(valor):
+    return cor_css(valor, True)
+
+
+register.filter('cor_rentabilidade_css', cor_rentabilidade_css)

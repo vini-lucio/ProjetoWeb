@@ -38,7 +38,7 @@ class GruposEconomicosDetailView(DetailView):
         ultimo_pedido = objeto.ultimo_pedido  # type:ignore
         media_dias_orcamento_para_pedido = objeto.media_dias_orcamento_para_pedido  # type:ignore
 
-        dados_faturamento = get_relatorios_vendas(orcamento=False, coluna_ano_emissao=True, coluna_produto=True,
+        dados_faturamento = get_relatorios_vendas(fonte='faturamentos', coluna_ano_emissao=True, coluna_produto=True,
                                                   coluna_data_emissao=True,
                                                   grupo_economico=objeto.DESCRICAO,)  # type: ignore
         dados_faturamento = pd.DataFrame(dados_faturamento)
@@ -46,7 +46,7 @@ class GruposEconomicosDetailView(DetailView):
             'ANO_EMISSAO': 'Ano Emissão', 'DATA_EMISSAO': 'Data Emissão', 'VALOR_MERCADORIAS': 'Valor',
             'PRODUTO': 'Produto', })
 
-        dados_orcamentos = get_relatorios_vendas(orcamento=True, coluna_ano_mes_emissao=True, coluna_ano_emissao=True,
+        dados_orcamentos = get_relatorios_vendas(fonte='orcamentos', coluna_ano_mes_emissao=True, coluna_ano_emissao=True,
                                                  coluna_produto=True, coluna_data_emissao=True,
                                                  desconsiderar_justificativas=True, considerar_itens_excluidos=True,
                                                  coluna_status_produto_orcamento=True,

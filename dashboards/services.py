@@ -1,11 +1,11 @@
+from typing import Literal
 from utils.custom import DefaultDict
 from utils.oracle.conectar import executar_oracle
-from utils.lfrete import pedidos as lfrete_pedidos
 from utils.data_hora_atual import data_hora_atual
 from utils.cor_rentabilidade import cor_rentabilidade_css, falta_mudar_cor_mes
 from utils.site_setup import (get_site_setup, get_assistentes_tecnicos, get_assistentes_tecnicos_agenda,
                               get_transportadoras, get_consultores_tecnicos_ativos)
-from utils.lfrete import notas as lfrete_notas, orcamentos as lfrete_orcamentos
+from utils.lfrete import notas as lfrete_notas, orcamentos as lfrete_orcamentos, pedidos as lfrete_pedidos
 from utils.perdidos_justificativas import justificativas
 from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valores_atendimento
 from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes
@@ -18,83 +18,87 @@ import pandas as pd
 # TODO: incluir coluna da rentabilidade real sem subtrair pela despesa adm
 class DashBoardVendas():
     def __init__(self, carteira='%%') -> None:
-        self.CARTEIRA = carteira
-        self.SITE_SETUP = get_site_setup()
-        if self.SITE_SETUP:
-            self.DIAS_META = self.SITE_SETUP.dias_uteis_mes_as_float
-            self.PRIMEIRO_DIA_MES = self.SITE_SETUP.primeiro_dia_mes_as_ddmmyyyy
-            self.PRIMEIRO_DIA_UTIL_MES = self.SITE_SETUP.primeiro_dia_util_mes_as_ddmmyyyy
-            self.ULTIMO_DIA_MES = self.SITE_SETUP.ultimo_dia_mes_as_ddmmyyyy
-            self.PRIMEIRO_DIA_UTIL_PROXIMO_MES = self.SITE_SETUP.primeiro_dia_util_proximo_mes_as_ddmmyyyy
-            self.DESPESA_ADMINISTRATIVA_FIXA = self.SITE_SETUP.despesa_administrativa_fixa_as_float
+        self.carteira = carteira
+        self.site_setup = get_site_setup()
+        if self.site_setup:
+            self.dias_meta = self.site_setup.dias_uteis_mes_as_float
+            self.primeiro_dia_mes = self.site_setup.primeiro_dia_mes_as_ddmmyyyy
+            self.primeiro_dia_util_mes = self.site_setup.primeiro_dia_util_mes_as_ddmmyyyy
+            self.ultimo_dia_mes = self.site_setup.ultimo_dia_mes_as_ddmmyyyy
+            self.primeiro_dia_util_proximo_mes = self.site_setup.primeiro_dia_util_proximo_mes_as_ddmmyyyy
+            self.despesa_administrativa_fixa = self.site_setup.despesa_administrativa_fixa_as_float
 
-            if self.CARTEIRA == '%%':
-                self.META_DIARIA = self.SITE_SETUP.meta_diaria_as_float
-                self.META_MES = self.SITE_SETUP.meta_mes_as_float
+            if self.carteira == '%%':
+                self.meta_diaria = self.site_setup.meta_diaria_as_float
+                self.meta_mes = self.site_setup.meta_mes_as_float
             else:
-                vendedor = Vendedores.objects.get(nome=self.CARTEIRA)
-                self.META_MES = float(vendedor.meta_mes)
-                self.META_DIARIA = self.META_MES / self.DIAS_META
+                vendedor = Vendedores.objects.get(nome=self.carteira)
+                self.meta_mes = float(vendedor.meta_mes)
+                self.meta_diaria = self.meta_mes / self.dias_meta
 
-        self.PEDIDOS_DIA, self.TONELADAS_DIA, self.RENTABILIDADE_PEDIDOS_DIA = rentabilidade_pedidos_dia(
-            self.DESPESA_ADMINISTRATIVA_FIXA, self.PRIMEIRO_DIA_UTIL_PROXIMO_MES, self.CARTEIRA)
-        self.PORCENTAGEM_META_DIA = int(self.PEDIDOS_DIA / self.META_DIARIA * 100) if self.META_DIARIA else 0
-        self.FALTAM_META_DIA = round(self.META_DIARIA - self.PEDIDOS_DIA, 2)
-        self.CONVERSAO_DE_ORCAMENTOS = conversao_de_orcamentos(self.CARTEIRA)
-        self.FALTAM_ABRIR_ORCAMENTOS_DIA = round(
-            self.FALTAM_META_DIA / (self.CONVERSAO_DE_ORCAMENTOS / 100), 2) if self.CONVERSAO_DE_ORCAMENTOS else 0.0
-        self.RENTABILIDADE_PEDIDOS_MES = rentabilidade_pedidos_mes(self.DESPESA_ADMINISTRATIVA_FIXA,
-                                                                   self.PRIMEIRO_DIA_MES, self.PRIMEIRO_DIA_UTIL_MES,
-                                                                   self.ULTIMO_DIA_MES,
-                                                                   self.PRIMEIRO_DIA_UTIL_PROXIMO_MES, self.CARTEIRA)
-        self.RENTABILIDADE_PEDIDOS_MES_MC_MES = self.RENTABILIDADE_PEDIDOS_MES['mc_mes']
-        self.RENTABILIDADE_PEDIDOS_MES_TOTAL_MES = self.RENTABILIDADE_PEDIDOS_MES['total_mes']
-        self.RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE = self.RENTABILIDADE_PEDIDOS_MES['rentabilidade_mes']
-        self.TONELADAS_MES = self.RENTABILIDADE_PEDIDOS_MES['toneladas_mes']
-        self.PEDIDOS_MES = self.RENTABILIDADE_PEDIDOS_MES['total_mes']
-        self.PORCENTAGEM_META_MES = int(self.PEDIDOS_MES / self.META_MES * 100) if self.META_MES else 0
-        self.FALTAM_META_MES = round(self.META_MES - self.PEDIDOS_MES, 2)
-        self.COR_RENTABILIDADE_PEDIDOS_DIA = cor_rentabilidade_css(self.RENTABILIDADE_PEDIDOS_DIA)
-        self.COR_RENTABILIDADE_PEDIDOS_MES = cor_rentabilidade_css(self.RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE)
+        self.pedidos_dia, self.toneladas_dia, self.rentabilidade_pedidos_dia = rentabilidade_pedidos_dia(
+            self.despesa_administrativa_fixa, self.primeiro_dia_util_proximo_mes, self.carteira)
+        self.porcentagem_mc_dia = self.rentabilidade_pedidos_dia + self.despesa_administrativa_fixa
+        self.porcentagem_meta_dia = int(self.pedidos_dia / self.meta_diaria * 100) if self.meta_diaria else 0
+        self.faltam_meta_dia = round(self.meta_diaria - self.pedidos_dia, 2)
+        self.conversao_de_orcamentos = conversao_de_orcamentos(self.carteira)
+        self.faltam_abrir_orcamentos_dia = round(
+            self.faltam_meta_dia / (self.conversao_de_orcamentos / 100), 2) if self.conversao_de_orcamentos else 0.0
+        self.rentabilidade_pedidos_mes = rentabilidade_pedidos_mes(self.despesa_administrativa_fixa,
+                                                                   self.primeiro_dia_mes, self.primeiro_dia_util_mes,
+                                                                   self.ultimo_dia_mes,
+                                                                   self.primeiro_dia_util_proximo_mes, self.carteira)
+        self.rentabilidade_pedidos_mes_mc_mes = self.rentabilidade_pedidos_mes['mc_mes']
+        self.rentabilidade_pedidos_mes_total_mes = self.rentabilidade_pedidos_mes['total_mes']
+        self.rentabilidade_pedidos_mes_rentabilidade = self.rentabilidade_pedidos_mes['rentabilidade_mes']
+        self.toneladas_mes = self.rentabilidade_pedidos_mes['toneladas_mes']
+        self.pedidos_mes = self.rentabilidade_pedidos_mes['total_mes']
+        self.porcentagem_mc_mes = self.rentabilidade_pedidos_mes_rentabilidade + self.despesa_administrativa_fixa
+        self.porcentagem_meta_mes = int(self.pedidos_mes / self.meta_mes * 100) if self.meta_mes else 0
+        self.faltam_meta_mes = round(self.meta_mes - self.pedidos_mes, 2)
+        self.cor_rentabilidade_pedidos_dia = cor_rentabilidade_css(self.rentabilidade_pedidos_dia)
+        self.cor_rentabilidade_pedidos_mes = cor_rentabilidade_css(self.rentabilidade_pedidos_mes_rentabilidade)
 
-        self.FALTA_MUDAR_COR_MES = falta_mudar_cor_mes(self.RENTABILIDADE_PEDIDOS_MES_MC_MES,
-                                                       self.RENTABILIDADE_PEDIDOS_MES_TOTAL_MES,
-                                                       self.RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE)
-        self.FALTA_MUDAR_COR_MES_VALOR = round(self.FALTA_MUDAR_COR_MES[0], 2)
-        self.FALTA_MUDAR_COR_MES_VALOR_RENTABILIDADE = round(self.FALTA_MUDAR_COR_MES[1], 2)
-        self.FALTA_MUDAR_COR_MES_PORCENTAGEM = round(self.FALTA_MUDAR_COR_MES[2], 2)
-        self.FALTA_MUDAR_COR_MES_COR = self.FALTA_MUDAR_COR_MES[3]
+        self.falta_mudar_cor_mes = falta_mudar_cor_mes(self.rentabilidade_pedidos_mes_mc_mes,
+                                                       self.rentabilidade_pedidos_mes_total_mes,
+                                                       self.rentabilidade_pedidos_mes_rentabilidade)
+        self.falta_mudar_cor_mes_valor = round(self.falta_mudar_cor_mes[0], 2)
+        self.falta_mudar_cor_mes_valor_rentabilidade = round(self.falta_mudar_cor_mes[1], 2)
+        self.falta_mudar_cor_mes_porcentagem = round(self.falta_mudar_cor_mes[2], 2)
+        self.falta_mudar_cor_mes_cor = self.falta_mudar_cor_mes[3]
 
-        self.DATA_HORA_ATUAL = data_hora_atual()
+        self.data_hora_atual = data_hora_atual()
 
-        self.CONFERE_PEDIDOS = confere_pedidos(self.CARTEIRA)
+        self.confere_pedidos = confere_pedidos(self.carteira)
 
     def get_dados(self):
         dados = {
-            'dias_meta': self.DIAS_META,
-            'carteira': self.CARTEIRA,
-            'meta_diaria': self.META_DIARIA,
-            'pedidos_dia': self.PEDIDOS_DIA,
-            'toneladas_dia': self.TONELADAS_DIA,
-            'porcentagem_meta_dia': self.PORCENTAGEM_META_DIA,
-            'faltam_meta_dia': self.FALTAM_META_DIA,
-            'conversao_de_orcamentos': self.CONVERSAO_DE_ORCAMENTOS,
-            'faltam_abrir_orcamentos_dia': self.FALTAM_ABRIR_ORCAMENTOS_DIA,
-            'meta_mes': self.META_MES,
-            'pedidos_mes': self.PEDIDOS_MES,
-            'toneladas_mes': self.TONELADAS_MES,
-            'porcentagem_meta_mes': self.PORCENTAGEM_META_MES,
-            'faltam_meta_mes': self.FALTAM_META_MES,
-            'data_hora_atual': self.DATA_HORA_ATUAL,
-            'rentabilidade_pedidos_dia': self.RENTABILIDADE_PEDIDOS_DIA,
-            'cor_rentabilidade_css_dia': self.COR_RENTABILIDADE_PEDIDOS_DIA,
-            'rentabilidade_pedidos_mes_rentabilidade_mes': self.RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE,
-            'cor_rentabilidade_css_mes': self.COR_RENTABILIDADE_PEDIDOS_MES,
-            'falta_mudar_cor_mes_valor': self.FALTA_MUDAR_COR_MES_VALOR,
-            'falta_mudar_cor_mes_valor_rentabilidade': self.FALTA_MUDAR_COR_MES_VALOR_RENTABILIDADE,
-            'falta_mudar_cor_mes_porcentagem': self.FALTA_MUDAR_COR_MES_PORCENTAGEM,
-            'falta_mudar_cor_mes_cor': self.FALTA_MUDAR_COR_MES_COR,
-            'confere_pedidos': self.CONFERE_PEDIDOS,
+            'dias_meta': self.dias_meta,
+            'carteira': self.carteira,
+            'meta_diaria': self.meta_diaria,
+            'pedidos_dia': self.pedidos_dia,
+            'toneladas_dia': self.toneladas_dia,
+            'porcentagem_mc_dia': self.porcentagem_mc_dia,
+            'porcentagem_meta_dia': self.porcentagem_meta_dia,
+            'faltam_meta_dia': self.faltam_meta_dia,
+            'conversao_de_orcamentos': self.conversao_de_orcamentos,
+            'faltam_abrir_orcamentos_dia': self.faltam_abrir_orcamentos_dia,
+            'meta_mes': self.meta_mes,
+            'pedidos_mes': self.pedidos_mes,
+            'toneladas_mes': self.toneladas_mes,
+            'porcentagem_mc_mes': self.porcentagem_mc_mes,
+            'porcentagem_meta_mes': self.porcentagem_meta_mes,
+            'faltam_meta_mes': self.faltam_meta_mes,
+            'data_hora_atual': self.data_hora_atual,
+            'rentabilidade_pedidos_dia': self.rentabilidade_pedidos_dia,
+            'cor_rentabilidade_css_dia': self.cor_rentabilidade_pedidos_dia,
+            'rentabilidade_pedidos_mes_rentabilidade_mes': self.rentabilidade_pedidos_mes_rentabilidade,
+            'cor_rentabilidade_css_mes': self.cor_rentabilidade_pedidos_mes,
+            'falta_mudar_cor_mes_valor': self.falta_mudar_cor_mes_valor,
+            'falta_mudar_cor_mes_valor_rentabilidade': self.falta_mudar_cor_mes_valor_rentabilidade,
+            'falta_mudar_cor_mes_porcentagem': self.falta_mudar_cor_mes_porcentagem,
+            'falta_mudar_cor_mes_cor': self.falta_mudar_cor_mes_cor,
+            'confere_pedidos': self.confere_pedidos,
         }
         return dados
 
@@ -106,14 +110,14 @@ class DashboardVendasCarteira(DashBoardVendas):
 class DashboardVendasTv(DashBoardVendas):
     def __init__(self) -> None:
         super().__init__()
-        self.ASSISTENTES_TECNICOS = get_assistentes_tecnicos()
-        self.AGENDA_VEC = get_assistentes_tecnicos_agenda()
+        self.assistentes_tecnicos = get_assistentes_tecnicos()
+        self.agenda_vec = get_assistentes_tecnicos_agenda()
 
     def get_dados(self):
         dados = super().get_dados()
         dados.update({
-            'assistentes_tecnicos': self.ASSISTENTES_TECNICOS,
-            'agenda_vec': self.AGENDA_VEC,
+            'assistentes_tecnicos': self.assistentes_tecnicos,
+            'agenda_vec': self.agenda_vec,
         })
         return dados
 
@@ -135,38 +139,38 @@ class DashboardVendasSupervisao(DashBoardVendas):
             frete_cif = 0
         frete_cif = 0 if faturado_bruto == 0 else frete_cif / faturado_bruto * 100
 
-        self.FRETE_CIF = frete_cif
-        self.CARTEIRAS_MES = []
+        self.frete_cif = frete_cif
+        self.carteira_mes = []
         for carteira in get_consultores_tecnicos_ativos():
-            RENTABILIDADE_PEDIDOS_MES = rentabilidade_pedidos_mes(self.DESPESA_ADMINISTRATIVA_FIXA,
-                                                                  self.PRIMEIRO_DIA_MES,
-                                                                  self.PRIMEIRO_DIA_UTIL_MES,
-                                                                  self.ULTIMO_DIA_MES,
-                                                                  self.PRIMEIRO_DIA_UTIL_PROXIMO_MES, carteira.nome)
-            RENTABILIDADE_PEDIDOS_MES_MC_MES = RENTABILIDADE_PEDIDOS_MES['mc_mes']
-            RENTABILIDADE_PEDIDOS_MES_TOTAL_MES = RENTABILIDADE_PEDIDOS_MES['total_mes']
-            RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE = RENTABILIDADE_PEDIDOS_MES['rentabilidade_mes']
-            TONELADAS_MES = RENTABILIDADE_PEDIDOS_MES['toneladas_mes']
-            COR_RENTABILIDADE_PEDIDOS_MES = cor_rentabilidade_css(RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE)
+            rentabilidade_pedidos_mes_ = rentabilidade_pedidos_mes(self.despesa_administrativa_fixa,
+                                                                   self.primeiro_dia_mes,
+                                                                   self.primeiro_dia_util_mes,
+                                                                   self.ultimo_dia_mes,
+                                                                   self.primeiro_dia_util_proximo_mes, carteira.nome)
+            rentabilidade_pedidos_mes_mc_mes = rentabilidade_pedidos_mes_['mc_mes']
+            rentabilidade_pedidos_mes_total_mes = rentabilidade_pedidos_mes_['total_mes']
+            rentabilidade_pedidos_mes_rentabilidade = rentabilidade_pedidos_mes_['rentabilidade_mes']
+            toneladas_mes = rentabilidade_pedidos_mes_['toneladas_mes']
+            cor_rentabilidade_pedidos_mes = cor_rentabilidade_css(rentabilidade_pedidos_mes_rentabilidade)
             meta_mes_float = float(carteira.meta_mes)
             dados_carteira = {
                 'carteira': carteira.nome,
-                'mc_mes_carteira': RENTABILIDADE_PEDIDOS_MES_MC_MES,
+                'mc_mes_carteira': rentabilidade_pedidos_mes_mc_mes,
                 'meta_mes': meta_mes_float,
-                'total_mes_carteira': RENTABILIDADE_PEDIDOS_MES_TOTAL_MES,
-                'falta_meta': meta_mes_float - RENTABILIDADE_PEDIDOS_MES_TOTAL_MES,
-                'porcentagem_meta_mes': 0 if meta_mes_float == 0 else int(RENTABILIDADE_PEDIDOS_MES_TOTAL_MES / meta_mes_float * 100),
-                'rentabilidade_mes_carteira': RENTABILIDADE_PEDIDOS_MES_RENTABILIDADE,
-                'toneladas_mes_carteira': TONELADAS_MES,
-                'cor_rentabilidade_mes_carteira': COR_RENTABILIDADE_PEDIDOS_MES,
+                'total_mes_carteira': rentabilidade_pedidos_mes_total_mes,
+                'falta_meta': meta_mes_float - rentabilidade_pedidos_mes_total_mes,
+                'porcentagem_meta_mes': 0 if meta_mes_float == 0 else int(rentabilidade_pedidos_mes_total_mes / meta_mes_float * 100),
+                'rentabilidade_mes_carteira': rentabilidade_pedidos_mes_rentabilidade,
+                'toneladas_mes_carteira': toneladas_mes,
+                'cor_rentabilidade_mes_carteira': cor_rentabilidade_pedidos_mes,
             }
-            self.CARTEIRAS_MES.append(dados_carteira)
+            self.carteira_mes.append(dados_carteira)
 
     def get_dados(self):
         dados = super().get_dados()
         dados.update({
-            'carteiras_mes': self.CARTEIRAS_MES,
-            'frete_cif': self.FRETE_CIF,
+            'carteiras_mes': self.carteira_mes,
+            'frete_cif': self.frete_cif,
         })
         return dados
 
@@ -690,7 +694,7 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
     return erros
 
 
-def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_itens_excluidos: bool = False, **kwargs_formulario):
+def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], trocar_para_itens_excluidos: bool = False, **kwargs_formulario):
     """
         SQLs estão em um dict onde a chave é o nome do campo do formulario e o valor é um dict com o placeholder como
         chave e o codigo sql como valor
@@ -869,6 +873,158 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_it
                                        'lfrete_valor_coluna': notas_lfrete_valor_coluna,
                                        'lfrete_from': notas_lfrete_from,
                                        'lfrete_join': notas_lfrete_join, },
+
+        'coluna_documento': {'documento_campo_alias': "NOTAS.NF AS DOCUMENTO,",
+                             'documento_campo': "NOTAS.NF,", },
+
+        'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
+                           'cliente_campo': "CLIENTES.NOMERED,", },
+
+        'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "",
+                                      'data_entrega_itens_campo': "", },
+    }
+
+    pedidos_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
+    pedidos_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END), 0), 2) AS MC_VALOR"
+    pedidos_lfrete_from = """
+        (
+            SELECT
+                CHAVE_PEDIDO_ITEM,
+                ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE
+
+            FROM
+                (
+                    {lfrete_pedidos} AND
+
+                        PEDIDOS.DATA_PEDIDO >= :data_inicio AND
+                        PEDIDOS.DATA_PEDIDO <= :data_fim
+                ) LFRETE
+
+            GROUP BY
+                CHAVE_PEDIDO_ITEM
+        ) LFRETE,
+    """.format(lfrete_pedidos=lfrete_pedidos)
+    pedidos_lfrete_join = "LFRETE.CHAVE_PEDIDO_ITEM = PEDIDOS_ITENS.CHAVE AND"
+
+    map_sql_pedidos_base = {
+        'valor_mercadorias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS",
+
+        'notas_peso_liquido_from': "",
+
+        'fonte_itens': "COPLAS.PEDIDOS_ITENS,",
+
+        'fonte': "COPLAS.PEDIDOS,",
+
+        'fonte_joins': """
+            PRODUTOS.CPROD = PEDIDOS_ITENS.CHAVE_PRODUTO AND
+            CLIENTES.CODCLI = PEDIDOS.CHAVE_CLIENTE AND
+            PEDIDOS.CHAVE = PEDIDOS_ITENS.CHAVE_PEDIDO AND
+        """,
+
+        'fonte_where': "PEDIDOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND",
+
+        'fonte_where_data': """
+            PEDIDOS.DATA_PEDIDO >= :data_inicio AND
+            PEDIDOS.DATA_PEDIDO <= :data_fim
+        """,
+    }
+
+    map_sql_pedidos = {
+        'coluna_media_dia': {'media_dia_campo_alias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) / COUNT(DISTINCT PEDIDOS.DATA_PEDIDO) AS MEDIA_DIA,"},
+
+        'coluna_data_emissao': {'data_emissao_campo_alias': "PEDIDOS.DATA_PEDIDO AS DATA_EMISSAO,",
+                                'data_emissao_campo': "PEDIDOS.DATA_PEDIDO,", },
+
+        'coluna_ano_mes_emissao': {'ano_mes_emissao_campo_alias': "TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM') AS ANO_MES_EMISSAO,",
+                                   'ano_mes_emissao_campo': "TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM'),", },
+
+        'coluna_ano_emissao': {'ano_emissao_campo_alias': "EXTRACT(YEAR FROM PEDIDOS.DATA_PEDIDO) AS ANO_EMISSAO,",
+                               'ano_emissao_campo': "EXTRACT(YEAR FROM PEDIDOS.DATA_PEDIDO),", },
+
+        'coluna_mes_emissao': {'mes_emissao_campo_alias': "EXTRACT(MONTH FROM PEDIDOS.DATA_PEDIDO) AS MES_EMISSAO,",
+                               'mes_emissao_campo': "EXTRACT(MONTH FROM PEDIDOS.DATA_PEDIDO),", },
+
+        'coluna_dia_emissao': {'dia_emissao_campo_alias': "EXTRACT(DAY FROM PEDIDOS.DATA_PEDIDO) AS DIA_EMISSAO,",
+                               'dia_emissao_campo': "EXTRACT(DAY FROM PEDIDOS.DATA_PEDIDO),", },
+
+        'coluna_grupo_economico': {'grupo_economico_campo_alias': "GRUPO_ECONOMICO.CHAVE AS CHAVE_GRUPO_ECONOMICO, GRUPO_ECONOMICO.DESCRICAO AS GRUPO,",
+                                   'grupo_economico_campo': "GRUPO_ECONOMICO.CHAVE, GRUPO_ECONOMICO.DESCRICAO,", },
+        'grupo_economico': {'grupo_economico_pesquisa': "UPPER(GRUPO_ECONOMICO.DESCRICAO) LIKE UPPER(:grupo_economico) AND", },
+
+        'coluna_carteira': {'carteira_campo_alias': "VENDEDORES.NOMERED AS CARTEIRA,",
+                            'carteira_campo': "VENDEDORES.NOMERED,", },
+        'carteira': {'carteira_pesquisa': "VENDEDORES.CODVENDEDOR = :chave_carteira AND", },
+
+        'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
+                                'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
+        'tipo_cliente': {'tipo_cliente_pesquisa': "CLIENTES_TIPOS.CHAVE = :chave_tipo_cliente AND", },
+
+        'coluna_familia_produto': {'familia_produto_campo_alias': "FAMILIA_PRODUTOS.FAMILIA AS FAMILIA_PRODUTO,",
+                                   'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
+        'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND", },
+
+        'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
+                           'produto_campo': "PRODUTOS.CODIGO,", },
+        'produto': {'produto_pesquisa': "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND", },
+
+        'coluna_unidade': {'unidade_campo_alias': "UNIDADES.UNIDADE,",
+                           'unidade_campo': "UNIDADES.UNIDADE,", },
+
+        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "MAX(PEDIDOS_ITENS.PRECO_TABELA) AS PRECO_TABELA_INCLUSAO,",
+                                         'preco_tabela_inclusao_campo': "MAX(PEDIDOS_ITENS.PRECO_TABELA),", },
+
+        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(PEDIDOS_ITENS.PRECO_VENDA), 2) AS PRECO_VENDA_MEDIO,",
+                                     'preco_venda_medio_campo': "ROUND(AVG(PEDIDOS_ITENS.PRECO_VENDA), 2),", },
+
+        'coluna_quantidade': {'quantidade_campo_alias': "SUM(PEDIDOS_ITENS.QUANTIDADE) AS QUANTIDADE,",
+                              'quantidade_campo': "SUM(PEDIDOS_ITENS.QUANTIDADE),", },
+
+        'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
+                          'cidade_campo': "CLIENTES.CIDADE,", },
+        'cidade': {'cidade_pesquisa': "UPPER(CLIENTES.CIDADE) LIKE UPPER(:cidade) AND", },
+
+        'coluna_estado': {'estado_campo_alias': "ESTADOS.SIGLA AS UF_PRINCIPAL,",
+                          'estado_campo': "ESTADOS.SIGLA,", },
+        'estado': {'estado_pesquisa': "ESTADOS.CHAVE = :chave_estado AND", },
+
+        'nao_compraram_depois': {'nao_compraram_depois_pesquisa': "", },
+
+        'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "", },
+
+        'coluna_proporcao': {'proporcao_campo': "VALOR_MERCADORIAS DESC,", },
+
+        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT PEDIDOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,",
+                                         'quantidade_documentos_campo': "COUNT(DISTINCT PEDIDOS.NUMPED),", },
+
+        'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "",
+                                            'status_produto_orcamento_campo': "", },
+        'status_produto_orcamento': {'status_produto_orcamento_pesquisa': "", },
+
+        'coluna_status_produto_orcamento_tipo': {'status_produto_orcamento_tipo_campo_alias': "",
+                                                 'status_produto_orcamento_tipo_campo': "",
+                                                 'status_produto_orcamento_tipo_from': "",
+                                                 'status_produto_orcamento_tipo_join': "", },
+        'status_produto_orcamento_tipo': {'status_produto_orcamento_tipo_pesquisa': "",
+                                          'status_produto_orcamento_tipo_from': "",
+                                          'status_produto_orcamento_tipo_join': "", },
+
+        'coluna_rentabilidade': {'lfrete_coluna': pedidos_lfrete_coluna,
+                                 'lfrete_valor_coluna': pedidos_lfrete_valor_coluna,
+                                 'lfrete_from': pedidos_lfrete_from,
+                                 'lfrete_join': pedidos_lfrete_join, },
+        'coluna_rentabilidade_valor': {'lfrete_coluna': pedidos_lfrete_coluna,
+                                       'lfrete_valor_coluna': pedidos_lfrete_valor_coluna,
+                                       'lfrete_from': pedidos_lfrete_from,
+                                       'lfrete_join': pedidos_lfrete_join, },
+
+        'coluna_documento': {'documento_campo_alias': "PEDIDOS.NUMPED AS DOCUMENTO,",
+                             'documento_campo': "PEDIDOS.NUMPED,", },
+
+        'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
+                           'cliente_campo': "CLIENTES.NOMERED,", },
+
+        'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "PEDIDOS_ITENS.DATA_ENTREGA,",
+                                      'data_entrega_itens_campo': "PEDIDOS_ITENS.DATA_ENTREGA,", },
     }
 
     orcamentos_status_produto_orcamento_tipo_from = "COPLAS.STATUS_ORCAMENTOS_ITENS,"
@@ -1011,6 +1167,15 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_it
                                        'lfrete_valor_coluna': orcamentos_lfrete_valor_coluna,
                                        'lfrete_from': orcamentos_lfrete_from,
                                        'lfrete_join': orcamentos_lfrete_join, },
+
+        'coluna_documento': {'documento_campo_alias': "ORCAMENTOS.NUMPED AS DOCUMENTO,",
+                             'documento_campo': "ORCAMENTOS.NUMPED,", },
+
+        'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
+                           'cliente_campo': "CLIENTES.NOMERED,", },
+
+        'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS_ITENS.DATA_ENTREGA,",
+                                      'data_entrega_itens_campo': "ORCAMENTOS_ITENS.DATA_ENTREGA,", },
     }
 
     # Itens de orçamento excluidos somente o que difere de orçamento
@@ -1078,16 +1243,18 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_it
     }
 
     sql_final = {}
-    if orcamento:
+    if fonte == 'orcamentos':
         sql_final.update(map_sql_orcamentos_base)
         if trocar_para_itens_excluidos:
             sql_final.update(map_sql_orcamentos_base_itens_excluidos)
+    elif fonte == 'pedidos':
+        sql_final.update(map_sql_pedidos_base)
     else:
         sql_final.update(map_sql_notas_base)
 
     for chave, valor in kwargs_formulario.items():
         if valor:
-            if orcamento:
+            if fonte == 'orcamentos':
                 get_map_orcamento = map_sql_orcamentos.get(chave)
                 if get_map_orcamento:
                     sql_final.update(get_map_orcamento)  # type:ignore
@@ -1095,6 +1262,10 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_it
                         get_map_orcamento_itens_excluidos = map_sql_orcamentos_itens_excluidos.get(chave)
                         if get_map_orcamento_itens_excluidos:
                             sql_final.update(get_map_orcamento_itens_excluidos)  # type:ignore
+            elif fonte == 'pedidos':
+                get_map_pedido = map_sql_pedidos.get(chave)
+                if get_map_pedido:
+                    sql_final.update(get_map_pedido)  # type:ignore
             else:
                 get_map_nota = map_sql_notas.get(chave)
                 if get_map_nota:
@@ -1103,7 +1274,7 @@ def map_relatorio_vendas_sql_string_placeholders(orcamento: bool, trocar_para_it
     return sql_final
 
 
-def get_relatorios_vendas(orcamento: bool, **kwargs):
+def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], **kwargs):
     # TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
     # TODO: coluna de cada mes? cada ano?
     kwargs_sql = {}
@@ -1129,10 +1300,10 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
     if not data_fim:
         data_fim = datetime.date(datetime(2999, 12, 31))
 
-    kwargs_sql.update(map_relatorio_vendas_sql_string_placeholders(orcamento, **kwargs))
+    kwargs_sql.update(map_relatorio_vendas_sql_string_placeholders(fonte, **kwargs))
     if trocar_para_itens_excluidos:
         kwargs_sql_itens_excluidos.update(map_relatorio_vendas_sql_string_placeholders(
-            orcamento, trocar_para_itens_excluidos, **kwargs))  # type:ignore
+            fonte, trocar_para_itens_excluidos, **kwargs))  # type:ignore
 
     # kwargs_ora precisa conter os placeholders corretamente
 
@@ -1162,24 +1333,27 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
         kwargs_ora.update({'chave_estado': chave_estado, })
 
     if status_produto_orcamento:
-        if orcamento:
+        if fonte == 'orcamentos':
             chave_status_produto_orcamento = status_produto_orcamento.DESCRICAO
             kwargs_ora.update({'chave_status_produto_orcamento': chave_status_produto_orcamento, })
 
     if status_produto_orcamento_tipo:
-        if orcamento:
+        if fonte == 'orcamentos':
             if status_produto_orcamento_tipo != "PERDIDO_CANCELADO":
                 kwargs_ora.update({'status_produto_orcamento_tipo': status_produto_orcamento_tipo, })
 
     sql_base = """
         SELECT
             {data_emissao_campo_alias}
+            {data_entrega_itens_campo_alias}
             {ano_mes_emissao_campo_alias}
             {ano_emissao_campo_alias}
             {mes_emissao_campo_alias}
             {dia_emissao_campo_alias}
+            {documento_campo_alias}
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
+            {cliente_campo_alias}
             {quantidade_documentos_campo_alias}
             {cidade_campo_alias}
             {estado_campo_alias}
@@ -1242,12 +1416,15 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
 
         GROUP BY
             {data_emissao_campo}
+            {data_entrega_itens_campo}
             {ano_mes_emissao_campo}
             {ano_emissao_campo}
             {mes_emissao_campo}
             {dia_emissao_campo}
+            {documento_campo}
             {carteira_campo}
             {grupo_economico_campo}
+            {cliente_campo}
             {tipo_cliente_campo}
             {familia_produto_campo}
             {produto_campo}
@@ -1263,6 +1440,7 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
             {ano_emissao_campo}
             {mes_emissao_campo}
             {dia_emissao_campo}
+            {documento_campo}
             {carteira_campo}
             {tipo_cliente_campo}
             {familia_produto_campo}
@@ -1288,7 +1466,8 @@ def get_relatorios_vendas(orcamento: bool, **kwargs):
 
         alias_para_header_groupby = ['DATA_EMISSAO', 'ANO_EMISSAO', 'MES_EMISSAO', 'DIA_EMISSAO', 'ANO_MES_EMISSAO',
                                      'CHAVE_GRUPO_ECONOMICO', 'GRUPO', 'CARTEIRA', 'TIPO_CLIENTE', 'FAMILIA_PRODUTO',
-                                     'PRODUTO', 'UNIDADE', 'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',]
+                                     'PRODUTO', 'UNIDADE', 'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',
+                                     'DOCUMENTO', 'CLIENTE', 'DATA_ENTREGA',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',

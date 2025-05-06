@@ -156,6 +156,11 @@ textarea:focus {
     background-position: center center;
 }
 
+.principal-claro {
+    background-color: var(--cinza-claro);
+    color: var(--azul-escuro);
+}
+
 .principal-escuro {
     background-color: var(--azul-escuro);
     color: var(--branco);
