@@ -112,9 +112,22 @@
                 </div>
 
                 {% if valores_periodo %}
+                    <div class="moldura-verde-dashboard grid principal-claro">
+                        <div>
+                            <p class="fonte-cinza" style="background-color: var(--cinza-escuro);">Em Aberto</p>
+                        </div>
+                        <div>
+                            <p class="fonte-cinza" style="background-color: black;">Perdido</p>
+                        </div>
+                        <div>
+                            <p>Liquidado</p>
+                        </div>
+                    </div>
+
                     <div class="tabela-simples">
                         <table>
                             <tr class="principal-claro">
+                                <th></th>
                                 <th>Documento</th>
                                 <th>Cliente</th>
                                 <th>Data Emissão</th>
@@ -124,12 +137,14 @@
                             </tr>
                             {% for valor in valores_periodo %}
                                 <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
+                                    <td {% if valor.STATUS_DOCUMENTO == 'EM ABERTO' or valor.STATUS_DOCUMENTO == 'BLOQUEADO' %}style="background-color: var(--cinza-escuro);"{% endif %}
+                                        {% if valor.STATUS_DOCUMENTO == 'PERDIDO' %}style="background-color: black;"{% endif %}></td>
                                     <td>{{ valor.DOCUMENTO | stringformat:"d" }}</td>
                                     <td><a target="_blank" href="{% url "analysis:grupo-economico" valor.CHAVE_GRUPO_ECONOMICO %}">{{ valor.CLIENTE }}</a></td>
                                     <td>{{ valor.DATA_EMISSAO | date:"d/m/Y" }}</td>
                                     <td>{{ valor.DATA_ENTREGA | date:"d/m/Y" }}</td>
                                     <td>R$ {{ valor.VALOR_MERCADORIAS | floatformat:2 }}</td>
-                                    <td class="fonte-cinza" style="background-color: var({{ valor.MC | cor_rentabilidade_css }});">{{ valor.MC | floatformat:2 }}%</td>
+                                    <td class="fonte-cinza" style="background-color: var({{ valor.MC_COR | cor_rentabilidade_css }});">{{ valor.MC | floatformat:2 }}%</td>
                                 </tr>
                             {% endfor %}
                         </table>

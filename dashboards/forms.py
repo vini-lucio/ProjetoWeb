@@ -11,6 +11,15 @@ class FormDashboardVendasCarteiras(FormVendedoresMixIn, FormPeriodoInicioFimMixI
         self.fields['inicio'].initial = hoje_as_yyyymmdd()
         self.fields['fim'].initial = hoje_as_yyyymmdd()
 
+    fontes = {
+        'pedidos': 'Pedidos',
+        'orcamentos': 'Orcamentos',
+    }
+
+    fonte = forms.ChoiceField(label="Fonte", choices=fontes, initial='pedidos', required=True)  # type: ignore
+    em_aberto = forms.BooleanField(label="Em Aberto", help_text="Independente do periodo",
+                                   initial=False, required=False)
+
     def clean_inicio(self):
         inicio = self.cleaned_data['inicio']
         data_minima = date.today() - timedelta(days=365)

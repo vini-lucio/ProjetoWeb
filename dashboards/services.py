@@ -701,11 +701,24 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     """
     notas_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
     notas_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE), 0), 2) AS MC_VALOR"
+    notas_lfrete_cor_coluna = """
+        , ROUND(COALESCE(
+        (
+        (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PP) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) - 0.01) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PT) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PQ) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        ) / NULLIF(SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)), 0)
+        , 0) * 100, 2) AS MC_COR
+    """
+
     notas_lfrete_from = """
         (
             SELECT
                 CHAVE_NOTA_ITEM,
-                ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE
+                ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE,
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7766 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PP,
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7767 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PT,
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PQ
 
             FROM
                 (
@@ -873,6 +886,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                        'lfrete_valor_coluna': notas_lfrete_valor_coluna,
                                        'lfrete_from': notas_lfrete_from,
                                        'lfrete_join': notas_lfrete_join, },
+        'coluna_rentabilidade_cor': {'lfrete_coluna_cor': notas_lfrete_cor_coluna,
+                                     'lfrete_from': notas_lfrete_from,
+                                     'lfrete_join': notas_lfrete_join, },
 
         'coluna_documento': {'documento_campo_alias': "NOTAS.NF AS DOCUMENTO,",
                              'documento_campo': "NOTAS.NF,", },
@@ -882,15 +898,31 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "",
                                       'data_entrega_itens_campo': "", },
+
+        'coluna_status_documento': {'status_documento_campo_alias': "",
+                                    'status_documento_campo': "", },
+        'status_documento_em_aberto': {'status_documento_em_aberto_pesquisa': "", },
     }
 
     pedidos_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
     pedidos_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END), 0), 2) AS MC_VALOR"
+    pedidos_lfrete_cor_coluna = """
+        , ROUND(COALESCE(
+        (
+        (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PP) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) - 0.01) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PT) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PQ) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        ) / NULLIF(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 0)
+        , 0) * 100, 2) AS MC_COR
+    """
     pedidos_lfrete_from = """
         (
             SELECT
                 CHAVE_PEDIDO_ITEM,
-                ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE
+                ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE,
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7766 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PP,
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7767 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PT,
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PQ
 
             FROM
                 (
@@ -1016,6 +1048,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                        'lfrete_valor_coluna': pedidos_lfrete_valor_coluna,
                                        'lfrete_from': pedidos_lfrete_from,
                                        'lfrete_join': pedidos_lfrete_join, },
+        'coluna_rentabilidade_cor': {'lfrete_coluna_cor': pedidos_lfrete_cor_coluna,
+                                     'lfrete_from': pedidos_lfrete_from,
+                                     'lfrete_join': pedidos_lfrete_join, },
 
         'coluna_documento': {'documento_campo_alias': "PEDIDOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "PEDIDOS.NUMPED,", },
@@ -1025,6 +1060,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "PEDIDOS_ITENS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "PEDIDOS_ITENS.DATA_ENTREGA,", },
+
+        'coluna_status_documento': {'status_documento_campo_alias': "PEDIDOS.STATUS AS STATUS_DOCUMENTO,",
+                                    'status_documento_campo': "PEDIDOS.STATUS,", },
+        'status_documento_em_aberto': {'status_documento_em_aberto_pesquisa': "PEDIDOS.STATUS IN ('EM ABERTO', 'BLOQUEADO') AND", },
     }
 
     orcamentos_status_produto_orcamento_tipo_from = "COPLAS.STATUS_ORCAMENTOS_ITENS,"
@@ -1032,11 +1071,23 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
     orcamentos_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
     orcamentos_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END), 0), 2) AS MC_VALOR"
+    orcamentos_lfrete_cor_coluna = """
+        , ROUND(COALESCE(
+        (
+        (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PP) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) - 0.01) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PT) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PQ) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        ) / NULLIF(SUM(ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)), 0)
+        , 0) * 100, 2) AS MC_COR
+    """
     orcamentos_lfrete_from = """
         (
             SELECT
                 CHAVE_ORCAMENTO_ITEM,
-                ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE
+                ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL), 2) AS MC_SEM_FRETE,
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7766 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PP,
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7767 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PT,
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL ELSE 0 END), 2) AS MC_SEM_FRETE_PQ
 
             FROM
                 (
@@ -1167,6 +1218,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                        'lfrete_valor_coluna': orcamentos_lfrete_valor_coluna,
                                        'lfrete_from': orcamentos_lfrete_from,
                                        'lfrete_join': orcamentos_lfrete_join, },
+        'coluna_rentabilidade_cor': {'lfrete_coluna_cor': orcamentos_lfrete_cor_coluna,
+                                     'lfrete_from': orcamentos_lfrete_from,
+                                     'lfrete_join': orcamentos_lfrete_join, },
 
         'coluna_documento': {'documento_campo_alias': "ORCAMENTOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "ORCAMENTOS.NUMPED,", },
@@ -1176,6 +1230,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS_ITENS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "ORCAMENTOS_ITENS.DATA_ENTREGA,", },
+
+        'coluna_status_documento': {'status_documento_campo_alias': "ORCAMENTOS.STATUS AS STATUS_DOCUMENTO,",
+                                    'status_documento_campo': "ORCAMENTOS.STATUS,", },
+        'status_documento_em_aberto': {'status_documento_em_aberto_pesquisa': "ORCAMENTOS.STATUS IN ('EM ABERTO', 'BLOQUEADO') AND", },
     }
 
     # Itens de orçamento excluidos somente o que difere de orçamento
@@ -1185,6 +1243,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
     orcamentos_itens_excluidos_lfrete_coluna = ", 0 AS MC"
     orcamentos_itens_excluidos_lfrete_valor_coluna = ", 0 AS MC_VALOR"
+    orcamentos_itens_excluidos_lfrete_cor_coluna = ", 0 AS MC_COR"
     orcamentos_itens_excluidos_lfrete_from = ""
     orcamentos_itens_excluidos_lfrete_join = ""
 
@@ -1240,6 +1299,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                        'lfrete_valor_coluna': orcamentos_itens_excluidos_lfrete_valor_coluna,
                                        'lfrete_from': orcamentos_itens_excluidos_lfrete_from,
                                        'lfrete_join': orcamentos_itens_excluidos_lfrete_join, },
+        'coluna_rentabilidade_cor': {'lfrete_coluna_cor': orcamentos_itens_excluidos_lfrete_cor_coluna,
+                                     'lfrete_from': orcamentos_itens_excluidos_lfrete_from,
+                                     'lfrete_join': orcamentos_itens_excluidos_lfrete_join, },
+
+        'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS.DATA_ENTREGA,",
+                                      'data_entrega_itens_campo': "ORCAMENTOS.DATA_ENTREGA,", },
     }
 
     sql_final = {}
@@ -1351,6 +1416,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {mes_emissao_campo_alias}
             {dia_emissao_campo_alias}
             {documento_campo_alias}
+            {status_documento_campo_alias}
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
             {cliente_campo_alias}
@@ -1372,6 +1438,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
 
             {lfrete_coluna}
             {lfrete_valor_coluna}
+            {lfrete_coluna_cor}
 
         FROM
             {lfrete_from}
@@ -1411,6 +1478,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {status_produto_orcamento_pesquisa}
             {status_produto_orcamento_tipo_pesquisa}
             {desconsiderar_justificativa_pesquisa}
+            {status_documento_em_aberto_pesquisa}
 
             {fonte_where_data}
 
@@ -1422,6 +1490,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {mes_emissao_campo}
             {dia_emissao_campo}
             {documento_campo}
+            {status_documento_campo}
             {carteira_campo}
             {grupo_economico_campo}
             {cliente_campo}
@@ -1467,7 +1536,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         alias_para_header_groupby = ['DATA_EMISSAO', 'ANO_EMISSAO', 'MES_EMISSAO', 'DIA_EMISSAO', 'ANO_MES_EMISSAO',
                                      'CHAVE_GRUPO_ECONOMICO', 'GRUPO', 'CARTEIRA', 'TIPO_CLIENTE', 'FAMILIA_PRODUTO',
                                      'PRODUTO', 'UNIDADE', 'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',
-                                     'DOCUMENTO', 'CLIENTE', 'DATA_ENTREGA',]
+                                     'DOCUMENTO', 'CLIENTE', 'DATA_ENTREGA', 'STATUS_DOCUMENTO',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',

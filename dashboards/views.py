@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Literal
 from django.shortcuts import render
 from django.http import HttpResponse
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
@@ -25,12 +25,21 @@ def vendas_carteira(request):
             dashboard_vendas_carteira = DashboardVendasCarteira(carteira=carteira_nome)
             dados = dashboard_vendas_carteira.get_dados()
 
-            inicio = formulario.cleaned_data.get('inicio')
-            fim = formulario.cleaned_data.get('fim')
+            em_aberto: bool = formulario.cleaned_data.get('em_aberto')  # type: ignore
+            inicio = formulario.cleaned_data.get('inicio') if not em_aberto else None
+            fim = formulario.cleaned_data.get('fim') if not em_aberto else None
+            fonte: Literal['orcamentos', 'pedidos',
+                           'faturamentos'] = formulario.cleaned_data.get('fonte')  # type: ignore
 
-            valores_periodo = get_relatorios_vendas(fonte='pedidos', inicio=inicio, fim=fim, coluna_data_emissao=True,
-                                                    coluna_rentabilidade=True, coluna_documento=True,
-                                                    coluna_cliente=True, coluna_grupo_economico=True,
+            valores_periodo = get_relatorios_vendas(fonte=fonte, inicio=inicio, fim=fim,
+                                                    coluna_data_emissao=True,
+                                                    coluna_status_documento=True,
+                                                    status_documento_em_aberto=em_aberto,
+                                                    coluna_rentabilidade=True,
+                                                    coluna_documento=True,
+                                                    coluna_rentabilidade_cor=True,
+                                                    coluna_cliente=True,
+                                                    coluna_grupo_economico=True,
                                                     coluna_data_entrega_itens=True,
                                                     carteira=carteira)
 
