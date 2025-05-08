@@ -160,6 +160,8 @@ AUTH_PASSWORD_VALIDATORS = [
     # },
 ]
 
+LOGIN_URL = '/admin/login/'
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/

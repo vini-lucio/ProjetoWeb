@@ -1,5 +1,6 @@
 # from django.shortcuts import render
 from django.views.generic import DetailView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from analysis.models import GRUPO_ECONOMICO
 from dashboards.services import get_relatorios_vendas
 import plotly.express as px
@@ -13,7 +14,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 
 
-class GruposEconomicosDetailView(DetailView):
+class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
     model = GRUPO_ECONOMICO
     template_name = 'analysis/pages/grupo-economico.html'
     context_object_name = 'grupo_economico'

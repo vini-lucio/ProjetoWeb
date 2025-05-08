@@ -20,7 +20,7 @@ def vendas_carteira(request):
         if formulario.is_valid():
             carteira = formulario.cleaned_data.get('carteira')
             carteira_nome = carteira.NOMERED if carteira else '%%'
-            contexto['titulo_pagina'] += f' {carteira_nome}'
+            contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Total'
 
             dashboard_vendas_carteira = DashboardVendasCarteira(carteira=carteira_nome)
             dados = dashboard_vendas_carteira.get_dados()
@@ -31,19 +31,46 @@ def vendas_carteira(request):
             fonte: Literal['orcamentos', 'pedidos',
                            'faturamentos'] = formulario.cleaned_data.get('fonte')  # type: ignore
 
-            valores_periodo = get_relatorios_vendas(fonte=fonte, inicio=inicio, fim=fim,
-                                                    coluna_data_emissao=True,
-                                                    coluna_status_documento=True,
-                                                    status_documento_em_aberto=em_aberto,
-                                                    coluna_rentabilidade=True,
-                                                    coluna_documento=True,
-                                                    coluna_rentabilidade_cor=True,
-                                                    coluna_cliente=True,
-                                                    coluna_grupo_economico=True,
-                                                    coluna_data_entrega_itens=True,
+            valores_periodo = get_relatorios_vendas(fonte=fonte, inicio=inicio, fim=fim, coluna_data_emissao=True,
+                                                    coluna_status_documento=True, status_documento_em_aberto=em_aberto,
+                                                    coluna_rentabilidade=True, coluna_documento=True,
+                                                    coluna_rentabilidade_cor=True, coluna_cliente=True,
+                                                    coluna_grupo_economico=True, coluna_data_entrega_itens=True,
+                                                    coluna_orcamento_oportunidade=True,
+                                                    incluir_orcamentos_oportunidade=True, coluna_carteira=True,
                                                     carteira=carteira)
 
-            contexto.update({'dados': dados, 'valores_periodo': valores_periodo})
+            valor_total = 0
+            valor_liquidados = 0
+            valor_em_abertos = 0
+            valor_perdidos = 0
+            valor_oportunidades_em_aberto = 0
+            for valor in valores_periodo:
+                valor_total += valor.get('VALOR_MERCADORIAS')  # type:ignore
+
+                if fonte in ('orcamentos', 'pedidos'):
+                    if valor.get('STATUS_DOCUMENTO') == 'LIQUIDADO':
+                        valor_liquidados += valor.get('VALOR_MERCADORIAS')  # type:ignore
+
+                if fonte == 'pedidos':
+                    if valor.get('STATUS_DOCUMENTO') in ('EM ABERTO', 'BLOQUEADO'):
+                        valor_em_abertos += valor.get('VALOR_MERCADORIAS')  # type:ignore
+
+                if fonte == 'orcamentos':
+                    if valor.get('STATUS_DOCUMENTO') == 'PERDIDO':
+                        valor_perdidos += valor.get('VALOR_MERCADORIAS')  # type:ignore
+                    if valor.get('OPORTUNIDADE') == 'SIM' and valor.get('STATUS_DOCUMENTO') in ('EM ABERTO', 'BLOQUEADO'):
+                        valor_oportunidades_em_aberto += valor.get('VALOR_MERCADORIAS')  # type:ignore
+                    if valor.get('OPORTUNIDADE') == 'NAO' and valor.get('STATUS_DOCUMENTO') in ('EM ABERTO', 'BLOQUEADO'):
+                        valor_em_abertos += valor.get('VALOR_MERCADORIAS')  # type:ignore
+
+            contexto.update({'dados': dados,
+                             'valores_periodo': valores_periodo,
+                             'valor_total': valor_total,
+                             'valor_liquidados': valor_liquidados,
+                             'valor_em_abertos': valor_em_abertos,
+                             'valor_perdidos': valor_perdidos,
+                             'valor_oportunidades_em_aberto': valor_oportunidades_em_aberto})
 
     contexto.update({'formulario': formulario})
 

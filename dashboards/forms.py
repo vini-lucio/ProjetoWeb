@@ -10,6 +10,7 @@ class FormDashboardVendasCarteiras(FormVendedoresMixIn, FormPeriodoInicioFimMixI
         super().__init__(*args, **kwargs)
         self.fields['inicio'].initial = hoje_as_yyyymmdd()
         self.fields['fim'].initial = hoje_as_yyyymmdd()
+        self.fields['carteira'].required = False
 
     fontes = {
         'pedidos': 'Pedidos',

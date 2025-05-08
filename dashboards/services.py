@@ -699,6 +699,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         SQLs estão em um dict onde a chave é o nome do campo do formulario e o valor é um dict com o placeholder como
         chave e o codigo sql como valor
     """
+    incluir_orcamentos_oportunidade = kwargs_formulario.pop('incluir_orcamentos_oportunidade', False)
+    incluir_orcamentos_oportunidade = "" if incluir_orcamentos_oportunidade else "ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND"
+
     notas_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
     notas_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE), 0), 2) AS MC_VALOR"
     notas_lfrete_cor_coluna = """
@@ -902,6 +905,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_status_documento': {'status_documento_campo_alias': "",
                                     'status_documento_campo': "", },
         'status_documento_em_aberto': {'status_documento_em_aberto_pesquisa': "", },
+
+        'coluna_orcamento_oportunidade': {'orcamento_oportunidade_campo_alias': "",
+                                          'orcamento_oportunidade_campo': "", },
     }
 
     pedidos_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
@@ -1064,6 +1070,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_status_documento': {'status_documento_campo_alias': "PEDIDOS.STATUS AS STATUS_DOCUMENTO,",
                                     'status_documento_campo': "PEDIDOS.STATUS,", },
         'status_documento_em_aberto': {'status_documento_em_aberto_pesquisa': "PEDIDOS.STATUS IN ('EM ABERTO', 'BLOQUEADO') AND", },
+
+        'coluna_orcamento_oportunidade': {'orcamento_oportunidade_campo_alias': "",
+                                          'orcamento_oportunidade_campo': "", },
     }
 
     orcamentos_status_produto_orcamento_tipo_from = "COPLAS.STATUS_ORCAMENTOS_ITENS,"
@@ -1093,7 +1102,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                 (
                     {lfrete_orcamentos} AND
 
-                        ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND
+                        {incluir_orcamentos_oportunidade}
                         ORCAMENTOS.DATA_PEDIDO >= :data_inicio AND
                         ORCAMENTOS.DATA_PEDIDO <= :data_fim
                 ) LFRETE
@@ -1101,7 +1110,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
             GROUP BY
                 CHAVE_ORCAMENTO_ITEM
         ) LFRETE,
-    """.format(lfrete_orcamentos=lfrete_orcamentos)
+    """.format(lfrete_orcamentos=lfrete_orcamentos, incluir_orcamentos_oportunidade=incluir_orcamentos_oportunidade)
     orcamentos_lfrete_join = "LFRETE.CHAVE_ORCAMENTO_ITEM = ORCAMENTOS_ITENS.CHAVE AND"
 
     map_sql_orcamentos_base = {
@@ -1121,9 +1130,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'fonte_where': """
             ORCAMENTOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
-            ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND
+            {incluir_orcamentos_oportunidade}
             ORCAMENTOS.NUMPED != 204565 AND
-        """,
+        """.format(incluir_orcamentos_oportunidade=incluir_orcamentos_oportunidade),
 
         'fonte_where_data': """
             ORCAMENTOS.DATA_PEDIDO >= :data_inicio AND
@@ -1234,6 +1243,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_status_documento': {'status_documento_campo_alias': "ORCAMENTOS.STATUS AS STATUS_DOCUMENTO,",
                                     'status_documento_campo': "ORCAMENTOS.STATUS,", },
         'status_documento_em_aberto': {'status_documento_em_aberto_pesquisa': "ORCAMENTOS.STATUS IN ('EM ABERTO', 'BLOQUEADO') AND", },
+
+        'coluna_orcamento_oportunidade': {'orcamento_oportunidade_campo_alias': "ORCAMENTOS.REGISTRO_OPORTUNIDADE AS OPORTUNIDADE,",
+                                          'orcamento_oportunidade_campo': "ORCAMENTOS.REGISTRO_OPORTUNIDADE,", },
     }
 
     # Itens de orçamento excluidos somente o que difere de orçamento
@@ -1416,6 +1428,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {mes_emissao_campo_alias}
             {dia_emissao_campo_alias}
             {documento_campo_alias}
+            {orcamento_oportunidade_campo_alias}
             {status_documento_campo_alias}
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
@@ -1490,6 +1503,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {mes_emissao_campo}
             {dia_emissao_campo}
             {documento_campo}
+            {orcamento_oportunidade_campo}
             {status_documento_campo}
             {carteira_campo}
             {grupo_economico_campo}
@@ -1536,7 +1550,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         alias_para_header_groupby = ['DATA_EMISSAO', 'ANO_EMISSAO', 'MES_EMISSAO', 'DIA_EMISSAO', 'ANO_MES_EMISSAO',
                                      'CHAVE_GRUPO_ECONOMICO', 'GRUPO', 'CARTEIRA', 'TIPO_CLIENTE', 'FAMILIA_PRODUTO',
                                      'PRODUTO', 'UNIDADE', 'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',
-                                     'DOCUMENTO', 'CLIENTE', 'DATA_ENTREGA', 'STATUS_DOCUMENTO',]
+                                     'DOCUMENTO', 'CLIENTE', 'DATA_ENTREGA', 'STATUS_DOCUMENTO', 'OPORTUNIDADE',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',
