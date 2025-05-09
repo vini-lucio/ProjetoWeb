@@ -19,18 +19,24 @@ def vendas_carteira(request):
         formulario = FormDashboardVendasCarteiras(request.GET)
         if formulario.is_valid():
             carteira = formulario.cleaned_data.get('carteira')
-            carteira_nome = carteira.NOMERED if carteira else '%%'
+            carteira_nome = carteira.nome if carteira else '%%'
             contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Total'
 
             dashboard_vendas_carteira = DashboardVendasCarteira(carteira=carteira_nome)
             dados = dashboard_vendas_carteira.get_dados()
 
-            em_aberto: bool = formulario.cleaned_data.get('em_aberto')  # type: ignore
-            inicio = formulario.cleaned_data.get('inicio') if not em_aberto else None
-            fim = formulario.cleaned_data.get('fim') if not em_aberto else None
             fonte: Literal['orcamentos', 'pedidos',
                            'faturamentos'] = formulario.cleaned_data.get('fonte')  # type: ignore
+            em_aberto: bool = formulario.cleaned_data.get(
+                'em_aberto') if fonte != 'faturamentos' else False  # type: ignore
+            inicio = formulario.cleaned_data.get('inicio') if not em_aberto else None
+            fim = formulario.cleaned_data.get('fim') if not em_aberto else None
 
+            carteira_parametros = {'carteira': carteira}
+            if carteira_nome == 'PAREDE DE CONCRETO':
+                carteira_parametros = {'carteira_parede_de_concreto': True}
+            if carteira_nome == 'PREMOLDADO / POSTE':
+                carteira_parametros = {'carteira_premoldado_poste': True}
             valores_periodo = get_relatorios_vendas(fonte=fonte, inicio=inicio, fim=fim, coluna_data_emissao=True,
                                                     coluna_status_documento=True, status_documento_em_aberto=em_aberto,
                                                     coluna_rentabilidade=True, coluna_documento=True,
@@ -38,7 +44,7 @@ def vendas_carteira(request):
                                                     coluna_grupo_economico=True, coluna_data_entrega_itens=True,
                                                     coluna_orcamento_oportunidade=True,
                                                     incluir_orcamentos_oportunidade=True, coluna_carteira=True,
-                                                    carteira=carteira)
+                                                    **carteira_parametros)
 
             valor_total = 0
             valor_liquidados = 0
@@ -99,6 +105,7 @@ def vendas_supervisao(request):
     return render(request, 'dashboards/pages/vendas-supervisao.html', contexto)
 
 
+# TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
 def relatorios_supervisao(request, fonte: str):
     fonte_relatorio = fonte
     if fonte_relatorio not in ('faturamentos', 'orcamentos'):

@@ -848,6 +848,7 @@ class Vendedores(models.Model):
     class Meta:
         verbose_name = 'Vendedor'
         verbose_name_plural = 'Vendedores'
+        ordering = 'nome',
         constraints = [
             models.UniqueConstraint(
                 fields=['chave_analysis',],

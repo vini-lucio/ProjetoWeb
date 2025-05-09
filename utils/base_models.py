@@ -9,6 +9,12 @@ from django.core.exceptions import PermissionDenied
 User = get_user_model()
 
 
+class ChaveAnalysisPropertyMixIn:
+    @property
+    def chave_analysis(self):
+        return self.pk  # type:ignore
+
+
 class ReadOnlyMixin:
     def save(self, *args, **kwargs):
         raise PermissionDenied("Ação não permitida")

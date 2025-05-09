@@ -798,6 +798,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_carteira': {'carteira_campo_alias': "VENDEDORES.NOMERED AS CARTEIRA,",
                             'carteira_campo': "VENDEDORES.NOMERED,", },
         'carteira': {'carteira_pesquisa': "VENDEDORES.CODVENDEDOR = :chave_carteira AND", },
+        'carteira_parede_de_concreto': {'carteira_parede_de_concreto_pesquisa': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=23) AND", },
+        'carteira_premoldado_poste': {'carteira_premoldado_poste_pesquisa': "CLIENTES.CHAVE_TIPO IN (7908, 7904) AND", },
 
         'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
                                 'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
@@ -992,6 +994,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_carteira': {'carteira_campo_alias': "VENDEDORES.NOMERED AS CARTEIRA,",
                             'carteira_campo': "VENDEDORES.NOMERED,", },
         'carteira': {'carteira_pesquisa': "VENDEDORES.CODVENDEDOR = :chave_carteira AND", },
+        'carteira_parede_de_concreto': {'carteira_parede_de_concreto_pesquisa': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=23) AND", },
+        'carteira_premoldado_poste': {'carteira_premoldado_poste_pesquisa': "CLIENTES.CHAVE_TIPO IN (7908, 7904) AND", },
 
         'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
                                 'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
@@ -1165,6 +1169,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_carteira': {'carteira_campo_alias': "VENDEDORES.NOMERED AS CARTEIRA,",
                             'carteira_campo': "VENDEDORES.NOMERED,", },
         'carteira': {'carteira_pesquisa': "VENDEDORES.CODVENDEDOR = :chave_carteira AND", },
+        'carteira_parede_de_concreto': {'carteira_parede_de_concreto_pesquisa': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=23) AND", },
+        'carteira_premoldado_poste': {'carteira_premoldado_poste_pesquisa': "CLIENTES.CHAVE_TIPO IN (7908, 7904) AND", },
 
         'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
                                 'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
@@ -1352,7 +1358,6 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
 
 def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], **kwargs):
-    # TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
     # TODO: coluna de cada mes? cada ano?
     kwargs_sql = {}
     kwargs_sql_itens_excluidos = {}
@@ -1388,7 +1393,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         kwargs_ora.update({'grupo_economico': grupo_economico, })
 
     if carteira:
-        chave_carteira = carteira.pk
+        chave_carteira = carteira.chave_analysis
         kwargs_ora.update({'chave_carteira': chave_carteira, })
 
     if tipo_cliente:
@@ -1406,7 +1411,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         kwargs_ora.update({'cidade': cidade, })
 
     if estado:
-        chave_estado = estado.pk
+        chave_estado = estado.chave_analysis
         kwargs_ora.update({'chave_estado': chave_estado, })
 
     if status_produto_orcamento:
@@ -1492,6 +1497,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {status_produto_orcamento_tipo_pesquisa}
             {desconsiderar_justificativa_pesquisa}
             {status_documento_em_aberto_pesquisa}
+            {carteira_parede_de_concreto_pesquisa}
+            {carteira_premoldado_poste_pesquisa}
 
             {fonte_where_data}
 

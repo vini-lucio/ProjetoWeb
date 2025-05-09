@@ -1,6 +1,6 @@
 from django.db import models
 from django.db.models import F, Count, Max, Avg
-from utils.base_models import ReadOnlyMixin
+from utils.base_models import ReadOnlyMixin, ChaveAnalysisPropertyMixIn
 from utils.data_hora_atual import hoje, data_inicio_analysis
 
 
@@ -18,7 +18,7 @@ class CANAIS_VENDA(ReadOnlyMixin, models.Model):
         return self.DESCRICAO
 
 
-class VENDEDORES(ReadOnlyMixin, models.Model):
+class VENDEDORES(ReadOnlyMixin, ChaveAnalysisPropertyMixIn, models.Model):
     class Meta:
         managed = False
         db_table = '"COPLAS"."VENDEDORES"'
@@ -49,7 +49,7 @@ class REGIOES(ReadOnlyMixin, models.Model):
         return self.REGIAO
 
 
-class ESTADOS(ReadOnlyMixin, models.Model):
+class ESTADOS(ReadOnlyMixin, ChaveAnalysisPropertyMixIn, models.Model):
     class Meta:
         managed = False
         db_table = '"COPLAS"."ESTADOS"'

@@ -15,6 +15,7 @@ class FormDashboardVendasCarteiras(FormVendedoresMixIn, FormPeriodoInicioFimMixI
     fontes = {
         'pedidos': 'Pedidos',
         'orcamentos': 'Orcamentos',
+        'faturamentos': 'Faturamentos',
     }
 
     fonte = forms.ChoiceField(label="Fonte", choices=fontes, initial='pedidos', required=True)  # type: ignore

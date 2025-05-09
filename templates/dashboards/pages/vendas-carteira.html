@@ -141,7 +141,7 @@
                                 <th></th>
                             </tr>
                             {% for valor in valores_periodo %}
-                                <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
+                                <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %} {% if valor.VALOR_MERCADORIAS < 0 %}fonte-vermelho{% endif %}">
                                     <td 
                                         {% if valor.STATUS_DOCUMENTO == 'EM ABERTO' or valor.STATUS_DOCUMENTO == 'BLOQUEADO' %}style="background-color: var(--cinza-escuro);"{% endif %}
                                         {% if valor.STATUS_DOCUMENTO == 'PERDIDO' %}style="background-color: black;"{% endif %}
@@ -164,7 +164,7 @@
                                 <td></td>
                                 <td></td>
                                 <td></td>
-                                <td></td>
+                                <td class="azul-negrito">Total</td>
                                 <td class="azul-negrito">R$ {{ valor_total | floatformat:2 }}</td>
                                 <td></td>
                             </tr>

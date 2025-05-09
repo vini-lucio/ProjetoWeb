@@ -1,7 +1,6 @@
 from django import forms
 from django.forms.widgets import DateInput
-from home.models import Jobs
-from analysis.models import VENDEDORES
+from home.models import Jobs, Vendedores
 
 
 class BaseFormRelatoriosRh(forms.Form):
@@ -24,6 +23,6 @@ class FormPesquisarMixIn(forms.Form):
 
 
 class FormVendedoresMixIn(forms.Form):
-    carteiras = VENDEDORES.objects.using('analysis').filter(CHAVE_CANAL=9).all().order_by('NOMERED')
+    carteiras = Vendedores.objects.filter(canal_venda__descricao='CONSULTOR TECNICO')
 
     carteira = forms.ModelChoiceField(carteiras, label="Carteira")

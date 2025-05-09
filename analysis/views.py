@@ -14,6 +14,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 
 
+# TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
 class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
     model = GRUPO_ECONOMICO
     template_name = 'analysis/pages/grupo-economico.html'
