@@ -38,11 +38,11 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
         self.fields['inicio'].initial = hoje_as_yyyymmdd()
         self.fields['fim'].initial = hoje_as_yyyymmdd()
 
-    carteiras = VENDEDORES.objects.using('analysis').filter(CHAVE_CANAL=9).all().order_by('NOMERED')
-    clientes_tipos = CLIENTES_TIPOS.objects.using('analysis').all().order_by('DESCRICAO')
-    cidades = FAIXAS_CEP.objects.using('analysis').all().order_by('CIDADE')
-    estados = ESTADOS.objects.using('analysis').all().order_by('ESTADO')
-    familias_produtos = FAMILIA_PRODUTOS.objects.using('analysis').all().order_by('FAMILIA')
+    carteiras = VENDEDORES.objects.filter(CHAVE_CANAL=9).all().order_by('NOMERED')
+    clientes_tipos = CLIENTES_TIPOS.objects.all().order_by('DESCRICAO')
+    cidades = FAIXAS_CEP.objects.all().order_by('CIDADE')
+    estados = ESTADOS.objects.all().order_by('ESTADO')
+    familias_produtos = FAMILIA_PRODUTOS.objects.all().order_by('FAMILIA')
 
     coluna_grupo_economico = forms.BooleanField(label="Coluna Grupo Economico", initial=True, required=False)
     coluna_carteira = forms.BooleanField(label="Coluna Carteira", initial=True, required=False)
@@ -113,7 +113,7 @@ class RelatoriosSupervisaoFaturamentosForm(RelatoriosSupervisaoBaseForm):
 
 
 class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
-    STATUS = STATUS_ORCAMENTOS_ITENS.objects.using('analysis')
+    STATUS = STATUS_ORCAMENTOS_ITENS.objects
 
     status_orcamentos_itens = STATUS.all().order_by('DESCRICAO')
     status_orcamentos_itens_tipos = list(STATUS.values_list('TIPO', 'TIPO').distinct())

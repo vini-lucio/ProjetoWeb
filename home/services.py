@@ -3658,7 +3658,7 @@ def migrar_regioes():
         'nome': 'REGIAO',
     }
 
-    origem = REGIOES.objects.using('analysis').all()
+    origem = REGIOES.objects.all()
     if origem:
         destino = Regioes.objects
         for objeto_origem in origem:
@@ -3685,7 +3685,7 @@ def migrar_estados():
         'regiao': ('CHAVE_REGIAO', ('chave_analysis', 'CHAVE')),
     }
 
-    origem = ESTADOS.objects.using('analysis').all()
+    origem = ESTADOS.objects.all()
     if origem:
         destino = Estados.objects
         regiao = Regioes.objects
@@ -3715,7 +3715,7 @@ def migrar_estados_icms():
         'icms': 'ALIQUOTA',
     }
 
-    origem = MATRIZ_ICMS.objects.using('analysis').all()
+    origem = MATRIZ_ICMS.objects.all()
     if origem:
         destino = EstadosIcms.objects
         estados = Estados.objects
@@ -3750,7 +3750,7 @@ def migrar_cidades():
         'nome': 'CIDADE',
     }
 
-    origem = FAIXAS_CEP.objects.using('analysis').all()
+    origem = FAIXAS_CEP.objects.all()
     if origem:
         destino = Cidades.objects
         estado = Estados.objects
@@ -3780,7 +3780,7 @@ def migrar_unidades():
         'descricao': 'DESCRICAO',
     }
 
-    origem = UNIDADES.objects.using('analysis').all()
+    origem = UNIDADES.objects.all()
     if origem:
         destino = Unidades.objects
         for objeto_origem in origem:
@@ -3811,7 +3811,7 @@ def migrar_produtos():
         'ean13': 'CODIGO_BARRA',
     }
 
-    origem = PRODUTOS.objects.using('analysis').filter(CHAVE_FAMILIA__CHAVE__in=(7766, 7767, 8378)).all()
+    origem = PRODUTOS.objects.filter(CHAVE_FAMILIA__CHAVE__in=(7766, 7767, 8378)).all()
     if origem:
         destino = Produtos.objects
         unidade = Unidades.objects
@@ -3861,7 +3861,7 @@ def migrar_canais_vendas():
         'descricao': 'DESCRICAO',
     }
 
-    origem = CANAIS_VENDA.objects.using('analysis').all()
+    origem = CANAIS_VENDA.objects.all()
     if origem:
         destino = CanaisVendas.objects
         for objeto_origem in origem:
@@ -3887,7 +3887,7 @@ def migrar_vendedores():
         'canal_venda': ('CHAVE_CANAL', ('chave_analysis', 'CHAVE')),
     }
 
-    origem = VENDEDORES.objects.using('analysis').all()
+    origem = VENDEDORES.objects.all()
     if origem:
         destino = Vendedores.objects
         canal_vendas = CanaisVendas.objects

@@ -373,7 +373,7 @@ class CLIENTES_HISTORICO(ReadOnlyMixin, models.Model):
 
     @classmethod
     def filter_em_aberto(cls):
-        return cls.objects.using('analysis').filter(DATA_REALIZADO__isnull=True)
+        return cls.objects.filter(DATA_REALIZADO__isnull=True)
 
     @classmethod
     def filter_em_atraso(cls):
@@ -425,7 +425,7 @@ class ORCAMENTOS(ReadOnlyMixin, models.Model):
 
     @classmethod
     def filter_com_valor_comercial_nao_registro_oportunidade(cls):
-        return cls.objects.using('analysis').filter(CHAVE_TIPO__VALOR_COMERCIAL='SIM', REGISTRO_OPORTUNIDADE='NAO')
+        return cls.objects.filter(CHAVE_TIPO__VALOR_COMERCIAL='SIM', REGISTRO_OPORTUNIDADE='NAO')
 
     def __str__(self):
         return f'{self.NUMPED}'
@@ -483,7 +483,7 @@ class PEDIDOS(ReadOnlyMixin, models.Model):
 
     @classmethod
     def filter_com_valor_comercial(cls):
-        return cls.objects.using('analysis').filter(CHAVE_TIPO__VALOR_COMERCIAL='SIM')
+        return cls.objects.filter(CHAVE_TIPO__VALOR_COMERCIAL='SIM')
 
     def __str__(self):
         return f'{self.NUMPED}'
@@ -540,7 +540,7 @@ class NOTAS(ReadOnlyMixin, models.Model):
 
     @classmethod
     def filter_com_valor_comercial(cls):
-        return cls.objects.using('analysis').filter(VALOR_COMERCIAL='SIM')
+        return cls.objects.filter(VALOR_COMERCIAL='SIM')
 
     def __str__(self):
         return f'{self.NF}'

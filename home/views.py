@@ -14,8 +14,8 @@ from django.contrib.auth.decorators import user_passes_test
 from collections import Counter
 
 # TODO: criar testes automatizados
-# TODO: levantar excessões com melhores descrções
-# TODO: testar joins entrebases de dados e configurar routers?
+# TODO: levantar excessões com melhores descrições
+# TODO: testar joins entre bases de dados
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
