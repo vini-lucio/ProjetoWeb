@@ -3959,7 +3959,8 @@ def migrar_comissoes(data_inicio, data_fim):
             0 AS DIVISAO,
             0 AS ERRO,
             INFRA.CONTEUDO AS INFRA,
-            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END AS PREMOLDADO_POSTE
+            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END AS PREMOLDADO_POSTE,
+            PC.CONTEUDO AS PC
 
         FROM
             (
@@ -3980,6 +3981,7 @@ def migrar_comissoes(data_inicio, data_fim):
                     {data}
             ) FRETE_NO_ITEM,
             (SELECT DISTINCT CHAVE_CLIENTE, 'INFRA' AS CONTEUDO FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CHAVE_INFORMACAO = 8) INFRA,
+            (SELECT DISTINCT CHAVE_CLIENTE, 'PC' AS CONTEUDO FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CHAVE_INFORMACAO = 23) PC,
             (SELECT DISTINCT NOTAS.CHAVE, ORCAMENTOS.LOG_NOME_INCLUSAO FROM COPLAS.ORCAMENTOS, COPLAS.PEDIDOS, COPLAS.NOTAS_ITENS, COPLAS.NOTAS WHERE NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA(+) AND NOTAS_ITENS.NUMPED = PEDIDOS.CHAVE(+) AND PEDIDOS.CHAVE_ORCAMENTO = ORCAMENTOS.CHAVE(+)) NOTAS_ORCAMENTO,
             (SELECT NOTAS_ORDEM.CHAVE AS CHAVE_NOTA, ESTADOS_ORDEM.SIGLA AS UF_ORDEM, CLIENTES_ORDEM.CIDADE AS CIDADE_ORDEM FROM COPLAS.ESTADOS ESTADOS_ORDEM, COPLAS.NOTAS NOTAS_ORDEM, COPLAS.CLIENTES CLIENTES_ORDEM WHERE NOTAS_ORDEM.CHAVE_CLIENTE_REMESSA = CLIENTES_ORDEM.CODCLI AND CLIENTES_ORDEM.UF = ESTADOS_ORDEM.CHAVE) UF_ORDEM,
             COPLAS.ESTADOS,
@@ -3999,6 +4001,7 @@ def migrar_comissoes(data_inicio, data_fim):
             NOTAS.CHAVE = FRETE_NO_ITEM.CHAVE_NOTA(+) AND
             CLIENTES.CHAVE_TIPO = CLIENTES_TIPOS.CHAVE AND
             CLIENTES.CODCLI = INFRA.CHAVE_CLIENTE(+) AND
+            CLIENTES.CODCLI = PC.CHAVE_CLIENTE(+) AND
             NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND
             NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD(+) AND
             NOTAS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTE.CODVENDEDOR(+) AND
@@ -4038,7 +4041,8 @@ def migrar_comissoes(data_inicio, data_fim):
             RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0),
             FRETE_NO_ITEM.FRETE_NO_ITEM,
             INFRA.CONTEUDO,
-            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END
+            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END,
+            PC.CONTEUDO
 
         ORDER BY
             NOTAS.NF
@@ -4118,6 +4122,7 @@ def migrar_comissoes(data_inicio, data_fim):
                 erro=False,
                 infra=True if objeto_origem['INFRA'] else False,
                 premoldado_poste=True if objeto_origem['PREMOLDADO_POSTE'] else False,
+                parede_concreto=True if objeto_origem['PC'] else False,
             )
 
             vendedores_divisao: list[Vendedores] = []
@@ -4233,7 +4238,8 @@ def migrar_comissoes(data_inicio, data_fim):
                     divisao=instancia.divisao,
                     erro=instancia.erro,
                     infra=instancia.infra,
-                    premoldado_poste=instancia.infra,
+                    premoldado_poste=instancia.premoldado_poste,
+                    parede_concreto=instancia.parede_concreto,
                 )
                 instancia_dividida.full_clean()
                 instancia_dividida.save()
@@ -4260,10 +4266,12 @@ def migrar_faturamentos(data_inicio, data_fim):
             0 AS DIVISAO,
             0 AS ERRO,
             INFRA.CONTEUDO AS INFRA,
-            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END AS PREMOLDADO_POSTE
+            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END AS PREMOLDADO_POSTE,
+            PC.CONTEUDO AS PC
 
         FROM
             (SELECT DISTINCT CHAVE_CLIENTE, 'INFRA' AS CONTEUDO FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CHAVE_INFORMACAO = 8) INFRA,
+            (SELECT DISTINCT CHAVE_CLIENTE, 'PC' AS CONTEUDO FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CHAVE_INFORMACAO = 23) PC,
             (SELECT DISTINCT NOTAS.CHAVE, ORCAMENTOS.LOG_NOME_INCLUSAO, ORCAMENTOS.PESO_LIQUIDO FROM COPLAS.ORCAMENTOS, COPLAS.PEDIDOS, COPLAS.NOTAS_ITENS, COPLAS.NOTAS WHERE NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA(+) AND NOTAS_ITENS.NUMPED = PEDIDOS.CHAVE(+) AND PEDIDOS.CHAVE_ORCAMENTO = ORCAMENTOS.CHAVE(+)) NOTAS_ORCAMENTO,
             (SELECT NOTAS_ORDEM.CHAVE AS CHAVE_NOTA, ESTADOS_ORDEM.SIGLA AS UF_ORDEM FROM COPLAS.ESTADOS ESTADOS_ORDEM, COPLAS.NOTAS NOTAS_ORDEM, COPLAS.CLIENTES CLIENTES_ORDEM WHERE NOTAS_ORDEM.CHAVE_CLIENTE_REMESSA = CLIENTES_ORDEM.CODCLI AND CLIENTES_ORDEM.UF = ESTADOS_ORDEM.CHAVE) UF_ORDEM,
             COPLAS.ESTADOS,
@@ -4283,6 +4291,7 @@ def migrar_faturamentos(data_inicio, data_fim):
             CLIENTES.CODVEND = REPRE_CAD.CODVENDEDOR(+) AND
             CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRE_CAD.CODVENDEDOR(+) AND
             CLIENTES.CODCLI = INFRA.CHAVE_CLIENTE(+) AND
+            CLIENTES.CODCLI = PC.CHAVE_CLIENTE(+) AND
             NOTAS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTE.CODVENDEDOR(+) AND
             NOTAS.CHAVE = UF_ORDEM.CHAVE_NOTA(+) AND
             NOTAS.CHAVE_VENDEDOR = REPRESENTANTES.CODVENDEDOR(+) AND
@@ -4314,7 +4323,8 @@ def migrar_faturamentos(data_inicio, data_fim):
             CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END,
             CASE NOTAS.ATIVA WHEN 'NAO' THEN 'CANCELADA' END,
             INFRA.CONTEUDO,
-            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END
+            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END,
+            PC.CONTEUDO
 
         ORDER BY
             NOTAS.NF
@@ -4381,6 +4391,7 @@ def migrar_faturamentos(data_inicio, data_fim):
                 erro=False,
                 infra=True if objeto_origem['INFRA'] else False,
                 premoldado_poste=True if objeto_origem['PREMOLDADO_POSTE'] else False,
+                parede_concreto=True if objeto_origem['PC'] else False,
             )
 
             vendedores_divisao: list[Vendedores] = []
@@ -4469,7 +4480,8 @@ def migrar_faturamentos(data_inicio, data_fim):
                     divisao=instancia.divisao,
                     erro=instancia.erro,
                     infra=instancia.infra,
-                    premoldado_poste=instancia.infra,
+                    premoldado_poste=instancia.premoldado_poste,
+                    parede_concreto=instancia.parede_concreto,
                 )
                 instancia_dividida.full_clean()
                 instancia_dividida.save()

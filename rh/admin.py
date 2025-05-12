@@ -488,7 +488,7 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
     campos_exportar = ['data_vencimento', 'nota_fiscal', 'cliente', 'uf_cliente_', 'uf_entrega_', 'inclusao_orcamento',
                        'segundo_representante_cliente_', 'segundo_representante_nota_', 'carteira_cliente_',
                        'valor_mercadorias_parcelas', 'abatimentos_totais', 'frete_item', 'divisao', 'infra',
-                       'premoldado_poste', 'valor_mercadorias_parcelas_nao_dividido']
+                       'premoldado_poste', 'parede_concreto', 'valor_mercadorias_parcelas_nao_dividido']
 
     def get_inlines(self, request, obj):
         if obj:
@@ -506,7 +506,7 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
         conteudo = gerar_conteudo_excel(queryset, cabecalho)
         titulo_aba = 'TOTAL'
         workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, cabecalho_negrito=True,
-                                 formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
+                                 formatar_numero=(['J', 'K', 'L', 'Q'], 2), ajustar_largura_colunas=True)
         somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBER')
 
         vendedores = Vendedores.objects.filter(canal_venda__descricao='CONSULTOR TECNICO').order_by('nome')
@@ -516,7 +516,7 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
                 conteudo = gerar_conteudo_excel(queryset_comissoes_vendedor, cabecalho)
                 titulo_aba = vendedor.nome
                 workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
-                                         formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
+                                         formatar_numero=(['J', 'K', 'L', 'Q'], 2), ajustar_largura_colunas=True)
                 somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBER')
 
         queryset_comissoes_infra = queryset.filter(infra=True)
@@ -524,7 +524,7 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
             conteudo = gerar_conteudo_excel(queryset_comissoes_infra, cabecalho)
             titulo_aba = 'INFRA'
             workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
-                                     formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
+                                     formatar_numero=(['J', 'K', 'L', 'Q'], 2), ajustar_largura_colunas=True)
         somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBER')
 
         queryset_comissoes_premoldado_poste = queryset.filter(premoldado_poste=True)
@@ -532,7 +532,15 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
             conteudo = gerar_conteudo_excel(queryset_comissoes_premoldado_poste, cabecalho)
             titulo_aba = 'PREMOLDADO POSTE'
             workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
-                                     formatar_numero=(['J', 'K', 'L', 'P'], 2), ajustar_largura_colunas=True)
+                                     formatar_numero=(['J', 'K', 'L', 'Q'], 2), ajustar_largura_colunas=True)
+        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBER')
+
+        queryset_comissoes_parede_concreto = queryset.filter(parede_concreto=True)
+        if queryset_comissoes_parede_concreto:
+            conteudo = gerar_conteudo_excel(queryset_comissoes_parede_concreto, cabecalho)
+            titulo_aba = 'PAREDE CONCRETO'
+            workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
+                                     formatar_numero=(['J', 'K', 'L', 'Q'], 2), ajustar_largura_colunas=True)
         somar_coluna_formatada(conteudo, titulo_aba, workbook, 'J', 'RECEBER')
 
         workbook.save(response)
@@ -569,7 +577,7 @@ class FaturamentosAdmin(BaseModelAdminRedRequired):
     campos_exportar = ['data_emissao', 'nota_fiscal', 'parcelas', 'cliente', 'uf_cliente_', 'uf_entrega_',
                        'inclusao_orcamento', 'representante_cliente_', 'representante_nota_',
                        'segundo_representante_cliente_', 'segundo_representante_nota_', 'carteira_cliente_', 'especie',
-                       'status', 'valor_mercadorias', 'divisao', 'infra', 'premoldado_poste',
+                       'status', 'valor_mercadorias', 'divisao', 'infra', 'premoldado_poste', 'parede_concreto',
                        'valor_mercadorias_nao_dividido']
 
     def get_inlines(self, request, obj):
@@ -588,7 +596,7 @@ class FaturamentosAdmin(BaseModelAdminRedRequired):
         conteudo = gerar_conteudo_excel(queryset, cabecalho)
         titulo_aba = 'TOTAL'
         workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, cabecalho_negrito=True,
-                                 formatar_numero=(['O', 'S'], 2), ajustar_largura_colunas=True)
+                                 formatar_numero=(['O', 'T'], 2), ajustar_largura_colunas=True)
         somar_coluna_formatada(conteudo, titulo_aba, workbook, 'O', 'FATURADO')
 
         representantes = Vendedores.objects.filter(canal_venda__descricao='REPRESENTANTE').order_by('nome')
@@ -612,7 +620,7 @@ class FaturamentosAdmin(BaseModelAdminRedRequired):
                 conteudo = gerar_conteudo_excel(queryset_faturamentos_vendedor, cabecalho)
                 titulo_aba = vendedor.nome
                 workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
-                                         formatar_numero=(['O', 'S'], 2), ajustar_largura_colunas=True)
+                                         formatar_numero=(['O', 'T'], 2), ajustar_largura_colunas=True)
                 somar_coluna_formatada(conteudo, titulo_aba, workbook, 'O', 'FATURADO')
 
         queryset_faturamentos_infra = queryset.filter(infra=True)
@@ -620,7 +628,7 @@ class FaturamentosAdmin(BaseModelAdminRedRequired):
             conteudo = gerar_conteudo_excel(queryset_faturamentos_infra, cabecalho)
             titulo_aba = 'INFRA'
             workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
-                                     formatar_numero=(['O', 'S'], 2), ajustar_largura_colunas=True)
+                                     formatar_numero=(['O', 'T'], 2), ajustar_largura_colunas=True)
         somar_coluna_formatada(conteudo, titulo_aba, workbook, 'O', 'FATURADO')
 
         queryset_faturamentos_premoldado_poste = queryset.filter(premoldado_poste=True)
@@ -628,7 +636,15 @@ class FaturamentosAdmin(BaseModelAdminRedRequired):
             conteudo = gerar_conteudo_excel(queryset_faturamentos_premoldado_poste, cabecalho)
             titulo_aba = 'PREMOLDADO POSTE'
             workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
-                                     formatar_numero=(['O', 'S'], 2), ajustar_largura_colunas=True)
+                                     formatar_numero=(['O', 'T'], 2), ajustar_largura_colunas=True)
+        somar_coluna_formatada(conteudo, titulo_aba, workbook, 'O', 'FATURADO')
+
+        queryset_faturamentos_parede_concreto = queryset.filter(parede_concreto=True)
+        if queryset_faturamentos_parede_concreto:
+            conteudo = gerar_conteudo_excel(queryset_faturamentos_parede_concreto, cabecalho)
+            titulo_aba = 'PAREDE CONCRETO'
+            workbook = arquivo_excel(conteudo, cabecalho, titulo_aba, workbook, cabecalho_negrito=True,
+                                     formatar_numero=(['O', 'T'], 2), ajustar_largura_colunas=True)
         somar_coluna_formatada(conteudo, titulo_aba, workbook, 'O', 'FATURADO')
 
         workbook.save(response)

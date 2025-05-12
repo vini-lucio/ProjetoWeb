@@ -1094,6 +1094,7 @@ class Comissoes(models.Model):
     erro = models.BooleanField("Erro", default=False)
     infra = models.BooleanField("Infra", default=False)
     premoldado_poste = models.BooleanField("Pre-Moldado / Poste", default=False)
+    parede_concreto = models.BooleanField("Parede de Concreto", default=False)
 
     @property
     def uf_cliente_(self):
@@ -1247,6 +1248,7 @@ class Faturamentos(models.Model):
     erro = models.BooleanField("Erro", default=False)
     infra = models.BooleanField("Infra", default=False)
     premoldado_poste = models.BooleanField("Pre-Moldado / Poste", default=False)
+    parede_concreto = models.BooleanField("Parede Concreto", default=False)
 
     @property
     def uf_cliente_(self):
