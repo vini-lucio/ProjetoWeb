@@ -16,6 +16,7 @@ from collections import Counter
 # TODO: criar testes automatizados
 # TODO: levantar excessões com melhores descrições
 # TODO: testar joins entre bases de dados
+# TODO: nas migrações, trazer tudo para memoria, para não ter que fazer select no loop nas comparações
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')

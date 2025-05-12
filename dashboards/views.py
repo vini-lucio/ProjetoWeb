@@ -2,7 +2,7 @@ from typing import Dict, Literal
 from django.shortcuts import render
 from django.http import HttpResponse
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
-                       DashboardVendasCarteira)
+                       DashboardVendasCarteira, eventos_dia_atrasos)
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
                     FormDashboardVendasCarteiras)
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
@@ -22,61 +22,90 @@ def vendas_carteira(request):
             carteira_nome = carteira.nome if carteira else '%%'
             contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Total'
 
-            dashboard_vendas_carteira = DashboardVendasCarteira(carteira=carteira_nome)
-            dados = dashboard_vendas_carteira.get_dados()
-
-            fonte: Literal['orcamentos', 'pedidos',
-                           'faturamentos'] = formulario.cleaned_data.get('fonte')  # type: ignore
-            em_aberto: bool = formulario.cleaned_data.get(
-                'em_aberto') if fonte != 'faturamentos' else False  # type: ignore
-            inicio = formulario.cleaned_data.get('inicio') if not em_aberto else None
-            fim = formulario.cleaned_data.get('fim') if not em_aberto else None
-
             carteira_parametros = {'carteira': carteira}
             if carteira_nome == 'PAREDE DE CONCRETO':
                 carteira_parametros = {'carteira_parede_de_concreto': True}
             if carteira_nome == 'PREMOLDADO / POSTE':
                 carteira_parametros = {'carteira_premoldado_poste': True}
-            valores_periodo = get_relatorios_vendas(fonte=fonte, inicio=inicio, fim=fim, coluna_data_emissao=True,
-                                                    coluna_status_documento=True, status_documento_em_aberto=em_aberto,
-                                                    coluna_rentabilidade=True, coluna_documento=True,
-                                                    coluna_rentabilidade_cor=True, coluna_cliente=True,
-                                                    coluna_grupo_economico=True, coluna_data_entrega_itens=True,
-                                                    coluna_orcamento_oportunidade=True,
-                                                    incluir_orcamentos_oportunidade=True, coluna_carteira=True,
-                                                    **carteira_parametros)
 
-            valor_total = 0
-            valor_liquidados = 0
-            valor_em_abertos = 0
-            valor_perdidos = 0
-            valor_oportunidades_em_aberto = 0
-            for valor in valores_periodo:
-                valor_total += valor.get('VALOR_MERCADORIAS')  # type:ignore
+            if 'atualizar-submit' in request.GET:
+                dashboard_vendas_carteira = DashboardVendasCarteira(carteira=carteira_nome)
+                dados = dashboard_vendas_carteira.get_dados()
 
-                if fonte in ('orcamentos', 'pedidos'):
-                    if valor.get('STATUS_DOCUMENTO') == 'LIQUIDADO':
-                        valor_liquidados += valor.get('VALOR_MERCADORIAS')  # type:ignore
+                fonte: Literal['orcamentos', 'pedidos',
+                               'faturamentos'] = formulario.cleaned_data.get('fonte')  # type: ignore
+                em_aberto: bool = formulario.cleaned_data.get(
+                    'em_aberto') if fonte != 'faturamentos' else False  # type: ignore
+                inicio = formulario.cleaned_data.get('inicio') if not em_aberto else None
+                fim = formulario.cleaned_data.get('fim') if not em_aberto else None
 
-                if fonte == 'pedidos':
-                    if valor.get('STATUS_DOCUMENTO') in ('EM ABERTO', 'BLOQUEADO'):
-                        valor_em_abertos += valor.get('VALOR_MERCADORIAS')  # type:ignore
+                valores_periodo = get_relatorios_vendas(fonte=fonte, inicio=inicio, fim=fim, coluna_data_emissao=True,
+                                                        coluna_status_documento=True,
+                                                        status_documento_em_aberto=em_aberto,
+                                                        coluna_rentabilidade=True, coluna_documento=True,
+                                                        coluna_rentabilidade_cor=True, coluna_cliente=True,
+                                                        coluna_grupo_economico=True, coluna_data_entrega_itens=True,
+                                                        coluna_orcamento_oportunidade=True,
+                                                        incluir_orcamentos_oportunidade=True, coluna_carteira=True,
+                                                        **carteira_parametros)
 
-                if fonte == 'orcamentos':
-                    if valor.get('STATUS_DOCUMENTO') == 'PERDIDO':
-                        valor_perdidos += valor.get('VALOR_MERCADORIAS')  # type:ignore
-                    if valor.get('OPORTUNIDADE') == 'SIM' and valor.get('STATUS_DOCUMENTO') in ('EM ABERTO', 'BLOQUEADO'):
-                        valor_oportunidades_em_aberto += valor.get('VALOR_MERCADORIAS')  # type:ignore
-                    if valor.get('OPORTUNIDADE') == 'NAO' and valor.get('STATUS_DOCUMENTO') in ('EM ABERTO', 'BLOQUEADO'):
-                        valor_em_abertos += valor.get('VALOR_MERCADORIAS')  # type:ignore
+                valor_total = 0
+                valor_liquidados = 0
+                valor_em_abertos = 0
+                valor_perdidos = 0
+                valor_oportunidades_em_aberto = 0
+                for valor in valores_periodo:
+                    valor_total += valor.get('VALOR_MERCADORIAS')  # type:ignore
 
-            contexto.update({'dados': dados,
-                             'valores_periodo': valores_periodo,
-                             'valor_total': valor_total,
-                             'valor_liquidados': valor_liquidados,
-                             'valor_em_abertos': valor_em_abertos,
-                             'valor_perdidos': valor_perdidos,
-                             'valor_oportunidades_em_aberto': valor_oportunidades_em_aberto})
+                    if fonte in ('orcamentos', 'pedidos'):
+                        if valor.get('STATUS_DOCUMENTO') == 'LIQUIDADO':
+                            valor_liquidados += valor.get('VALOR_MERCADORIAS')  # type:ignore
+
+                    if fonte == 'pedidos':
+                        if valor.get('STATUS_DOCUMENTO') in ('EM ABERTO', 'BLOQUEADO'):
+                            valor_em_abertos += valor.get('VALOR_MERCADORIAS')  # type:ignore
+
+                    if fonte == 'orcamentos':
+                        if valor.get('STATUS_DOCUMENTO') == 'PERDIDO':
+                            valor_perdidos += valor.get('VALOR_MERCADORIAS')  # type:ignore
+                        if valor.get('OPORTUNIDADE') == 'SIM' and valor.get('STATUS_DOCUMENTO') in ('EM ABERTO', 'BLOQUEADO'):
+                            valor_oportunidades_em_aberto += valor.get('VALOR_MERCADORIAS')  # type:ignore
+                        if valor.get('OPORTUNIDADE') == 'NAO' and valor.get('STATUS_DOCUMENTO') in ('EM ABERTO', 'BLOQUEADO'):
+                            valor_em_abertos += valor.get('VALOR_MERCADORIAS')  # type:ignore
+
+                contexto.update({'dados': dados,
+                                'valores_periodo': valores_periodo,
+                                 'valor_total': valor_total,
+                                 'valor_liquidados': valor_liquidados,
+                                 'valor_em_abertos': valor_em_abertos,
+                                 'valor_perdidos': valor_perdidos,
+                                 'valor_oportunidades_em_aberto': valor_oportunidades_em_aberto})
+
+            if 'exportar-orcamentos-submit' in request.GET:
+                orcamentos_em_aberto = get_relatorios_vendas(fonte='orcamentos', coluna_data_emissao=True,
+                                                             status_documento_em_aberto=True, coluna_documento=True,
+                                                             coluna_cliente=True, coluna_data_entrega_itens=True,
+                                                             coluna_orcamento_oportunidade=True,
+                                                             incluir_orcamentos_oportunidade=True,
+                                                             **carteira_parametros)
+                excel = arquivo_excel(orcamentos_em_aberto, cabecalho_negrito=True, ajustar_largura_colunas=True,
+                                      formatar_numero=(['F'], 2))
+                arquivo = salvar_excel_temporario(excel)
+                nome_arquivo = 'ORCAMENTOS_EM_ABERTO'
+                nome_arquivo += f'_{carteira_nome}' if carteira_nome != '%%' else '_TODOS'
+                response = arquivo_excel_response(arquivo, nome_arquivo)
+                return response
+
+            if 'exportar-eventos-submit' in request.GET:
+                eventos = eventos_dia_atrasos(carteira=carteira_nome)
+                if eventos:
+                    excel = arquivo_excel(eventos, cabecalho_negrito=True, ajustar_largura_colunas=True,
+                                          formatar_numero=(['F'], 2))
+                    arquivo = salvar_excel_temporario(excel)
+                    nome_arquivo = 'EVENTOS'
+                    nome_arquivo += f'_{carteira_nome}' if carteira_nome != '%%' else '_TODOS'
+                    response = arquivo_excel_response(arquivo, nome_arquivo)
+                    return response
 
     contexto.update({'formulario': formulario})
 

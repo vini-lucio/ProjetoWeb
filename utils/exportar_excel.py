@@ -4,7 +4,10 @@ from openpyxl.styles import Font, PatternFill
 from io import BytesIO
 
 
-def arquivo_excel(conteudo: list[list] | list[dict], cabecalho: list = [], titulo: str = '', nova_aba: openpyxl.Workbook | None = None, cabecalho_negrito: bool = False, formatar_numero: tuple[list[str], int] | None = None, ajustar_largura_colunas: bool = False):
+def arquivo_excel(conteudo: list[list] | list[dict], cabecalho: list = [], titulo: str = '',
+                  nova_aba: openpyxl.Workbook | None = None, cabecalho_negrito: bool = False,
+                  formatar_numero: tuple[list[str], int] | None = None,
+                  ajustar_largura_colunas: bool = False):
     """Gera arquivo excel sem salvar. Quando o conteudo for uma lista de dicionarios o cabeçalho sempre será as chaves do primeiro item do dicionario.
     Passar workbook em noba_aba para adicionar nova aba apos executar uma vez sem.
     Para formatar numeros enviar colunas_numero como uma tupla, onde o primeiro elemento é uma lista com a letra das colunas que serão formatadas e o segundo elemento da tupla é a quantidade casas decimais"""
