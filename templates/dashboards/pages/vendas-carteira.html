@@ -38,7 +38,17 @@
             </form>
         </div>
 
-        
+        <div class="grid link-conteudo link-conteudo-escuro">
+            <a target="_blank" href="{% url "frete:calculo-frete" %}">
+                <div class="botao-div botao-escuro">Calculo de Frete</div>
+            </a>
+            <a target="_blank" href="{% url "home:consultoria-vendas" %}">
+                <div class="botao-div botao-escuro">Consultoria de Vendas - Calculos</div>
+            </a>
+            <a target="_blank" href="{% url "home:tabela-precos" %}">
+                <div class="botao-div botao-escuro">Tabela de Preços</div>
+            </a>
+        </div>
 
         <div class="link-conteudo link-conteudo-escuro">
 
@@ -65,7 +75,7 @@
                                 <p>R$ {{ dados.pedidos_mes | floatformat:"2" }} / <span class="fonte-verde">R$ {{ dados.meta_mes | floatformat:"2" }}</span></p>
                             </div>
                             <div>
-                                <p><span class="fonte-vermelho">(R$ {{ dados.faltam_meta_mes | floatformat:"2" }})</span></p>
+                                <p><span class="fonte-vermelho">(R$ {{ dados.faltam_meta_mes | floatformat:"2" }})</span> (Em dia <span class="{% if dados.meta_em_dia < 0 %}fonte-vermelho{% else %}fonte-verde{% endif %}">R$ {{ dados.meta_em_dia | floatformat:"2" }}</span>)</p>
                             </div>
                         </div>
                     </div>
@@ -100,6 +110,14 @@
                     <div>
                         <p class="fonte-verde">Faltam Orç. Dia*²</p>
                         <p>R$ {{ dados.faltam_abrir_orcamentos_dia | floatformat:"2" }}</p>
+                    </div>
+                    <div>
+                        <p class="fonte-verde">Recebido</p>
+                        <p>R$ {{ dados.recebido | floatformat:"2" }}</p>
+                    </div>
+                    <div>
+                        <p class="fonte-verde">A Receber</p>
+                        <p>R$ {{ dados.a_receber | floatformat:"2" }}</p>
                     </div>
                 </div>
 
@@ -170,6 +188,19 @@
                                 <td class="azul-negrito">R$ {{ valor_total | floatformat:2 }}</td>
                                 <td></td>
                             </tr>
+                            {% if valor_devolucoes %}
+                                <tr class="principal-claro">
+                                    <td></td>
+                                    {% if not formulario.carteira.value %}<td></td>{% endif %}
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td class="vermelho-negrito">Devoluções Subtraidas</td>
+                                    <td class="vermelho-negrito">R$ {{ valor_devolucoes | floatformat:2 }}</td>
+                                    <td></td>
+                                </tr>
+                            {% endif %}
                             {% if valor_liquidados %}
                                 <tr class="principal-claro">
                                     <td></td>

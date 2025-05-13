@@ -172,8 +172,10 @@ class SiteSetup(models.Model):
                                                      default='2000-01-01',  # type:ignore
                                                      auto_now=False, auto_now_add=False)
     meta_mes = models.DecimalField("Meta do Mês", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
-    dias_uteis_mes = models.DecimalField("Dias Uteis no Mês", default=0.00,  # type:ignore
+    dias_uteis_mes = models.DecimalField("Dias Uteis Considerar", default=0.00,  # type:ignore
                                          max_digits=5, decimal_places=2)
+    dias_uteis_mes_reais = models.DecimalField("Dias Uteis Reais", default=0.00,  # type:ignore
+                                               max_digits=5, decimal_places=2)
     meta_diaria = models.DecimalField("Meta Diaria", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
     despesa_administrativa_fixa = models.DecimalField("Despesa Administrativa Fixa %", default=0.00,  # type:ignore
                                                       max_digits=5, decimal_places=2)
@@ -247,8 +249,18 @@ class SiteSetup(models.Model):
         return float(self.dias_uteis_mes)
 
     @property
+    def dias_uteis_mes_reais_as_float(self):
+        return float(self.dias_uteis_mes_reais)
+
+    @property
     def meta_diaria_as_float(self):
         return float(self.meta_diaria)
+
+    @property
+    def meta_diaria_real_as_float(self):
+        if self.dias_uteis_mes_reais == 0:
+            return float(0)
+        return float(self.meta_mes / self.dias_uteis_mes_reais)
 
     @property
     def despesa_administrativa_fixa_as_float(self):

@@ -54,6 +54,7 @@ def vendas_carteira(request):
                 valor_em_abertos = 0
                 valor_perdidos = 0
                 valor_oportunidades_em_aberto = 0
+                valor_devolucoes = 0
                 for valor in valores_periodo:
                     valor_total += valor.get('VALOR_MERCADORIAS')  # type:ignore
 
@@ -73,13 +74,18 @@ def vendas_carteira(request):
                         if valor.get('OPORTUNIDADE') == 'NAO' and valor.get('STATUS_DOCUMENTO') in ('EM ABERTO', 'BLOQUEADO'):
                             valor_em_abertos += valor.get('VALOR_MERCADORIAS')  # type:ignore
 
+                    if fonte == 'faturamentos':
+                        if valor.get('VALOR_MERCADORIAS') < 0:  # type:ignore
+                            valor_devolucoes += valor.get('VALOR_MERCADORIAS')  # type:ignore
+
                 contexto.update({'dados': dados,
                                 'valores_periodo': valores_periodo,
                                  'valor_total': valor_total,
                                  'valor_liquidados': valor_liquidados,
                                  'valor_em_abertos': valor_em_abertos,
                                  'valor_perdidos': valor_perdidos,
-                                 'valor_oportunidades_em_aberto': valor_oportunidades_em_aberto})
+                                 'valor_oportunidades_em_aberto': valor_oportunidades_em_aberto,
+                                 'valor_devolucoes': valor_devolucoes})
 
             if 'exportar-orcamentos-submit' in request.GET:
                 orcamentos_em_aberto = get_relatorios_vendas(fonte='orcamentos', coluna_data_emissao=True,

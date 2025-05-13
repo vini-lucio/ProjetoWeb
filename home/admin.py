@@ -61,7 +61,7 @@ class SiteSetupAdmin(BaseModelAdminRedRequired):
         }),
         ('Meta Mês', {
             "fields": (
-                'meta_mes', 'dias_uteis_mes', 'meta_diaria',
+                'meta_mes', 'dias_uteis_mes', 'dias_uteis_mes_reais', 'meta_diaria',
             ),
         }),
         ('Meta Rentabilidade', {

@@ -15,13 +15,13 @@ from datetime import datetime
 import pandas as pd
 
 
-# TODO: incluir coluna da rentabilidade real sem subtrair pela despesa adm
 class DashBoardVendas():
     def __init__(self, carteira='%%') -> None:
         self.carteira = carteira
         self.site_setup = get_site_setup()
         if self.site_setup:
             self.dias_meta = self.site_setup.dias_uteis_mes_as_float
+            self.dias_meta_reais = self.site_setup.dias_uteis_mes_reais_as_float
             self.primeiro_dia_mes = self.site_setup.primeiro_dia_mes_as_ddmmyyyy
             self.primeiro_dia_util_mes = self.site_setup.primeiro_dia_util_mes_as_ddmmyyyy
             self.ultimo_dia_mes = self.site_setup.ultimo_dia_mes_as_ddmmyyyy
@@ -30,12 +30,16 @@ class DashBoardVendas():
 
             if self.carteira == '%%':
                 self.meta_diaria = self.site_setup.meta_diaria_as_float
+                self.meta_diaria_real = self.site_setup.meta_diaria_real_as_float
                 self.meta_mes = self.site_setup.meta_mes_as_float
             else:
                 vendedor = Vendedores.objects.get(nome=self.carteira)
                 self.meta_mes = float(vendedor.meta_mes)
-                self.meta_diaria = self.meta_mes / self.dias_meta
+                self.meta_diaria = self.meta_mes / self.dias_meta if self.dias_meta else 0.0
+                self.meta_diaria_real = self.meta_mes / self.dias_meta_reais if self.dias_meta_reais else 0.0
 
+        self.dias_decorridos = dias_decorridos(self.primeiro_dia_mes, self.ultimo_dia_mes)
+        self.meta_acumulada_dia_real = self.dias_decorridos * self.meta_diaria_real
         self.pedidos_dia, self.toneladas_dia, self.rentabilidade_pedidos_dia = rentabilidade_pedidos_dia(
             self.despesa_administrativa_fixa, self.primeiro_dia_util_proximo_mes, self.carteira)
         self.porcentagem_mc_dia = self.rentabilidade_pedidos_dia + self.despesa_administrativa_fixa
@@ -66,6 +70,7 @@ class DashBoardVendas():
         self.falta_mudar_cor_mes_valor_rentabilidade = round(self.falta_mudar_cor_mes[1], 2)
         self.falta_mudar_cor_mes_porcentagem = round(self.falta_mudar_cor_mes[2], 2)
         self.falta_mudar_cor_mes_cor = self.falta_mudar_cor_mes[3]
+        self.meta_em_dia = self.pedidos_mes - self.meta_acumulada_dia_real
 
         self.data_hora_atual = data_hora_atual()
 
@@ -74,8 +79,12 @@ class DashBoardVendas():
     def get_dados(self):
         dados = {
             'dias_meta': self.dias_meta,
+            'dias_meta_reais': self.dias_meta_reais,
             'carteira': self.carteira,
             'meta_diaria': self.meta_diaria,
+            'meta_diaria_real': self.meta_diaria_real,
+            'dias_decorridos': self.dias_decorridos,
+            'meta_acumulada_dia_real': self.meta_acumulada_dia_real,
             'pedidos_dia': self.pedidos_dia,
             'toneladas_dia': self.toneladas_dia,
             'porcentagem_mc_dia': self.porcentagem_mc_dia,
@@ -98,13 +107,24 @@ class DashBoardVendas():
             'falta_mudar_cor_mes_valor_rentabilidade': self.falta_mudar_cor_mes_valor_rentabilidade,
             'falta_mudar_cor_mes_porcentagem': self.falta_mudar_cor_mes_porcentagem,
             'falta_mudar_cor_mes_cor': self.falta_mudar_cor_mes_cor,
+            'meta_em_dia': self.meta_em_dia,
             'confere_pedidos': self.confere_pedidos,
         }
         return dados
 
 
 class DashboardVendasCarteira(DashBoardVendas):
-    ...
+    def __init__(self, carteira='%%') -> None:
+        super().__init__(carteira)
+        self.recebido, self.a_receber = recebido_a_receber(self.primeiro_dia_mes, self.ultimo_dia_mes, carteira)
+
+    def get_dados(self):
+        dados = super().get_dados()
+        dados.update({
+            'recebido': self.recebido,
+            'a_receber': self.a_receber,
+        })
+        return dados
 
 
 class DashboardVendasTv(DashBoardVendas):
@@ -288,6 +308,106 @@ def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_u
         return 0.00, 0.00, 0.00,
 
     return float(resultado[0][0]), float(resultado[0][1]), float(resultado[0][2]),
+
+
+def recebido_a_receber(primeiro_dia_mes: str, ultimo_dia_mes: str, carteira: str = '%%') -> tuple[float, float]:
+    """Valor recebido e a receber dos titulos com valor comercial no mes"""
+    carteira, filtro_nao_carteira = carteira_mapping(carteira)
+
+    sql = """
+        SELECT
+            COALESCE(RECEBIDO.MERCADORIAS_RECEBIDO, 0) AS MERCADORIAS_RECEBIDO,
+            COALESCE(A_RECEBER.MERCADORIAS_A_RECEBER, 0) AS MERCADORIAS_A_RECEBER
+
+        FROM
+            (
+                SELECT
+                    SUM(ROUND(NOTAS_ITENS.VALOR_MERCADORIAS / NOTAS.VALOR_TOTAL * (RECEBER.VALORTOTAL - (RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0)) - NOTAS.VALOR_FRETE_INCL_ITEM), 2)) AS MERCADORIAS_RECEBIDO
+
+                FROM
+                    COPLAS.VENDEDORES,
+                    COPLAS.NOTAS,
+                    COPLAS.NOTAS_ITENS,
+                    COPLAS.CLIENTES,
+                    COPLAS.RECEBER,
+                    COPLAS.PRODUTOS
+
+                WHERE
+                    VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
+                    PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
+                    NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND
+                    NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
+                    NOTAS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
+                    NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+                    NOTAS.VALOR_COMERCIAL = 'SIM' AND
+                    PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
+
+                    VENDEDORES.NOMERED LIKE :carteira AND
+                    {filtro_nao_carteira}
+                    RECEBER.DATAVENCIMENTO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
+                    RECEBER.DATAVENCIMENTO <= TRUNC(SYSDATE)
+            ) RECEBIDO,
+            (
+                SELECT
+                    SUM(ROUND(NOTAS_ITENS.VALOR_MERCADORIAS / NOTAS.VALOR_TOTAL * (RECEBER.VALORTOTAL - (RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0)) - NOTAS.VALOR_FRETE_INCL_ITEM), 2)) AS MERCADORIAS_A_RECEBER
+
+                FROM
+                    COPLAS.VENDEDORES,
+                    COPLAS.NOTAS,
+                    COPLAS.NOTAS_ITENS,
+                    COPLAS.CLIENTES,
+                    COPLAS.RECEBER,
+                    COPLAS.PRODUTOS
+
+                WHERE
+                    VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
+                    PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
+                    NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND
+                    NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
+                    NOTAS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
+                    NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+                    NOTAS.VALOR_COMERCIAL = 'SIM' AND
+                    PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
+                    RECEBER.CONDICAO = 'EM ABERTO' AND
+
+                    VENDEDORES.NOMERED LIKE :carteira AND
+                    {filtro_nao_carteira}
+                    RECEBER.DATAVENCIMENTO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
+                    RECEBER.DATAVENCIMENTO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY')
+            ) A_RECEBER
+    """
+
+    sql = sql.format(filtro_nao_carteira=filtro_nao_carteira)
+
+    resultado = executar_oracle(sql, primeiro_dia_mes=primeiro_dia_mes, ultimo_dia_mes=ultimo_dia_mes,
+                                carteira=carteira)
+
+    if not resultado:
+        return 0.00, 0.00,
+
+    return float(resultado[0][0]), float(resultado[0][1]),
+
+
+def dias_decorridos(primeiro_dia_mes: str, ultimo_dia_mes: str) -> float:
+    """Valor recebido e a receber dos titulos com valor comercial no mes"""
+    sql = """
+        SELECT
+            COUNT(DISTINCT PEDIDOS.DATA_PEDIDO) AS DIAS_DECORRIDOS
+
+        FROM
+            COPLAS.PEDIDOS
+
+        WHERE
+            PEDIDOS.DATA_PEDIDO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
+            PEDIDOS.DATA_PEDIDO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY')
+    """
+
+    resultado = executar_oracle(sql, primeiro_dia_mes=primeiro_dia_mes, ultimo_dia_mes=ultimo_dia_mes)
+
+    if not resultado:
+        return 0.00
+
+    return float(resultado[0][0])
 
 
 def conversao_de_orcamentos(carteira: str = '%%'):
@@ -856,7 +976,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     notas_lfrete_join = "LFRETE.CHAVE_NOTA_ITEM = NOTAS_ITENS.CHAVE AND"
 
     map_sql_notas_base = {
-        'valor_mercadorias': "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 0), 0))) AS VALOR_MERCADORIAS",
+        'valor_mercadorias': "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0))) AS VALOR_MERCADORIAS",
 
         'notas_peso_liquido_from': """
             (
@@ -892,7 +1012,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_notas = {
-        'coluna_media_dia': {'media_dia_campo_alias': "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 0), 0))) / COUNT(DISTINCT NOTAS.DATA_EMISSAO) AS MEDIA_DIA,", },
+        'coluna_media_dia': {'media_dia_campo_alias': "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0))) / COUNT(DISTINCT NOTAS.DATA_EMISSAO) AS MEDIA_DIA,", },
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "NOTAS.DATA_EMISSAO,",
                                 'data_emissao_campo': "NOTAS.DATA_EMISSAO,", },
@@ -1065,7 +1185,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     pedidos_lfrete_join = "LFRETE.CHAVE_PEDIDO_ITEM = PEDIDOS_ITENS.CHAVE AND"
 
     map_sql_pedidos_base = {
-        'valor_mercadorias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS",
+        'valor_mercadorias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS",
 
         'notas_peso_liquido_from': "",
 
@@ -1088,7 +1208,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
-        'coluna_media_dia': {'media_dia_campo_alias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) / COUNT(DISTINCT PEDIDOS.DATA_PEDIDO) AS MEDIA_DIA,"},
+        'coluna_media_dia': {'media_dia_campo_alias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) / COUNT(DISTINCT PEDIDOS.DATA_PEDIDO) AS MEDIA_DIA,"},
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "PEDIDOS.DATA_PEDIDO AS DATA_EMISSAO,",
                                 'data_emissao_campo': "PEDIDOS.DATA_PEDIDO,", },
@@ -1236,7 +1356,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     orcamentos_lfrete_join = "LFRETE.CHAVE_ORCAMENTO_ITEM = ORCAMENTOS_ITENS.CHAVE AND"
 
     map_sql_orcamentos_base = {
-        'valor_mercadorias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS",
+        'valor_mercadorias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS",
 
         'notas_peso_liquido_from': "",
 
@@ -1263,7 +1383,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
-        'coluna_media_dia': {'media_dia_campo_alias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0), 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) / COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS MEDIA_DIA,"},
+        'coluna_media_dia': {'media_dia_campo_alias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) / COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS MEDIA_DIA,"},
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "ORCAMENTOS.DATA_PEDIDO AS DATA_EMISSAO,",
                                 'data_emissao_campo': "ORCAMENTOS.DATA_PEDIDO,", },
