@@ -1,0 +1,71 @@
+{% extends "home/base.html" %}
+
+{% load custom_filters %}
+
+{% block conteudo %}
+
+    <section class="principal principal-escuro">
+
+        <div class="link-conteudo link-conteudo-escuro">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            <form id="form" method="get">
+                <div class="grid-simples link-conteudo link-conteudo-escuro">
+                    {{ formulario.as_p }}
+                </div>
+                <div class="grid-simples">
+                    <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
+                </div>
+            </form>
+        </div>
+
+        {% if dados %}
+            <div class="grid link-conteudo link-conteudo-escuro">
+                <button class="botao botao-escuro" form="form" name="exportar-submit" type="submit">Exportar</button>
+            </div>
+        {% endif %}
+
+        <div class="link-conteudo link-conteudo-escuro">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if dados %}
+
+                <div class="tabela-simples">
+                    <table>
+                        <tr class="principal-claro">
+                            <th>Cliente</th>
+                            <th></th>
+                            <th>Usuario</th>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Prioridade</th>
+                            <th>R$ Orç. Em Aberto</th>
+                            <th>Condição</th>
+                        </tr>
+                        {% for dado in dados %}
+                            <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
+                                <td>{{ dado.NOMERED }}</td>
+                                <td>{% if dado.CHAVE_GRUPOECONOMICO %}<a target="_blank" href="{% url "analysis:grupo-economico" dado.CHAVE_GRUPOECONOMICO %}">𓃑</a>{% endif %}</td>
+                                <td>{{ dado.USUARIO }}</td>
+                                <td>{{ dado.DATA | date:"d/m/Y" }}</td>
+                                <td>{{ dado.TIPO }}</td>
+                                <td>{{ dado.PRIORIDADE }}</td>
+                                <td>R$ {{ dado.ORC_EM_ABERTO | floatformat:2 }}</td>
+                                <td>{{ dado.CONDICAO }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

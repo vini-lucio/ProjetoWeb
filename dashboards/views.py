@@ -6,6 +6,8 @@ from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relator
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
                     FormDashboardVendasCarteiras)
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
+from utils.data_hora_atual import data_x_dias
+from utils.base_forms import FormVendedoresMixIn
 
 
 def vendas_carteira(request):
@@ -94,19 +96,41 @@ def vendas_carteira(request):
                                                              coluna_orcamento_oportunidade=True,
                                                              incluir_orcamentos_oportunidade=True,
                                                              **carteira_parametros)
-                excel = arquivo_excel(orcamentos_em_aberto, cabecalho_negrito=True, ajustar_largura_colunas=True,
-                                      formatar_numero=(['F'], 2))
+                excel = arquivo_excel(orcamentos_em_aberto, cabecalho_negrito=True, formatar_numero=(['F'], 2),
+                                      formatar_data=['A', 'B'], ajustar_largura_colunas=True)
                 arquivo = salvar_excel_temporario(excel)
                 nome_arquivo = 'ORCAMENTOS_EM_ABERTO'
                 nome_arquivo += f'_{carteira_nome}' if carteira_nome != '%%' else '_TODOS'
                 response = arquivo_excel_response(arquivo, nome_arquivo)
                 return response
 
-            if 'exportar-eventos-submit' in request.GET:
-                eventos = eventos_dia_atrasos(carteira=carteira_nome)
-                if eventos:
-                    excel = arquivo_excel(eventos, cabecalho_negrito=True, ajustar_largura_colunas=True,
-                                          formatar_numero=(['F'], 2))
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/vendas-carteira.html', contexto)
+
+
+def eventos_dia(request):
+    titulo_pagina = 'Eventos do Dia'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = FormVendedoresMixIn()
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormVendedoresMixIn(request.GET)
+        if formulario.is_valid():
+            carteira = formulario.cleaned_data.get('carteira')
+            carteira_nome = carteira.nome if carteira else '%%'
+            contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Todos'
+
+            dados = eventos_dia_atrasos(carteira=carteira_nome)
+
+            contexto.update({'dados': dados, })
+
+            if 'exportar-submit' in request.GET:
+                if dados:
+                    excel = arquivo_excel(dados, cabecalho_negrito=True, formatar_numero=(['G'], 2),
+                                          formatar_data=['D'], ajustar_largura_colunas=True)
                     arquivo = salvar_excel_temporario(excel)
                     nome_arquivo = 'EVENTOS'
                     nome_arquivo += f'_{carteira_nome}' if carteira_nome != '%%' else '_TODOS'
@@ -115,7 +139,80 @@ def vendas_carteira(request):
 
     contexto.update({'formulario': formulario})
 
-    return render(request, 'dashboards/pages/vendas-carteira.html', contexto)
+    return render(request, 'dashboards/pages/eventos-dia.html', contexto)
+
+
+def listagens(request, listagem: str):
+    if listagem not in ('sumidos', 'nuncamais', 'presentes'):
+        return HttpResponse("Pagina invalida", status=404)
+
+    titulo_pagina = f'Os {listagem}'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = FormVendedoresMixIn()
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormVendedoresMixIn(request.GET)
+        if formulario.is_valid():
+            carteira = formulario.cleaned_data.get('carteira')
+            carteira_nome = carteira.nome if carteira else '%%'
+            contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Todos'
+
+            carteira_parametros = {'carteira': carteira}
+            if carteira_nome == 'PAREDE DE CONCRETO':
+                carteira_parametros = {'carteira_parede_de_concreto': True}
+            if carteira_nome == 'PREMOLDADO / POSTE':
+                carteira_parametros = {'carteira_premoldado_poste': True}
+
+            if listagem == 'sumidos':
+                inicio = data_x_dias(180 + 365, passado=True)
+                fim = data_x_dias(180, passado=True)
+                dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
+                                              coluna_media_dia=True, coluna_grupo_economico=True,
+                                              coluna_carteira=True, coluna_tipo_cliente=True,
+                                              coluna_quantidade_documentos=True, quantidade_documentos_maior_que=2,
+                                              status_cliente_ativo=True,
+                                              ordenar_valor_descrescente_prioritario=True,
+                                              nao_compraram_depois=True, **carteira_parametros)
+
+            if listagem == 'presentes':
+                inicio = data_x_dias(60 + 180, passado=True)
+                fim = data_x_dias(60, passado=True)
+                dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
+                                              coluna_media_dia=True, coluna_grupo_economico=True,
+                                              coluna_carteira=True, coluna_tipo_cliente=True,
+                                              coluna_quantidade_documentos=True, quantidade_documentos_maior_que=3,
+                                              status_cliente_ativo=True,
+                                              ordenar_valor_descrescente_prioritario=True,
+                                              nao_compraram_depois=True, **carteira_parametros)
+
+            if listagem == 'nuncamais':
+                inicio = data_x_dias(730 + 730, passado=True)
+                fim = data_x_dias(730, passado=True)
+                dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
+                                              coluna_media_dia=True, coluna_grupo_economico=True,
+                                              coluna_carteira=True, coluna_tipo_cliente=True,
+                                              coluna_quantidade_documentos=True, quantidade_documentos_maior_que=9,
+                                              status_cliente_ativo=True,
+                                              ordenar_valor_descrescente_prioritario=True,
+                                              nao_compraram_depois=True, **carteira_parametros)
+
+            contexto.update({'dados': dados, })
+
+            if 'exportar-submit' in request.GET:
+                if dados:
+                    excel = arquivo_excel(dados, cabecalho_negrito=True, ajustar_largura_colunas=True,
+                                          formatar_numero=(['F', 'G'], 2))
+                    arquivo = salvar_excel_temporario(excel)
+                    nome_arquivo = listagem.upper()
+                    nome_arquivo += f'_{carteira_nome}' if carteira_nome != '%%' else '_TODOS'
+                    response = arquivo_excel_response(arquivo, nome_arquivo)
+                    return response
+
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/listagens.html', contexto)
 
 
 def vendas_tv(request):

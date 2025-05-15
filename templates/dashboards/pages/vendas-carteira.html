@@ -21,32 +21,49 @@
 
     <section class="principal principal-escuro">
 
-        <div class="link-conteudo link-conteudo-escuro">
-            <div class="titulo">
-                <h1>{{  titulo_pagina  }}</h1>
-            </div>
-
-            <form method="get">
-                <div class="grid-simples link-conteudo link-conteudo-escuro">
-                    {{ formulario.as_p }}
-                </div>
-                <div class="grid-simples">
-                    <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
-                    <button class="botao botao-escuro" name="exportar-orcamentos-submit" type="submit">Exportar Orçamentos Em Aberto</button>
-                    <button class="botao botao-escuro" name="exportar-eventos-submit" type="submit">Exportar Eventos Dia e Atraso</button>
-                </div>
-            </form>
-        </div>
-
         <div class="grid link-conteudo link-conteudo-escuro">
             <a target="_blank" href="{% url "frete:calculo-frete" %}">
                 <div class="botao-div botao-escuro">Calculo de Frete</div>
             </a>
             <a target="_blank" href="{% url "home:consultoria-vendas" %}">
-                <div class="botao-div botao-escuro">Consultoria de Vendas - Calculos</div>
+                <div class="botao-div botao-escuro">Calculos Quantificação</div>
             </a>
             <a target="_blank" href="{% url "home:tabela-precos" %}">
                 <div class="botao-div botao-escuro">Tabela de Preços</div>
+            </a>
+            <a target="_blank" href="{% url "home:produtos-modelos" %}">
+                <div class="botao-div botao-escuro">Matriz</div>
+            </a>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            <form id="form" method="get">
+                <div class="grid-simples link-conteudo link-conteudo-escuro">
+                    {{ formulario.as_p }}
+                </div>
+                <div class="grid-simples">
+                    <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="grid link-conteudo link-conteudo-escuro">
+            <button class="botao botao-escuro" form="form" name="exportar-orcamentos-submit" type="submit">Exportar Orçamentos Em Aberto</button>
+            <a target="_blank" href="{% url "dashboards:eventos-dia" %}{% if formulario.carteira.value %}?carteira={{ formulario.carteira.value }}{% endif %}">
+                <div class="botao-div botao-escuro">Eventos Dia</div>
+            </a>
+            <a target="_blank" href="{% url "dashboards:listagens" 'sumidos' %}{% if formulario.carteira.value %}?carteira={{ formulario.carteira.value }}{% endif %}">
+                <div class="botao-div botao-escuro">Os Sumidos</div>
+            </a>
+            <a target="_blank" href="{% url "dashboards:listagens" 'presentes' %}{% if formulario.carteira.value %}?carteira={{ formulario.carteira.value }}{% endif %}">
+                <div class="botao-div botao-escuro">Os Presentes</div>
+            </a>
+            <a target="_blank" href="{% url "dashboards:listagens" 'nuncamais' %}{% if formulario.carteira.value %}?carteira={{ formulario.carteira.value }}{% endif %}">
+                <div class="botao-div botao-escuro">Os Nunca Mais</div>
             </a>
         </div>
 
@@ -75,7 +92,7 @@
                                 <p>R$ {{ dados.pedidos_mes | floatformat:"2" }} / <span class="fonte-verde">R$ {{ dados.meta_mes | floatformat:"2" }}</span></p>
                             </div>
                             <div>
-                                <p><span class="fonte-vermelho">(R$ {{ dados.faltam_meta_mes | floatformat:"2" }})</span> (Em dia <span class="{% if dados.meta_em_dia < 0 %}fonte-vermelho{% else %}fonte-verde{% endif %}">R$ {{ dados.meta_em_dia | floatformat:"2" }}</span>)</p>
+                                <p><span class="{% if dados.faltam_meta_mes > 0 %}fonte-vermelho{% else %}fonte-verde{% endif %}">(R$ {{ dados.faltam_meta_mes | floatformat:"2" }})</span> (Em dia <span class="{% if dados.meta_em_dia < 0 %}fonte-vermelho{% else %}fonte-verde{% endif %}">R$ {{ dados.meta_em_dia | floatformat:"2" }}</span>)</p>
                             </div>
                         </div>
                     </div>
@@ -95,7 +112,7 @@
                                 <p>R$ {{ dados.pedidos_dia | floatformat:"2" }} / <span class="fonte-verde">R$ {{ dados.meta_diaria | floatformat:"2" }}</span></p>
                             </div>
                             <div>
-                                <p><span class="fonte-vermelho">(R$ {{ dados.faltam_meta_dia | floatformat:"2" }})</span></p>
+                                <p><span class="{% if dados.faltam_meta_dia > 0 %}fonte-vermelho{% else %}fonte-verde{% endif %}">(R$ {{ dados.faltam_meta_dia | floatformat:"2" }})</span></p>
                             </div>
                         </div>
                     </div>

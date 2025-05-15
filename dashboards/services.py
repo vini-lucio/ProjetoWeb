@@ -389,17 +389,17 @@ def recebido_a_receber(primeiro_dia_mes: str, ultimo_dia_mes: str, carteira: str
 
 
 def dias_decorridos(primeiro_dia_mes: str, ultimo_dia_mes: str) -> float:
-    """Valor recebido e a receber dos titulos com valor comercial no mes"""
+    """Quantidade de dias com orçamentos no mes"""
     sql = """
         SELECT
-            COUNT(DISTINCT PEDIDOS.DATA_PEDIDO) AS DIAS_DECORRIDOS
+            COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS DIAS_DECORRIDOS
 
         FROM
-            COPLAS.PEDIDOS
+            COPLAS.ORCAMENTOS
 
         WHERE
-            PEDIDOS.DATA_PEDIDO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-            PEDIDOS.DATA_PEDIDO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY')
+            ORCAMENTOS.DATA_PEDIDO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
+            ORCAMENTOS.DATA_PEDIDO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY')
     """
 
     resultado = executar_oracle(sql, primeiro_dia_mes=primeiro_dia_mes, ultimo_dia_mes=ultimo_dia_mes)
@@ -734,6 +734,7 @@ def confere_pedidos(carteira: str = '%%') -> list | None:
                         WHEN PEDIDOS.CHAVE_TIPO IN (47, 71, 12, 36) AND (PRODUTOS.CHAVE_FAMILIA != 8378 AND PRODUTOS.PESO_LIQUIDO != PRODUTOS.CUBAGEM OR PRODUTOS.CHAVE_FAMILIA = 8378 AND PRODUTOS.CUBAGEM = 0) THEN 'INFORMAR TI, PESO ESPECIFICO INCORRETO'
                         WHEN PEDIDOS.PEDCLI IS NULL OR PEDIDOS.PEDCLI NOT LIKE '%____%' OR (PEDIDOS.PEDCLI IS NULL AND PEDIDOS_ITENS.PEDCLI IS NOT NULL AND PEDIDOS_ITENS.PEDCLI NOT LIKE '%____%') THEN 'PEDIDO DO CLIENTE INCORRETO'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.UF_ENT != CLIENTES.UF AND PLATAFORMAS.CNPJ_CPF = CLIENTES.CGC AND PLATAFORMAS.INSCRICAO = CLIENTES.INSCRICAO THEN 'INSCRICAO ESTADUAL DO ENDERECO DE ENTREGA INCORRETA'
+                        WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.TIPO IS NOT NULL AND PLATAFORMAS.CNPJ_CPF IS NULL THEN 'CNPJ/CPF DO ENDERECO DE ENTREGA INCORRETO'
                         WHEN TRANSPORTADORAS.GERAR_TITULO_FRETE = 'SIM' AND PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5) AND (PEDIDOS.VALOR_FRETE_EMPRESA IS NULL OR PEDIDOS.VALOR_FRETE_EMPRESA = 0) THEN 'PREENCHER VALOR FRETE COPLAS/EMPRESA'
                         WHEN CLIENTES.CHAVE_TIPO IN (7908, 7904, 7911) AND PRODUTOS.CODIGO LIKE '%TAMPAO%' AND PRODUTOS.CODIGO NOT LIKE '%CLARO%' THEN 'TROCAR PARA TAMPAO CLARO'
                     END AS ERRO
@@ -816,8 +817,11 @@ def confere_pedidos_atendimento_transportadoras() -> list | None:
 
 def eventos_dia_atrasos(carteira: str = '%%') -> list | None:
     """Retorna eventos do dia e em atraso"""
+    carteira, filtro_nao_carteira = carteira_mapping(carteira)
+
     sql = """
         SELECT
+            CLIENTES.CHAVE_GRUPOECONOMICO,
             CLIENTES.NOMERED,
             V_COLABORADORES.USUARIO,
             CLIENTES_HISTORICO.DATA,
@@ -905,9 +909,13 @@ def eventos_dia_atrasos(carteira: str = '%%') -> list | None:
             CLIENTES_HISTORICO.DATA <= TRUNC(SYSDATE) AND
             CLIENTES_HISTORICO.DATA_REALIZADO IS NULL AND
 
-            VENDEDORES.NOMERED LIKE :carteira
+            VENDEDORES.NOMERED LIKE :carteira AND
+            {filtro_nao_carteira}
+
+            1=1
 
         GROUP BY
+            CLIENTES.CHAVE_GRUPOECONOMICO,
             CLIENTES.CODCLI,
             CLIENTES.NOMERED,
             VENDEDORES.NOMERED,
@@ -923,6 +931,8 @@ def eventos_dia_atrasos(carteira: str = '%%') -> list | None:
             CONDICAO,
             ORC_EM_ABERTO DESC
     """
+
+    sql = sql.format(filtro_nao_carteira=filtro_nao_carteira)
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, carteira=carteira)
 
@@ -1106,8 +1116,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_proporcao': {'proporcao_campo': "VALOR_MERCADORIAS DESC,", },
 
+        'ordenar_valor_descrescente_prioritario': {'ordenar_valor_descrescente_prioritario': "VALOR_MERCADORIAS DESC,", },
+
         'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT NOTAS.NF) AS QUANTIDADE_DOCUMENTOS,",
                                          'quantidade_documentos_campo': "COUNT(DISTINCT NOTAS.NF),", },
+        'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
+                                            'quantidade_documentos_maior_que_having': "AND COUNT(DISTINCT NOTAS.NF) > :quantidade_documentos_maior_que", },
 
         'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "",
                                             'status_produto_orcamento_campo': "", },
@@ -1148,6 +1162,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_orcamento_oportunidade': {'orcamento_oportunidade_campo_alias': "",
                                           'orcamento_oportunidade_campo': "", },
+
+        'status_cliente_ativo': {'status_cliente_ativo_pesquisa': "CLIENTES.STATUS IN ('Y', 'P') AND", },
     }
 
     pedidos_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
@@ -1273,8 +1289,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_proporcao': {'proporcao_campo': "VALOR_MERCADORIAS DESC,", },
 
+        'ordenar_valor_descrescente_prioritario': {'ordenar_valor_descrescente_prioritario': "VALOR_MERCADORIAS DESC,", },
+
         'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT PEDIDOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,",
                                          'quantidade_documentos_campo': "COUNT(DISTINCT PEDIDOS.NUMPED),", },
+        'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
+                                            'quantidade_documentos_maior_que_having': "AND COUNT(DISTINCT PEDIDOS.NUMPED) > :quantidade_documentos_maior_que", },
 
         'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "",
                                             'status_produto_orcamento_campo': "", },
@@ -1315,6 +1335,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_orcamento_oportunidade': {'orcamento_oportunidade_campo_alias': "",
                                           'orcamento_oportunidade_campo': "", },
+
+        'status_cliente_ativo': {'status_cliente_ativo_pesquisa': "CLIENTES.STATUS IN ('Y', 'P') AND", },
     }
 
     orcamentos_status_produto_orcamento_tipo_from = "COPLAS.STATUS_ORCAMENTOS_ITENS,"
@@ -1448,8 +1470,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_proporcao': {'proporcao_campo': "VALOR_MERCADORIAS DESC,", },
 
+        'ordenar_valor_descrescente_prioritario': {'ordenar_valor_descrescente_prioritario': "VALOR_MERCADORIAS DESC,", },
+
         'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT ORCAMENTOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,",
                                          'quantidade_documentos_campo': "COUNT(DISTINCT ORCAMENTOS.NUMPED),", },
+        'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
+                                            'quantidade_documentos_maior_que_having': "AND COUNT(DISTINCT ORCAMENTOS.NUMPED) > :quantidade_documentos_maior_que", },
 
         'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "ORCAMENTOS_ITENS.STATUS,",
                                             'status_produto_orcamento_campo': "ORCAMENTOS_ITENS.STATUS,", },
@@ -1490,6 +1516,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_orcamento_oportunidade': {'orcamento_oportunidade_campo_alias': "ORCAMENTOS.REGISTRO_OPORTUNIDADE AS OPORTUNIDADE,",
                                           'orcamento_oportunidade_campo': "ORCAMENTOS.REGISTRO_OPORTUNIDADE,", },
+
+        'status_cliente_ativo': {'status_cliente_ativo_pesquisa': "CLIENTES.STATUS IN ('Y', 'P') AND", },
     }
 
     # Itens de orçamento excluidos somente o que difere de orçamento
@@ -1612,6 +1640,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     estado = kwargs.get('estado')
     status_produto_orcamento = kwargs.get('status_produto_orcamento')
     status_produto_orcamento_tipo = kwargs.get('status_produto_orcamento_tipo')
+    quantidade_documentos_maior_que = kwargs.get('quantidade_documentos_maior_que')
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
 
     if not data_inicio:
@@ -1661,6 +1690,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         if fonte == 'orcamentos':
             if status_produto_orcamento_tipo != "PERDIDO_CANCELADO":
                 kwargs_ora.update({'status_produto_orcamento_tipo': status_produto_orcamento_tipo, })
+
+    if quantidade_documentos_maior_que:
+        kwargs_ora.update({'quantidade_documentos_maior_que': quantidade_documentos_maior_que})
 
     sql_base = """
         SELECT
@@ -1737,6 +1769,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {status_documento_em_aberto_pesquisa}
             {carteira_parede_de_concreto_pesquisa}
             {carteira_premoldado_poste_pesquisa}
+            {status_cliente_ativo_pesquisa}
 
             {fonte_where_data}
 
@@ -1763,7 +1796,11 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {estado_campo}
             1
 
+        {having}
+            {quantidade_documentos_maior_que_having}
+
         ORDER BY
+            {ordenar_valor_descrescente_prioritario}
             {ano_mes_emissao_campo}
             {ano_emissao_campo}
             {mes_emissao_campo}

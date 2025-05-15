@@ -7,6 +7,7 @@ from io import BytesIO
 def arquivo_excel(conteudo: list[list] | list[dict], cabecalho: list = [], titulo: str = '',
                   nova_aba: openpyxl.Workbook | None = None, cabecalho_negrito: bool = False,
                   formatar_numero: tuple[list[str], int] | None = None,
+                  formatar_data: list[str] | None = None,
                   ajustar_largura_colunas: bool = False):
     """Gera arquivo excel sem salvar. Quando o conteudo for uma lista de dicionarios o cabeçalho sempre será as chaves do primeiro item do dicionario.
     Passar workbook em noba_aba para adicionar nova aba apos executar uma vez sem.
@@ -41,6 +42,13 @@ def arquivo_excel(conteudo: list[list] | list[dict], cabecalho: list = [], titul
         if formatar_numero:
             colunas, casas_decimais = formatar_numero
             formato = '#,##0.' + ''.join(['0' for _ in range(casas_decimais)])
+            for coluna in colunas:
+                for celula in worksheet[coluna]:
+                    celula.number_format = formato
+
+        if formatar_data:
+            colunas = formatar_data
+            formato = 'DD/MM/YYYY'
             for coluna in colunas:
                 for celula in worksheet[coluna]:
                     celula.number_format = formato
