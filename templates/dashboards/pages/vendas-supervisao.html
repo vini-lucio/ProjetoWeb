@@ -144,7 +144,7 @@
                                     <p>R$ {{ carteira.total_mes_carteira | floatformat:"2" }} / <span class="fonte-verde">R$ {{ carteira.meta_mes | floatformat:"2" }}</span></p>
                                 </div>
                                 <div>
-                                    <p><span class="fonte-vermelho">(R$ {{ carteira.falta_meta | floatformat:"2" }})</span></p>
+                                    <p><span class="{% if carteira.falta_meta > 0 %}fonte-vermelho{% else %}fonte-verde{% endif %}">(R$ {{ carteira.falta_meta | floatformat:"2" }})</span></p>
                                 </div>
                             </div>
                         </div>

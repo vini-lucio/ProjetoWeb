@@ -1022,6 +1022,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_notas = {
+        'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
+                                          'valor_mercadorias_maior_igual_having': "AND SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0))) >= :valor_mercadorias_maior_igual", },
+
         'coluna_media_dia': {'media_dia_campo_alias': "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0))) / COUNT(DISTINCT NOTAS.DATA_EMISSAO) AS MEDIA_DIA,", },
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "NOTAS.DATA_EMISSAO,",
@@ -1122,6 +1125,11 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                          'quantidade_documentos_campo': "COUNT(DISTINCT NOTAS.NF),", },
         'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
                                             'quantidade_documentos_maior_que_having': "AND COUNT(DISTINCT NOTAS.NF) > :quantidade_documentos_maior_que", },
+
+        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "COUNT(DISTINCT TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM')) AS QUANTIDADE_MESES,",
+                                    'quantidade_meses_campo': "COUNT(DISTINCT TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM')),", },
+        'quantidade_meses_maior_que': {'having': 'HAVING 1=1',
+                                       'quantidade_meses_maior_que_having': "AND COUNT(DISTINCT TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM')) > :quantidade_meses_maior_que", },
 
         'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "",
                                             'status_produto_orcamento_campo': "", },
@@ -1224,6 +1232,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
+        'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
+                                          'valor_mercadorias_maior_igual_having': "AND SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) >= :valor_mercadorias_maior_igual", },
+
         'coluna_media_dia': {'media_dia_campo_alias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) / COUNT(DISTINCT PEDIDOS.DATA_PEDIDO) AS MEDIA_DIA,"},
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "PEDIDOS.DATA_PEDIDO AS DATA_EMISSAO,",
@@ -1295,6 +1306,11 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                          'quantidade_documentos_campo': "COUNT(DISTINCT PEDIDOS.NUMPED),", },
         'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
                                             'quantidade_documentos_maior_que_having': "AND COUNT(DISTINCT PEDIDOS.NUMPED) > :quantidade_documentos_maior_que", },
+
+        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "COUNT(DISTINCT TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM')) AS QUANTIDADE_MESES,",
+                                    'quantidade_meses_campo': "COUNT(DISTINCT TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM')),", },
+        'quantidade_meses_maior_que': {'having': 'HAVING 1=1',
+                                       'quantidade_meses_maior_que_having': "AND COUNT(DISTINCT TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM')) > :quantidade_meses_maior_que", },
 
         'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "",
                                             'status_produto_orcamento_campo': "", },
@@ -1405,6 +1421,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
+        'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
+                                          'valor_mercadorias_maior_igual_having': "AND SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) >= :valor_mercadorias_maior_igual", },
+
         'coluna_media_dia': {'media_dia_campo_alias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) / COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS MEDIA_DIA,"},
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "ORCAMENTOS.DATA_PEDIDO AS DATA_EMISSAO,",
@@ -1477,6 +1496,11 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
                                             'quantidade_documentos_maior_que_having': "AND COUNT(DISTINCT ORCAMENTOS.NUMPED) > :quantidade_documentos_maior_que", },
 
+        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "COUNT(DISTINCT TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM')) AS QUANTIDADE_MESES,",
+                                    'quantidade_meses_campo': "COUNT(DISTINCT TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM')),", },
+        'quantidade_meses_maior_que': {'having': 'HAVING 1=1',
+                                       'quantidade_meses_maior_que_having': "AND COUNT(DISTINCT TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM')) > :quantidade_meses_maior_que", },
+
         'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "ORCAMENTOS_ITENS.STATUS,",
                                             'status_produto_orcamento_campo': "ORCAMENTOS_ITENS.STATUS,", },
         'status_produto_orcamento': {'status_produto_orcamento_pesquisa': "ORCAMENTOS_ITENS.STATUS = :chave_status_produto_orcamento AND", },
@@ -1544,6 +1568,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos_itens_excluidos = {
+        'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
+                                          'valor_mercadorias_maior_igual_having': "AND SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) >= :valor_mercadorias_maior_igual", },
+
         # TODO: calcular na junção de orçamentos e itens excluidos?
         'coluna_media_dia': {'media_dia_campo_alias': "0 AS MEDIA_DIA,"},
 
@@ -1562,6 +1589,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "0 AS QUANTIDADE_DOCUMENTOS,",
                                          'quantidade_documentos_campo': "", },
+
+        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "0 AS QUANTIDADE_MESES,",
+                                    'quantidade_meses_campo': "", },
 
         'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "ORCAMENTOS_ITENS_EXCLUIDOS.STATUS,",
                                             'status_produto_orcamento_campo': "ORCAMENTOS_ITENS_EXCLUIDOS.STATUS,", },
@@ -1641,6 +1671,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     status_produto_orcamento = kwargs.get('status_produto_orcamento')
     status_produto_orcamento_tipo = kwargs.get('status_produto_orcamento_tipo')
     quantidade_documentos_maior_que = kwargs.get('quantidade_documentos_maior_que')
+    quantidade_meses_maior_que = kwargs.get('quantidade_meses_maior_que')
+    valor_mercadorias_maior_igual = kwargs.get('valor_mercadorias_maior_igual')
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
 
     if not data_inicio:
@@ -1650,7 +1682,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         data_fim = datetime.date(datetime(2999, 12, 31))
 
     kwargs_sql.update(map_relatorio_vendas_sql_string_placeholders(fonte, **kwargs))
-    if trocar_para_itens_excluidos:
+    if trocar_para_itens_excluidos and fonte == 'orcamentos':
         kwargs_sql_itens_excluidos.update(map_relatorio_vendas_sql_string_placeholders(
             fonte, trocar_para_itens_excluidos, **kwargs))  # type:ignore
 
@@ -1694,6 +1726,12 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     if quantidade_documentos_maior_que:
         kwargs_ora.update({'quantidade_documentos_maior_que': quantidade_documentos_maior_que})
 
+    if quantidade_meses_maior_que:
+        kwargs_ora.update({'quantidade_meses_maior_que': quantidade_meses_maior_que})
+
+    if valor_mercadorias_maior_igual:
+        kwargs_ora.update({'valor_mercadorias_maior_igual': valor_mercadorias_maior_igual})
+
     sql_base = """
         SELECT
             {data_emissao_campo_alias}
@@ -1709,6 +1747,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {grupo_economico_campo_alias}
             {cliente_campo_alias}
             {quantidade_documentos_campo_alias}
+            {quantidade_meses_campo_alias}
             {cidade_campo_alias}
             {estado_campo_alias}
             {tipo_cliente_campo_alias}
@@ -1798,6 +1837,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
 
         {having}
             {quantidade_documentos_maior_que_having}
+            {quantidade_meses_maior_que_having}
+            {valor_mercadorias_maior_igual_having}
 
         ORDER BY
             {ordenar_valor_descrescente_prioritario}
@@ -1819,7 +1860,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     sql = sql_base.format_map(DefaultDict(kwargs_sql))
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim, **kwargs_ora)
 
-    if trocar_para_itens_excluidos:
+    if trocar_para_itens_excluidos and fonte == 'orcamentos':
         sql_itens_excluidos = sql_base.format_map(DefaultDict(kwargs_sql_itens_excluidos))
         resultado_itens_excluidos = executar_oracle(sql_itens_excluidos, exportar_cabecalho=True,
                                                     data_inicio=data_inicio, data_fim=data_fim, **kwargs_ora)

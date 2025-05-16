@@ -8,6 +8,7 @@ from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOr
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.data_hora_atual import data_x_dias
 from utils.base_forms import FormVendedoresMixIn
+import pandas as pd
 
 
 def vendas_carteira(request):
@@ -143,7 +144,7 @@ def eventos_dia(request):
 
 
 def listagens(request, listagem: str):
-    if listagem not in ('sumidos', 'nuncamais', 'presentes'):
+    if listagem not in ('sumidos', 'nuncamais', 'presentes', 'potenciais',):
         return HttpResponse("Pagina invalida", status=404)
 
     titulo_pagina = f'Os {listagem}'
@@ -165,38 +166,57 @@ def listagens(request, listagem: str):
             if carteira_nome == 'PREMOLDADO / POSTE':
                 carteira_parametros = {'carteira_premoldado_poste': True}
 
+            parametros_comuns = {'coluna_media_dia': True, 'coluna_grupo_economico': True, 'coluna_carteira': True,
+                                 'coluna_tipo_cliente': True, 'coluna_quantidade_meses': True,
+                                 'status_cliente_ativo': True, 'ordenar_valor_descrescente_prioritario': True,
+                                 'nao_compraram_depois': True, 'desconsiderar_justificativas': True,
+                                 'considerar_itens_excluidos': True, }
+
             if listagem == 'sumidos':
                 inicio = data_x_dias(180 + 365, passado=True)
                 fim = data_x_dias(180, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
-                                              coluna_media_dia=True, coluna_grupo_economico=True,
-                                              coluna_carteira=True, coluna_tipo_cliente=True,
-                                              coluna_quantidade_documentos=True, quantidade_documentos_maior_que=2,
-                                              status_cliente_ativo=True,
-                                              ordenar_valor_descrescente_prioritario=True,
-                                              nao_compraram_depois=True, **carteira_parametros)
+                                              quantidade_meses_maior_que=3,
+                                              **parametros_comuns, **carteira_parametros)
 
             if listagem == 'presentes':
                 inicio = data_x_dias(60 + 180, passado=True)
                 fim = data_x_dias(60, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
-                                              coluna_media_dia=True, coluna_grupo_economico=True,
-                                              coluna_carteira=True, coluna_tipo_cliente=True,
-                                              coluna_quantidade_documentos=True, quantidade_documentos_maior_que=3,
-                                              status_cliente_ativo=True,
-                                              ordenar_valor_descrescente_prioritario=True,
-                                              nao_compraram_depois=True, **carteira_parametros)
+                                              quantidade_meses_maior_que=3,
+                                              **parametros_comuns, **carteira_parametros)
 
             if listagem == 'nuncamais':
-                inicio = data_x_dias(730 + 730, passado=True)
+                inicio = None
                 fim = data_x_dias(730, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
-                                              coluna_media_dia=True, coluna_grupo_economico=True,
-                                              coluna_carteira=True, coluna_tipo_cliente=True,
-                                              coluna_quantidade_documentos=True, quantidade_documentos_maior_que=9,
-                                              status_cliente_ativo=True,
-                                              ordenar_valor_descrescente_prioritario=True,
-                                              nao_compraram_depois=True, **carteira_parametros)
+                                              quantidade_meses_maior_que=9,
+                                              **parametros_comuns, **carteira_parametros)
+
+            if listagem == 'potenciais':
+                inicio = data_x_dias(1 + 730, passado=True)
+                fim = data_x_dias(1, passado=True)
+
+                fechados = get_relatorios_vendas(fonte='orcamentos', inicio=inicio, fim=fim,
+                                                 status_produto_orcamento_tipo='FECHADO',
+                                                 **parametros_comuns, **carteira_parametros)
+                perdidos = get_relatorios_vendas(fonte='orcamentos', inicio=inicio, fim=fim,
+                                                 status_produto_orcamento_tipo='PERDIDO_CANCELADO',
+                                                 **parametros_comuns, **carteira_parametros)
+
+                dt_fechados = pd.DataFrame(fechados)
+                dt_fechados.drop(columns=['QUANTIDADE_MESES', 'MEDIA_DIA'], inplace=True)
+                dt_fechados.rename(columns={'VALOR_MERCADORIAS': 'VALOR_FECHADOS'}, inplace=True)
+
+                dt_perdidos = pd.DataFrame(perdidos)
+
+                dt_dados = pd.merge(dt_fechados, dt_perdidos, how='outer', on=['CHAVE_GRUPO_ECONOMICO', 'GRUPO',
+                                                                               'CARTEIRA', 'TIPO_CLIENTE']).fillna(0)
+                dt_dados = dt_dados.loc[dt_dados['VALOR_MERCADORIAS'] > dt_dados['VALOR_FECHADOS']]
+                dt_dados = dt_dados.loc[dt_dados['VALOR_MERCADORIAS'] >= 10000]
+                dt_dados = dt_dados.sort_values('VALOR_MERCADORIAS', ascending=False)
+
+                dados = dt_dados.to_dict(orient='records')
 
             contexto.update({'dados': dados, })
 

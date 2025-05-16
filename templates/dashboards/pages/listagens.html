@@ -41,7 +41,7 @@
                             <th>Grupo</th>
                             <th></th>
                             <th>Tipo</th>
-                            <th>Documentos</th>
+                            <th>Meses</th>
                             <th>R$ Média Dia</th>
                             <th>R$ Valor Mercadorias</th>
                         </tr>
@@ -50,7 +50,7 @@
                                 <td>{{ dado.GRUPO }}</td>
                                 <td>{% if dado.CHAVE_GRUPO_ECONOMICO %}<a target="_blank" href="{% url "analysis:grupo-economico" dado.CHAVE_GRUPO_ECONOMICO %}">𓃑</a>{% endif %}</td>
                                 <td>{{ dado.TIPO_CLIENTE }}</td>
-                                <td>{{ dado.QUANTIDADE_DOCUMENTOS }}</td>
+                                <td>{{ dado.QUANTIDADE_MESES | floatformat:0 }}</td>
                                 <td>R$ {{ dado.MEDIA_DIA | floatformat:2 }}</td>
                                 <td>R$ {{ dado.VALOR_MERCADORIAS | floatformat:2 }}</td>
                             </tr>

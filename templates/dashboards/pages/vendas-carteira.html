@@ -52,9 +52,9 @@
         </div>
 
         <div class="grid link-conteudo link-conteudo-escuro">
-            <button class="botao botao-escuro" form="form" name="exportar-orcamentos-submit" type="submit">Exportar Orçamentos Em Aberto</button>
+            <button class="botao botao-escuro" form="form" name="exportar-orcamentos-submit" type="submit">Exportar Orçamentos</button>
             <a target="_blank" href="{% url "dashboards:eventos-dia" %}{% if formulario.carteira.value %}?carteira={{ formulario.carteira.value }}{% endif %}">
-                <div class="botao-div botao-escuro">Eventos Dia</div>
+                <div class="botao-div botao-escuro">Eventos</div>
             </a>
             <a target="_blank" href="{% url "dashboards:listagens" 'sumidos' %}{% if formulario.carteira.value %}?carteira={{ formulario.carteira.value }}{% endif %}">
                 <div class="botao-div botao-escuro">Os Sumidos</div>
@@ -64,6 +64,9 @@
             </a>
             <a target="_blank" href="{% url "dashboards:listagens" 'nuncamais' %}{% if formulario.carteira.value %}?carteira={{ formulario.carteira.value }}{% endif %}">
                 <div class="botao-div botao-escuro">Os Nunca Mais</div>
+            </a>
+            <a target="_blank" href="{% url "dashboards:listagens" 'potenciais' %}{% if formulario.carteira.value %}?carteira={{ formulario.carteira.value }}{% endif %}">
+                <div class="botao-div botao-escuro">Os Potenciais</div>
             </a>
         </div>
 
