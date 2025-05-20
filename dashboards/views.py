@@ -128,6 +128,7 @@ def analise_orcamentos(request):
             contexto['titulo_pagina'] += f' {orcamento}'
 
             # TODO: incluir erros de conferencia de orçamento (usar contexto erros)
+            # TODO: foçar ordenar pela sequencia de itens do orçamento
             dados = get_relatorios_vendas(fonte='orcamentos', documento=orcamento, coluna_produto=True,
                                           incluir_orcamentos_oportunidade=True, coluna_preco_venda=True,
                                           coluna_desconto=True, coluna_rentabilidade=True,
