@@ -23,6 +23,10 @@ class FormPesquisarMixIn(forms.Form):
     pesquisar = forms.CharField(label="Pesquisar", max_length=300)
 
 
+class FormPesquisarIntegerMixIn(forms.Form):
+    pesquisar = forms.IntegerField(label="Pesquisar")
+
+
 class FormVendedoresMixIn(forms.Form):
     carteiras = Vendedores.objects.filter(Q(canal_venda__descricao='CONSULTOR TECNICO') | Q(nome='ZZENCERRADO'))
 

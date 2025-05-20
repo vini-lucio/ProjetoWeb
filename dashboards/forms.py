@@ -1,8 +1,14 @@
 from django import forms
-from utils.base_forms import FormPeriodoInicioFimMixIn, FormVendedoresMixIn
+from utils.base_forms import FormPeriodoInicioFimMixIn, FormVendedoresMixIn, FormPesquisarIntegerMixIn
 from analysis.models import VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS, STATUS_ORCAMENTOS_ITENS
 from utils.data_hora_atual import hoje_as_yyyymmdd
 from datetime import date, timedelta
+
+
+class FormAnaliseOrcamentos(FormPesquisarIntegerMixIn, forms.Form):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['pesquisar'].label = 'n° Orçamento'
 
 
 class FormDashboardVendasCarteiras(FormVendedoresMixIn, FormPeriodoInicioFimMixIn, forms.Form):

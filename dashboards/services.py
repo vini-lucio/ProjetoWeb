@@ -1073,6 +1073,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2) AS PRECO_VENDA_MEDIO,",
                                      'preco_venda_medio_campo': "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2),", },
 
+        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(NOTAS_ITENS.PRECO_FATURADO, 2) AS PRECO_VENDA,",
+                               'preco_venda_campo': "ROUND(NOTAS_ITENS.PRECO_FATURADO, 2),", },
+
+        'coluna_desconto': {'desconto_campo_alias': "ROUND((1 - (NOTAS_ITENS.PRECO_FATURADO / NOTAS_ITENS.PRECO_TABELA)) * 100, 2) AS DESCONTO,",
+                            'desconto_campo': "ROUND((1 - (NOTAS_ITENS.PRECO_FATURADO / NOTAS_ITENS.PRECO_TABELA)) * 100, 2),", },
+
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE,",
                               'quantidade_campo': "SUM(NOTAS_ITENS.QUANTIDADE),", },
 
@@ -1157,6 +1163,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_documento': {'documento_campo_alias': "NOTAS.NF AS DOCUMENTO,",
                              'documento_campo': "NOTAS.NF,", },
+        'documento': {'documento_pesquisa': "NOTAS.NF = :documento AND", },
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
@@ -1283,6 +1290,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(PEDIDOS_ITENS.PRECO_VENDA), 2) AS PRECO_VENDA_MEDIO,",
                                      'preco_venda_medio_campo': "ROUND(AVG(PEDIDOS_ITENS.PRECO_VENDA), 2),", },
 
+        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(PEDIDOS_ITENS.PRECO_VENDA, 2) AS PRECO_VENDA,",
+                               'preco_venda_campo': "ROUND(PEDIDOS_ITENS.PRECO_VENDA, 2),", },
+
+        'coluna_desconto': {'desconto_campo_alias': "ROUND((1 - (PEDIDOS_ITENS.PRECO_VENDA / PEDIDOS_ITENS.PRECO_TABELA)) * 100, 2) AS DESCONTO,",
+                            'desconto_campo': "ROUND((1 - (PEDIDOS_ITENS.PRECO_VENDA / PEDIDOS_ITENS.PRECO_TABELA)) * 100, 2),", },
+
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(PEDIDOS_ITENS.QUANTIDADE) AS QUANTIDADE,",
                               'quantidade_campo': "SUM(PEDIDOS_ITENS.QUANTIDADE),", },
 
@@ -1338,6 +1351,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_documento': {'documento_campo_alias': "PEDIDOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "PEDIDOS.NUMPED,", },
+        'documento': {'documento_pesquisa': "PEDIDOS.NUMPED = :documento AND", },
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
@@ -1472,6 +1486,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(ORCAMENTOS_ITENS.PRECO_VENDA), 2) AS PRECO_VENDA_MEDIO,",
                                      'preco_venda_medio_campo': "ROUND(AVG(ORCAMENTOS_ITENS.PRECO_VENDA), 2),", },
 
+        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(ORCAMENTOS_ITENS.PRECO_VENDA, 2) AS PRECO_VENDA,",
+                               'preco_venda_campo': "ROUND(ORCAMENTOS_ITENS.PRECO_VENDA, 2),", },
+
+        'coluna_desconto': {'desconto_campo_alias': "ROUND((1 - (ORCAMENTOS_ITENS.PRECO_VENDA / ORCAMENTOS_ITENS.PRECO_TABELA)) * 100, 2) AS DESCONTO,",
+                            'desconto_campo': "ROUND((1 - (ORCAMENTOS_ITENS.PRECO_VENDA / ORCAMENTOS_ITENS.PRECO_TABELA)) * 100, 2),", },
+
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS.QUANTIDADE) AS QUANTIDADE,",
                               'quantidade_campo': "SUM(ORCAMENTOS_ITENS.QUANTIDADE),", },
 
@@ -1527,6 +1547,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_documento': {'documento_campo_alias': "ORCAMENTOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "ORCAMENTOS.NUMPED,", },
+        'documento': {'documento_pesquisa': "ORCAMENTOS.NUMPED = :documento AND", },
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
@@ -1581,6 +1602,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         # TODO: calcular na junção de orçamentos e itens excluidos?
         'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "0 AS PRECO_VENDA_MEDIO,",
                                      'preco_venda_medio_campo': "", },
+
+        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA, 2) AS PRECO_VENDA,",
+                               'preco_venda_campo': "ROUND(ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA, 2),", },
+
+        'coluna_desconto': {'desconto_campo_alias': "ROUND((1 - (ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA / ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_TABELA)) * 100, 2) AS DESCONTO,",
+                            'desconto_campo': "ROUND((1 - (ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA / ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_TABELA)) * 100, 2),", },
 
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE) AS QUANTIDADE,",
                               'quantidade_campo': "SUM(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE),", },
@@ -1673,6 +1700,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     quantidade_documentos_maior_que = kwargs.get('quantidade_documentos_maior_que')
     quantidade_meses_maior_que = kwargs.get('quantidade_meses_maior_que')
     valor_mercadorias_maior_igual = kwargs.get('valor_mercadorias_maior_igual')
+    documento = kwargs.get('documento')
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
 
     if not data_inicio:
@@ -1732,6 +1760,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     if valor_mercadorias_maior_igual:
         kwargs_ora.update({'valor_mercadorias_maior_igual': valor_mercadorias_maior_igual})
 
+    if documento:
+        kwargs_ora.update({'documento': documento})
+
     sql_base = """
         SELECT
             {data_emissao_campo_alias}
@@ -1758,6 +1789,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {status_produto_orcamento_tipo_campo_alias}
             {preco_tabela_inclusao_campo_alias}
             {preco_venda_medio_campo_alias}
+            {preco_venda_campo_alias}
+            {desconto_campo_alias}
             {quantidade_campo_alias}
             {media_dia_campo_alias}
 
@@ -1809,6 +1842,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {carteira_parede_de_concreto_pesquisa}
             {carteira_premoldado_poste_pesquisa}
             {status_cliente_ativo_pesquisa}
+            {documento_pesquisa}
 
             {fonte_where_data}
 
@@ -1833,6 +1867,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {status_produto_orcamento_tipo_campo}
             {cidade_campo}
             {estado_campo}
+            {preco_venda_campo}
+            {desconto_campo}
             1
 
         {having}
@@ -1873,7 +1909,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         alias_para_header_groupby = ['DATA_EMISSAO', 'ANO_EMISSAO', 'MES_EMISSAO', 'DIA_EMISSAO', 'ANO_MES_EMISSAO',
                                      'CHAVE_GRUPO_ECONOMICO', 'GRUPO', 'CARTEIRA', 'TIPO_CLIENTE', 'FAMILIA_PRODUTO',
                                      'PRODUTO', 'UNIDADE', 'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',
-                                     'DOCUMENTO', 'CLIENTE', 'DATA_ENTREGA', 'STATUS_DOCUMENTO', 'OPORTUNIDADE',]
+                                     'DOCUMENTO', 'CLIENTE', 'DATA_ENTREGA', 'STATUS_DOCUMENTO', 'OPORTUNIDADE',
+                                     'PRECO_VENDA', 'DESCONTO',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',

@@ -4,11 +4,15 @@ from django.http import HttpResponse
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
                        DashboardVendasCarteira, eventos_dia_atrasos)
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
-                    FormDashboardVendasCarteiras)
+                    FormDashboardVendasCarteiras, FormAnaliseOrcamentos)
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.data_hora_atual import data_x_dias
 from utils.base_forms import FormVendedoresMixIn
 import pandas as pd
+
+
+# TODO: tabela com historico de metas
+# TODO: pagina de analise de descontos de orçamentos por item por margem e porcentagem?
 
 
 def vendas_carteira(request):
@@ -108,6 +112,32 @@ def vendas_carteira(request):
     contexto.update({'formulario': formulario})
 
     return render(request, 'dashboards/pages/vendas-carteira.html', contexto)
+
+
+def analise_orcamentos(request):
+    titulo_pagina = 'Analise Orçamento'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = FormAnaliseOrcamentos()
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormAnaliseOrcamentos(request.GET)
+        if formulario.is_valid():
+            orcamento = formulario.cleaned_data.get('pesquisar')
+            contexto['titulo_pagina'] += f' {orcamento}'
+
+            # TODO: incluir erros de conferencia de orçamento (usar contexto erros)
+            dados = get_relatorios_vendas(fonte='orcamentos', documento=orcamento, coluna_produto=True,
+                                          incluir_orcamentos_oportunidade=True, coluna_preco_venda=True,
+                                          coluna_desconto=True, coluna_rentabilidade=True,
+                                          coluna_rentabilidade_cor=True)
+
+            contexto.update({'dados': dados, })
+
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/analise_orcamentos.html', contexto)
 
 
 def eventos_dia(request):

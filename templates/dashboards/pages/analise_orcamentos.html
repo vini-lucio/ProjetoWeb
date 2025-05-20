@@ -1,5 +1,7 @@
 {% extends "home/base.html" %}
 
+{% load custom_filters %}
+
 {% block conteudo %}
 
     <section class="principal principal-escuro">
@@ -19,12 +21,6 @@
             </form>
         </div>
 
-        {% if dados %}
-            <div class="grid link-conteudo link-conteudo-escuro">
-                <button class="botao botao-escuro" form="form" name="exportar-submit" type="submit">Exportar</button>
-            </div>
-        {% endif %}
-
         <div class="link-conteudo link-conteudo-escuro">
 
             {% if erros %}
@@ -36,21 +32,19 @@
                 <div class="tabela-simples">
                     <table>
                         <tr class="principal-claro">
-                            <th>Grupo</th>
+                            <th>Produto</th>
+                            <th>R$ Venda</th>
+                            <th>Desconto %</th>
+                            <th>MC %</th>
                             <th></th>
-                            <th>Tipo</th>
-                            <th>Meses</th>
-                            <th>R$ Média Dia</th>
-                            <th>R$ Valor Mercadorias</th>
                         </tr>
                         {% for dado in dados %}
-                            <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
-                                <td>{{ dado.GRUPO }}</td>
-                                <td>{% if dado.CHAVE_GRUPO_ECONOMICO %}<a target="_blank" href="{% url "analysis:grupo-economico" dado.CHAVE_GRUPO_ECONOMICO %}">𓃑</a>{% endif %}</td>
-                                <td>{{ dado.TIPO_CLIENTE }}</td>
-                                <td>{{ dado.QUANTIDADE_MESES | floatformat:0 }}</td>
-                                <td>R$ {{ dado.MEDIA_DIA | floatformat:2 }}</td>
-                                <td>R$ {{ dado.VALOR_MERCADORIAS | floatformat:2 }}</td>
+                            <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %} {% if dado.VALOR_MERCADORIAS < 0 %}fonte-vermelho{% endif %}">
+                                <td>{{ dado.PRODUTO }}</td>
+                                <td>R$ {{ dado.PRECO_VENDA | floatformat:2 }}</td>
+                                <td>{{ dado.DESCONTO | floatformat:2 }}%</td>
+                                <td>{{ dado.MC | floatformat:2 }}%</td>
+                                <td class="fonte-cinza" style="background-color: var({{ dado.MC_COR | cor_rentabilidade_css }});"></td>
                             </tr>
                         {% endfor %}
                     </table>
