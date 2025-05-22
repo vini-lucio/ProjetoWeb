@@ -36,15 +36,21 @@
                             <th>R$ Venda</th>
                             <th>Desconto %</th>
                             <th>MC %</th>
-                            <th></th>
+                            <th>Quantidade</th>
+                            <th>R$ Frete Incluso Itens</th>
+                            <th>R$ Custo</th>
+                            <th>Aliquotas Totais %</th>
                         </tr>
                         {% for dado in dados %}
                             <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %} {% if dado.VALOR_MERCADORIAS < 0 %}fonte-vermelho{% endif %}">
                                 <td>{{ dado.PRODUTO }}</td>
                                 <td>R$ {{ dado.PRECO_VENDA | floatformat:2 }}</td>
                                 <td>{{ dado.DESCONTO | floatformat:2 }}%</td>
-                                <td>{{ dado.MC | floatformat:2 }}%</td>
-                                <td class="fonte-cinza" style="background-color: var({{ dado.MC_COR | cor_rentabilidade_css }});"></td>
+                                <td class="fonte-cinza" style="background-color: var({{ dado.MC_COR | cor_rentabilidade_css }});">{{ dado.MC | floatformat:2 }}%</td>
+                                <td>{{ dado.QUANTIDADE | floatformat:3 }}</td>
+                                <td>R$ {{ dado.FRETE_INCLUSO_ITEM | floatformat:2 }}</td>
+                                <td>R$ {{ dado.CUSTO_TOTAL_ITEM | floatformat:2 }}</td>
+                                <td>{{ dado.ALIQUOTAS_TOTAIS | floatformat:2 }}%</td>
                             </tr>
                         {% endfor %}
                     </table>

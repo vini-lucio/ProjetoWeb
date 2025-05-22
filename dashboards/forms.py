@@ -10,6 +10,15 @@ class FormAnaliseOrcamentos(FormPesquisarIntegerMixIn, forms.Form):
         super().__init__(*args, **kwargs)
         self.fields['pesquisar'].label = 'n° Orçamento'
 
+    descontos = {
+        'desconto_preco_tabela': '% Sobre Preço de Tabela',
+        'desconto_preco_atual': '% Sobre Preço Atual',
+        'margem': '% Margem',
+    }
+
+    desconto = forms.ChoiceField(label="Desconto", choices=descontos, initial='desconto_preco_tabela')  # type: ignore
+    valor = forms.DecimalField(label="%", initial=0)
+
 
 class FormDashboardVendasCarteiras(FormVendedoresMixIn, FormPeriodoInicioFimMixIn, forms.Form):
     def __init__(self, *args, **kwargs):

@@ -961,6 +961,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         ) / NULLIF(SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)), 0)
         , 0) * 100, 2) AS MC_COR
     """
+    notas_lfrete_aliquotas_itens_coluna = "LFRETE.ALIQUOTA_PIS, LFRETE.ALIQUOTA_COFINS, LFRETE.ALIQUOTA_ICMS, LFRETE.ALIQUOTA_IR, LFRETE.ALIQUOTA_CSLL, LFRETE.ALIQUOTA_COMISSAO, LFRETE.ALIQUOTA_DESPESA_ADM, LFRETE.ALIQUOTA_DESPESA_COM, LFRETE.ALIQUOTAS_TOTAIS,"
 
     notas_lfrete_from = """
         (
@@ -969,7 +970,16 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                 ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM), 2) AS MC_SEM_FRETE,
                 ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7766 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PP,
                 ROUND(SUM(CASE WHEN CHAVE_FAMILIA IN (7767, 12441) THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PT,
-                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PQ
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PQ,
+                MAX(ALIQUOTA_PIS) AS ALIQUOTA_PIS,
+                MAX(ALIQUOTA_COFINS) AS ALIQUOTA_COFINS,
+                MAX(ALIQUOTA_ICMS) AS ALIQUOTA_ICMS,
+                MAX(ALIQUOTA_IR) AS ALIQUOTA_IR,
+                MAX(ALIQUOTA_CSLL) AS ALIQUOTA_CSLL,
+                MAX(ALIQUOTA_COMISSAO) AS ALIQUOTA_COMISSAO,
+                MAX(ALIQUOTA_DESPESA_ADM) AS ALIQUOTA_DESPESA_ADM,
+                MAX(ALIQUOTA_DESPESA_COM) AS ALIQUOTA_DESPESA_COM,
+                MAX(ALIQUOTA_PIS + ALIQUOTA_COFINS + ALIQUOTA_ICMS + ALIQUOTA_IR + ALIQUOTA_CSLL + ALIQUOTA_COMISSAO + ALIQUOTA_DESPESA_ADM + ALIQUOTA_DESPESA_COM) AS ALIQUOTAS_TOTAIS
 
             FROM
                 (
@@ -1022,6 +1032,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_notas = {
+        'coluna_custo_total_item': {'custo_total_item_campo_alias': "SUM(NOTAS_ITENS.ANALISE_CUSTO_MEDIO) AS CUSTO_TOTAL_ITEM,"},
+
+        'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM(COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0)) AS FRETE_INCLUSO_ITEM,"},
+
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
                                           'valor_mercadorias_maior_igual_having': "AND SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0))) >= :valor_mercadorias_maior_igual", },
 
@@ -1127,6 +1141,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'ordenar_valor_descrescente_prioritario': {'ordenar_valor_descrescente_prioritario': "VALOR_MERCADORIAS DESC,", },
 
+        'ordenar_sequencia_prioritario': {'sequencia_campo': "NOTAS_ITENS.CHAVE,",
+                                          'ordenar_sequencia_prioritario': "NOTAS_ITENS.CHAVE,", },
+
         'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT NOTAS.NF) AS QUANTIDADE_DOCUMENTOS,",
                                          'quantidade_documentos_campo': "COUNT(DISTINCT NOTAS.NF),", },
         'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
@@ -1160,6 +1177,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_rentabilidade_cor': {'lfrete_coluna_cor': notas_lfrete_cor_coluna,
                                      'lfrete_from': notas_lfrete_from,
                                      'lfrete_join': notas_lfrete_join, },
+        'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': notas_lfrete_aliquotas_itens_coluna,
+                                   'lfrete_from': notas_lfrete_from,
+                                   'lfrete_join': notas_lfrete_join, },
 
         'coluna_documento': {'documento_campo_alias': "NOTAS.NF AS DOCUMENTO,",
                              'documento_campo': "NOTAS.NF,", },
@@ -1192,6 +1212,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         ) / NULLIF(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 0)
         , 0) * 100, 2) AS MC_COR
     """
+    pedidos_lfrete_aliquotas_itens_coluna = "LFRETE.ALIQUOTA_PIS, LFRETE.ALIQUOTA_COFINS, LFRETE.ALIQUOTA_ICMS, LFRETE.ALIQUOTA_IR, LFRETE.ALIQUOTA_CSLL, LFRETE.ALIQUOTA_COMISSAO, LFRETE.ALIQUOTA_DESPESA_ADM, LFRETE.ALIQUOTA_DESPESA_COM, LFRETE.ALIQUOTAS_TOTAIS,"
     pedidos_lfrete_from = """
         (
             SELECT
@@ -1199,7 +1220,16 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                 ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM), 2) AS MC_SEM_FRETE,
                 ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7766 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PP,
                 ROUND(SUM(CASE WHEN CHAVE_FAMILIA IN (7767, 12441) THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PT,
-                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PQ
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PQ,
+                MAX(ALIQUOTA_PIS) AS ALIQUOTA_PIS,
+                MAX(ALIQUOTA_COFINS) AS ALIQUOTA_COFINS,
+                MAX(ALIQUOTA_ICMS) AS ALIQUOTA_ICMS,
+                MAX(ALIQUOTA_IR) AS ALIQUOTA_IR,
+                MAX(ALIQUOTA_CSLL) AS ALIQUOTA_CSLL,
+                MAX(ALIQUOTA_COMISSAO) AS ALIQUOTA_COMISSAO,
+                MAX(ALIQUOTA_DESPESA_ADM) AS ALIQUOTA_DESPESA_ADM,
+                MAX(ALIQUOTA_DESPESA_COM) AS ALIQUOTA_DESPESA_COM,
+                MAX(ALIQUOTA_PIS + ALIQUOTA_COFINS + ALIQUOTA_ICMS + ALIQUOTA_IR + ALIQUOTA_CSLL + ALIQUOTA_COMISSAO + ALIQUOTA_DESPESA_ADM + ALIQUOTA_DESPESA_COM) AS ALIQUOTAS_TOTAIS
 
             FROM
                 (
@@ -1239,6 +1269,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
+        'coluna_custo_total_item': {'custo_total_item_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_CUSTO_MEDIO * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) AS CUSTO_TOTAL_ITEM,"},
+
+        'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) AS FRETE_INCLUSO_ITEM,"},
+
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
                                           'valor_mercadorias_maior_igual_having': "AND SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) >= :valor_mercadorias_maior_igual", },
 
@@ -1315,6 +1349,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'ordenar_valor_descrescente_prioritario': {'ordenar_valor_descrescente_prioritario': "VALOR_MERCADORIAS DESC,", },
 
+        'ordenar_sequencia_prioritario': {'sequencia_campo': "PEDIDOS_ITENS.CHAVE,",
+                                          'ordenar_sequencia_prioritario': "PEDIDOS_ITENS.CHAVE,", },
+
         'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT PEDIDOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,",
                                          'quantidade_documentos_campo': "COUNT(DISTINCT PEDIDOS.NUMPED),", },
         'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
@@ -1348,6 +1385,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_rentabilidade_cor': {'lfrete_coluna_cor': pedidos_lfrete_cor_coluna,
                                      'lfrete_from': pedidos_lfrete_from,
                                      'lfrete_join': pedidos_lfrete_join, },
+        'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': pedidos_lfrete_aliquotas_itens_coluna,
+                                   'lfrete_from': pedidos_lfrete_from,
+                                   'lfrete_join': pedidos_lfrete_join, },
 
         'coluna_documento': {'documento_campo_alias': "PEDIDOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "PEDIDOS.NUMPED,", },
@@ -1383,6 +1423,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         ) / NULLIF(SUM(ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)), 0)
         , 0) * 100, 2) AS MC_COR
     """
+    orcamentos_lfrete_aliquotas_itens_coluna = "LFRETE.ALIQUOTA_PIS, LFRETE.ALIQUOTA_COFINS, LFRETE.ALIQUOTA_ICMS, LFRETE.ALIQUOTA_IR, LFRETE.ALIQUOTA_CSLL, LFRETE.ALIQUOTA_COMISSAO, LFRETE.ALIQUOTA_DESPESA_ADM, LFRETE.ALIQUOTA_DESPESA_COM, LFRETE.ALIQUOTAS_TOTAIS,"
     orcamentos_lfrete_from = """
         (
             SELECT
@@ -1390,7 +1431,16 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                 ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM), 2) AS MC_SEM_FRETE,
                 ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7766 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PP,
                 ROUND(SUM(CASE WHEN CHAVE_FAMILIA IN (7767, 12441) THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PT,
-                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PQ
+                ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PQ,
+                MAX(ALIQUOTA_PIS) AS ALIQUOTA_PIS,
+                MAX(ALIQUOTA_COFINS) AS ALIQUOTA_COFINS,
+                MAX(ALIQUOTA_ICMS) AS ALIQUOTA_ICMS,
+                MAX(ALIQUOTA_IR) AS ALIQUOTA_IR,
+                MAX(ALIQUOTA_CSLL) AS ALIQUOTA_CSLL,
+                MAX(ALIQUOTA_COMISSAO) AS ALIQUOTA_COMISSAO,
+                MAX(ALIQUOTA_DESPESA_ADM) AS ALIQUOTA_DESPESA_ADM,
+                MAX(ALIQUOTA_DESPESA_COM) AS ALIQUOTA_DESPESA_COM,
+                MAX(ALIQUOTA_PIS + ALIQUOTA_COFINS + ALIQUOTA_ICMS + ALIQUOTA_IR + ALIQUOTA_CSLL + ALIQUOTA_COMISSAO + ALIQUOTA_DESPESA_ADM + ALIQUOTA_DESPESA_COM) AS ALIQUOTAS_TOTAIS
 
             FROM
                 (
@@ -1435,6 +1485,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
+        'coluna_custo_total_item': {'custo_total_item_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_CUSTO_MEDIO * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS CUSTO_TOTAL_ITEM,"},
+
+        'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0)) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS FRETE_INCLUSO_ITEM,"},
+
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
                                           'valor_mercadorias_maior_igual_having': "AND SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) >= :valor_mercadorias_maior_igual", },
 
@@ -1511,6 +1565,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'ordenar_valor_descrescente_prioritario': {'ordenar_valor_descrescente_prioritario': "VALOR_MERCADORIAS DESC,", },
 
+        'ordenar_sequencia_prioritario': {'sequencia_campo': "ORCAMENTOS_ITENS.ORDEM,",
+                                          'ordenar_sequencia_prioritario': "ORCAMENTOS_ITENS.ORDEM,", },
+
         'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT ORCAMENTOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,",
                                          'quantidade_documentos_campo': "COUNT(DISTINCT ORCAMENTOS.NUMPED),", },
         'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
@@ -1544,6 +1601,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_rentabilidade_cor': {'lfrete_coluna_cor': orcamentos_lfrete_cor_coluna,
                                      'lfrete_from': orcamentos_lfrete_from,
                                      'lfrete_join': orcamentos_lfrete_join, },
+        'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': orcamentos_lfrete_aliquotas_itens_coluna,
+                                   'lfrete_from': orcamentos_lfrete_from,
+                                   'lfrete_join': orcamentos_lfrete_join, },
 
         'coluna_documento': {'documento_campo_alias': "ORCAMENTOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "ORCAMENTOS.NUMPED,", },
@@ -1573,6 +1633,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     orcamentos_itens_excluidos_lfrete_coluna = ", 0 AS MC"
     orcamentos_itens_excluidos_lfrete_valor_coluna = ", 0 AS MC_VALOR"
     orcamentos_itens_excluidos_lfrete_cor_coluna = ", 0 AS MC_COR"
+    orcamentos_itens_excluidos_lfrete_aliquotas_itens_coluna = "0 AS ALIQUOTA_PIS, 0 AS ALIQUOTA_COFINS, 0 AS ALIQUOTA_ICMS, 0 AS ALIQUOTA_IR, 0 AS ALIQUOTA_CSLL, 0 AS ALIQUOTA_COMISSAO, 0 AS ALIQUOTA_DESPESA_ADM, 0 AS ALIQUOTA_DESPESA_COM, 0 AS ALIQUOTAS_TOTAIS,"
     orcamentos_itens_excluidos_lfrete_from = ""
     orcamentos_itens_excluidos_lfrete_join = ""
 
@@ -1589,6 +1650,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos_itens_excluidos = {
+        'coluna_custo_total_item': {'custo_total_item_campo_alias': "0 AS CUSTO_TOTAL_ITEM,"},
+
+        'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "0 AS FRETE_INCLUSO_ITEM,"},
+
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
                                           'valor_mercadorias_maior_igual_having': "AND SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) >= :valor_mercadorias_maior_igual", },
 
@@ -1643,9 +1708,15 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_rentabilidade_cor': {'lfrete_coluna_cor': orcamentos_itens_excluidos_lfrete_cor_coluna,
                                      'lfrete_from': orcamentos_itens_excluidos_lfrete_from,
                                      'lfrete_join': orcamentos_itens_excluidos_lfrete_join, },
+        'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': orcamentos_itens_excluidos_lfrete_aliquotas_itens_coluna,
+                                   'lfrete_from': orcamentos_lfrete_from,
+                                   'lfrete_join': orcamentos_lfrete_join, },
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "ORCAMENTOS.DATA_ENTREGA,", },
+
+        'ordenar_sequencia_prioritario': {'sequencia_campo': "ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE,",
+                                          'ordenar_sequencia_prioritario': "ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE,", },
     }
 
     sql_final = {}
@@ -1793,6 +1864,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {desconto_campo_alias}
             {quantidade_campo_alias}
             {media_dia_campo_alias}
+            {frete_incluso_item_campo_alias}
+            {custo_total_item_campo_alias}
+            {lfrete_coluna_aliquotas_itens}
 
             {valor_mercadorias}
 
@@ -1847,6 +1921,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {fonte_where_data}
 
         GROUP BY
+            {sequencia_campo}
             {data_emissao_campo}
             {data_entrega_itens_campo}
             {ano_mes_emissao_campo}
@@ -1869,6 +1944,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {estado_campo}
             {preco_venda_campo}
             {desconto_campo}
+            {lfrete_coluna_aliquotas_itens}
             1
 
         {having}
@@ -1877,6 +1953,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {valor_mercadorias_maior_igual_having}
 
         ORDER BY
+            {ordenar_sequencia_prioritario}
             {ordenar_valor_descrescente_prioritario}
             {ano_mes_emissao_campo}
             {ano_emissao_campo}
@@ -1910,7 +1987,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'CHAVE_GRUPO_ECONOMICO', 'GRUPO', 'CARTEIRA', 'TIPO_CLIENTE', 'FAMILIA_PRODUTO',
                                      'PRODUTO', 'UNIDADE', 'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',
                                      'DOCUMENTO', 'CLIENTE', 'DATA_ENTREGA', 'STATUS_DOCUMENTO', 'OPORTUNIDADE',
-                                     'PRECO_VENDA', 'DESCONTO',]
+                                     'PRECO_VENDA', 'DESCONTO', 'ALIQUOTA_PIS', 'ALIQUOTA_COFINS', 'ALIQUOTA_ICMS',
+                                     'ALIQUOTA_IR', 'ALIQUOTA_CSLL', 'ALIQUOTA_COMISSAO', 'ALIQUOTA_DESPESA_ADM',
+                                     'ALIQUOTA_DESPESA_COM', 'ALIQUOTAS_TOTAIS',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',
