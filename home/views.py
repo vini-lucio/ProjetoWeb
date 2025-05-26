@@ -17,7 +17,8 @@ from collections import Counter
 # TODO: levantar excessões com melhores descrições
 # TODO: nas migrações, trazer tudo para memoria, para não ter que fazer select no loop nas comparações
 # TODO: testar celery
-# TODO: trocar relatorios automaticos por semelhantes ou get_relatorios_vendas
+# TODO: trocar relatorios automaticos por semelhantes ao get_relatorios_vendas
+# TODO: todos os relatorios onde usam despesa administrativas tratar por job
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')

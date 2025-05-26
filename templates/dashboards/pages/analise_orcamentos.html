@@ -18,6 +18,22 @@
                 <div class="grid-simples">
                     <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
                 </div>
+                <div class="grid link-conteudo link-conteudo-escuro">
+                    <button class="botao botao-escuro" type="button" onclick="preencherMargem('{{ cores_rentabilidade.verde }}')" style="background-color: var(--verde-rentabilidade);">Margem Verde &gt;= {{ cores_rentabilidade.verde }}</button>
+                    <button class="botao botao-escuro" type="button" onclick="preencherMargem('{{ cores_rentabilidade.amarelo }}')" style="background-color: var(--amarelo-rentabilidade);">Margem Amarela &gt;= {{ cores_rentabilidade.amarelo }}</button>
+                    <button class="botao botao-escuro" type="button" onclick="preencherMargem('{{ cores_rentabilidade.vermelho }}')" style="background-color: var(--vermelho-rentabilidade);">Margem Vermelha &gt;= {{ cores_rentabilidade.vermelho }}</button>
+                </div>
+                <div class="slider-container link-conteudo link-conteudo-escuro" style="position: relative;">
+                    <div class="slider-container grid-rentabilidade" style="grid-template-columns: 43.3333% 10% 6.6666% auto; position: absolute; z-index: 1;">
+                        <p style="background-color: var(--verde-rentabilidade);"></p>
+                        <p style="background-color: var(--amarelo-rentabilidade);"></p>
+                        <p style="background-color: var(--vermelho-rentabilidade);"></p>
+                        <p style="background-color: var(--roxo-rentabilidade);"></p>
+                    </div>
+                    <div class="slider-container" style="position: absolute; z-index: 2;">
+                        <input type="range" min="1" max="10000" value="50" class="slider" id="rentabilidadeSlider" style="direction: rtl;">
+                    </div>
+                </div>
             </form>
         </div>
 
@@ -33,13 +49,13 @@
                     <table>
                         <tr class="principal-claro">
                             <th>Produto</th>
-                            <th>R$ Venda</th>
-                            <th>Desconto %</th>
-                            <th>MC %</th>
-                            <th>Quantidade</th>
-                            <th>R$ Frete Incluso Itens</th>
-                            <th>R$ Custo</th>
-                            <th>Aliquotas Totais %</th>
+                            <th>R$ Atual</th>
+                            <th>Desc. Atual %</th>
+                            <th>MC Atual %</th>
+                            <th class="botao-escuro"></th>
+                            <th class="botao-escuro">R$ Novo</th>
+                            <th class="botao-escuro">Desc. Novo %</th>
+                            <th class="botao-escuro">MC Novo %</th>
                         </tr>
                         {% for dado in dados %}
                             <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %} {% if dado.VALOR_MERCADORIAS < 0 %}fonte-vermelho{% endif %}">
@@ -47,10 +63,10 @@
                                 <td>R$ {{ dado.PRECO_VENDA | floatformat:2 }}</td>
                                 <td>{{ dado.DESCONTO | floatformat:2 }}%</td>
                                 <td class="fonte-cinza" style="background-color: var({{ dado.MC_COR | cor_rentabilidade_css }});">{{ dado.MC | floatformat:2 }}%</td>
-                                <td>{{ dado.QUANTIDADE | floatformat:3 }}</td>
-                                <td>R$ {{ dado.FRETE_INCLUSO_ITEM | floatformat:2 }}</td>
-                                <td>R$ {{ dado.CUSTO_TOTAL_ITEM | floatformat:2 }}</td>
-                                <td>{{ dado.ALIQUOTAS_TOTAIS | floatformat:2 }}%</td>
+                                <td class="botao-escuro"></td>
+                                <td>R$ {{ dado.PRECO_NOVO | floatformat:2 }}</td>
+                                <td>{{ dado.DESCONTO_NOVO | floatformat:2 }}%</td>
+                                <td class="fonte-cinza" style="background-color: var({{ dado.MC_COR_NOVO | cor_rentabilidade_css }});">{{ dado.MC_NOVO | floatformat:2 }}%</td>
                             </tr>
                         {% endfor %}
                     </table>
@@ -62,4 +78,38 @@
 
     </section>
 
+    <script>
+        var slider = document.getElementById("rentabilidadeSlider");
+        var campoValor = document.getElementById("id_valor");
+        var campoDesconto = document.getElementById("id_desconto");
+
+        minimoSlider = "{{ cores_rentabilidade.despesa_adm }}"
+        minimoSlider = minimoSlider.replace(",", ".") * 100
+
+        maximoSlider = minimoSlider + 3000
+
+        slider.min = minimoSlider
+        slider.max = maximoSlider
+        if (campoDesconto.value == "margem") {
+            slider.value = campoValor.value * 100
+        } else {
+            slider.value = 0
+        }
+
+        slider.oninput = function() {
+            campoValor.value = this.value / 100;
+            campoDesconto.value = "margem";
+        }
+
+        function preencherMargem(margem) {
+            margem = margem.replace(",", ".")
+            let campoDesconto = document.getElementById("id_desconto");
+            campoDesconto.value = "margem";
+            let campoValor = document.getElementById("id_valor");
+            campoValor.value = margem;
+            slider.value = margem * 100
+        }
+    </script>
+    
+    
 {% endblock conteudo %}

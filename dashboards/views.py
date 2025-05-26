@@ -8,6 +8,7 @@ from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOr
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.data_hora_atual import data_x_dias
 from utils.base_forms import FormVendedoresMixIn
+from utils.cor_rentabilidade import get_cores_rentabilidade
 import pandas as pd
 
 
@@ -117,7 +118,12 @@ def vendas_carteira(request):
 def analise_orcamentos(request):
     titulo_pagina = 'Analise Orçamento'
 
-    contexto: dict = {'titulo_pagina': titulo_pagina, }
+    cores_rentabilidade = get_cores_rentabilidade()
+    cores_rentabilidade.update({'verde': cores_rentabilidade['verde'] + cores_rentabilidade['despesa_adm']})
+    cores_rentabilidade.update({'amarelo': cores_rentabilidade['amarelo'] + cores_rentabilidade['despesa_adm']})
+    cores_rentabilidade.update({'vermelho': cores_rentabilidade['vermelho'] + cores_rentabilidade['despesa_adm']})
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, 'cores_rentabilidade': cores_rentabilidade, }
 
     formulario = FormAnaliseOrcamentos()
 
@@ -133,8 +139,46 @@ def analise_orcamentos(request):
                                           incluir_orcamentos_oportunidade=True, coluna_preco_venda=True,
                                           coluna_desconto=True, coluna_rentabilidade=True, coluna_quantidade=True,
                                           coluna_frete_incluso_item=True, coluna_custo_total_item=True,
-                                          coluna_aliquotas_itens=True,
-                                          ordenar_sequencia_prioritario=True, coluna_rentabilidade_cor=True)
+                                          coluna_aliquotas_itens=True, coluna_preco_tabela_inclusao=True,
+                                          ordenar_sequencia_prioritario=True, coluna_rentabilidade_cor=True,
+                                          coluna_mc_cor_ajuste=True)
+            dt_dados = pd.DataFrame(dados)
+
+            tipo_desconto = formulario.cleaned_data.get('desconto')
+            valor = float(formulario.cleaned_data.get('valor'))  # type:ignore
+
+            dt_dados['TIPO_DESCONTO'] = tipo_desconto
+            dt_dados['VALOR'] = 1 - (valor / 100)
+            dt_dados['FRETE_INCLUSO_ITEM_UNITARIO'] = dt_dados['FRETE_INCLUSO_ITEM'] / dt_dados['QUANTIDADE']
+            dt_dados['CUSTO_UNITARIO_ITEM'] = dt_dados['CUSTO_TOTAL_ITEM'] / dt_dados['QUANTIDADE']
+
+            if tipo_desconto == 'desconto_preco_tabela':
+                dt_dados['PRECO_NOVO'] = dt_dados['PRECO_TABELA_INCLUSAO'] * dt_dados['VALOR']
+            if tipo_desconto == 'desconto_preco_atual':
+                dt_dados['PRECO_NOVO'] = dt_dados['PRECO_VENDA'] * dt_dados['VALOR']
+
+            if tipo_desconto == 'desconto_preco_tabela' or tipo_desconto == 'desconto_preco_atual':
+                dt_dados['DESCONTO_NOVO'] = (1 - dt_dados['PRECO_NOVO'] / dt_dados['PRECO_TABELA_INCLUSAO']) * 100
+                dt_dados['PRECO_NOVO_SEM_FRETE'] = dt_dados['PRECO_NOVO'] - dt_dados['FRETE_INCLUSO_ITEM_UNITARIO']
+                dt_dados['CUSTO_VARIAVEL_NOVO'] = dt_dados['ALIQUOTAS_TOTAIS'] / 100 * dt_dados['PRECO_NOVO_SEM_FRETE']
+                dt_dados['MC_VALOR_NOVO'] = (
+                    dt_dados['PRECO_NOVO_SEM_FRETE'] -
+                    dt_dados['CUSTO_UNITARIO_ITEM'] - dt_dados['CUSTO_VARIAVEL_NOVO']
+                )
+                dt_dados['MC_NOVO'] = dt_dados['MC_VALOR_NOVO'] / dt_dados['PRECO_NOVO_SEM_FRETE'] * 100
+                dt_dados['MC_COR_NOVO'] = dt_dados['MC_NOVO'] + dt_dados['MC_COR_AJUSTE']
+
+            if tipo_desconto == 'margem':
+                dt_dados['MC_COR_NOVO'] = valor
+                dt_dados['MC_NOVO'] = dt_dados['MC_COR_NOVO'] - dt_dados['MC_COR_AJUSTE']
+                dt_dados['MARKUP_DIVISOR'] = 1 - (dt_dados['ALIQUOTAS_TOTAIS'] + dt_dados['MC_NOVO']) / 100
+                dt_dados['PRECO_NOVO'] = (
+                    dt_dados['CUSTO_UNITARIO_ITEM'] / dt_dados['MARKUP_DIVISOR'] +
+                    dt_dados['FRETE_INCLUSO_ITEM_UNITARIO']
+                )
+                dt_dados['DESCONTO_NOVO'] = (1 - dt_dados['PRECO_NOVO'] / dt_dados['PRECO_TABELA_INCLUSAO']) * 100
+
+            dados = dt_dados.to_dict(orient='records')
 
             contexto.update({'dados': dados, })
 

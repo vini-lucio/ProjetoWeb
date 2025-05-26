@@ -1180,6 +1180,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': notas_lfrete_aliquotas_itens_coluna,
                                    'lfrete_from': notas_lfrete_from,
                                    'lfrete_join': notas_lfrete_join, },
+        'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END AS MC_COR_AJUSTE",
+                                 'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END,", },
 
         'coluna_documento': {'documento_campo_alias': "NOTAS.NF AS DOCUMENTO,",
                              'documento_campo': "NOTAS.NF,", },
@@ -1388,6 +1390,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': pedidos_lfrete_aliquotas_itens_coluna,
                                    'lfrete_from': pedidos_lfrete_from,
                                    'lfrete_join': pedidos_lfrete_join, },
+        'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END AS MC_COR_AJUSTE",
+                                 'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END,", },
 
         'coluna_documento': {'documento_campo_alias': "PEDIDOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "PEDIDOS.NUMPED,", },
@@ -1604,6 +1608,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': orcamentos_lfrete_aliquotas_itens_coluna,
                                    'lfrete_from': orcamentos_lfrete_from,
                                    'lfrete_join': orcamentos_lfrete_join, },
+        'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END AS MC_COR_AJUSTE",
+                                 'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END,", },
 
         'coluna_documento': {'documento_campo_alias': "ORCAMENTOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "ORCAMENTOS.NUMPED,", },
@@ -1711,6 +1717,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': orcamentos_itens_excluidos_lfrete_aliquotas_itens_coluna,
                                    'lfrete_from': orcamentos_lfrete_from,
                                    'lfrete_join': orcamentos_lfrete_join, },
+        'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END AS MC_COR_AJUSTE",
+                                 'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END,", },
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "ORCAMENTOS.DATA_ENTREGA,", },
@@ -1873,6 +1881,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {lfrete_coluna}
             {lfrete_valor_coluna}
             {lfrete_coluna_cor}
+            {mc_cor_ajuste_campo_alias}
 
         FROM
             {lfrete_from}
@@ -1945,6 +1954,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {preco_venda_campo}
             {desconto_campo}
             {lfrete_coluna_aliquotas_itens}
+            {mc_cor_ajuste_campo}
             1
 
         {having}
@@ -1989,7 +1999,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'DOCUMENTO', 'CLIENTE', 'DATA_ENTREGA', 'STATUS_DOCUMENTO', 'OPORTUNIDADE',
                                      'PRECO_VENDA', 'DESCONTO', 'ALIQUOTA_PIS', 'ALIQUOTA_COFINS', 'ALIQUOTA_ICMS',
                                      'ALIQUOTA_IR', 'ALIQUOTA_CSLL', 'ALIQUOTA_COMISSAO', 'ALIQUOTA_DESPESA_ADM',
-                                     'ALIQUOTA_DESPESA_COM', 'ALIQUOTAS_TOTAIS',]
+                                     'ALIQUOTA_DESPESA_COM', 'ALIQUOTAS_TOTAIS', 'MC_COR_AJUSTE',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',

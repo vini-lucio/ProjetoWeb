@@ -29,6 +29,8 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
 
         titulo_pagina = f'{objeto.DESCRICAO}'  # type: ignore
 
+        # TODO: sugestão de modelos com base na matriz
+
         # Dados Grupo Economico
 
         quantidade_clientes = objeto.quantidade_clientes_ativos  # type:ignore
