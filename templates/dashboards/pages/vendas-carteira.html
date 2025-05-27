@@ -193,7 +193,7 @@
                                     {% if not formulario.carteira.value %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
                                     <td>{{ valor.DOCUMENTO | stringformat:"d" }}</td>
                                     <td>{{ valor.CLIENTE }}</td>
-                                    <td><a target="_blank" href="{% url "analysis:grupo-economico" valor.CHAVE_GRUPO_ECONOMICO %}">𓃑</a></td>
+                                    <td>{% if valor.CHAVE_GRUPO_ECONOMICO %}<a target="_blank" href="{% url "analysis:grupo-economico" valor.CHAVE_GRUPO_ECONOMICO %}">𓃑</a>{% endif %}</td>
                                     <td>{{ valor.DATA_EMISSAO | date:"d/m/Y" }}</td>
                                     <td>{{ valor.DATA_ENTREGA | date:"d/m/Y" }}</td>
                                     <td>R$ {{ valor.VALOR_MERCADORIAS | floatformat:2 }}</td>

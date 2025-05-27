@@ -950,6 +950,16 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     incluir_orcamentos_oportunidade = kwargs_formulario.pop('incluir_orcamentos_oportunidade', False)
     incluir_orcamentos_oportunidade = "" if incluir_orcamentos_oportunidade else "ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND"
 
+    conversao_moeda = ""
+    if fonte == 'orcamentos':
+        conversao_moeda = " * (SELECT COALESCE(MAX(VALOR), 1) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO)"
+    if fonte == 'pedidos':
+        conversao_moeda = " * (SELECT COALESCE(MAX(VALOR), 1) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO)"
+
+    nao_converter_moeda = kwargs_formulario.pop('nao_converter_moeda', False)
+    if nao_converter_moeda:
+        conversao_moeda = ""
+
     notas_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
     notas_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE), 0), 2) AS MC_VALOR"
     notas_lfrete_cor_coluna = """
@@ -1081,20 +1091,16 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_unidade': {'unidade_campo_alias': "UNIDADES.UNIDADE,",
                            'unidade_campo': "UNIDADES.UNIDADE,", },
 
-        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "MAX(NOTAS_ITENS.PRECO_TABELA) AS PRECO_TABELA_INCLUSAO,",
-                                         'preco_tabela_inclusao_campo': "MAX(NOTAS_ITENS.PRECO_TABELA),", },
+        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "MAX(NOTAS_ITENS.PRECO_TABELA) AS PRECO_TABELA_INCLUSAO,", },
 
-        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2) AS PRECO_VENDA_MEDIO,",
-                                     'preco_venda_medio_campo': "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2),", },
+        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(NOTAS_ITENS.PRECO_FATURADO), 2) AS PRECO_VENDA_MEDIO,", },
 
-        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(NOTAS_ITENS.PRECO_FATURADO, 2) AS PRECO_VENDA,",
-                               'preco_venda_campo': "ROUND(NOTAS_ITENS.PRECO_FATURADO, 2),", },
+        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(NOTAS_ITENS.PRECO_FATURADO, 2) AS PRECO_VENDA,", },
 
         'coluna_desconto': {'desconto_campo_alias': "ROUND((1 - (NOTAS_ITENS.PRECO_FATURADO / NOTAS_ITENS.PRECO_TABELA)) * 100, 2) AS DESCONTO,",
                             'desconto_campo': "ROUND((1 - (NOTAS_ITENS.PRECO_FATURADO / NOTAS_ITENS.PRECO_TABELA)) * 100, 2),", },
 
-        'coluna_quantidade': {'quantidade_campo_alias': "SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE,",
-                              'quantidade_campo': "SUM(NOTAS_ITENS.QUANTIDADE),", },
+        'coluna_quantidade': {'quantidade_campo_alias': "SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE,", },
 
         'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
                           'cidade_campo': "CLIENTES.CIDADE,", },
@@ -1144,13 +1150,11 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'ordenar_sequencia_prioritario': {'sequencia_campo': "NOTAS_ITENS.CHAVE,",
                                           'ordenar_sequencia_prioritario': "NOTAS_ITENS.CHAVE,", },
 
-        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT NOTAS.NF) AS QUANTIDADE_DOCUMENTOS,",
-                                         'quantidade_documentos_campo': "COUNT(DISTINCT NOTAS.NF),", },
+        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT NOTAS.NF) AS QUANTIDADE_DOCUMENTOS,", },
         'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
                                             'quantidade_documentos_maior_que_having': "AND COUNT(DISTINCT NOTAS.NF) > :quantidade_documentos_maior_que", },
 
-        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "COUNT(DISTINCT TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM')) AS QUANTIDADE_MESES,",
-                                    'quantidade_meses_campo': "COUNT(DISTINCT TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM')),", },
+        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "COUNT(DISTINCT TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM')) AS QUANTIDADE_MESES,", },
         'quantidade_meses_maior_que': {'having': 'HAVING 1=1',
                                        'quantidade_meses_maior_que_having': "AND COUNT(DISTINCT TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM')) > :quantidade_meses_maior_que", },
 
@@ -1204,7 +1208,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     pedidos_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
-    pedidos_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END), 0), 2) AS MC_VALOR"
+    pedidos_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE {conversao_moeda}), 0), 2) AS MC_VALOR".format(
+        conversao_moeda=conversao_moeda)
     pedidos_lfrete_cor_coluna = """
         , ROUND(COALESCE(
         (
@@ -1248,7 +1253,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     pedidos_lfrete_join = "LFRETE.CHAVE_PEDIDO_ITEM = PEDIDOS_ITENS.CHAVE AND"
 
     map_sql_pedidos_base = {
-        'valor_mercadorias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS",
+        'valor_mercadorias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}) AS VALOR_MERCADORIAS".format(conversao_moeda=conversao_moeda),
 
         'notas_peso_liquido_from': "",
 
@@ -1271,14 +1276,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
-        'coluna_custo_total_item': {'custo_total_item_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_CUSTO_MEDIO * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) AS CUSTO_TOTAL_ITEM,"},
+        'coluna_custo_total_item': {'custo_total_item_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_CUSTO_MEDIO {conversao_moeda}) AS CUSTO_TOTAL_ITEM,".format(conversao_moeda=conversao_moeda)},
 
-        'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) AS FRETE_INCLUSO_ITEM,"},
+        'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0)) {conversao_moeda}) AS FRETE_INCLUSO_ITEM,".format(conversao_moeda=conversao_moeda)},
 
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
-                                          'valor_mercadorias_maior_igual_having': "AND SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) >= :valor_mercadorias_maior_igual", },
+                                          'valor_mercadorias_maior_igual_having': "AND SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}) >= :valor_mercadorias_maior_igual".format(conversao_moeda=conversao_moeda), },
 
-        'coluna_media_dia': {'media_dia_campo_alias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) / COUNT(DISTINCT PEDIDOS.DATA_PEDIDO) AS MEDIA_DIA,"},
+        'coluna_media_dia': {'media_dia_campo_alias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}) / COUNT(DISTINCT PEDIDOS.DATA_PEDIDO) AS MEDIA_DIA,".format(conversao_moeda=conversao_moeda)},
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "PEDIDOS.DATA_PEDIDO AS DATA_EMISSAO,",
                                 'data_emissao_campo': "PEDIDOS.DATA_PEDIDO,", },
@@ -1320,20 +1325,16 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_unidade': {'unidade_campo_alias': "UNIDADES.UNIDADE,",
                            'unidade_campo': "UNIDADES.UNIDADE,", },
 
-        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "MAX(PEDIDOS_ITENS.PRECO_TABELA) AS PRECO_TABELA_INCLUSAO,",
-                                         'preco_tabela_inclusao_campo': "MAX(PEDIDOS_ITENS.PRECO_TABELA),", },
+        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "MAX(PEDIDOS_ITENS.PRECO_TABELA {conversao_moeda}) AS PRECO_TABELA_INCLUSAO,".format(conversao_moeda=conversao_moeda), },
 
-        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(PEDIDOS_ITENS.PRECO_VENDA), 2) AS PRECO_VENDA_MEDIO,",
-                                     'preco_venda_medio_campo': "ROUND(AVG(PEDIDOS_ITENS.PRECO_VENDA), 2),", },
+        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(PEDIDOS_ITENS.PRECO_VENDA {conversao_moeda}), 2) AS PRECO_VENDA_MEDIO,".format(conversao_moeda=conversao_moeda), },
 
-        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(PEDIDOS_ITENS.PRECO_VENDA, 2) AS PRECO_VENDA,",
-                               'preco_venda_campo': "ROUND(PEDIDOS_ITENS.PRECO_VENDA, 2),", },
+        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(MAX(PEDIDOS_ITENS.PRECO_VENDA {conversao_moeda}), 2) AS PRECO_VENDA,".format(conversao_moeda=conversao_moeda), },
 
         'coluna_desconto': {'desconto_campo_alias': "ROUND((1 - (PEDIDOS_ITENS.PRECO_VENDA / PEDIDOS_ITENS.PRECO_TABELA)) * 100, 2) AS DESCONTO,",
                             'desconto_campo': "ROUND((1 - (PEDIDOS_ITENS.PRECO_VENDA / PEDIDOS_ITENS.PRECO_TABELA)) * 100, 2),", },
 
-        'coluna_quantidade': {'quantidade_campo_alias': "SUM(PEDIDOS_ITENS.QUANTIDADE) AS QUANTIDADE,",
-                              'quantidade_campo': "SUM(PEDIDOS_ITENS.QUANTIDADE),", },
+        'coluna_quantidade': {'quantidade_campo_alias': "SUM(PEDIDOS_ITENS.QUANTIDADE) AS QUANTIDADE,", },
 
         'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
                           'cidade_campo': "CLIENTES.CIDADE,", },
@@ -1354,13 +1355,11 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'ordenar_sequencia_prioritario': {'sequencia_campo': "PEDIDOS_ITENS.CHAVE,",
                                           'ordenar_sequencia_prioritario': "PEDIDOS_ITENS.CHAVE,", },
 
-        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT PEDIDOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,",
-                                         'quantidade_documentos_campo': "COUNT(DISTINCT PEDIDOS.NUMPED),", },
+        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT PEDIDOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,", },
         'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
                                             'quantidade_documentos_maior_que_having': "AND COUNT(DISTINCT PEDIDOS.NUMPED) > :quantidade_documentos_maior_que", },
 
-        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "COUNT(DISTINCT TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM')) AS QUANTIDADE_MESES,",
-                                    'quantidade_meses_campo': "COUNT(DISTINCT TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM')),", },
+        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "COUNT(DISTINCT TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM')) AS QUANTIDADE_MESES,", },
         'quantidade_meses_maior_que': {'having': 'HAVING 1=1',
                                        'quantidade_meses_maior_que_having': "AND COUNT(DISTINCT TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM')) > :quantidade_meses_maior_que", },
 
@@ -1417,7 +1416,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     orcamentos_status_produto_orcamento_tipo_join = "STATUS_ORCAMENTOS_ITENS.DESCRICAO = ORCAMENTOS_ITENS.STATUS AND"
 
     orcamentos_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
-    orcamentos_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END), 0), 2) AS MC_VALOR"
+    orcamentos_lfrete_valor_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE {conversao_moeda}), 0), 2) AS MC_VALOR".format(
+        conversao_moeda=conversao_moeda)
     orcamentos_lfrete_cor_coluna = """
         , ROUND(COALESCE(
         (
@@ -1462,7 +1462,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     orcamentos_lfrete_join = "LFRETE.CHAVE_ORCAMENTO_ITEM = ORCAMENTOS_ITENS.CHAVE AND"
 
     map_sql_orcamentos_base = {
-        'valor_mercadorias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS",
+        'valor_mercadorias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}) AS VALOR_MERCADORIAS".format(conversao_moeda=conversao_moeda),
 
         'notas_peso_liquido_from': "",
 
@@ -1489,14 +1489,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
-        'coluna_custo_total_item': {'custo_total_item_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_CUSTO_MEDIO * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS CUSTO_TOTAL_ITEM,"},
+        'coluna_custo_total_item': {'custo_total_item_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_CUSTO_MEDIO {conversao_moeda}) AS CUSTO_TOTAL_ITEM,".format(conversao_moeda=conversao_moeda)},
 
-        'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0)) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS FRETE_INCLUSO_ITEM,"},
+        'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0)) {conversao_moeda}) AS FRETE_INCLUSO_ITEM,".format(conversao_moeda=conversao_moeda)},
 
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
-                                          'valor_mercadorias_maior_igual_having': "AND SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) >= :valor_mercadorias_maior_igual", },
+                                          'valor_mercadorias_maior_igual_having': "AND SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}) >= :valor_mercadorias_maior_igual".format(conversao_moeda=conversao_moeda), },
 
-        'coluna_media_dia': {'media_dia_campo_alias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) / COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS MEDIA_DIA,"},
+        'coluna_media_dia': {'media_dia_campo_alias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}) / COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS MEDIA_DIA,".format(conversao_moeda=conversao_moeda)},
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "ORCAMENTOS.DATA_PEDIDO AS DATA_EMISSAO,",
                                 'data_emissao_campo': "ORCAMENTOS.DATA_PEDIDO,", },
@@ -1538,20 +1538,16 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_unidade': {'unidade_campo_alias': "UNIDADES.UNIDADE,",
                            'unidade_campo': "UNIDADES.UNIDADE,", },
 
-        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "MAX(ORCAMENTOS_ITENS.PRECO_TABELA) AS PRECO_TABELA_INCLUSAO,",
-                                         'preco_tabela_inclusao_campo': "MAX(ORCAMENTOS_ITENS.PRECO_TABELA),", },
+        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "MAX(ORCAMENTOS_ITENS.PRECO_TABELA {conversao_moeda}) AS PRECO_TABELA_INCLUSAO,".format(conversao_moeda=conversao_moeda), },
 
-        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(ORCAMENTOS_ITENS.PRECO_VENDA), 2) AS PRECO_VENDA_MEDIO,",
-                                     'preco_venda_medio_campo': "ROUND(AVG(ORCAMENTOS_ITENS.PRECO_VENDA), 2),", },
+        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "ROUND(AVG(ORCAMENTOS_ITENS.PRECO_VENDA {conversao_moeda}), 2) AS PRECO_VENDA_MEDIO,".format(conversao_moeda=conversao_moeda), },
 
-        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(ORCAMENTOS_ITENS.PRECO_VENDA, 2) AS PRECO_VENDA,",
-                               'preco_venda_campo': "ROUND(ORCAMENTOS_ITENS.PRECO_VENDA, 2),", },
+        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(MAX(ORCAMENTOS_ITENS.PRECO_VENDA {conversao_moeda}), 2) AS PRECO_VENDA,".format(conversao_moeda=conversao_moeda), },
 
         'coluna_desconto': {'desconto_campo_alias': "ROUND((1 - (ORCAMENTOS_ITENS.PRECO_VENDA / ORCAMENTOS_ITENS.PRECO_TABELA)) * 100, 2) AS DESCONTO,",
                             'desconto_campo': "ROUND((1 - (ORCAMENTOS_ITENS.PRECO_VENDA / ORCAMENTOS_ITENS.PRECO_TABELA)) * 100, 2),", },
 
-        'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS.QUANTIDADE) AS QUANTIDADE,",
-                              'quantidade_campo': "SUM(ORCAMENTOS_ITENS.QUANTIDADE),", },
+        'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS.QUANTIDADE) AS QUANTIDADE,", },
 
         'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
                           'cidade_campo': "CLIENTES.CIDADE,", },
@@ -1572,13 +1568,11 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'ordenar_sequencia_prioritario': {'sequencia_campo': "ORCAMENTOS_ITENS.ORDEM,",
                                           'ordenar_sequencia_prioritario': "ORCAMENTOS_ITENS.ORDEM,", },
 
-        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT ORCAMENTOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,",
-                                         'quantidade_documentos_campo': "COUNT(DISTINCT ORCAMENTOS.NUMPED),", },
+        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "COUNT(DISTINCT ORCAMENTOS.NUMPED) AS QUANTIDADE_DOCUMENTOS,", },
         'quantidade_documentos_maior_que': {'having': 'HAVING 1=1',
                                             'quantidade_documentos_maior_que_having': "AND COUNT(DISTINCT ORCAMENTOS.NUMPED) > :quantidade_documentos_maior_que", },
 
-        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "COUNT(DISTINCT TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM')) AS QUANTIDADE_MESES,",
-                                    'quantidade_meses_campo': "COUNT(DISTINCT TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM')),", },
+        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "COUNT(DISTINCT TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM')) AS QUANTIDADE_MESES,", },
         'quantidade_meses_maior_que': {'having': 'HAVING 1=1',
                                        'quantidade_meses_maior_que_having': "AND COUNT(DISTINCT TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM')) > :quantidade_meses_maior_que", },
 
@@ -1644,7 +1638,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     orcamentos_itens_excluidos_lfrete_join = ""
 
     map_sql_orcamentos_base_itens_excluidos = {
-        'valor_mercadorias': "SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) AS VALOR_MERCADORIAS",
+        'valor_mercadorias': "SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) {conversao_moeda}) AS VALOR_MERCADORIAS".format(conversao_moeda=conversao_moeda),
 
         'fonte_itens': "COPLAS.ORCAMENTOS_ITENS_EXCLUIDOS,",
 
@@ -1661,35 +1655,29 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "0 AS FRETE_INCLUSO_ITEM,"},
 
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
-                                          'valor_mercadorias_maior_igual_having': "AND SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END) >= :valor_mercadorias_maior_igual", },
+                                          'valor_mercadorias_maior_igual_having': "AND SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) {conversao_moeda}) >= :valor_mercadorias_maior_igual".format(conversao_moeda=conversao_moeda), },
 
         # TODO: calcular na junção de orçamentos e itens excluidos?
         'coluna_media_dia': {'media_dia_campo_alias': "0 AS MEDIA_DIA,"},
 
         # TODO: calcular na junção de orçamentos e itens excluidos?
-        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "0 AS PRECO_TABELA_INCLUSAO,",
-                                         'preco_tabela_inclusao_campo': "", },
+        'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "0 AS PRECO_TABELA_INCLUSAO,", },
 
         # TODO: calcular na junção de orçamentos e itens excluidos?
-        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "0 AS PRECO_VENDA_MEDIO,",
-                                     'preco_venda_medio_campo': "", },
+        'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "0 AS PRECO_VENDA_MEDIO,", },
 
-        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA, 2) AS PRECO_VENDA,",
-                               'preco_venda_campo': "ROUND(ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA, 2),", },
+        'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(MAX(ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA {conversao_moeda}), 2) AS PRECO_VENDA,".format(conversao_moeda=conversao_moeda), },
 
         'coluna_desconto': {'desconto_campo_alias': "ROUND((1 - (ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA / ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_TABELA)) * 100, 2) AS DESCONTO,",
                             'desconto_campo': "ROUND((1 - (ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA / ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_TABELA)) * 100, 2),", },
 
-        'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE) AS QUANTIDADE,",
-                              'quantidade_campo': "SUM(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE),", },
+        'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE) AS QUANTIDADE,", },
 
         'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "{} AND".format(justificativas(True)), },
 
-        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "0 AS QUANTIDADE_DOCUMENTOS,",
-                                         'quantidade_documentos_campo': "", },
+        'coluna_quantidade_documentos': {'quantidade_documentos_campo_alias': "0 AS QUANTIDADE_DOCUMENTOS,", },
 
-        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "0 AS QUANTIDADE_MESES,",
-                                    'quantidade_meses_campo': "", },
+        'coluna_quantidade_meses': {'quantidade_meses_campo_alias': "0 AS QUANTIDADE_MESES,", },
 
         'coluna_status_produto_orcamento': {'status_produto_orcamento_campo_alias': "ORCAMENTOS_ITENS_EXCLUIDOS.STATUS,",
                                             'status_produto_orcamento_campo': "ORCAMENTOS_ITENS_EXCLUIDOS.STATUS,", },
@@ -1951,7 +1939,6 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {status_produto_orcamento_tipo_campo}
             {cidade_campo}
             {estado_campo}
-            {preco_venda_campo}
             {desconto_campo}
             {lfrete_coluna_aliquotas_itens}
             {mc_cor_ajuste_campo}
@@ -1997,7 +1984,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'CHAVE_GRUPO_ECONOMICO', 'GRUPO', 'CARTEIRA', 'TIPO_CLIENTE', 'FAMILIA_PRODUTO',
                                      'PRODUTO', 'UNIDADE', 'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',
                                      'DOCUMENTO', 'CLIENTE', 'DATA_ENTREGA', 'STATUS_DOCUMENTO', 'OPORTUNIDADE',
-                                     'PRECO_VENDA', 'DESCONTO', 'ALIQUOTA_PIS', 'ALIQUOTA_COFINS', 'ALIQUOTA_ICMS',
+                                     'DESCONTO', 'ALIQUOTA_PIS', 'ALIQUOTA_COFINS', 'ALIQUOTA_ICMS',
                                      'ALIQUOTA_IR', 'ALIQUOTA_CSLL', 'ALIQUOTA_COMISSAO', 'ALIQUOTA_DESPESA_ADM',
                                      'ALIQUOTA_DESPESA_COM', 'ALIQUOTAS_TOTAIS', 'MC_COR_AJUSTE',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()

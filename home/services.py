@@ -10,7 +10,7 @@ from utils.conferir_alteracao import campo_migrar_mudou
 
 
 def tipo_clientes_ano_mes_a_mes():
-    """Totaliza o valor das contas de marketing no periodo informado em site setup mes a mes"""
+    """Totaliza o valor por tipo de cliente no periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         ano = site_setup.atualizacoes_ano

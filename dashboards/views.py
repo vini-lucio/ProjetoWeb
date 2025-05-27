@@ -13,7 +13,6 @@ import pandas as pd
 
 
 # TODO: tabela com historico de metas
-# TODO: pagina de analise de descontos de orçamentos por item por margem e porcentagem?
 
 
 def vendas_carteira(request):
@@ -134,14 +133,13 @@ def analise_orcamentos(request):
             contexto['titulo_pagina'] += f' {orcamento}'
 
             # TODO: incluir erros de conferencia de orçamento (usar contexto erros)
-            # TODO: exportação mostrar valor sem converter
             dados = get_relatorios_vendas(fonte='orcamentos', documento=orcamento, coluna_produto=True,
                                           incluir_orcamentos_oportunidade=True, coluna_preco_venda=True,
                                           coluna_desconto=True, coluna_rentabilidade=True, coluna_quantidade=True,
                                           coluna_frete_incluso_item=True, coluna_custo_total_item=True,
                                           coluna_aliquotas_itens=True, coluna_preco_tabela_inclusao=True,
                                           ordenar_sequencia_prioritario=True, coluna_rentabilidade_cor=True,
-                                          coluna_mc_cor_ajuste=True)
+                                          coluna_mc_cor_ajuste=True, nao_converter_moeda=True,)
             dt_dados = pd.DataFrame(dados)
 
             tipo_desconto = formulario.cleaned_data.get('desconto')

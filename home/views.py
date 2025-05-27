@@ -16,7 +16,7 @@ from collections import Counter
 # TODO: criar testes automatizados
 # TODO: levantar excessões com melhores descrições
 # TODO: nas migrações, trazer tudo para memoria, para não ter que fazer select no loop nas comparações
-# TODO: testar celery
+# TODO: testar celery (exemplo: guardar informações mensais ao invez de atualizar online (como as predições), migrações automaticas, fechamentos)
 # TODO: trocar relatorios automaticos por semelhantes ao get_relatorios_vendas
 # TODO: todos os relatorios onde usam despesa administrativas tratar por job
 
