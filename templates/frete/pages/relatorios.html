@@ -20,6 +20,13 @@
             </form>
         </div>
 
+        {% if erros %}
+            <div class="link-conteudo">
+                <h1 class="titulo fonte-vermelho">Erro</h1>
+                <p>{{ erros }}</p>
+            </div>
+        {% endif %}
+
     </section>
 
 {% endblock conteudo %}

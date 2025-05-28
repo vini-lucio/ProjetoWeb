@@ -53,8 +53,8 @@ def calculo_frete(request):
 
             except ObjectDoesNotExist as erros:
                 contexto.update({'erros': erros})
-            except ZeroDivisionError:
-                contexto.update({'erros': 'Erro divisão por 0 (quantidade por volume)'})
+            except ZeroDivisionError as erros:
+                contexto.update({'erros': erros})
 
     formulario = PesquisarOrcamentoFreteForm()
 
@@ -137,50 +137,53 @@ def relatorios(request):
             data_inicio = formulario.cleaned_data.get('inicio')
             data_fim = formulario.cleaned_data.get('fim')
 
-            if 'agili-submit' in request.GET:
+            try:
+                if 'agili-submit' in request.GET:
 
-                agili = get_transportadoras_regioes_valores().filter(
-                    transportadora_origem_destino__transportadora__nome__iexact='agili',
-                    transportadora_origem_destino__estado_origem_destino__uf_origem__sigla='SP',
-                    transportadora_origem_destino__estado_origem_destino__uf_destino__sigla='SP',
-                    descricao__iexact='capital',
-                ).first()
-                notas = get_dados_notas(data_inicio, data_fim)
+                    agili = get_transportadoras_regioes_valores().filter(
+                        transportadora_origem_destino__transportadora__nome__iexact='agili',
+                        transportadora_origem_destino__estado_origem_destino__uf_origem__sigla='SP',
+                        transportadora_origem_destino__estado_origem_destino__uf_destino__sigla='SP',
+                        descricao__iexact='capital',
+                    ).first()
+                    notas = get_dados_notas(data_inicio, data_fim)
 
-                for nota in notas:
-                    valor_calculo_frete, *_ = calcular_frete(nota['ORCAMENTO'],
-                                                             transportadora_regiao_valor_especifico=agili)
-                    nota.update({'VALOR_CALCULO_FRETE': valor_calculo_frete[0]['valor_frete_empresa']})
+                    for nota in notas:
+                        valor_calculo_frete, *_ = calcular_frete(nota['ORCAMENTO'],
+                                                                 transportadora_regiao_valor_especifico=agili)
+                        nota.update({'VALOR_CALCULO_FRETE': valor_calculo_frete[0]['valor_frete_empresa']})
 
-                excel = arquivo_excel(notas)
-                arquivo = salvar_excel_temporario(excel)
-                nome_arquivo = 'relatorio_agili'
+                    excel = arquivo_excel(notas)
+                    arquivo = salvar_excel_temporario(excel)
+                    nome_arquivo = 'relatorio_agili'
 
-            if 'rastreamento-submit' in request.GET:
+                if 'rastreamento-submit' in request.GET:
 
-                notas = get_dados_notas_monitoramento(data_inicio, data_fim)
+                    notas = get_dados_notas_monitoramento(data_inicio, data_fim)
 
-                for nota in notas:
-                    despacho = nota['DATA_DESPACHO']
-                    nota.update({'DATA_DESPACHO': converter_datetime_para_str_ddmmyyyy(nota['DATA_DESPACHO']), })
-                    try:
-                        valor_calculo_frete, * _ = calcular_frete(nota['ORCAMENTO'],
-                                                                  transportadora_orcamento_pedido=True)
-                        prazo = valor_calculo_frete[0]['prazo']
-                        prazo_entrega = despacho + offsets.BDay(prazo)
-                        nota.update({
-                            'PRAZO_ENTREGA': converter_datetime_para_str_ddmmyy(prazo_entrega),
-                            'PRAZO': prazo,
-                        })
-                    except ObjectDoesNotExist:
-                        nota.update({'PRAZO_ENTREGA': '', 'PRAZO': '', })
+                    for nota in notas:
+                        despacho = nota['DATA_DESPACHO']
+                        nota.update({'DATA_DESPACHO': converter_datetime_para_str_ddmmyyyy(nota['DATA_DESPACHO']), })
+                        try:
+                            valor_calculo_frete, * _ = calcular_frete(nota['ORCAMENTO'],
+                                                                      transportadora_orcamento_pedido=True)
+                            prazo = valor_calculo_frete[0]['prazo']
+                            prazo_entrega = despacho + offsets.BDay(prazo)
+                            nota.update({
+                                'PRAZO_ENTREGA': converter_datetime_para_str_ddmmyy(prazo_entrega),
+                                'PRAZO': prazo,
+                            })
+                        except ObjectDoesNotExist:
+                            nota.update({'PRAZO_ENTREGA': '', 'PRAZO': '', })
 
-                excel = arquivo_excel(notas)
-                arquivo = salvar_excel_temporario(excel)
-                nome_arquivo = 'relatorio_rastreamento'
+                    excel = arquivo_excel(notas)
+                    arquivo = salvar_excel_temporario(excel)
+                    nome_arquivo = 'relatorio_rastreamento'
 
-            response = arquivo_excel_response(arquivo, nome_arquivo)
-            return response
+                response = arquivo_excel_response(arquivo, nome_arquivo)
+                return response
+            except ZeroDivisionError as error:
+                contexto.update({'erros': error})
 
     contexto.update({'formulario': PeriodoInicioFimForm()})
 

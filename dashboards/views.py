@@ -12,9 +12,6 @@ from utils.cor_rentabilidade import get_cores_rentabilidade
 import pandas as pd
 
 
-# TODO: tabela com historico de metas
-
-
 def vendas_carteira(request):
     titulo_pagina = 'Dashboard Vendas'
 

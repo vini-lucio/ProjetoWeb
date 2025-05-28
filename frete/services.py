@@ -410,7 +410,7 @@ def get_dados_itens_frete(dados_itens_orcamento, exportacao: bool = False):
         try:
             volumes = round(quantidade_produto_orc / quantidade_volume, 4)
         except ZeroDivisionError:
-            raise ZeroDivisionError()
+            raise ZeroDivisionError(f'Divisão por 0: {produto} {quantidade_volume=}')
         m3 = volumes * m3_volume
         if produto.tipo_embalagem != 'PLASTICO' or exportacao:
             volumes = ceil(volumes)
