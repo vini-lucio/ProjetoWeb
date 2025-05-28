@@ -4,6 +4,21 @@
 
 {% block conteudo %}
 
+    {% if confere_orcamento %}
+        <section class="principal principal-escuro">
+            <div class="dashboard-vendas-conteudo dashboard-vendas-conteudo-escuro">
+                <div class="moldura-vermelha-dashboard div-dashboard-erros principal-escuro-2">
+                    <div class="div-dashboard">
+                        <p class="fonte-vermelho">ERROS</p>
+                    </div>
+                    {% for orcamento in confere_orcamento %}
+                        <p><span class="fonte-verde">{{ orcamento.ORCAMENTO | stringformat:"d" }} - {{ orcamento.CONSULTOR }}</span> - {{ orcamento.ERRO }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
     <section class="principal principal-escuro">
 
         <div class="link-conteudo link-conteudo-escuro">

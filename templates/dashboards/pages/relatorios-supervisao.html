@@ -75,6 +75,7 @@
                             {% if formulario.coluna_mes_emissao.value %}<th>Mês</th>{% endif %}
                             {% if formulario.coluna_dia_emissao.value %}<th>Dia</th>{% endif %}
                             {% if formulario.coluna_carteira.value %}<th>Carteira</th>{% endif %}
+                            {% if formulario.coluna_documento.value %}<th>Documento</th>{% endif %}
                             {% if formulario.coluna_grupo_economico.value %}<th>Grupo Economico</th>{% endif %}
                             {% if formulario.coluna_grupo_economico.value %}<th></th>{% endif %}
                             {% if formulario.coluna_quantidade_documentos.value %}<th>Qtd. Documentos</th>{% endif %}
@@ -101,6 +102,7 @@
                                 {% if formulario.coluna_mes_emissao.value %}<td>{{ valor.MES_EMISSAO }}</td>{% endif %}
                                 {% if formulario.coluna_dia_emissao.value %}<td>{{ valor.DIA_EMISSAO }}</td>{% endif %}
                                 {% if formulario.coluna_carteira.value %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
+                                {% if formulario.coluna_documento.value %}<td>{{ valor.DOCUMENTO | stringformat:"d" }}</td>{% endif %}
                                 {% if formulario.coluna_grupo_economico.value %}<td>{{ valor.GRUPO }}</td>{% endif %}
                                 {% if formulario.coluna_grupo_economico.value %}<td>{% if valor.CHAVE_GRUPO_ECONOMICO %}<a target="_blank" href="{% url "analysis:grupo-economico" valor.CHAVE_GRUPO_ECONOMICO %}">𓃑</a>{% endif %}</td>{% endif %}
                                 {% if formulario.coluna_quantidade_documentos.value %}<td>{{ valor.QUANTIDADE_DOCUMENTOS | floatformat:0 }}</td>{% endif %}
@@ -127,6 +129,7 @@
                             {% if formulario.coluna_mes_emissao.value %}<td></td>{% endif %}
                             {% if formulario.coluna_dia_emissao.value %}<td></td>{% endif %}
                             {% if formulario.coluna_carteira.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_documento.value %}<td></td>{% endif %}
                             {% if formulario.coluna_grupo_economico.value %}<td></td>{% endif %}
                             {% if formulario.coluna_grupo_economico.value %}<td></td>{% endif %}
                             {% if formulario.coluna_quantidade_documentos.value %}<td class="azul-negrito">{{ quantidade_documentos_total | floatformat:0 }}</td>{% endif %}

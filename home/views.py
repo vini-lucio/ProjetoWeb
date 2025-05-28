@@ -20,6 +20,7 @@ from collections import Counter
 # TODO: trocar relatorios automaticos por semelhantes ao get_relatorios_vendas
 # TODO: todos os relatorios onde usam despesa administrativas tratar por job
 # TODO: tabela com historico de metas
+# TODO: conferencia de campos não obrigatorios para serem preenchidos (exemplo: cadastros de produtos campos de calculo de frete e modelo, modelos sem tags)
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
