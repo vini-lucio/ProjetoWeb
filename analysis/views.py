@@ -144,7 +144,7 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
             grafico_produtos_html = pio.to_html(grafico_produtos, full_html=False)
 
             produtos = list(dados_grafico_produto['Produto'])
-            produtos = Produtos.objects.filter(nome__in=produtos)
+            produtos = Produtos.objects.filter(nome__in=produtos, modelo__isnull=False)
             modelos = {produto.modelo for produto in produtos}
 
             if modelos != {None}:
