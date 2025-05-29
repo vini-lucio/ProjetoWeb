@@ -1,7 +1,10 @@
+from typing import Iterable
+from collections import Counter
 from decimal import Decimal
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
-from home.models import Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores, CanaisVendas, Regioes
+from home.models import (Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores, CanaisVendas, Regioes,
+                         ProdutosModelos)
 from rh.models import Comissoes, ComissoesVendedores, Faturamentos, FaturamentosVendedores
 from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES, PRODUTOS, CANAIS_VENDA, REGIOES
 from utils.site_setup import get_site_setup
@@ -4606,3 +4609,14 @@ def migrar_faturamentos(data_inicio, data_fim):
                 )
                 instancia_dividida.full_clean()
                 instancia_dividida.save()
+
+
+def sugestoes_modelos(modelos: Iterable, tags: Iterable):
+    """Retorna uma lista de tuplas com o modelo e a quantidade de insidencias do modelo, basedo nos iteraveis de modelos e tags"""
+    sugestoes = []
+    for tag in tags:
+        modelos_com_tag = ProdutosModelos.objects.filter(
+            tags=tag).exclude(pk__in=[modelo.pk for modelo in modelos])  # type:ignore
+        [sugestoes.append(modelo) for modelo in modelos_com_tag]
+    sugestoes_contagem = Counter(sugestoes).most_common()
+    return sugestoes_contagem

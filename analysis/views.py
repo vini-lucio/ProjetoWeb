@@ -1,4 +1,5 @@
 # from django.shortcuts import render
+from collections import Counter
 from django.views.generic import DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from analysis.models import GRUPO_ECONOMICO
@@ -12,6 +13,8 @@ from utils.plotly_parametros import update_layout_kwargs
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
+from home.models import Produtos
+from home.services import sugestoes_modelos
 
 
 # TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
@@ -139,6 +142,19 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
                                           'value': ':,.2f', },)
             grafico_produtos.update_layout(update_layout_kwargs, barmode='stack')
             grafico_produtos_html = pio.to_html(grafico_produtos, full_html=False)
+
+            produtos = list(dados_grafico_produto['Produto'])
+            produtos = Produtos.objects.filter(nome__in=produtos)
+            modelos = {produto.modelo for produto in produtos}
+
+            tags = []
+            for modelo in modelos:
+                [tags.append(tag) for tag in modelo.tags.all()]  # type:ignore
+            tags_contagem = Counter(tags).most_common()
+            context.update({'tags_contagem': tags_contagem})
+
+            sugestoes_contagem = sugestoes_modelos(modelos, [tag for tag, contagem in tags_contagem])
+            context.update({'sugestoes_contagem': sugestoes_contagem})
 
         # Dados Grafico Status de Orçamentos
 

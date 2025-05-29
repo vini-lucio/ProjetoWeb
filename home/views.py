@@ -8,10 +8,9 @@ from django.db.models import Q
 from django.utils.text import slugify
 from .services import (get_tabela_precos, migrar_cidades, migrar_unidades, migrar_produtos, migrar_estados,
                        migrar_estados_icms, migrar_vendedores, migrar_canais_vendas, migrar_regioes, migrar_comissoes,
-                       migrar_faturamentos)
+                       migrar_faturamentos, sugestoes_modelos)
 from .forms import ConfirmacaoMigrar, ConfirmacaoMigrarDataFimNonRequired, ConfirmacaoMigrarData
 from django.contrib.auth.decorators import user_passes_test
-from collections import Counter
 
 # TODO: criar testes automatizados
 # TODO: levantar excessões com melhores descrições
@@ -234,11 +233,7 @@ class ProdutosModelosDetailView(DetailView):
         modelo = self.get_object()
         tags = modelo.tags.all()  # type: ignore
 
-        sugestoes = []
-        for tag in tags:
-            modelos_com_tag = ProdutosModelos.objects.filter(tags=tag).exclude(pk=modelo.pk)
-            [sugestoes.append(modelo) for modelo in modelos_com_tag]
-        contagem = Counter(sugestoes).most_common()
+        contagem = sugestoes_modelos([modelo], tags)
 
         sugestoes_ordenadas = []
         for modelo, tags_encontradas in contagem:

@@ -108,6 +108,40 @@
 
         </div>
 
+        {% if tags_contagem %}
+            <div class="link-conteudo grid">
+                {% for tag, contagem in tags_contagem %}
+                    <a target="_blank" href="{% url "home:produtos-modelos" %}?pesquisar={{ tag.descricao }}">
+                        <div class="tag">{{ tag.descricao }} ({{ contagem }})</div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if sugestoes_contagem %}
+            <div class="link-conteudo alinhar-esquerda">
+                <h2 class="titulo-2 fonte-verde">Sugestões</h2>
+                <div class="grid">
+                    {% for sugestao, contagem in sugestoes_contagem %}
+                        <div class="botao-div-2">
+                            <div>
+                                <a target="_blank" href="{% url "home:produtos-modelo" sugestao.id %}">
+                                    {% if sugestao.imagem %}
+                                        <div>
+                                            <img loading="lazy" src="{{ sugestao.imagem.url }}">
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        {{ sugestao.descricao }}
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
     </section>
 
 {% endblock conteudo %}
