@@ -147,14 +147,16 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
             produtos = Produtos.objects.filter(nome__in=produtos)
             modelos = {produto.modelo for produto in produtos}
 
-            tags = []
-            for modelo in modelos:
-                [tags.append(tag) for tag in modelo.tags.all()]  # type:ignore
-            tags_contagem = Counter(tags).most_common()
-            context.update({'tags_contagem': tags_contagem})
+            if modelos != {None}:
+                tags = []
+                for modelo in modelos:
+                    print(modelo)
+                    [tags.append(tag) for tag in modelo.tags.all()]  # type:ignore
+                tags_contagem = Counter(tags).most_common()
+                context.update({'tags_contagem': tags_contagem})
 
-            sugestoes_contagem = sugestoes_modelos(modelos, [tag for tag, contagem in tags_contagem])
-            context.update({'sugestoes_contagem': sugestoes_contagem})
+                sugestoes_contagem = sugestoes_modelos(modelos, [tag for tag, contagem in tags_contagem])
+                context.update({'sugestoes_contagem': sugestoes_contagem})
 
         # Dados Grafico Status de Orçamentos
 
