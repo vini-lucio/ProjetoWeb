@@ -31,3 +31,27 @@ class FormVendedoresMixIn(forms.Form):
     carteiras = Vendedores.objects.filter(Q(canal_venda__descricao='CONSULTOR TECNICO') | Q(nome='ZZENCERRADO'))
 
     carteira = forms.ModelChoiceField(carteiras, label="Carteira")
+
+
+class FormCampoGrande(forms.ModelForm):
+    campos_redimensionar = []
+
+    class Meta:
+        model = None
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for campo in self.campos_redimensionar:
+            if campo in self.fields:
+                self.fields[campo].widget = forms.Textarea(attrs={'rows': 4, 'cols': 80})
+
+
+def criar_form_campo_grande(model_, campos_redimensionar_: list):
+    class FormCampoGrandeDinamico(FormCampoGrande):
+        class Meta:
+            model = model_
+            fields = '__all__'
+        campos_redimensionar = campos_redimensionar_
+
+    return FormCampoGrandeDinamico

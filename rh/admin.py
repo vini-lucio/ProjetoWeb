@@ -10,6 +10,7 @@ from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, Transpor
                        ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios, Comissoes, ComissoesVendedores,
                        Faturamentos, FaturamentosVendedores, PremioAssiduidadeBasesCalculo)
 from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
+from utils.base_forms import criar_form_campo_grande
 from utils.exportar_excel import arquivo_excel, gerar_conteudo_excel, gerar_cabecalho, somar_coluna_formatada
 
 
@@ -240,7 +241,8 @@ class SalariosInLine(admin.TabularInline):
     extra = 0
     verbose_name = "Salario Atual do Funcionario"
     verbose_name_plural = "Salario Atual do Funcionario"
-    fields = ('data_as_ddmmyyyy', 'salario', 'salario_convertido', 'funcao', 'motivo', 'comissao_carteira',
+    fields = ('data_as_ddmmyyyy', 'salario', 'salario_convertido', 'funcao', 'cbo_numero', 'motivo',
+              'comissao_carteira',
               'comissao_dupla', 'comissao_geral',)
     readonly_fields = fields
     can_delete = False
@@ -398,6 +400,7 @@ class ValeTransportesFuncionariosAdmin(BaseModelAdminRedRequiredLog):
 
 @admin.register(Ferias)
 class FeriasAdmin(BaseModelAdminRedRequiredLog):
+    form = criar_form_campo_grande(Ferias, ['observacoes'])
     list_display = ('id', 'funcionario', 'periodo_trabalhado_inicio_as_ddmmyyyy', 'periodo_trabalhado_fim_as_ddmmyyyy',
                     'dias_ferias', 'periodo_descanso_inicio_as_ddmmyyyy', 'periodo_descanso_fim_as_ddmmyyyy')
     list_display_links = list_display
@@ -435,7 +438,8 @@ class FeriasAdmin(BaseModelAdminRedRequiredLog):
 
 @admin.register(Salarios)
 class SalariosAdmin(BaseModelAdminRedRequiredLog):
-    list_display = 'id', 'funcionario', 'data_as_ddmmyyyy', 'salario', 'salario_convertido', 'funcao', 'motivo',
+    list_display = ('id', 'funcionario', 'data_as_ddmmyyyy', 'salario', 'salario_convertido', 'funcao', 'motivo',
+                    'comissao_carteira', 'comissao_dupla', 'comissao_geral',)
     list_display_links = list_display
     ordering = 'funcionario', '-data',
     search_fields = 'funcionario__nome',

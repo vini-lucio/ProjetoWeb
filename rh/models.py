@@ -1014,6 +1014,12 @@ class Salarios(BaseLogModel):
 
     salario_convertido.fget.short_description = 'Salario Convertido (*220h)'  # type:ignore
 
+    @property
+    def cbo_numero(self):
+        return self.funcao.cbo.numero
+
+    cbo_numero.fget.short_description = 'nº CBO'  # type:ignore
+
     def get_dados(self):
         dados = {
             'funcionario': self.funcionario,
