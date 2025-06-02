@@ -27,15 +27,6 @@
             </div>
         {% endif %}
 
-        {% comment %} <div class="link-conteudo">
-            <div class="alinhar-esquerda">
-                <h2 class="titulo-2 fonte-verde">Medidas</h2>
-                <p>teste</p>
-                <p>teste</p>
-                <p>teste</p>
-            </div>
-        </div> {% endcomment %}
-
         {% if produtos_modelo.produtosmodelostopicos.all %}
             {% for topico in produtos_modelo.produtosmodelostopicos.all %}
                 <div class="link-conteudo">
@@ -45,6 +36,17 @@
                     </div>
                 </div>
             {% endfor %}
+        {% endif %}
+
+        {% if produtos_modelo.produtos.all %}
+            <div class="link-conteudo">
+                <div class="alinhar-esquerda">
+                    <h2 class="titulo-2 fonte-verde">Medidas</h2>
+                    {% for produto in produtos_modelo.produtos.all %}
+                        <p>{{ produto.nome }} - {{ produto.descricao }}</p>
+                    {% endfor %}
+                </div>
+            </div>
         {% endif %}
 
         {% if produtos_modelo.tags %}
