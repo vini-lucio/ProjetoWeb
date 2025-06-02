@@ -38,6 +38,16 @@
             </div>
         </div>
 
+        {% if tags %}
+            <div class="link-conteudo grid">
+                {% for tag in tags %}
+                    <a href="{% url "home:produtos-modelos" %}?pesquisar={{ tag.descricao }}">
+                        <div class="tag">{{ tag.descricao }}</div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+
     </section>
 
 {% endblock conteudo %}

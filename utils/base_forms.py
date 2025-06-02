@@ -33,7 +33,7 @@ class FormVendedoresMixIn(forms.Form):
     carteira = forms.ModelChoiceField(carteiras, label="Carteira")
 
 
-class FormCampoGrande(forms.ModelForm):
+class FormCampoGrandeMixIn(forms.ModelForm):
     campos_redimensionar = []
 
     class Meta:
@@ -48,7 +48,7 @@ class FormCampoGrande(forms.ModelForm):
 
 
 def criar_form_campo_grande(model_, campos_redimensionar_: list):
-    class FormCampoGrandeDinamico(FormCampoGrande):
+    class FormCampoGrandeDinamico(FormCampoGrandeMixIn):
         class Meta:
             model = model_
             fields = '__all__'

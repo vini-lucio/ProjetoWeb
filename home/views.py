@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.contrib import messages
 from django.views.generic import ListView, DetailView
-from home.models import HomeLinks, ProdutosModelos
+from home.models import HomeLinks, ProdutosModelos, ProdutosModelosTags
 from home.forms import PesquisarForm
 from django.db.models import Q
 from django.utils.text import slugify
@@ -212,12 +212,23 @@ class ProdutosModelosListView(ListView):
         context = super().get_context_data(**kwargs)
         context.update({'titulo_pagina': 'Produtos Modelos'})
 
+        tags = ProdutosModelosTags.objects.all()
+
         if self.request.GET:
             formulario = PesquisarForm(self.request.GET)
+            if formulario.is_valid():
+                pesquisar = formulario.cleaned_data.get('pesquisar')
+                if pesquisar:
+                    pesquisar = slugify(pesquisar)
+                    pesquisa = tags.filter(slug=pesquisar)
+                    if not pesquisa.first():
+                        pesquisa = tags.filter(slug__icontains=pesquisar)
+                    if pesquisa:
+                        tags = pesquisa
         else:
             formulario = PesquisarForm()
 
-        context.update({'formulario': formulario})
+        context.update({'formulario': formulario, 'tags': tags})
         return context
 
 
