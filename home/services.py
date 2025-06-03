@@ -4047,19 +4047,10 @@ def migrar_comissoes(data_inicio, data_fim):
             RECEBER.DATAVENCIMENTO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
             RECEBER.DATAVENCIMENTO <= TO_DATE(:data_fim,'YYYY-MM-DD')
         """
-        condicao_para_comissao = "RECEBER.CONDICAO = 'LIQUIDADO'"
-
         data = data_para_comissao
-        condicao = condicao_para_comissao
     else:
-        data_para_rescisao = """
-                RECEBER.DATAVENCIMENTO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
-                RECEBER.DATALIQUIDACAO IS NULL
-            """
-        condicao_para_rescisao = "RECEBER.CONDICAO != 'LIQUIDADO'"
-
+        data_para_rescisao = "RECEBER.DATAVENCIMENTO >= TO_DATE(:data_inicio,'YYYY-MM-DD')"
         data = data_para_rescisao
-        condicao = condicao_para_rescisao
 
     sql = """
         SELECT
@@ -4141,8 +4132,6 @@ def migrar_comissoes(data_inicio, data_fim):
             NOTAS.VALOR_COMERCIAL = 'SIM' AND
             (PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378, 12441) OR PRODUTOS.CPROD IS NULL) AND
 
-            {condicao} AND
-
             {data}
 
         GROUP BY
@@ -4172,7 +4161,7 @@ def migrar_comissoes(data_inicio, data_fim):
             NOTAS.NF
     """
 
-    sql = sql.format(condicao=condicao, data=data)
+    sql = sql.format(data=data)
 
     kwargs = {}
     if data_fim:
