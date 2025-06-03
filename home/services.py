@@ -4277,8 +4277,6 @@ def migrar_comissoes(data_inicio, data_fim):
 
             # Listar atendimentos da carteira, UF faturamento e UF entrega
 
-            # TODO: testar decorator que lembra os resultados?
-
             atendimentos_carteira = []
             if instancia.carteira_cliente:
                 atendimentos_carteira = instancia.carteira_cliente.vendedoresregioes.all()  # type:ignore

@@ -1764,13 +1764,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
                                           'valor_mercadorias_maior_igual_having': "AND SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) {conversao_moeda}) >= :valor_mercadorias_maior_igual".format(conversao_moeda=conversao_moeda), },
 
-        # TODO: calcular na junção de orçamentos e itens excluidos?
         'coluna_media_dia': {'media_dia_campo_alias': "0 AS MEDIA_DIA,"},
 
-        # TODO: calcular na junção de orçamentos e itens excluidos?
         'coluna_preco_tabela_inclusao': {'preco_tabela_inclusao_campo_alias': "0 AS PRECO_TABELA_INCLUSAO,", },
 
-        # TODO: calcular na junção de orçamentos e itens excluidos?
         'coluna_preco_venda_medio': {'preco_venda_medio_campo_alias': "0 AS PRECO_VENDA_MEDIO,", },
 
         'coluna_preco_venda': {'preco_venda_campo_alias': "ROUND(MAX(ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA {conversao_moeda}), 2) AS PRECO_VENDA,".format(conversao_moeda=conversao_moeda), },

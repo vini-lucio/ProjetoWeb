@@ -42,9 +42,16 @@
             <div class="link-conteudo">
                 <div class="alinhar-esquerda">
                     <h2 class="titulo-2 fonte-verde">Medidas</h2>
-                    {% for produto in produtos_modelo.produtos.all %}
-                        <p>{{ produto.nome }} - {{ produto.descricao }}</p>
-                    {% endfor %}
+                    <div class="tabela-simples">
+                        <table>
+                            {% for produto in produtos_modelo.produtos.all %}
+                                <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
+                                    <td>{{ produto.nome }}</td>
+                                    <td>{{ produto.descricao }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
                 </div>
             </div>
         {% endif %}

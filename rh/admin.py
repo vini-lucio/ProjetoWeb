@@ -9,7 +9,7 @@ from rh.models import (Cbo, Dissidios, Escolaridades, TransporteLinhas, Transpor
                        Funcoes, Horarios, Funcionarios, Afastamentos, Dependentes, HorariosFuncionarios, Cipa,
                        ValeTransportes, ValeTransportesFuncionarios, Ferias, Salarios, Comissoes, ComissoesVendedores,
                        Faturamentos, FaturamentosVendedores, PremioAssiduidadeBasesCalculo)
-from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired
+from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedRequired, ExportarXlsxMixIn
 from utils.base_forms import criar_form_campo_grande
 from utils.exportar_excel import arquivo_excel, gerar_conteudo_excel, gerar_cabecalho, somar_coluna_formatada
 
@@ -437,7 +437,7 @@ class FeriasAdmin(BaseModelAdminRedRequiredLog):
 
 
 @admin.register(Salarios)
-class SalariosAdmin(BaseModelAdminRedRequiredLog):
+class SalariosAdmin(ExportarXlsxMixIn, BaseModelAdminRedRequiredLog):
     list_display = ('id', 'funcionario', 'data_as_ddmmyyyy', 'salario', 'salario_convertido', 'funcao', 'motivo',
                     'comissao_carteira', 'comissao_dupla', 'comissao_geral',)
     list_display_links = list_display
@@ -446,6 +446,10 @@ class SalariosAdmin(BaseModelAdminRedRequiredLog):
     readonly_fields = ('salario_convertido', 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por',
                        'atualizado_em',)
     autocomplete_fields = 'funcionario',
+
+    actions = 'exportar_excel',
+    campos_exportar = ('funcionario_nome', 'data_as_ddmmyyyy', 'salario', 'salario_convertido', 'funcao_descricao',
+                       'motivo', 'comissao_carteira', 'comissao_dupla', 'comissao_geral',)
 
 
 class ComissoesVendedoresInLine(admin.TabularInline):
@@ -457,7 +461,6 @@ class ComissoesVendedoresInLine(admin.TabularInline):
     autocomplete_fields = 'vendedor',
 
 
-# TODO: transformar CustomFilter em MixIn
 class CustomFilterConferir(admin.SimpleListFilter):
     title = 'Conferir'
     parameter_name = 'conferir'

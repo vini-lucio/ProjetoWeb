@@ -1020,6 +1020,18 @@ class Salarios(BaseLogModel):
 
     cbo_numero.fget.short_description = 'nº CBO'  # type:ignore
 
+    @property
+    def funcionario_nome(self):
+        return self.funcionario.nome
+
+    funcionario_nome.fget.short_description = 'Funcionario'  # type:ignore
+
+    @property
+    def funcao_descricao(self):
+        return self.funcao.descricao
+
+    funcao_descricao.fget.short_description = 'Função'  # type:ignore
+
     def get_dados(self):
         dados = {
             'funcionario': self.funcionario,

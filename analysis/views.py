@@ -17,7 +17,6 @@ from home.models import Produtos
 from home.services import sugestoes_modelos
 
 
-# TODO: criar direito especifico
 class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
     model = GRUPO_ECONOMICO
     template_name = 'analysis/pages/grupo-economico.html'

@@ -13,5 +13,3 @@ urlpatterns = [
     path('relatorios-supervisao/<str:fonte>/', relatorios_supervisao, name='relatorios-supervisao'),
     path('analise-orcamentos/', analise_orcamentos, name='analise-orcamentos'),
 ]
-
-# TODO: atalhos para dashboards

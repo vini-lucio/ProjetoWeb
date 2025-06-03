@@ -331,7 +331,6 @@ def vendas_supervisao(request):
     return render(request, 'dashboards/pages/vendas-supervisao.html', contexto)
 
 
-# TODO: forçar somente usuarios do grupo de supervisao ou direito especifico
 def relatorios_supervisao(request, fonte: str):
     fonte_relatorio = fonte
     if fonte_relatorio not in ('faturamentos', 'orcamentos'):
