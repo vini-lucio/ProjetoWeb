@@ -96,7 +96,11 @@ def get_dados_pedidos_em_aberto():
                     PEDIDOS_ORDEM.CHAVE_CLIENTE_REMESSA = CLIENTES_ORDEM.CODCLI AND
                     CLIENTES_ORDEM.UF = ESTADOS_ORDEM.CHAVE AND
                     PEDIDOS_ORDEM.STATUS != 'LIQUIDADO' AND
-                    PEDIDOS_ORDEM.COBRANCA_FRETE IN (0, 1, 4, 5)
+
+                    (
+                        PEDIDOS_ORDEM.CHAVE_TRANSPORTADORA = 8475 OR
+                        PEDIDOS_ORDEM.COBRANCA_FRETE IN (0, 1, 4, 5)
+                    )
             ) UF_ORDEM,
             COPLAS.VENDEDORES,
             COPLAS.ESTADOS ESTADOS2,
@@ -115,7 +119,11 @@ def get_dados_pedidos_em_aberto():
             ESTADOS.CHAVE = CLIENTES.UF AND
             JOBS.CODIGO = PEDIDOS.CHAVE_JOB AND
             PEDIDOS.STATUS != 'LIQUIDADO' AND
-            PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5)
+
+            (
+                PEDIDOS.CHAVE_TRANSPORTADORA = 8475 OR
+                PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5)
+            )
     """
 
     resultado = executar_oracle(sql, exportar_cabecalho=True)
