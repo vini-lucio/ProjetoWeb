@@ -124,27 +124,27 @@
                                 <p>Pedidos Mês / <span class="fonte-verde">Meta Mês Carteira</span></p>
                             </div>
                             <div>
-                                <p><span class="fonte-vermelho">(Falta Meta)</span></p>
+                                <p><span class="fonte-vermelho">(Falta Meta)</span> <span class="fonte-verde">(Em Dia)</span></p>
                             </div>
                         </div>
                     </div>
-                    {% for carteira in dados.carteiras_mes %}
+                    {% for carteira in dados.carteiras %}
                         <div class="moldura-verde-dashboard-2 principal-escuro-2 alinhar-topo" style="{% if carteira.porcentagem_meta_mes >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
                             <div style="position: relative;">
                                 <div class="centralizar fonte-muito-pequena-dashboard" style="width: 100%; position: absolute; z-index: 2;">
-                                    {{ carteira.rentabilidade_mes_carteira | floatformat:"2" }}%*
+                                    {{ carteira.rentabilidade_pedidos_mes_rentabilidade_mes | floatformat:"2" }}%*
                                 </div>
-                                <div class="grafico-barra" style="position: relative; z-index: 1; --largura: {% if carteira.porcentagem_meta_mes > 100 %}100{% else %}{{ carteira.porcentagem_meta_mes }}{% endif %}%; --cor-barra: {% if carteira.rentabilidade_mes_carteira != 0 %}var({{ carteira.cor_rentabilidade_mes_carteira }}){% else %}transparent{% endif %}"></div>
+                                <div class="grafico-barra" style="position: relative; z-index: 1; --largura: {% if carteira.porcentagem_meta_mes > 100 %}100{% else %}{{ carteira.porcentagem_meta_mes }}{% endif %}%; --cor-barra: {% if carteira.rentabilidade_pedidos_mes_rentabilidade_mes != 0 %}var({{ carteira.cor_rentabilidade_css_mes }}){% else %}transparent{% endif %}"></div>
                             </div>
                             <div class="grid-3-colunas">
                                 <div>
                                     <p>{{ carteira.carteira }}</p>
                                 </div>
                                 <div>
-                                    <p>R$ {{ carteira.total_mes_carteira | floatformat:"2" }} / <span class="fonte-verde">R$ {{ carteira.meta_mes | floatformat:"2" }}</span></p>
+                                    <p>R$ {{ carteira.pedidos_mes | floatformat:"2" }} / <span class="fonte-verde">R$ {{ carteira.meta_mes | floatformat:"2" }}</span></p>
                                 </div>
                                 <div>
-                                    <p><span class="{% if carteira.falta_meta > 0 %}fonte-vermelho{% else %}fonte-verde{% endif %}">(R$ {{ carteira.falta_meta | floatformat:"2" }})</span></p>
+                                    <p><span class="{% if carteira.faltam_meta_mes > 0 %}fonte-vermelho{% else %}fonte-verde{% endif %}">(R$ {{ carteira.faltam_meta_mes | floatformat:"2" }})</span> (Em dia <span class="{% if carteira.meta_em_dia < 0 %}fonte-vermelho{% else %}fonte-verde{% endif %}">R$ {{ carteira.meta_em_dia | floatformat:"2" }}</span>)</p>
                                 </div>
                             </div>
                         </div>

@@ -71,6 +71,7 @@
                 <div class="tabela-simples">
                     <table>
                         <tr>
+                            {% if formulario.coluna_job.value %}<th>Job</th>{% endif %}
                             {% if formulario.coluna_ano_emissao.value %}<th>Ano</th>{% endif %}
                             {% if formulario.coluna_mes_emissao.value %}<th>Mês</th>{% endif %}
                             {% if formulario.coluna_dia_emissao.value %}<th>Dia</th>{% endif %}
@@ -98,6 +99,7 @@
                         </tr>
                         {% for valor in dados %}
                             <tr class="{% cycle 'principal-azul-claro' '' %}">
+                                {% if formulario.coluna_job.value %}<td>{{ valor.JOB }}</td>{% endif %}
                                 {% if formulario.coluna_ano_emissao.value %}<td>{{ valor.ANO_EMISSAO }}</td>{% endif %}
                                 {% if formulario.coluna_mes_emissao.value %}<td>{{ valor.MES_EMISSAO }}</td>{% endif %}
                                 {% if formulario.coluna_dia_emissao.value %}<td>{{ valor.DIA_EMISSAO }}</td>{% endif %}
@@ -125,6 +127,7 @@
                             </tr>
                         {% endfor %}
                         <tr>
+                            {% if formulario.coluna_job.value %}<td></td>{% endif %}
                             {% if formulario.coluna_ano_emissao.value %}<td></td>{% endif %}
                             {% if formulario.coluna_mes_emissao.value %}<td></td>{% endif %}
                             {% if formulario.coluna_dia_emissao.value %}<td></td>{% endif %}

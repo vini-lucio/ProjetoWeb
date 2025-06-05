@@ -569,3 +569,31 @@ class NOTAS_ITENS(ReadOnlyMixin, models.Model):
 
     def __str__(self):
         return f'{self.CHAVE_NOTA} - {self.CHAVE_PRODUTO}'
+
+
+class INFORMACOES_CLI(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."INFORMACOES_CLI"'
+        verbose_name = 'Informação Estrategica'
+        verbose_name_plural = 'Informações Estrategicas'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    DESCRICAO = models.CharField("Descrição", max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return self.DESCRICAO
+
+
+class JOBS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."JOBS"'
+        verbose_name = 'Job'
+        verbose_name_plural = 'Jobs'
+
+    CODIGO = models.IntegerField("ID", primary_key=True)
+    DESCRICAO = models.CharField("Descrição", max_length=50, null=True, blank=True)
+
+    def __str__(self):
+        return self.DESCRICAO

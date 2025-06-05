@@ -16,7 +16,7 @@ import pandas as pd
 
 
 class DashBoardVendas():
-    def __init__(self, carteira='%%') -> None:
+    def __init__(self, carteira='%%', conferir_pedidos: bool = True) -> None:
         self.carteira = carteira
         self.site_setup = get_site_setup()
         if self.site_setup:
@@ -74,7 +74,9 @@ class DashBoardVendas():
 
         self.data_hora_atual = data_hora_atual()
 
-        self.confere_pedidos = confere_pedidos(self.carteira)
+        self.confere_pedidos = []
+        if conferir_pedidos:
+            self.confere_pedidos = confere_pedidos(self.carteira)
 
     def get_dados(self):
         dados = {
@@ -114,8 +116,8 @@ class DashBoardVendas():
 
 
 class DashboardVendasCarteira(DashBoardVendas):
-    def __init__(self, carteira='%%') -> None:
-        super().__init__(carteira)
+    def __init__(self, carteira='%%', conferir_pedidos: bool = True) -> None:
+        super().__init__(carteira, conferir_pedidos)
         self.recebido, self.a_receber = recebido_a_receber(self.primeiro_dia_mes, self.ultimo_dia_mes, carteira)
 
     def get_dados(self):
@@ -160,36 +162,14 @@ class DashboardVendasSupervisao(DashBoardVendas):
         frete_cif = 0 if faturado_bruto == 0 else frete_cif / faturado_bruto * 100
 
         self.frete_cif = frete_cif
-        self.carteira_mes = []
+        self.carteiras = []
         for carteira in get_consultores_tecnicos_ativos():
-            rentabilidade_pedidos_mes_ = rentabilidade_pedidos_mes(self.despesa_administrativa_fixa,
-                                                                   self.primeiro_dia_mes,
-                                                                   self.primeiro_dia_util_mes,
-                                                                   self.ultimo_dia_mes,
-                                                                   self.primeiro_dia_util_proximo_mes, carteira.nome)
-            rentabilidade_pedidos_mes_mc_mes = rentabilidade_pedidos_mes_['mc_mes']
-            rentabilidade_pedidos_mes_total_mes = rentabilidade_pedidos_mes_['total_mes']
-            rentabilidade_pedidos_mes_rentabilidade = rentabilidade_pedidos_mes_['rentabilidade_mes']
-            toneladas_mes = rentabilidade_pedidos_mes_['toneladas_mes']
-            cor_rentabilidade_pedidos_mes = cor_rentabilidade_css(rentabilidade_pedidos_mes_rentabilidade)
-            meta_mes_float = float(carteira.meta_mes)
-            dados_carteira = {
-                'carteira': carteira.nome,
-                'mc_mes_carteira': rentabilidade_pedidos_mes_mc_mes,
-                'meta_mes': meta_mes_float,
-                'total_mes_carteira': rentabilidade_pedidos_mes_total_mes,
-                'falta_meta': meta_mes_float - rentabilidade_pedidos_mes_total_mes,
-                'porcentagem_meta_mes': 0 if meta_mes_float == 0 else int(rentabilidade_pedidos_mes_total_mes / meta_mes_float * 100),
-                'rentabilidade_mes_carteira': rentabilidade_pedidos_mes_rentabilidade,
-                'toneladas_mes_carteira': toneladas_mes,
-                'cor_rentabilidade_mes_carteira': cor_rentabilidade_pedidos_mes,
-            }
-            self.carteira_mes.append(dados_carteira)
+            self.carteiras.append(DashboardVendasCarteira(carteira.nome, conferir_pedidos=False).get_dados())
 
     def get_dados(self):
         dados = super().get_dados()
         dados.update({
-            'carteiras_mes': self.carteira_mes,
+            'carteiras': self.carteiras,
             'frete_cif': self.frete_cif,
         })
         return dados
@@ -1138,6 +1118,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
             CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
             NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
             NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
+            NOTAS.CHAVE_JOB = JOBS.CODIGO AND
         """,
 
         'fonte_where': "NOTAS.VALOR_COMERCIAL = 'SIM' AND",
@@ -1312,6 +1293,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                           'orcamento_oportunidade_campo': "", },
 
         'status_cliente_ativo': {'status_cliente_ativo_pesquisa': "CLIENTES.STATUS IN ('Y', 'P') AND", },
+
+        'informacao_estrategica': {'informacao_estrategica_pesquisa': "EXISTS(SELECT CLIENTES_INFORMACOES_CLI.CHAVE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES.CODCLI = CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE AND CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO = :chave_informacao_estrategica) AND", },
+
+        'coluna_job': {'job_campo_alias': "JOBS.DESCRICAO AS JOB,",
+                       'job_campo': "JOBS.DESCRICAO,", },
+        'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
+
+        'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.PESO_LIQUIDO ELSE 0 END) AS PESO_PP,", },
     }
 
     pedidos_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
@@ -1372,6 +1361,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
             PRODUTOS.CPROD = PEDIDOS_ITENS.CHAVE_PRODUTO AND
             CLIENTES.CODCLI = PEDIDOS.CHAVE_CLIENTE AND
             PEDIDOS.CHAVE = PEDIDOS_ITENS.CHAVE_PEDIDO AND
+            PEDIDOS.CHAVE_JOB = JOBS.CODIGO AND
         """,
 
         'fonte_where': "PEDIDOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND",
@@ -1517,6 +1507,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                           'orcamento_oportunidade_campo': "", },
 
         'status_cliente_ativo': {'status_cliente_ativo_pesquisa': "CLIENTES.STATUS IN ('Y', 'P') AND", },
+
+        'informacao_estrategica': {'informacao_estrategica_pesquisa': "EXISTS(SELECT CLIENTES_INFORMACOES_CLI.CHAVE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES.CODCLI = CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE AND CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO = :chave_informacao_estrategica) AND", },
+
+        'coluna_job': {'job_campo_alias': "JOBS.DESCRICAO AS JOB,",
+                       'job_campo': "JOBS.DESCRICAO,", },
+        'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
+
+        'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.PESO_LIQUIDO ELSE 0 END) AS PESO_PP,", },
     }
 
     orcamentos_status_produto_orcamento_tipo_from = "COPLAS.STATUS_ORCAMENTOS_ITENS,"
@@ -1581,6 +1579,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
             PRODUTOS.CPROD = ORCAMENTOS_ITENS.CHAVE_PRODUTO AND
             CLIENTES.CODCLI = ORCAMENTOS.CHAVE_CLIENTE AND
             ORCAMENTOS.CHAVE = ORCAMENTOS_ITENS.CHAVE_PEDIDO AND
+            ORCAMENTOS.CHAVE_JOB = JOBS.CODIGO AND
         """,
 
         'fonte_where': """
@@ -1730,6 +1729,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                           'orcamento_oportunidade_campo': "ORCAMENTOS.REGISTRO_OPORTUNIDADE,", },
 
         'status_cliente_ativo': {'status_cliente_ativo_pesquisa': "CLIENTES.STATUS IN ('Y', 'P') AND", },
+
+        'informacao_estrategica': {'informacao_estrategica_pesquisa': "EXISTS(SELECT CLIENTES_INFORMACOES_CLI.CHAVE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES.CODCLI = CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE AND CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO = :chave_informacao_estrategica) AND", },
+
+        'coluna_job': {'job_campo_alias': "JOBS.DESCRICAO AS JOB,",
+                       'job_campo': "JOBS.DESCRICAO,", },
+        'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
+
+        'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN ORCAMENTOS_ITENS.PESO_LIQUIDO ELSE 0 END) AS PESO_PP,", },
     }
 
     # Itens de orçamento excluidos somente o que difere de orçamento
@@ -1753,6 +1760,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
             PRODUTOS.CPROD = ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE_PRODUTO AND
             CLIENTES.CODCLI = ORCAMENTOS.CHAVE_CLIENTE AND
             ORCAMENTOS.CHAVE = ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE_ORCAMENTO AND
+            ORCAMENTOS.CHAVE_JOB = JOBS.CODIGO AND
         """,
     }
 
@@ -1817,6 +1825,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'ordenar_sequencia_prioritario': {'sequencia_campo': "ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE,",
                                           'ordenar_sequencia_prioritario': "ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE,", },
+
+        'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "0 AS PESO_PP,", },
     }
 
     sql_final = {}
@@ -1853,6 +1863,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
 def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], **kwargs):
     # TODO: coluna de cada mes? cada ano?
+    # TODO: filtro pela data de entrega dos itens
     kwargs_sql = {}
     kwargs_sql_itens_excluidos = {}
     kwargs_ora = {}
@@ -1872,6 +1883,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     quantidade_meses_maior_que = kwargs.get('quantidade_meses_maior_que')
     valor_mercadorias_maior_igual = kwargs.get('valor_mercadorias_maior_igual')
     documento = kwargs.get('documento')
+    informacao_estrategica = kwargs.get('informacao_estrategica')
+    job = kwargs.get('job')
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
 
     if not data_inicio:
@@ -1934,8 +1947,17 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     if documento:
         kwargs_ora.update({'documento': documento})
 
+    if informacao_estrategica:
+        chave_informacao_estrategica = informacao_estrategica.pk
+        kwargs_ora.update({'chave_informacao_estrategica': chave_informacao_estrategica, })
+
+    if job:
+        chave_job = job.pk
+        kwargs_ora.update({'chave_job': chave_job, })
+
     sql_base = """
         SELECT
+            {job_campo_alias}
             {data_emissao_campo_alias}
             {data_entrega_itens_campo_alias}
             {ano_mes_emissao_campo_alias}
@@ -1963,6 +1985,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {preco_venda_campo_alias}
             {desconto_campo_alias}
             {quantidade_campo_alias}
+            {peso_produto_proprio_campo_alias}
             {media_dia_campo_alias}
             {frete_incluso_item_campo_alias}
             {custo_total_item_campo_alias}
@@ -1988,7 +2011,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             COPLAS.GRUPO_ECONOMICO,
             COPLAS.CLIENTES,
             COPLAS.CLIENTES_TIPOS,
-            COPLAS.ESTADOS
+            COPLAS.ESTADOS,
+            COPLAS.JOBS
 
         WHERE
             {lfrete_join}
@@ -2018,10 +2042,13 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {carteira_premoldado_poste_pesquisa}
             {status_cliente_ativo_pesquisa}
             {documento_pesquisa}
+            {informacao_estrategica_pesquisa}
+            {job_pesquisa}
 
             {fonte_where_data}
 
         GROUP BY
+            {job_campo}
             {sequencia_campo}
             {data_emissao_campo}
             {data_entrega_itens_campo}
@@ -2056,6 +2083,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         ORDER BY
             {ordenar_sequencia_prioritario}
             {ordenar_valor_descrescente_prioritario}
+
+            {job_campo}
             {ano_mes_emissao_campo}
             {ano_emissao_campo}
             {mes_emissao_campo}
@@ -2090,7 +2119,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'DOCUMENTO', 'CLIENTE', 'DATA_ENTREGA', 'STATUS_DOCUMENTO', 'OPORTUNIDADE',
                                      'DESCONTO', 'ALIQUOTA_PIS', 'ALIQUOTA_COFINS', 'ALIQUOTA_ICMS',
                                      'ALIQUOTA_IR', 'ALIQUOTA_CSLL', 'ALIQUOTA_COMISSAO', 'ALIQUOTA_DESPESA_ADM',
-                                     'ALIQUOTA_DESPESA_COM', 'ALIQUOTAS_TOTAIS', 'MC_COR_AJUSTE',]
+                                     'ALIQUOTA_DESPESA_COM', 'ALIQUOTAS_TOTAIS', 'MC_COR_AJUSTE', 'JOB',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',

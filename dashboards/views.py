@@ -92,14 +92,16 @@ def vendas_carteira(request):
                                  'valor_devolucoes': valor_devolucoes})
 
             if 'exportar-orcamentos-submit' in request.GET:
-                orcamentos_em_aberto = get_relatorios_vendas(fonte='orcamentos', coluna_data_emissao=True,
+                orcamentos_em_aberto = get_relatorios_vendas(fonte='orcamentos', coluna_job=True, coluna_carteira=True,
+                                                             coluna_data_emissao=True,
+                                                             coluna_peso_produto_proprio=True,
                                                              status_documento_em_aberto=True, coluna_documento=True,
                                                              coluna_cliente=True, coluna_data_entrega_itens=True,
                                                              coluna_orcamento_oportunidade=True,
                                                              incluir_orcamentos_oportunidade=True,
                                                              **carteira_parametros)
-                excel = arquivo_excel(orcamentos_em_aberto, cabecalho_negrito=True, formatar_numero=(['F'], 2),
-                                      formatar_data=['A', 'B'], ajustar_largura_colunas=True)
+                excel = arquivo_excel(orcamentos_em_aberto, cabecalho_negrito=True, formatar_numero=(['H', 'I'], 2),
+                                      formatar_data=['B', 'C'], ajustar_largura_colunas=True)
                 arquivo = salvar_excel_temporario(excel)
                 nome_arquivo = 'ORCAMENTOS_EM_ABERTO'
                 nome_arquivo += f'_{carteira_nome}' if carteira_nome != '%%' else '_TODOS'

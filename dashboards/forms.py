@@ -1,6 +1,7 @@
 from django import forms
 from utils.base_forms import FormPeriodoInicioFimMixIn, FormVendedoresMixIn, FormPesquisarIntegerMixIn
-from analysis.models import VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS, STATUS_ORCAMENTOS_ITENS
+from analysis.models import (VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS, STATUS_ORCAMENTOS_ITENS,
+                             INFORMACOES_CLI, JOBS)
 from utils.data_hora_atual import hoje_as_yyyymmdd
 from datetime import date, timedelta
 
@@ -58,7 +59,10 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     cidades = FAIXAS_CEP.objects.all().order_by('CIDADE')
     estados = ESTADOS.objects.all().order_by('ESTADO')
     familias_produtos = FAMILIA_PRODUTOS.objects.all().order_by('FAMILIA')
+    informacoes_estrategicas = INFORMACOES_CLI.objects.all().order_by('DESCRICAO')
+    jobs = JOBS.objects.all().order_by('DESCRICAO')
 
+    coluna_job = forms.BooleanField(label="Coluna Job", initial=True, required=False)
     coluna_grupo_economico = forms.BooleanField(label="Coluna Grupo Economico", initial=True, required=False)
     coluna_carteira = forms.BooleanField(label="Coluna Carteira", initial=True, required=False)
     coluna_tipo_cliente = forms.BooleanField(label="Coluna Tipo", initial=False, required=False)
@@ -87,6 +91,7 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
                                           initial=False, required=False)
     coluna_documento = forms.BooleanField(label="Coluna Documento", initial=False, required=False)
 
+    job = forms.ModelChoiceField(jobs, label="Job", required=False)
     grupo_economico = forms.CharField(label="Grupo Economico", max_length=300, required=False)
     carteira = forms.ModelChoiceField(carteiras, label="Carteira", required=False)
     tipo_cliente = forms.ModelChoiceField(clientes_tipos, label="Tipo", required=False)
@@ -94,6 +99,8 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     estado = forms.ModelChoiceField(estados, label="Estado Principal", required=False)
     familia_produto = forms.ModelChoiceField(familias_produtos, label="Familia", required=False)
     produto = forms.CharField(label="Produto", max_length=300, required=False)
+    informacao_estrategica = forms.ModelChoiceField(informacoes_estrategicas, label="Informação Estrategica",
+                                                    required=False)
 
     def get_agrupamentos_campos(self):
         agrupamentos = {
@@ -104,13 +111,15 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
             'Visualizações sobre Produto': ['coluna_familia_produto', 'coluna_produto', 'coluna_unidade',
                                             'coluna_preco_tabela_inclusao', 'coluna_preco_venda_medio',
                                             'coluna_quantidade',],
-            'Visualizações Gerais': ['coluna_rentabilidade', 'coluna_rentabilidade_valor', 'coluna_proporcao',
-                                     'coluna_quantidade_documentos', 'coluna_ano_emissao', 'coluna_mes_emissao',
-                                     'coluna_dia_emissao', 'coluna_media_dia', 'coluna_documento',],
+            'Visualizações Gerais': ['coluna_job', 'coluna_rentabilidade', 'coluna_rentabilidade_valor',
+                                     'coluna_proporcao', 'coluna_quantidade_documentos', 'coluna_ano_emissao',
+                                     'coluna_mes_emissao', 'coluna_dia_emissao', 'coluna_media_dia',
+                                     'coluna_documento',],
 
-            'Filtros sobre Cliente': ['grupo_economico', 'carteira', 'tipo_cliente',
-                                      'cidade', 'estado',],
+            'Filtros sobre Cliente': ['grupo_economico', 'carteira', 'tipo_cliente', 'cidade', 'estado',
+                                      'informacao_estrategica',],
             'Filtros sobre Produto': ['familia_produto', 'produto',],
+            'Filtros Gerais': ['job',],
         }
 
         return agrupamentos

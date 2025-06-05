@@ -20,6 +20,9 @@ from django.contrib.auth.decorators import user_passes_test
 # TODO: todos os relatorios onde usam despesa administrativas (do site_setup) tratar por job
 # TODO: tabela com historico de metas
 # TODO: conferencia de campos não obrigatorios para serem preenchidos (exemplo: cadastros de produtos campos de calculo de frete e modelo, modelos sem tags)
+# TODO: detalhar meta por dia dashboard por carteira
+# TODO: melhorar tags (identificar produtos que estão em somente uma tag para melhorar sugestão da tag)
+# TODO: Paginas personalizadas com informassões consolidades de clientes, produtos, vendas, produção, financeiro, etc???????
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
