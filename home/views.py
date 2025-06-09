@@ -16,7 +16,7 @@ from django.contrib.auth.decorators import user_passes_test
 # TODO: levantar excessões com melhores descrições
 # TODO: nas migrações, trazer tudo para memoria, para não ter que fazer select no loop nas comparações
 # TODO: testar celery (exemplo: guardar informações mensais ao invez de atualizar online (como as predições), migrações automaticas, fechamentos)
-# TODO: trocar relatorios automaticos por semelhantes ao get_relatorios_vendas
+# TODO: relatorios por semelhantes ao get_relatorios_vendas
 # TODO: todos os relatorios onde usam despesa administrativas (do site_setup) tratar por job
 # TODO: tabela com historico de metas
 # TODO: conferencia de campos não obrigatorios para serem preenchidos (exemplo: cadastros de produtos campos de calculo de frete e modelo, modelos sem tags)

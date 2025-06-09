@@ -46,7 +46,7 @@
                             </div>
 
                             <div class="div-dashboard">
-                                <p class="fonte-verde">Rentabilidade Hoje*</p>
+                                <p class="fonte-verde">Rentabilidade Hoje</p>
                                 <p>{{ dados.rentabilidade_pedidos_dia | floatformat:"2" }}%</p>
                             </div>
 
@@ -92,7 +92,7 @@
                         </div>
 
                         <div class="div-dashboard">
-                            <p class="fonte-verde">Rentabilidade Mês*</p>
+                            <p class="fonte-verde">Rentabilidade Mês</p>
                             <p>{{ dados.rentabilidade_pedidos_mes_rentabilidade_mes | floatformat:"2" }}%</p>
                         </div>
 
@@ -113,7 +113,7 @@
                     <div class="moldura-verde-dashboard-2 principal-escuro-2 alinhar-topo">
                         <div>
                             <div class="centralizar fonte-muito-pequena-dashboard">
-                                Rentabilidade %*
+                                Rentabilidade %
                             </div>
                         </div>
                         <div class="grid-3-colunas">
@@ -132,7 +132,7 @@
                         <div class="moldura-verde-dashboard-2 principal-escuro-2 alinhar-topo" style="{% if carteira.porcentagem_meta_mes >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
                             <div style="position: relative;">
                                 <div class="centralizar fonte-muito-pequena-dashboard" style="width: 100%; position: absolute; z-index: 2;">
-                                    {{ carteira.rentabilidade_pedidos_mes_rentabilidade_mes | floatformat:"2" }}%*
+                                    {{ carteira.rentabilidade_pedidos_mes_rentabilidade_mes | floatformat:"2" }}%
                                 </div>
                                 <div class="grafico-barra" style="position: relative; z-index: 1; --largura: {% if carteira.porcentagem_meta_mes > 100 %}100{% else %}{{ carteira.porcentagem_meta_mes }}{% endif %}%; --cor-barra: {% if carteira.rentabilidade_pedidos_mes_rentabilidade_mes != 0 %}var({{ carteira.cor_rentabilidade_css_mes }}){% else %}transparent{% endif %}"></div>
                             </div>
@@ -159,7 +159,6 @@
 
             <div class="div-dashboard principal-escuro">
                 <p class="fonte-muito-pequena-dashboard">Faltam R$ {{ dados.falta_mudar_cor_mes_valor | floatformat:"2" }} com margem de {{ dados.falta_mudar_cor_mes_valor_rentabilidade | floatformat:"2" }}% para {{ dados.falta_mudar_cor_mes_cor }} no mês. ({{ dados.falta_mudar_cor_mes_porcentagem | floatformat:"2" }})</p>
-                <p class="fonte-muito-pequena-dashboard">* Rentabilidade já está subtraindo a despesa fixa</p>
                 <p class="fonte-muito-pequena-dashboard">*¹ Ultimos 90 dias</p>
                 <p class="fonte-muito-pequena-dashboard">*² Novos orçs. para a meta do dia</p>
                 <p class="fonte-muito-pequena-dashboard">*³ Porcentagem sobre faturamento</p>

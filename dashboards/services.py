@@ -1,7 +1,7 @@
 from typing import Literal
 from utils.custom import DefaultDict
 from utils.oracle.conectar import executar_oracle
-from utils.data_hora_atual import data_hora_atual
+from utils.data_hora_atual import data_hora_atual, hoje
 from utils.cor_rentabilidade import cor_rentabilidade_css, falta_mudar_cor_mes
 from utils.site_setup import (get_site_setup, get_assistentes_tecnicos, get_assistentes_tecnicos_agenda,
                               get_transportadoras, get_consultores_tecnicos_ativos)
@@ -16,9 +16,12 @@ import pandas as pd
 
 
 class DashBoardVendas():
+    # TODO: media por dia (dos pedidos feitos dentro do mes, não considerar o vendido em meses anteriores mas com entrega no mes)
+    # TODO: detalhar vendido por dia????
     def __init__(self, carteira='%%', conferir_pedidos: bool = True) -> None:
         self.carteira = carteira
         self.site_setup = get_site_setup()
+        parametro_carteira = {}
         if self.site_setup:
             self.dias_meta = self.site_setup.dias_uteis_mes_as_float
             self.dias_meta_reais = self.site_setup.dias_uteis_mes_reais_as_float
@@ -34,38 +37,91 @@ class DashBoardVendas():
                 self.meta_mes = self.site_setup.meta_mes_as_float
             else:
                 vendedor = Vendedores.objects.get(nome=self.carteira)
+                parametro_carteira = {'carteira': vendedor}
+                if vendedor.nome == 'PAREDE DE CONCRETO':
+                    parametro_carteira = {'carteira_parede_de_concreto': True}
+                if vendedor.nome == 'PREMOLDADO / POSTE':
+                    parametro_carteira = {'carteira_premoldado_poste': True}
                 self.meta_mes = float(vendedor.meta_mes)
                 self.meta_diaria = self.meta_mes / self.dias_meta if self.dias_meta else 0.0
                 self.meta_diaria_real = self.meta_mes / self.dias_meta_reais if self.dias_meta_reais else 0.0
 
+        pedidos_mes_entrega_mes_dias = get_relatorios_vendas('pedidos',
+                                                             inicio=self.site_setup.primeiro_dia_mes,  # type:ignore
+                                                             fim=self.site_setup.ultimo_dia_mes,  # type:ignore
+                                                             coluna_data_emissao=True,
+                                                             data_entrega_itens_menor_igual=self.site_setup.primeiro_dia_util_proximo_mes,  # type:ignore
+                                                             coluna_peso_produto_proprio=True, coluna_rentabilidade_cor=True,
+                                                             **parametro_carteira)
+        pedidos_mes_entrega_mes_dias = pd.DataFrame(pedidos_mes_entrega_mes_dias)
+        pedidos_mes_entrega_mes_total = pd.DataFrame()
+        if not pedidos_mes_entrega_mes_dias.empty:
+            pedidos_mes_entrega_mes_total = pedidos_mes_entrega_mes_dias.drop(columns=['DATA_EMISSAO'])
+
+        pedidos_fora_mes_entrega_mes = get_relatorios_vendas('pedidos',
+                                                             data_emissao_menor_que=self.site_setup.primeiro_dia_mes,  # type:ignore
+                                                             data_entrega_itens_maior_que=self.site_setup.primeiro_dia_util_mes,  # type:ignore
+                                                             data_entrega_itens_menor_igual=self.site_setup.primeiro_dia_util_proximo_mes,  # type:ignore
+                                                             coluna_peso_produto_proprio=True, coluna_rentabilidade_cor=True,
+                                                             **parametro_carteira)
+        pedidos_fora_mes_entrega_mes = pd.DataFrame(pedidos_fora_mes_entrega_mes)
+
+        desvolucoes_mes = get_relatorios_vendas('faturamentos',
+                                                inicio=self.site_setup.primeiro_dia_mes,  # type:ignore
+                                                fim=self.site_setup.ultimo_dia_mes,  # type:ignore
+                                                especie='E',
+                                                coluna_peso_produto_proprio=True, coluna_rentabilidade_cor=True,
+                                                **parametro_carteira)
+        desvolucoes_mes = pd.DataFrame(desvolucoes_mes)
+
+        total_mes = pd.concat([desvolucoes_mes, pedidos_fora_mes_entrega_mes, pedidos_mes_entrega_mes_total],
+                              ignore_index=True)
+        total_mes = pd.DataFrame([total_mes.sum(axis=0)])
+        if not total_mes.empty:
+            total_mes['MC_COR'] = total_mes['MC_VALOR_COR'] / total_mes['VALOR_MERCADORIAS'] * 100
+        total_mes = total_mes.to_dict(orient='records')
+        total_mes = total_mes[0] if total_mes else {'MC_VALOR_COR': 0,
+                                                    'MC_COR': 0, 'PESO_PP': 0, 'VALOR_MERCADORIAS': 0}
+
+        total_dia = pd.DataFrame()
+        if not pedidos_mes_entrega_mes_dias.empty:
+            total_dia = pedidos_mes_entrega_mes_dias[pedidos_mes_entrega_mes_dias['DATA_EMISSAO'].dt.date == hoje()]
+        if not total_dia.empty:
+            total_dia = total_dia.drop(columns=['DATA_EMISSAO'])
+        total_dia = total_dia.to_dict(orient='records')
+        total_dia = total_dia[0] if total_dia else {'MC_VALOR_COR': 0,
+                                                    'MC_COR': 0, 'PESO_PP': 0, 'VALOR_MERCADORIAS': 0}
+
         self.dias_decorridos = dias_decorridos(self.primeiro_dia_mes, self.ultimo_dia_mes)
         self.meta_acumulada_dia_real = self.dias_decorridos * self.meta_diaria_real
-        self.pedidos_dia, self.toneladas_dia, self.rentabilidade_pedidos_dia = rentabilidade_pedidos_dia(
-            self.despesa_administrativa_fixa, self.primeiro_dia_util_proximo_mes, self.carteira)
-        self.porcentagem_mc_dia = self.rentabilidade_pedidos_dia + self.despesa_administrativa_fixa
+
+        self.total_dia = total_dia
+        self.rentabilidade_pedidos_dia = self.total_dia['MC_COR']
+        self.toneladas_dia = self.total_dia['PESO_PP'] / 1000
+        self.pedidos_dia = self.total_dia['VALOR_MERCADORIAS']
+
+        self.porcentagem_mc_dia = self.rentabilidade_pedidos_dia
         self.porcentagem_meta_dia = int(self.pedidos_dia / self.meta_diaria * 100) if self.meta_diaria else 0
         self.faltam_meta_dia = round(self.meta_diaria - self.pedidos_dia, 2)
         self.conversao_de_orcamentos = conversao_de_orcamentos(self.carteira)
         self.faltam_abrir_orcamentos_dia = round(
             self.faltam_meta_dia / (self.conversao_de_orcamentos / 100), 2) if self.conversao_de_orcamentos else 0.0
-        self.rentabilidade_pedidos_mes = rentabilidade_pedidos_mes(self.despesa_administrativa_fixa,
-                                                                   self.primeiro_dia_mes, self.primeiro_dia_util_mes,
-                                                                   self.ultimo_dia_mes,
-                                                                   self.primeiro_dia_util_proximo_mes, self.carteira)
-        self.rentabilidade_pedidos_mes_mc_mes = self.rentabilidade_pedidos_mes['mc_mes']
-        self.rentabilidade_pedidos_mes_total_mes = self.rentabilidade_pedidos_mes['total_mes']
-        self.rentabilidade_pedidos_mes_rentabilidade = self.rentabilidade_pedidos_mes['rentabilidade_mes']
-        self.toneladas_mes = self.rentabilidade_pedidos_mes['toneladas_mes']
-        self.pedidos_mes = self.rentabilidade_pedidos_mes['total_mes']
-        self.porcentagem_mc_mes = self.rentabilidade_pedidos_mes_rentabilidade + self.despesa_administrativa_fixa
+
+        self.total_mes = total_mes
+        self.rentabilidade_pedidos_mes_mc_mes = self.total_mes['MC_VALOR_COR']
+        self.rentabilidade_pedidos_mes_rentabilidade_mes = self.total_mes['MC_COR']
+        self.toneladas_mes = self.total_mes['PESO_PP'] / 1000
+        self.pedidos_mes = self.total_mes['VALOR_MERCADORIAS']
+
+        self.porcentagem_mc_mes = self.rentabilidade_pedidos_mes_rentabilidade_mes
         self.porcentagem_meta_mes = int(self.pedidos_mes / self.meta_mes * 100) if self.meta_mes else 0
         self.faltam_meta_mes = round(self.meta_mes - self.pedidos_mes, 2)
-        self.cor_rentabilidade_pedidos_dia = cor_rentabilidade_css(self.rentabilidade_pedidos_dia)
-        self.cor_rentabilidade_pedidos_mes = cor_rentabilidade_css(self.rentabilidade_pedidos_mes_rentabilidade)
+        self.cor_rentabilidade_css_dia = cor_rentabilidade_css(self.rentabilidade_pedidos_dia, True)
+        self.cor_rentabilidade_css_mes = cor_rentabilidade_css(self.rentabilidade_pedidos_mes_rentabilidade_mes, True)
 
         self.falta_mudar_cor_mes = falta_mudar_cor_mes(self.rentabilidade_pedidos_mes_mc_mes,
-                                                       self.rentabilidade_pedidos_mes_total_mes,
-                                                       self.rentabilidade_pedidos_mes_rentabilidade)
+                                                       self.pedidos_mes,
+                                                       self.rentabilidade_pedidos_mes_rentabilidade_mes)
         self.falta_mudar_cor_mes_valor = round(self.falta_mudar_cor_mes[0], 2)
         self.falta_mudar_cor_mes_valor_rentabilidade = round(self.falta_mudar_cor_mes[1], 2)
         self.falta_mudar_cor_mes_porcentagem = round(self.falta_mudar_cor_mes[2], 2)
@@ -78,55 +134,11 @@ class DashBoardVendas():
         if conferir_pedidos:
             self.confere_pedidos = confere_pedidos(self.carteira)
 
-    def get_dados(self):
-        dados = {
-            'dias_meta': self.dias_meta,
-            'dias_meta_reais': self.dias_meta_reais,
-            'carteira': self.carteira,
-            'meta_diaria': self.meta_diaria,
-            'meta_diaria_real': self.meta_diaria_real,
-            'dias_decorridos': self.dias_decorridos,
-            'meta_acumulada_dia_real': self.meta_acumulada_dia_real,
-            'pedidos_dia': self.pedidos_dia,
-            'toneladas_dia': self.toneladas_dia,
-            'porcentagem_mc_dia': self.porcentagem_mc_dia,
-            'porcentagem_meta_dia': self.porcentagem_meta_dia,
-            'faltam_meta_dia': self.faltam_meta_dia,
-            'conversao_de_orcamentos': self.conversao_de_orcamentos,
-            'faltam_abrir_orcamentos_dia': self.faltam_abrir_orcamentos_dia,
-            'meta_mes': self.meta_mes,
-            'pedidos_mes': self.pedidos_mes,
-            'toneladas_mes': self.toneladas_mes,
-            'porcentagem_mc_mes': self.porcentagem_mc_mes,
-            'porcentagem_meta_mes': self.porcentagem_meta_mes,
-            'faltam_meta_mes': self.faltam_meta_mes,
-            'data_hora_atual': self.data_hora_atual,
-            'rentabilidade_pedidos_dia': self.rentabilidade_pedidos_dia,
-            'cor_rentabilidade_css_dia': self.cor_rentabilidade_pedidos_dia,
-            'rentabilidade_pedidos_mes_rentabilidade_mes': self.rentabilidade_pedidos_mes_rentabilidade,
-            'cor_rentabilidade_css_mes': self.cor_rentabilidade_pedidos_mes,
-            'falta_mudar_cor_mes_valor': self.falta_mudar_cor_mes_valor,
-            'falta_mudar_cor_mes_valor_rentabilidade': self.falta_mudar_cor_mes_valor_rentabilidade,
-            'falta_mudar_cor_mes_porcentagem': self.falta_mudar_cor_mes_porcentagem,
-            'falta_mudar_cor_mes_cor': self.falta_mudar_cor_mes_cor,
-            'meta_em_dia': self.meta_em_dia,
-            'confere_pedidos': self.confere_pedidos,
-        }
-        return dados
-
 
 class DashboardVendasCarteira(DashBoardVendas):
     def __init__(self, carteira='%%', conferir_pedidos: bool = True) -> None:
         super().__init__(carteira, conferir_pedidos)
         self.recebido, self.a_receber = recebido_a_receber(self.primeiro_dia_mes, self.ultimo_dia_mes, carteira)
-
-    def get_dados(self):
-        dados = super().get_dados()
-        dados.update({
-            'recebido': self.recebido,
-            'a_receber': self.a_receber,
-        })
-        return dados
 
 
 class DashboardVendasTv(DashBoardVendas):
@@ -134,14 +146,6 @@ class DashboardVendasTv(DashBoardVendas):
         super().__init__()
         self.assistentes_tecnicos = get_assistentes_tecnicos()
         self.agenda_vec = get_assistentes_tecnicos_agenda()
-
-    def get_dados(self):
-        dados = super().get_dados()
-        dados.update({
-            'assistentes_tecnicos': self.assistentes_tecnicos,
-            'agenda_vec': self.agenda_vec,
-        })
-        return dados
 
 
 class DashboardVendasSupervisao(DashBoardVendas):
@@ -164,15 +168,7 @@ class DashboardVendasSupervisao(DashBoardVendas):
         self.frete_cif = frete_cif
         self.carteiras = []
         for carteira in get_consultores_tecnicos_ativos():
-            self.carteiras.append(DashboardVendasCarteira(carteira.nome, conferir_pedidos=False).get_dados())
-
-    def get_dados(self):
-        dados = super().get_dados()
-        dados.update({
-            'carteiras': self.carteiras,
-            'frete_cif': self.frete_cif,
-        })
-        return dados
+            self.carteiras.append(DashboardVendasCarteira(carteira.nome, conferir_pedidos=False))
 
 
 def carteira_mapping(carteira):
@@ -193,101 +189,6 @@ def carteira_mapping(carteira):
         carteira = carteira_actions_mapping[carteira]['carteira']
 
     return carteira, filtro_nao_carteira
-
-
-def rentabilidade_pedidos_dia(despesa_administrativa_fixa: float, primeiro_dia_util_proximo_mes: str,
-                              carteira: str = '%%') -> tuple[float, float, float]:
-    """Valor mercadorias, toneladas de produto proprio e rentabilidade dos pedidos com valor comercial no dia com entrega até o primeiro dia util do proximo mes"""
-    carteira, filtro_nao_carteira = carteira_mapping(carteira)
-
-    sql = """
-        SELECT
-            -- despesa administrativa (ultima subtração)
-            TOTAL_MES_MOEDA,
-            TONELADAS_PROPRIO,
-            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - :despesa_administrativa_fixa AS RENTABILIDADE
-
-        FROM
-            (
-                SELECT
-                    ROUND(LFRETE.MC_SEM_FRETE / (SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM))) * 100, 2) AS RENTABILIDADE,
-                    ROUND(LFRETE.MC_SEM_FRETE, 2) AS MC_MES,
-                    -- Sem conversão de moeda
-                    ROUND(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 2) AS TOTAL_MES,
-                    ROUND(SUM((PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END), 2) AS TOTAL_MES_MOEDA,
-                    COALESCE(ROUND(NVL(LFRETE.MC_SEM_FRETE_PP / (NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END), 0)), 0) * 100, 2), 0) AS RENTABILIDADE_PP,
-                    ROUND(LFRETE.MC_SEM_FRETE_PP, 2) AS MC_MES_PP,
-                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS TOTAL_MES_PP,
-                    COALESCE(ROUND(NVL(LFRETE.MC_SEM_FRETE_PT / (NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END), 0)), 0) * 100, 2), 0) AS RENTABILIDADE_PT,
-                    ROUND(LFRETE.MC_SEM_FRETE_PT, 2) AS MC_MES_PT,
-                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS TOTAL_MES_PT,
-                    COALESCE(ROUND(NVL(LFRETE.MC_SEM_FRETE_PQ / (NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END), 0)), 0) * 100, 2), 0) AS RENTABILIDADE_PQ,
-                    ROUND(LFRETE.MC_SEM_FRETE_PQ, 2) AS MC_MES_PQ,
-                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS TOTAL_MES_PQ,
-                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.PESO_LIQUIDO ELSE 0 END) / 1000, 3) AS TONELADAS_PROPRIO
-
-                FROM
-                    (
-                        SELECT
-                            ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM), 2) AS MC_SEM_FRETE,
-                            ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7766 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PP,
-                            ROUND(SUM(CASE WHEN CHAVE_FAMILIA IN (7767, 12441) THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PT,
-                            ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PQ
-
-                        FROM
-                            (
-                                {lfrete} AND
-
-                                    -- place holder para selecionar carteira
-                                    VENDEDORES.NOMERED LIKE :carteira AND
-                                    {filtro_nao_carteira}
-
-                                    -- hoje
-                                    PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
-                                    -- primeiro dia util do proximo mes
-                                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
-                            )
-                    ) LFRETE,
-                    COPLAS.VENDEDORES,
-                    COPLAS.CLIENTES,
-                    COPLAS.PRODUTOS,
-                    COPLAS.PEDIDOS,
-                    COPLAS.PEDIDOS_ITENS
-
-                WHERE
-                    PEDIDOS.CHAVE = PEDIDOS_ITENS.CHAVE_PEDIDO AND
-                    PRODUTOS.CPROD = PEDIDOS_ITENS.CHAVE_PRODUTO AND
-                    CLIENTES.CODCLI = PEDIDOS.CHAVE_CLIENTE AND
-                    VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
-                    PEDIDOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
-
-                    -- place holder para selecionar carteira
-                    VENDEDORES.NOMERED LIKE :carteira AND
-                    {filtro_nao_carteira}
-
-                    -- hoje
-                    PEDIDOS.DATA_PEDIDO = TRUNC(SYSDATE) AND
-                    -- primeiro dia util do proximo mes
-                    PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
-
-                GROUP BY
-                    LFRETE.MC_SEM_FRETE,
-                    LFRETE.MC_SEM_FRETE_PP,
-                    LFRETE.MC_SEM_FRETE_PT,
-                    LFRETE.MC_SEM_FRETE_PQ
-            )
-    """
-
-    sql = sql.format(lfrete=lfrete_pedidos, filtro_nao_carteira=filtro_nao_carteira)
-
-    resultado = executar_oracle(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
-                                primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes, carteira=carteira)
-
-    # não consegui identificar o porque, não esta retornado [(none,),] e sim [], indice [0][0] não funciona
-    if not resultado:
-        return 0.00, 0.00, 0.00,
-
-    return float(resultado[0][0]), float(resultado[0][1]), float(resultado[0][2]),
 
 
 def recebido_a_receber(primeiro_dia_mes: str, ultimo_dia_mes: str, carteira: str = '%%') -> tuple[float, float]:
@@ -463,198 +364,6 @@ def conversao_de_orcamentos(carteira: str = '%%'):
         return 0.00
 
     return float(resultado[0][0])
-
-
-def rentabilidade_pedidos_mes(despesa_administrativa_fixa: float, primeiro_dia_mes: str,
-                              primeiro_dia_util_mes: str, ultimo_dia_mes: str,
-                              primeiro_dia_util_proximo_mes: str, carteira: str = '%%') -> dict[str, float]:
-    """Valor mercadorias, toneladas de produto proprio e rentabilidade dos pedidos com valor comercial no mes com entrega até o primeiro dia util do proximo mes"""
-    carteira, filtro_nao_carteira = carteira_mapping(carteira)
-
-    sql = """
-        SELECT
-            ROUND((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100), 2) AS MC_MES,
-            TOTAL_MES_MOEDA,
-
-            -- despesa administrativa (ultima subtração)
-            ROUND(((TOTAL_MES_PP * ((-1) + RENTABILIDADE_PP) / 100) + (TOTAL_MES_PT * (4 + RENTABILIDADE_PT) / 100) + (TOTAL_MES_PQ * (4 + RENTABILIDADE_PQ) / 100)) / TOTAL_MES * 100, 2) - :despesa_administrativa_fixa AS RENTABILIDADE,
-            TONELADAS_PROPRIO
-
-        FROM
-            (
-                SELECT
-                    ROUND((LFRETE.MC_SEM_FRETE + DEVOLUCOES.RENTABILIDADE) / (SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) + DEVOLUCOES.TOTAL) * 100, 2) AS RENTABILIDADE,
-                    ROUND(LFRETE.MC_SEM_FRETE + DEVOLUCOES.RENTABILIDADE, 2) AS MC_MES,
-                    -- Total sem converter moeda
-                    ROUND(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) + DEVOLUCOES.TOTAL, 2) AS TOTAL_MES,
-                    ROUND(SUM((PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT MAX(VALOR) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END) + DEVOLUCOES.TOTAL, 2) AS TOTAL_MES_MOEDA,
-                    COALESCE(ROUND((LFRETE.MC_SEM_FRETE_PP + DEVOLUCOES.RENTABILIDADE_PP) / (SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END) + DEVOLUCOES.PP) * 100, 2), 0) AS RENTABILIDADE_PP,
-                    ROUND(LFRETE.MC_SEM_FRETE_PP + DEVOLUCOES.RENTABILIDADE_PP, 2) AS MC_MES_PP,
-                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) ELSE 0 END) + DEVOLUCOES.PP, 2) AS TOTAL_MES_PP,
-                    COALESCE(ROUND((LFRETE.MC_SEM_FRETE_PT + DEVOLUCOES.RENTABILIDADE_PT) / (SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END) + DEVOLUCOES.PT) * 100, 2), 0) AS RENTABILIDADE_PT,
-                    ROUND(LFRETE.MC_SEM_FRETE_PT + DEVOLUCOES.RENTABILIDADE_PT, 2) AS MC_MES_PT,
-                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN (PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) ELSE 0 END) + DEVOLUCOES.PT, 2) AS TOTAL_MES_PT,
-                    COALESCE(ROUND((LFRETE.MC_SEM_FRETE_PQ + DEVOLUCOES.RENTABILIDADE_PQ) / (SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) END) + DEVOLUCOES.PQ) * 100, 2), 0) AS RENTABILIDADE_PQ,
-                    ROUND(LFRETE.MC_SEM_FRETE_PQ + DEVOLUCOES.RENTABILIDADE_PQ, 2) AS MC_MES_PQ,
-                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN (PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)) ELSE 0 END) + DEVOLUCOES.PQ, 2) AS TOTAL_MES_PQ,
-                    ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.PESO_LIQUIDO ELSE 0 END) / 1000, 3) AS TONELADAS_PROPRIO
-
-                FROM
-                    (
-                        SELECT
-                            CASE WHEN SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_MERCADORIAS ELSE 0 END) IS NULL THEN 0 ELSE SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END) END AS PP,
-                            CASE WHEN SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN NOTAS_ITENS.VALOR_MERCADORIAS ELSE 0 END) IS NULL THEN 0 ELSE SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END) END AS PT,
-                            CASE WHEN SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS ELSE 0 END) IS NULL THEN 0 ELSE SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END) END AS PQ,
-                            CASE WHEN SUM(NOTAS_ITENS.VALOR_MERCADORIAS) IS NULL THEN 0 ELSE SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)) END AS TOTAL,
-                            CASE WHEN SUM(NOTAS_ITENS.ANALISE_LUCRO) IS NULL THEN 0 ELSE SUM(NOTAS_ITENS.ANALISE_LUCRO) END AS RENTABILIDADE,
-                            CASE WHEN SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.ANALISE_LUCRO ELSE 0 END) IS NULL THEN 0 ELSE SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.ANALISE_LUCRO ELSE 0 END) END AS RENTABILIDADE_PP,
-                            CASE WHEN SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN NOTAS_ITENS.ANALISE_LUCRO ELSE 0 END) IS NULL THEN 0 ELSE SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN NOTAS_ITENS.ANALISE_LUCRO ELSE 0 END) END AS RENTABILIDADE_PT,
-                            CASE WHEN SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.ANALISE_LUCRO ELSE 0 END) IS NULL THEN 0 ELSE SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.ANALISE_LUCRO ELSE 0 END) END AS RENTABILIDADE_PQ
-
-                        FROM
-                            (SELECT CHAVE_NOTA, SUM(PESO_LIQUIDO) AS PESO_LIQUIDO FROM COPLAS.NOTAS_ITENS GROUP BY CHAVE_NOTA) NOTAS_PESO_LIQUIDO,
-                            COPLAS.PRODUTOS,
-                            COPLAS.NOTAS_ITENS,
-                            COPLAS.VENDEDORES,
-                            COPLAS.NOTAS,
-                            COPLAS.CLIENTES
-
-                        WHERE
-                            NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
-                            CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
-                            VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
-                            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-                            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
-                            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-                            NOTAS.ESPECIE = 'E' AND
-                            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
-
-                            -- place holder para selecionar carteira
-                            VENDEDORES.NOMERED LIKE :carteira AND
-                            {filtro_nao_carteira}
-
-                            -- primeiro dia do mes
-                            NOTAS.DATA_EMISSAO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-                            -- ultimo dia do mes
-                            NOTAS.DATA_EMISSAO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY')
-                    ) DEVOLUCOES,
-                    (
-                        SELECT
-                            ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM), 2) AS MC_SEM_FRETE,
-                            ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7766 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PP,
-                            ROUND(SUM(CASE WHEN CHAVE_FAMILIA IN (7767, 12441) THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PT,
-                            ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PQ
-
-                        FROM
-                            (
-                                {lfrete} AND
-
-                                    -- place holder para selecionar carteira
-                                    VENDEDORES.NOMERED LIKE :carteira AND
-                                    {filtro_nao_carteira}
-
-                                    (
-                                        (
-                                            -- primeiro dia do mes
-                                            PEDIDOS.DATA_PEDIDO < TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-                                            -- primeiro dia util do mes
-                                            PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE(:primeiro_dia_util_mes,'DD-MM-YYYY') AND
-                                            -- primeiro dia util do proximo mes
-                                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
-                                        ) OR
-                                        (
-                                            -- primeiro dia do mes
-                                            PEDIDOS.DATA_PEDIDO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-                                            -- ultimo dia do mes
-                                            PEDIDOS.DATA_PEDIDO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY') AND
-                                            -- primeiro dia util do proximo mes
-                                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
-                                        )
-                                    )
-                            )
-                    ) LFRETE,
-                    COPLAS.VENDEDORES,
-                    COPLAS.CLIENTES,
-                    COPLAS.PRODUTOS,
-                    COPLAS.PEDIDOS,
-                    COPLAS.PEDIDOS_ITENS
-
-                WHERE
-                    PEDIDOS.CHAVE = PEDIDOS_ITENS.CHAVE_PEDIDO AND
-                    PRODUTOS.CPROD = PEDIDOS_ITENS.CHAVE_PRODUTO AND
-                    CLIENTES.CODCLI = PEDIDOS.CHAVE_CLIENTE AND
-                    VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
-                    PEDIDOS.CHAVE_TIPO IN (SELECT CHAVE FROM COPLAS.PEDIDOS_TIPOS WHERE VALOR_COMERCIAL = 'SIM') AND
-
-                    -- place holder para selecionar carteira
-                    VENDEDORES.NOMERED LIKE :carteira AND
-                    {filtro_nao_carteira}
-
-                    (
-                        (
-                            -- primeiro dia do mes
-                            PEDIDOS.DATA_PEDIDO < TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-                            -- primeiro dia util do mes
-                            PEDIDOS_ITENS.DATA_ENTREGA > TO_DATE(:primeiro_dia_util_mes,'DD-MM-YYYY') AND
-                            -- primeiro dia util do proximo mes
-                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
-                        ) OR
-                        (
-                            -- primeiro dia do mes
-                            PEDIDOS.DATA_PEDIDO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-                            -- ultimo dia do mes
-                            PEDIDOS.DATA_PEDIDO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY') AND
-                            -- primeiro dia util do proximo mes
-                            PEDIDOS_ITENS.DATA_ENTREGA <= TO_DATE(:primeiro_dia_util_proximo_mes,'DD-MM-YYYY')
-                        )
-                    )
-
-                GROUP BY
-                    DEVOLUCOES.PP,
-                    DEVOLUCOES.PT,
-                    DEVOLUCOES.PQ,
-                    DEVOLUCOES.TOTAL,
-                    DEVOLUCOES.RENTABILIDADE,
-                    DEVOLUCOES.RENTABILIDADE_PP,
-                    DEVOLUCOES.RENTABILIDADE_PT,
-                    DEVOLUCOES.RENTABILIDADE_PQ,
-                    LFRETE.MC_SEM_FRETE,
-                    LFRETE.MC_SEM_FRETE_PP,
-                    LFRETE.MC_SEM_FRETE_PT,
-                    LFRETE.MC_SEM_FRETE_PQ
-            )
-    """
-
-    sql = sql.format(lfrete=lfrete_pedidos, filtro_nao_carteira=filtro_nao_carteira)
-
-    resultado = executar_oracle(sql, despesa_administrativa_fixa=despesa_administrativa_fixa,
-                                primeiro_dia_mes=primeiro_dia_mes, primeiro_dia_util_mes=primeiro_dia_util_mes,
-                                ultimo_dia_mes=ultimo_dia_mes,
-                                primeiro_dia_util_proximo_mes=primeiro_dia_util_proximo_mes, carteira=carteira)
-
-    if not resultado:
-        dicionario = {
-            'mc_mes': 0.0,
-            'total_mes': 0.0,
-            'rentabilidade_mes': 0.0,
-            'toneladas_mes': 0.0,
-        }
-
-        return dicionario
-
-    mc_mes = 0.0 if not resultado[0][0] else resultado[0][0]
-    total_mes = 0.0 if not resultado[0][1] else resultado[0][1]
-    rentabilidade_mes = 0.0 if not resultado[0][2] else resultado[0][2]
-    toneladas_mes = 0.0 if not resultado[0][3] else resultado[0][3]
-
-    dicionario = {
-        'mc_mes': float(mc_mes),
-        'total_mes': float(total_mes),
-        'rentabilidade_mes': float(rentabilidade_mes),
-        'toneladas_mes': float(toneladas_mes),
-    }
-
-    return dicionario
 
 
 def confere_orcamento(orcamento: int = 0) -> list | None:
@@ -1057,6 +766,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PQ) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
         ) / NULLIF(SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)), 0)
         , 0) * 100, 2) AS MC_COR
+
+        , ROUND(COALESCE(
+        (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PP) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) - 0.01) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PT) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PQ) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        , 0), 2) AS MC_VALOR_COR
     """
     notas_lfrete_aliquotas_itens_coluna = "LFRETE.ALIQUOTA_PIS, LFRETE.ALIQUOTA_COFINS, LFRETE.ALIQUOTA_ICMS, LFRETE.ALIQUOTA_IR, LFRETE.ALIQUOTA_CSLL, LFRETE.ALIQUOTA_COMISSAO, LFRETE.ALIQUOTA_DESPESA_ADM, LFRETE.ALIQUOTA_DESPESA_COM, LFRETE.ALIQUOTAS_TOTAIS,"
 
@@ -1141,6 +856,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "NOTAS.DATA_EMISSAO,",
                                 'data_emissao_campo': "NOTAS.DATA_EMISSAO,", },
+        'data_emissao_menor_que': {'data_emissao_menor_que_pesquisa': "NOTAS.DATA_EMISSAO < :data_emissao_menor_que AND", },
 
         'coluna_ano_mes_emissao': {'ano_mes_emissao_campo_alias': "TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM') AS ANO_MES_EMISSAO,",
                                    'ano_mes_emissao_campo': "TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM'),", },
@@ -1284,6 +1000,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "",
                                       'data_entrega_itens_campo': "", },
+        'data_entrega_itens_maior_que': {'data_entrega_itens_maior_que_pesquisa': "", },
+        'data_entrega_itens_menor_igual': {'data_entrega_itens_menor_igual_pesquisa': "", },
 
         'coluna_status_documento': {'status_documento_campo_alias': "",
                                     'status_documento_campo': "", },
@@ -1301,6 +1019,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
 
         'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.PESO_LIQUIDO ELSE 0 END) AS PESO_PP,", },
+
+        'especie': {'especie_pesquisa': "NOTAS.ESPECIE = :especie AND", },
     }
 
     pedidos_lfrete_coluna = ", ROUND(COALESCE(SUM(LFRETE.MC_SEM_FRETE) / NULLIF(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 0), 0) * 100, 2) AS MC"
@@ -1314,6 +1034,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PQ) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
         ) / NULLIF(SUM(PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM)), 0)
         , 0) * 100, 2) AS MC_COR
+
+        , ROUND(COALESCE(
+        (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PP) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) - 0.01) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PT) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PQ) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN PEDIDOS_ITENS.VALOR_TOTAL - (PEDIDOS_ITENS.PESO_LIQUIDO / PEDIDOS.PESO_LIQUIDO * PEDIDOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        , 0), 2) AS MC_VALOR_COR
     """
     pedidos_lfrete_aliquotas_itens_coluna = "LFRETE.ALIQUOTA_PIS, LFRETE.ALIQUOTA_COFINS, LFRETE.ALIQUOTA_ICMS, LFRETE.ALIQUOTA_IR, LFRETE.ALIQUOTA_CSLL, LFRETE.ALIQUOTA_COMISSAO, LFRETE.ALIQUOTA_DESPESA_ADM, LFRETE.ALIQUOTA_DESPESA_COM, LFRETE.ALIQUOTAS_TOTAIS,"
     pedidos_lfrete_from = """
@@ -1384,6 +1110,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "PEDIDOS.DATA_PEDIDO AS DATA_EMISSAO,",
                                 'data_emissao_campo': "PEDIDOS.DATA_PEDIDO,", },
+        'data_emissao_menor_que': {'data_emissao_menor_que_pesquisa': "PEDIDOS.DATA_PEDIDO < :data_emissao_menor_que AND", },
 
         'coluna_ano_mes_emissao': {'ano_mes_emissao_campo_alias': "TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM') AS ANO_MES_EMISSAO,",
                                    'ano_mes_emissao_campo': "TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM'),", },
@@ -1498,6 +1225,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "PEDIDOS_ITENS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "PEDIDOS_ITENS.DATA_ENTREGA,", },
+        'data_entrega_itens_maior_que': {'data_entrega_itens_maior_que_pesquisa': "PEDIDOS_ITENS.DATA_ENTREGA > :data_entrega_itens_maior_que AND", },
+        'data_entrega_itens_menor_igual': {'data_entrega_itens_menor_igual_pesquisa': "PEDIDOS_ITENS.DATA_ENTREGA <= :data_entrega_itens_menor_igual AND", },
 
         'coluna_status_documento': {'status_documento_campo_alias': "PEDIDOS.STATUS AS STATUS_DOCUMENTO,",
                                     'status_documento_campo': "PEDIDOS.STATUS,", },
@@ -1515,6 +1244,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
 
         'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.PESO_LIQUIDO ELSE 0 END) AS PESO_PP,", },
+
+        'especie': {'especie_pesquisa': "", },
     }
 
     orcamentos_status_produto_orcamento_tipo_from = "COPLAS.STATUS_ORCAMENTOS_ITENS,"
@@ -1531,6 +1262,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PQ) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
         ) / NULLIF(SUM(ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM)), 0)
         , 0) * 100, 2) AS MC_COR
+
+        , ROUND(COALESCE(
+        (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PP) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) - 0.01) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PT) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        + (COALESCE(SUM(LFRETE.MC_SEM_FRETE_PQ) / NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0) + 0.04) * COALESCE(NULLIF(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN ORCAMENTOS_ITENS.VALOR_TOTAL - (ORCAMENTOS_ITENS.PESO_LIQUIDO / ORCAMENTOS.PESO_LIQUIDO * ORCAMENTOS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 0), 0)
+        , 0), 2) AS MC_VALOR_COR
     """
     orcamentos_lfrete_aliquotas_itens_coluna = "LFRETE.ALIQUOTA_PIS, LFRETE.ALIQUOTA_COFINS, LFRETE.ALIQUOTA_ICMS, LFRETE.ALIQUOTA_IR, LFRETE.ALIQUOTA_CSLL, LFRETE.ALIQUOTA_COMISSAO, LFRETE.ALIQUOTA_DESPESA_ADM, LFRETE.ALIQUOTA_DESPESA_COM, LFRETE.ALIQUOTAS_TOTAIS,"
     orcamentos_lfrete_from = """
@@ -1606,6 +1343,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_data_emissao': {'data_emissao_campo_alias': "ORCAMENTOS.DATA_PEDIDO AS DATA_EMISSAO,",
                                 'data_emissao_campo': "ORCAMENTOS.DATA_PEDIDO,", },
+        'data_emissao_menor_que': {'data_emissao_menor_que_pesquisa': "ORCAMENTOS.DATA_PEDIDO < :data_emissao_menor_que AND", },
 
         'coluna_ano_mes_emissao': {'ano_mes_emissao_campo_alias': "TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM') AS ANO_MES_EMISSAO,",
                                    'ano_mes_emissao_campo': "TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM'),", },
@@ -1720,6 +1458,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS_ITENS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "ORCAMENTOS_ITENS.DATA_ENTREGA,", },
+        'data_entrega_itens_maior_que': {'data_entrega_itens_maior_que_pesquisa': "ORCAMENTOS_ITENS.DATA_ENTREGA > :data_entrega_itens_maior_que AND", },
+        'data_entrega_itens_menor_igual': {'data_entrega_itens_menor_igual_pesquisa': "ORCAMENTOS_ITENS.DATA_ENTREGA <= :data_entrega_itens_menor_igual AND", },
 
         'coluna_status_documento': {'status_documento_campo_alias': "ORCAMENTOS.STATUS AS STATUS_DOCUMENTO,",
                                     'status_documento_campo': "ORCAMENTOS.STATUS,", },
@@ -1737,6 +1477,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
 
         'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN ORCAMENTOS_ITENS.PESO_LIQUIDO ELSE 0 END) AS PESO_PP,", },
+
+        'especie': {'especie_pesquisa': "", },
     }
 
     # Itens de orçamento excluidos somente o que difere de orçamento
@@ -1746,7 +1488,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
     orcamentos_itens_excluidos_lfrete_coluna = ", 0 AS MC"
     orcamentos_itens_excluidos_lfrete_valor_coluna = ", 0 AS MC_VALOR"
-    orcamentos_itens_excluidos_lfrete_cor_coluna = ", 0 AS MC_COR"
+    orcamentos_itens_excluidos_lfrete_cor_coluna = ", 0 AS MC_COR, 0 AS MC_VALOR_COR"
     orcamentos_itens_excluidos_lfrete_aliquotas_itens_coluna = "0 AS ALIQUOTA_PIS, 0 AS ALIQUOTA_COFINS, 0 AS ALIQUOTA_ICMS, 0 AS ALIQUOTA_IR, 0 AS ALIQUOTA_CSLL, 0 AS ALIQUOTA_COMISSAO, 0 AS ALIQUOTA_DESPESA_ADM, 0 AS ALIQUOTA_DESPESA_COM, 0 AS ALIQUOTAS_TOTAIS,"
     orcamentos_itens_excluidos_lfrete_from = ""
     orcamentos_itens_excluidos_lfrete_join = ""
@@ -1822,6 +1564,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "ORCAMENTOS.DATA_ENTREGA,", },
+        'data_entrega_itens_maior_que': {'data_entrega_itens_maior_que_pesquisa': "ORCAMENTOS.DATA_ENTREGA > :data_entrega_itens_maior_que AND", },
+        'data_entrega_itens_menor_igual': {'data_entrega_itens_menor_igual_pesquisa': "ORCAMENTOS.DATA_ENTREGA <= :data_entrega_itens_menor_igual AND", },
 
         'ordenar_sequencia_prioritario': {'sequencia_campo': "ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE,",
                                           'ordenar_sequencia_prioritario': "ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE,", },
@@ -1863,7 +1607,6 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
 def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], **kwargs):
     # TODO: coluna de cada mes? cada ano?
-    # TODO: filtro pela data de entrega dos itens
     kwargs_sql = {}
     kwargs_sql_itens_excluidos = {}
     kwargs_ora = {}
@@ -1885,6 +1628,10 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     documento = kwargs.get('documento')
     informacao_estrategica = kwargs.get('informacao_estrategica')
     job = kwargs.get('job')
+    data_entrega_itens_maior_que = kwargs.get('data_entrega_itens_maior_que')
+    data_entrega_itens_menor_igual = kwargs.get('data_entrega_itens_menor_igual')
+    data_emissao_menor_que = kwargs.get('data_emissao_menor_que')
+    especie = kwargs.get('especie')
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
 
     if not data_inicio:
@@ -1954,6 +1701,18 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     if job:
         chave_job = job.pk
         kwargs_ora.update({'chave_job': chave_job, })
+
+    if data_entrega_itens_maior_que:
+        kwargs_ora.update({'data_entrega_itens_maior_que': data_entrega_itens_maior_que})
+
+    if data_entrega_itens_menor_igual:
+        kwargs_ora.update({'data_entrega_itens_menor_igual': data_entrega_itens_menor_igual})
+
+    if data_emissao_menor_que:
+        kwargs_ora.update({'data_emissao_menor_que': data_emissao_menor_que})
+
+    if especie:
+        kwargs_ora.update({'especie': especie})
 
     sql_base = """
         SELECT
@@ -2044,6 +1803,10 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {documento_pesquisa}
             {informacao_estrategica_pesquisa}
             {job_pesquisa}
+            {data_entrega_itens_maior_que_pesquisa}
+            {data_entrega_itens_menor_igual_pesquisa}
+            {data_emissao_menor_que_pesquisa}
+            {especie_pesquisa}
 
             {fonte_where_data}
 

@@ -33,8 +33,7 @@ def vendas_carteira(request):
                 carteira_parametros = {'carteira_premoldado_poste': True}
 
             if 'atualizar-submit' in request.GET:
-                dashboard_vendas_carteira = DashboardVendasCarteira(carteira=carteira_nome)
-                dados = dashboard_vendas_carteira.get_dados()
+                dados = DashboardVendasCarteira(carteira=carteira_nome)
 
                 fonte: Literal['orcamentos', 'pedidos',
                                'faturamentos'] = formulario.cleaned_data.get('fonte')  # type: ignore
@@ -319,8 +318,7 @@ def listagens(request, listagem: str):
 def vendas_tv(request):
     titulo_pagina = 'Dashboard Vendas - TV'
 
-    dashboard_vendas_tv = DashboardVendasTv()
-    dados = dashboard_vendas_tv.get_dados()
+    dados = DashboardVendasTv()
 
     contexto = {'titulo_pagina': titulo_pagina, 'dados': dados}
 
@@ -330,8 +328,7 @@ def vendas_tv(request):
 def vendas_supervisao(request):
     titulo_pagina = 'Dashboard Vendas - Supervisão'
 
-    dashboard_vendas_supervisao = DashboardVendasSupervisao()
-    dados = dashboard_vendas_supervisao.get_dados()
+    dados = DashboardVendasSupervisao()
 
     contexto = {'titulo_pagina': titulo_pagina, 'dados': dados}
 
