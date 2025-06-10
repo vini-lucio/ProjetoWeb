@@ -105,6 +105,11 @@
                             <p class="fonte-verde">Frete CIF*³</p>
                             <p>{{ dados.frete_cif | floatformat:"2" }}%</p>
                         </div>
+
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Media Dia*⁴</p>
+                            <p>{{ dados.media_dia_pedido_mes_entrega_mes_sem_hoje | floatformat:"2" }}%</p>
+                        </div>
                     </div>
 
                 </div>
@@ -162,6 +167,7 @@
                 <p class="fonte-muito-pequena-dashboard">*¹ Ultimos 90 dias</p>
                 <p class="fonte-muito-pequena-dashboard">*² Novos orçs. para a meta do dia</p>
                 <p class="fonte-muito-pequena-dashboard">*³ Porcentagem sobre faturamento</p>
+                <p class="fonte-muito-pequena-dashboard">*⁴ Pedidos feitos no mes, exceto hoje</p>
             </div>
 
             <div class="grid-simples">

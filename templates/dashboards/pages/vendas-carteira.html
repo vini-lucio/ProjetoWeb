@@ -135,6 +135,10 @@
                         <p>R$ {{ dados.faltam_abrir_orcamentos_dia | floatformat:"2" }}</p>
                     </div>
                     <div>
+                        <p class="fonte-verde">Media Dia*³</p>
+                        <p>R$ {{ dados.media_dia_pedido_mes_entrega_mes_sem_hoje | floatformat:"2" }}</p>
+                    </div>
+                    <div>
                         <p class="fonte-verde">Recebido</p>
                         <p>R$ {{ dados.recebido | floatformat:"2" }}</p>
                     </div>
@@ -152,6 +156,7 @@
                     <p class="fonte-muito-pequena-dashboard">Faltam R$ {{ dados.falta_mudar_cor_mes_valor | floatformat:"2" }} com margem de {{ dados.falta_mudar_cor_mes_valor_rentabilidade | floatformat:"2" }}% para {{ dados.falta_mudar_cor_mes_cor }} no mês. ({{ dados.falta_mudar_cor_mes_porcentagem | floatformat:"2" }})</p>
                     <p class="fonte-muito-pequena-dashboard">*¹ Ultimos 90 dias</p>
                     <p class="fonte-muito-pequena-dashboard">*² Novos orçs. para a meta do dia</p>
+                    <p class="fonte-muito-pequena-dashboard">*³ Pedidos feitos no mes, exceto hoje</p>
                 </div>
 
                 {% if valores_periodo %}

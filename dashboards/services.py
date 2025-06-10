@@ -16,9 +16,12 @@ import pandas as pd
 
 
 class DashBoardVendas():
-    # TODO: media por dia (dos pedidos feitos dentro do mes, não considerar o vendido em meses anteriores mas com entrega no mes)
     # TODO: detalhar vendido por dia????
-    def __init__(self, carteira='%%', conferir_pedidos: bool = True) -> None:
+    def __init__(self, carteira='%%', executar_completo: bool = True,
+                 dados_pedidos_mes_entrega_mes_dias: pd.DataFrame | None = None,
+                 dados_pedidos_fora_mes_entrega_mes: pd.DataFrame | None = None,
+                 dados_desvolucoes_mes: pd.DataFrame | None = None,
+                 ) -> None:
         self.carteira = carteira
         self.site_setup = get_site_setup()
         parametro_carteira = {}
@@ -46,34 +49,71 @@ class DashBoardVendas():
                 self.meta_diaria = self.meta_mes / self.dias_meta if self.dias_meta else 0.0
                 self.meta_diaria_real = self.meta_mes / self.dias_meta_reais if self.dias_meta_reais else 0.0
 
-        pedidos_mes_entrega_mes_dias = get_relatorios_vendas('pedidos',
-                                                             inicio=self.site_setup.primeiro_dia_mes,  # type:ignore
-                                                             fim=self.site_setup.ultimo_dia_mes,  # type:ignore
-                                                             coluna_data_emissao=True,
-                                                             data_entrega_itens_menor_igual=self.site_setup.primeiro_dia_util_proximo_mes,  # type:ignore
-                                                             coluna_peso_produto_proprio=True, coluna_rentabilidade_cor=True,
-                                                             **parametro_carteira)
-        pedidos_mes_entrega_mes_dias = pd.DataFrame(pedidos_mes_entrega_mes_dias)
+        self.dias_decorridos = dias_decorridos(self.primeiro_dia_mes, self.ultimo_dia_mes)
+        self.meta_acumulada_dia_real = self.dias_decorridos * self.meta_diaria_real
+
+        if dados_pedidos_mes_entrega_mes_dias is None:
+            pedidos_mes_entrega_mes_dias = get_relatorios_vendas('pedidos',
+                                                                 inicio=self.site_setup.primeiro_dia_mes,  # type:ignore
+                                                                 fim=self.site_setup.ultimo_dia_mes,  # type:ignore
+                                                                 coluna_data_emissao=True,
+                                                                 data_entrega_itens_menor_igual=self.site_setup.primeiro_dia_util_proximo_mes,  # type:ignore
+                                                                 coluna_peso_produto_proprio=True,
+                                                                 coluna_rentabilidade_cor=True,
+                                                                 coluna_carteira=True,
+                                                                 **parametro_carteira)
+            pedidos_mes_entrega_mes_dias = pd.DataFrame(pedidos_mes_entrega_mes_dias)
+        else:
+            pedidos_mes_entrega_mes_dias = dados_pedidos_mes_entrega_mes_dias
+
+        if dados_pedidos_fora_mes_entrega_mes is None:
+            pedidos_fora_mes_entrega_mes = get_relatorios_vendas('pedidos',
+                                                                 data_emissao_menor_que=self.site_setup.primeiro_dia_mes,  # type:ignore
+                                                                 data_entrega_itens_maior_que=self.site_setup.primeiro_dia_util_mes,  # type:ignore
+                                                                 data_entrega_itens_menor_igual=self.site_setup.primeiro_dia_util_proximo_mes,  # type:ignore
+                                                                 coluna_peso_produto_proprio=True,
+                                                                 coluna_rentabilidade_cor=True,
+                                                                 coluna_carteira=True,
+                                                                 **parametro_carteira)
+            pedidos_fora_mes_entrega_mes = pd.DataFrame(pedidos_fora_mes_entrega_mes)
+        else:
+            pedidos_fora_mes_entrega_mes = dados_pedidos_fora_mes_entrega_mes
+
+        if dados_desvolucoes_mes is None:
+            desvolucoes_mes = get_relatorios_vendas('faturamentos',
+                                                    inicio=self.site_setup.primeiro_dia_mes,  # type:ignore
+                                                    fim=self.site_setup.ultimo_dia_mes,  # type:ignore
+                                                    especie='E',
+                                                    coluna_peso_produto_proprio=True,
+                                                    coluna_rentabilidade_cor=True,
+                                                    coluna_carteira=True,
+                                                    **parametro_carteira)
+            desvolucoes_mes = pd.DataFrame(desvolucoes_mes)
+        else:
+            desvolucoes_mes = dados_desvolucoes_mes
+
+        self.pedidos_mes_entrega_mes_dias = pedidos_mes_entrega_mes_dias.copy()
+        self.pedidos_fora_mes_entrega_mes = pedidos_fora_mes_entrega_mes.copy()
+        self.desvolucoes_mes = desvolucoes_mes.copy()
+
+        self.media_dia_pedido_mes_entrega_mes_sem_hoje = 0.0
+        if not pedidos_mes_entrega_mes_dias.empty:
+            dias_decorridos_sem_hoje = self.dias_decorridos - 1 if self.dias_decorridos else 0.0
+            pedidos_mes_entrega_mes_dias_sem_hoje = pedidos_mes_entrega_mes_dias[pedidos_mes_entrega_mes_dias['DATA_EMISSAO'].dt.date != hoje(
+            )]
+            valor_total_mes_sem_hoje = float(pedidos_mes_entrega_mes_dias_sem_hoje['VALOR_MERCADORIAS'].sum())
+            self.media_dia_pedido_mes_entrega_mes_sem_hoje = valor_total_mes_sem_hoje / dias_decorridos_sem_hoje \
+                if dias_decorridos_sem_hoje else 0.0
+
+            pedidos_mes_entrega_mes_dias = pedidos_mes_entrega_mes_dias.drop(columns=['CARTEIRA'])
+        if not pedidos_fora_mes_entrega_mes.empty:
+            pedidos_fora_mes_entrega_mes = pedidos_fora_mes_entrega_mes.drop(columns=['CARTEIRA'])
+        if not desvolucoes_mes.empty:
+            desvolucoes_mes = desvolucoes_mes.drop(columns=['CARTEIRA'])
+
         pedidos_mes_entrega_mes_total = pd.DataFrame()
         if not pedidos_mes_entrega_mes_dias.empty:
             pedidos_mes_entrega_mes_total = pedidos_mes_entrega_mes_dias.drop(columns=['DATA_EMISSAO'])
-
-        pedidos_fora_mes_entrega_mes = get_relatorios_vendas('pedidos',
-                                                             data_emissao_menor_que=self.site_setup.primeiro_dia_mes,  # type:ignore
-                                                             data_entrega_itens_maior_que=self.site_setup.primeiro_dia_util_mes,  # type:ignore
-                                                             data_entrega_itens_menor_igual=self.site_setup.primeiro_dia_util_proximo_mes,  # type:ignore
-                                                             coluna_peso_produto_proprio=True, coluna_rentabilidade_cor=True,
-                                                             **parametro_carteira)
-        pedidos_fora_mes_entrega_mes = pd.DataFrame(pedidos_fora_mes_entrega_mes)
-
-        desvolucoes_mes = get_relatorios_vendas('faturamentos',
-                                                inicio=self.site_setup.primeiro_dia_mes,  # type:ignore
-                                                fim=self.site_setup.ultimo_dia_mes,  # type:ignore
-                                                especie='E',
-                                                coluna_peso_produto_proprio=True, coluna_rentabilidade_cor=True,
-                                                **parametro_carteira)
-        desvolucoes_mes = pd.DataFrame(desvolucoes_mes)
-
         total_mes = pd.concat([desvolucoes_mes, pedidos_fora_mes_entrega_mes, pedidos_mes_entrega_mes_total],
                               ignore_index=True)
         total_mes = pd.DataFrame([total_mes.sum(axis=0)])
@@ -88,12 +128,10 @@ class DashBoardVendas():
             total_dia = pedidos_mes_entrega_mes_dias[pedidos_mes_entrega_mes_dias['DATA_EMISSAO'].dt.date == hoje()]
         if not total_dia.empty:
             total_dia = total_dia.drop(columns=['DATA_EMISSAO'])
+            total_dia = pd.DataFrame([total_dia.sum(axis=0)])
         total_dia = total_dia.to_dict(orient='records')
         total_dia = total_dia[0] if total_dia else {'MC_VALOR_COR': 0,
                                                     'MC_COR': 0, 'PESO_PP': 0, 'VALOR_MERCADORIAS': 0}
-
-        self.dias_decorridos = dias_decorridos(self.primeiro_dia_mes, self.ultimo_dia_mes)
-        self.meta_acumulada_dia_real = self.dias_decorridos * self.meta_diaria_real
 
         self.total_dia = total_dia
         self.rentabilidade_pedidos_dia = self.total_dia['MC_COR']
@@ -103,7 +141,10 @@ class DashBoardVendas():
         self.porcentagem_mc_dia = self.rentabilidade_pedidos_dia
         self.porcentagem_meta_dia = int(self.pedidos_dia / self.meta_diaria * 100) if self.meta_diaria else 0
         self.faltam_meta_dia = round(self.meta_diaria - self.pedidos_dia, 2)
-        self.conversao_de_orcamentos = conversao_de_orcamentos(self.carteira)
+
+        self.conversao_de_orcamentos = 0.0
+        if executar_completo:
+            self.conversao_de_orcamentos = conversao_de_orcamentos(self.carteira)
         self.faltam_abrir_orcamentos_dia = round(
             self.faltam_meta_dia / (self.conversao_de_orcamentos / 100), 2) if self.conversao_de_orcamentos else 0.0
 
@@ -119,26 +160,36 @@ class DashBoardVendas():
         self.cor_rentabilidade_css_dia = cor_rentabilidade_css(self.rentabilidade_pedidos_dia, True)
         self.cor_rentabilidade_css_mes = cor_rentabilidade_css(self.rentabilidade_pedidos_mes_rentabilidade_mes, True)
 
-        self.falta_mudar_cor_mes = falta_mudar_cor_mes(self.rentabilidade_pedidos_mes_mc_mes,
-                                                       self.pedidos_mes,
-                                                       self.rentabilidade_pedidos_mes_rentabilidade_mes)
+        self.falta_mudar_cor_mes = (0.0, 0.0, 0.0, '')
+        if executar_completo:
+            self.falta_mudar_cor_mes = falta_mudar_cor_mes(self.rentabilidade_pedidos_mes_mc_mes,
+                                                           self.pedidos_mes,
+                                                           self.rentabilidade_pedidos_mes_rentabilidade_mes)
         self.falta_mudar_cor_mes_valor = round(self.falta_mudar_cor_mes[0], 2)
         self.falta_mudar_cor_mes_valor_rentabilidade = round(self.falta_mudar_cor_mes[1], 2)
         self.falta_mudar_cor_mes_porcentagem = round(self.falta_mudar_cor_mes[2], 2)
         self.falta_mudar_cor_mes_cor = self.falta_mudar_cor_mes[3]
+
         self.meta_em_dia = self.pedidos_mes - self.meta_acumulada_dia_real
 
         self.data_hora_atual = data_hora_atual()
 
         self.confere_pedidos = []
-        if conferir_pedidos:
+        if executar_completo:
             self.confere_pedidos = confere_pedidos(self.carteira)
 
 
 class DashboardVendasCarteira(DashBoardVendas):
-    def __init__(self, carteira='%%', conferir_pedidos: bool = True) -> None:
-        super().__init__(carteira, conferir_pedidos)
-        self.recebido, self.a_receber = recebido_a_receber(self.primeiro_dia_mes, self.ultimo_dia_mes, carteira)
+    def __init__(self, carteira='%%', executar_completo: bool = True,
+                 dados_pedidos_mes_entrega_mes_dias: pd.DataFrame | None = None,
+                 dados_pedidos_fora_mes_entrega_mes: pd.DataFrame | None = None,
+                 dados_desvolucoes_mes: pd.DataFrame | None = None,) -> None:
+        super().__init__(carteira, executar_completo, dados_pedidos_mes_entrega_mes_dias,
+                         dados_pedidos_fora_mes_entrega_mes, dados_desvolucoes_mes)
+
+        self.recebido, self.a_receber = (0.0, 0.0)
+        if executar_completo:
+            self.recebido, self.a_receber = recebido_a_receber(self.primeiro_dia_mes, self.ultimo_dia_mes, carteira)
 
 
 class DashboardVendasTv(DashBoardVendas):
@@ -151,7 +202,6 @@ class DashboardVendasTv(DashBoardVendas):
 class DashboardVendasSupervisao(DashBoardVendas):
     def __init__(self) -> None:
         super().__init__()
-
         faturado_bruto = faturado_bruto_ano_mes_a_mes(mes_atual=True)
         try:
             faturado_bruto = faturado_bruto['FATURADO_TOTAL']  # type:ignore
@@ -168,7 +218,14 @@ class DashboardVendasSupervisao(DashBoardVendas):
         self.frete_cif = frete_cif
         self.carteiras = []
         for carteira in get_consultores_tecnicos_ativos():
-            self.carteiras.append(DashboardVendasCarteira(carteira.nome, conferir_pedidos=False))
+            dados = {}
+            if carteira.nome not in ('PAREDE DE CONCRETO', 'PREMOLDADO / POSTE'):
+                dados.update({
+                    'dados_pedidos_mes_entrega_mes_dias': self.pedidos_mes_entrega_mes_dias[self.pedidos_mes_entrega_mes_dias['CARTEIRA'] == carteira.nome],
+                    'dados_pedidos_fora_mes_entrega_mes': self.pedidos_fora_mes_entrega_mes[self.pedidos_fora_mes_entrega_mes['CARTEIRA'] == carteira.nome],
+                    'dados_desvolucoes_mes': self.desvolucoes_mes[self.desvolucoes_mes['CARTEIRA'] == carteira.nome],
+                })
+            self.carteiras.append(DashboardVendasCarteira(carteira.nome, executar_completo=False, **dados))
 
 
 def carteira_mapping(carteira):
