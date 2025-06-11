@@ -403,9 +403,15 @@ class Jobs(models.Model):
     cnpj = models.CharField("CNPJ", max_length=20, null=True, blank=True)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
     status = models.CharField("Status", max_length=30, choices=status_jobs, default='ativo')  # type:ignore
+    despesa_administrativa_fixa = models.DecimalField("Despesa Administrativa Fixa %", default=0.00,  # type:ignore
+                                                      max_digits=5, decimal_places=2)
 
     def __str__(self) -> str:
         return self.descricao
+
+    @property
+    def despesa_administrativa_fixa_as_float(self):
+        return float(self.despesa_administrativa_fixa)
 
 
 class Paises(models.Model):

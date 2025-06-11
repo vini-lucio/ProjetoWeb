@@ -114,7 +114,7 @@ class AssistentesTecnicosAgendaAdmin(BaseModelAdminRedRequired):
 
 @admin.register(Jobs)
 class JobsAdmin(BaseModelAdminRedRequired):
-    list_display = 'id', 'descricao', 'status',
+    list_display = 'id', 'descricao', 'despesa_administrativa_fixa', 'status',
     list_display_links = list_display
     ordering = 'descricao',
     search_fields = 'descricao',

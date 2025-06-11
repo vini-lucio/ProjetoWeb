@@ -32,7 +32,6 @@ class DashBoardVendas():
             self.primeiro_dia_util_mes = self.site_setup.primeiro_dia_util_mes_as_ddmmyyyy
             self.ultimo_dia_mes = self.site_setup.ultimo_dia_mes_as_ddmmyyyy
             self.primeiro_dia_util_proximo_mes = self.site_setup.primeiro_dia_util_proximo_mes_as_ddmmyyyy
-            self.despesa_administrativa_fixa = self.site_setup.despesa_administrativa_fixa_as_float
 
             if self.carteira == '%%':
                 self.meta_diaria = self.site_setup.meta_diaria_as_float
@@ -119,7 +118,7 @@ class DashBoardVendas():
         total_mes = pd.DataFrame([total_mes.sum(axis=0)])
         if not total_mes.empty:
             total_mes['MC_COR'] = total_mes['MC_VALOR_COR'] / total_mes['VALOR_MERCADORIAS'] * 100
-        total_mes = total_mes.to_dict(orient='records')
+        total_mes = total_mes.fillna(0).to_dict(orient='records')
         total_mes = total_mes[0] if total_mes else {'MC_VALOR_COR': 0,
                                                     'MC_COR': 0, 'PESO_PP': 0, 'VALOR_MERCADORIAS': 0}
 
