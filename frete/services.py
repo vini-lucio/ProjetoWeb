@@ -9,61 +9,21 @@ from django.core.exceptions import ObjectDoesNotExist
 
 def get_dados_orcamento(orcamento: int):
     """Retorna os dados de entrega para calculo de frete"""
-    sql = """
-        SELECT
-            ORCAMENTOS.NUMPED AS ORCAMENTO,
-            ORCAMENTOS.CHAVE_TRANSPORTADORA,
-            CLIENTES.NOMERED AS CLIENTE,
-            ORCAMENTOS.VALOR_COM_FRETE AS VALOR_TOTAL,
-            JOBS.UF AS UF_ORIGEM,
-            ESTADOS.SIGLA AS UF_FATURAMENTO,
-            COALESCE(UF_ORDEM.UF_ORDEM, ESTADOS2.SIGLA, ESTADOS.SIGLA) AS UF_DESTINO,
-            COALESCE(UF_ORDEM.CIDADE_ORDEM, PLATAFORMAS.CIDADE_ENT, CLIENTES.CIDADE) AS CIDADE_DESTINO,
-            ORCAMENTOS.DESTINO AS DESTINO_MERCADORIAS,
-            CASE WHEN ORCAMENTOS.ZONA_FRANCA = 'SIM' OR ORCAMENTOS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END AS ZONA_FRANCA_ALC
+    from dashboards.services import get_relatorios_vendas
 
-        FROM
-            (
-                SELECT
-                    ORCAMENTOS_ORDEM.CHAVE AS CHAVE_ORCAMENTO,
-                    ESTADOS_ORDEM.SIGLA AS UF_ORDEM,
-                    CLIENTES_ORDEM.CIDADE AS CIDADE_ORDEM
-
-                FROM
-                    COPLAS.ESTADOS ESTADOS_ORDEM,
-                    COPLAS.ORCAMENTOS ORCAMENTOS_ORDEM,
-                    COPLAS.CLIENTES CLIENTES_ORDEM
-
-                WHERE
-                    ORCAMENTOS_ORDEM.CHAVE_CLIENTE_REMESSA = CLIENTES_ORDEM.CODCLI AND
-                    CLIENTES_ORDEM.UF = ESTADOS_ORDEM.CHAVE AND
-
-                    ORCAMENTOS_ORDEM.NUMPED = :orcamento
-            ) UF_ORDEM,
-            COPLAS.ESTADOS ESTADOS2,
-            COPLAS.PLATAFORMAS,
-            COPLAS.ESTADOS,
-            COPLAS.CLIENTES,
-            COPLAS.JOBS,
-            COPLAS.ORCAMENTOS
-
-        WHERE
-            ORCAMENTOS.CHAVE = UF_ORDEM.CHAVE_ORCAMENTO(+) AND
-            PLATAFORMAS.UF_ENT = ESTADOS2.CHAVE(+) AND
-            ORCAMENTOS.CHAVE_PLATAFORMA = PLATAFORMAS.CHAVE(+) AND
-            CLIENTES.CODCLI = ORCAMENTOS.CHAVE_CLIENTE AND
-            ESTADOS.CHAVE = CLIENTES.UF AND
-            JOBS.CODIGO = ORCAMENTOS.CHAVE_JOB AND
-
-            ORCAMENTOS.NUMPED = :orcamento
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, orcamento=orcamento)
+    resultado = get_relatorios_vendas('orcamentos', documento=orcamento, coluna_documento=True, coluna_cliente=True,
+                                      coluna_estado=True, coluna_chave_transportadora=True, coluna_valor_bruto=True,
+                                      coluna_estado_origem=True, coluna_estado_destino=True, coluna_cidade_destino=True,
+                                      coluna_destino_mercadorias=True, coluna_zona_franca_alc=True,
+                                      incluir_orcamentos_oportunidade=True, incluir_sem_valor_comercial=True,)
 
     if not resultado:
         raise ObjectDoesNotExist("Orçamento não existe")
 
     resultado = resultado[0]
+    resultado['ORCAMENTO'] = resultado.pop('DOCUMENTO')
+    resultado['UF_FATURAMENTO'] = resultado.pop('UF_PRINCIPAL')
+    resultado['VALOR_TOTAL'] = resultado.pop('VALOR_BRUTO')
 
     return resultado
 

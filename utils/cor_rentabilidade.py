@@ -24,13 +24,16 @@ def cor_rentabilidade_css(rentabilidade: float, subtrair_despesa_adm: bool = Fal
     return '--roxo-rentabilidade'
 
 
-def falta_mudar_cor_mes(mc_mes: float, total_mes: float, rentabilidade_mes: float) -> tuple[float, float, float, str]:
+def falta_mudar_cor_mes(mc_mes: float, total_mes: float, rentabilidade_mes: float, subtrair_despesa_adm: bool = True) -> tuple[float, float, float, str]:
     """Retorna quanto precisa vender [0] em uma determinada rentabilidade [1] para mudar de cor, a porcentagem de quanto falta [2] e a cor que vai mudar [3]"""
     cores = get_cores_rentabilidade()
     verde = cores['verde']
     amarelo = cores['amarelo']
     vermelho = cores['vermelho']
     despesa_adm = cores['despesa_adm']
+
+    if subtrair_despesa_adm:
+        rentabilidade_mes -= despesa_adm
 
     if rentabilidade_mes >= verde:
         falta_valor = (((verde - 0.01) + despesa_adm) * total_mes - 100 * mc_mes) / sugestao_rentabilidade_a_menos

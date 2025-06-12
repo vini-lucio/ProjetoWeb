@@ -182,6 +182,10 @@ class STATUS_ORCAMENTOS_ITENS(ReadOnlyMixin, models.Model):
     def __str__(self):
         return self.DESCRICAO
 
+    @classmethod
+    def get_status_fechado(cls):
+        return cls.objects.filter(DESCRICAO='FECHADO').first()
+
 
 class GRUPO_ECONOMICO(ReadOnlyMixin, models.Model):
     class Meta:

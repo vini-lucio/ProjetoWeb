@@ -1372,6 +1372,7 @@ def lucro_ano_mes_a_mes():
                     (
                         {lfrete_notas} AND
 
+                            NOTAS.VALOR_COMERCIAL = 'SIM' AND
                             NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
                             NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
                     ) LFRETE
