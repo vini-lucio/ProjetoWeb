@@ -129,6 +129,7 @@ class DashBoardVendas():
         if not total_dia.empty:
             total_dia = total_dia.drop(columns=['DATA_EMISSAO'])
             total_dia = pd.DataFrame([total_dia.sum(axis=0)])
+            total_dia['MC_COR'] = total_dia['MC_VALOR_COR'] / total_dia['VALOR_MERCADORIAS'] * 100
         total_dia = total_dia.to_dict(orient='records')
         total_dia = total_dia[0] if total_dia else {'MC_VALOR_COR': 0,
                                                     'MC_COR': 0, 'PESO_PP': 0, 'VALOR_MERCADORIAS': 0}
@@ -176,7 +177,7 @@ class DashBoardVendas():
 
         self.confere_pedidos = []
         if executar_completo:
-            self.confere_pedidos = confere_pedidos(self.carteira)
+            self.confere_pedidos = confere_pedidos(self.carteira, parametro_carteira)
 
 
 class DashboardVendasCarteira(DashBoardVendas):
@@ -477,7 +478,7 @@ def confere_orcamento(orcamento: int = 0) -> list | None:
     return resultado
 
 
-def confere_pedidos(carteira: str = '%%') -> list | None:
+def confere_pedidos(carteira: str = '%%', parametro_carteira: dict = {}) -> list | None:
     """Confere possiveis erros dos pedidos em aberto"""
     sql = """
         SELECT
@@ -581,7 +582,7 @@ def confere_pedidos(carteira: str = '%%') -> list | None:
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, carteira=carteira)
 
-    erros_atendimento_transportadoras = confere_pedidos_atendimento_transportadoras()
+    erros_atendimento_transportadoras = confere_pedidos_atendimento_transportadoras(parametro_carteira)
     if erros_atendimento_transportadoras:
         for erro_atendiemto_transportadoras in erros_atendimento_transportadoras:
             resultado.append(erro_atendiemto_transportadoras)
@@ -592,8 +593,8 @@ def confere_pedidos(carteira: str = '%%') -> list | None:
     return resultado
 
 
-def confere_pedidos_atendimento_transportadoras() -> list | None:
-    dados_pedidos = get_dados_pedidos_em_aberto()
+def confere_pedidos_atendimento_transportadoras(parametro_carteira: dict = {}) -> list | None:
+    dados_pedidos = get_dados_pedidos_em_aberto(parametro_carteira)
     transportadoras = get_transportadoras()
     erros = []
 
@@ -889,6 +890,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM(COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0)) AS FRETE_INCLUSO_ITEM,"},
 
+        'cobranca_frete_cif': {'cobranca_frete_cif_pesquisa': "(NOTAS.CHAVE_TRANSPORTADORA = 8475 OR NOTAS.COBRANCA_FRETE IN (0, 1, 4, 5)) AND", },
+
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
                                           'valor_mercadorias_maior_igual_having': "AND SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0))) >= :valor_mercadorias_maior_igual", },
 
@@ -897,6 +900,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_data_emissao': {'data_emissao_campo_alias': "NOTAS.DATA_EMISSAO,",
                                 'data_emissao_campo': "NOTAS.DATA_EMISSAO,", },
         'data_emissao_menor_que': {'data_emissao_menor_que_pesquisa': "NOTAS.DATA_EMISSAO < :data_emissao_menor_que AND", },
+
+        'coluna_data_saida': {'data_saida_campo_alias': "NOTAS.DATA_SAIDA,",
+                              'data_saida_campo': "NOTAS.DATA_SAIDA,", },
+
+        'coluna_quantidade_volumes': {'quantidade_volumes_campo_alias': "NOTAS.VOLUMES_QUANTIDADE,",
+                                      'quantidade_volumes_campo': "NOTAS.VOLUMES_QUANTIDADE,", },
 
         'coluna_ano_mes_emissao': {'ano_mes_emissao_campo_alias': "TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM') AS ANO_MES_EMISSAO,",
                                    'ano_mes_emissao_campo': "TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM'),", },
@@ -928,6 +937,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
         'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND", },
 
+        'coluna_chave_produto': {'chave_produto_campo_alias': "PRODUTOS.CPROD AS CHAVE_PRODUTO,",
+                                 'chave_produto_campo': "PRODUTOS.CPROD,", },
         'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
                            'produto_campo': "PRODUTOS.CODIGO,", },
         'produto': {'produto_pesquisa': "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND", },
@@ -1042,6 +1053,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'lfrete_join': notas_lfrete_join, },
         'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END AS MC_COR_AJUSTE",
                                  'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END,", },
+
+        'coluna_pis': {'pis_campo_alias': "SUM(NOTAS_ITENS.ANALISE_PIS) AS PIS,", },
+        'coluna_cofins': {'cofins_campo_alias': "SUM(NOTAS_ITENS.ANALISE_COFINS) AS COFINS,", },
+        'coluna_icms': {'icms_campo_alias': "SUM(NOTAS_ITENS.ANALISE_ICMS) AS ICMS,", },
 
         'coluna_documento': {'documento_campo_alias': "NOTAS.NF AS DOCUMENTO,",
                              'documento_campo': "NOTAS.NF,", },
@@ -1192,6 +1207,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0)) {conversao_moeda}) AS FRETE_INCLUSO_ITEM,".format(conversao_moeda=conversao_moeda)},
 
+        'cobranca_frete_cif': {'cobranca_frete_cif_pesquisa': "(PEDIDOS.CHAVE_TRANSPORTADORA = 8475 OR PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5)) AND", },
+
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
                                           'valor_mercadorias_maior_igual_having': "AND SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}) >= :valor_mercadorias_maior_igual".format(conversao_moeda=conversao_moeda), },
 
@@ -1200,6 +1217,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_data_emissao': {'data_emissao_campo_alias': "PEDIDOS.DATA_PEDIDO AS DATA_EMISSAO,",
                                 'data_emissao_campo': "PEDIDOS.DATA_PEDIDO,", },
         'data_emissao_menor_que': {'data_emissao_menor_que_pesquisa': "PEDIDOS.DATA_PEDIDO < :data_emissao_menor_que AND", },
+
+        'coluna_data_saida': {'data_saida_campo_alias': "",
+                              'data_saida_campo': "", },
+
+        'coluna_quantidade_volumes': {'quantidade_volumes_campo_alias': "",
+                                      'quantidade_volumes_campo': "", },
 
         'coluna_ano_mes_emissao': {'ano_mes_emissao_campo_alias': "TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM') AS ANO_MES_EMISSAO,",
                                    'ano_mes_emissao_campo': "TO_CHAR(PEDIDOS.DATA_PEDIDO, 'YYYY-MM'),", },
@@ -1231,6 +1254,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
         'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND", },
 
+        'coluna_chave_produto': {'chave_produto_campo_alias': "PRODUTOS.CPROD AS CHAVE_PRODUTO,",
+                                 'chave_produto_campo': "PRODUTOS.CPROD,", },
         'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
                            'produto_campo': "PRODUTOS.CODIGO,", },
         'produto': {'produto_pesquisa': "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND", },
@@ -1316,6 +1341,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'lfrete_join': pedidos_lfrete_join, },
         'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END AS MC_COR_AJUSTE",
                                  'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END,", },
+
+        'coluna_pis': {'pis_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_PIS) AS PIS,", },
+        'coluna_cofins': {'cofins_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_COFINS) AS COFINS,", },
+        'coluna_icms': {'icms_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_ICMS) AS ICMS,", },
 
         'coluna_documento': {'documento_campo_alias': "PEDIDOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "PEDIDOS.NUMPED,", },
@@ -1476,6 +1505,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0)) {conversao_moeda}) AS FRETE_INCLUSO_ITEM,".format(conversao_moeda=conversao_moeda)},
 
+        'cobranca_frete_cif': {'cobranca_frete_cif_pesquisa': "(ORCAMENTOS.CHAVE_TRANSPORTADORA = 8475 OR ORCAMENTOS.COBRANCA_FRETE IN (0, 1, 4, 5)) AND", },
+
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
                                           'valor_mercadorias_maior_igual_having': "AND SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}) >= :valor_mercadorias_maior_igual".format(conversao_moeda=conversao_moeda), },
 
@@ -1484,6 +1515,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_data_emissao': {'data_emissao_campo_alias': "ORCAMENTOS.DATA_PEDIDO AS DATA_EMISSAO,",
                                 'data_emissao_campo': "ORCAMENTOS.DATA_PEDIDO,", },
         'data_emissao_menor_que': {'data_emissao_menor_que_pesquisa': "ORCAMENTOS.DATA_PEDIDO < :data_emissao_menor_que AND", },
+
+        'coluna_data_saida': {'data_saida_campo_alias': "",
+                              'data_saida_campo': "", },
+
+        'coluna_quantidade_volumes': {'quantidade_volumes_campo_alias': "",
+                                      'quantidade_volumes_campo': "", },
 
         'coluna_ano_mes_emissao': {'ano_mes_emissao_campo_alias': "TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM') AS ANO_MES_EMISSAO,",
                                    'ano_mes_emissao_campo': "TO_CHAR(ORCAMENTOS.DATA_PEDIDO, 'YYYY-MM'),", },
@@ -1515,6 +1552,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
         'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND", },
 
+        'coluna_chave_produto': {'chave_produto_campo_alias': "PRODUTOS.CPROD AS CHAVE_PRODUTO,",
+                                 'chave_produto_campo': "PRODUTOS.CPROD,", },
         'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
                            'produto_campo': "PRODUTOS.CODIGO,", },
         'produto': {'produto_pesquisa': "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND", },
@@ -1600,6 +1639,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'lfrete_join': orcamentos_lfrete_join, },
         'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END AS MC_COR_AJUSTE",
                                  'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END,", },
+
+        'coluna_pis': {'pis_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_PIS) AS PIS,", },
+        'coluna_cofins': {'cofins_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_COFINS) AS COFINS,", },
+        'coluna_icms': {'icms_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_ICMS) AS ICMS,", },
 
         'coluna_documento': {'documento_campo_alias': "ORCAMENTOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "ORCAMENTOS.NUMPED,", },
@@ -1724,6 +1767,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'lfrete_join': orcamentos_lfrete_join, },
         'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END AS MC_COR_AJUSTE",
                                  'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN 4 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 4 END,", },
+
+        'coluna_pis': {'pis_campo_alias': "0 AS PIS,", },
+        'coluna_cofins': {'cofins_campo_alias': "0 AS COFINS,", },
+        'coluna_icms': {'icms_campo_alias': "0 AS ICMS,", },
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "ORCAMENTOS.DATA_ENTREGA,", },
@@ -1882,6 +1929,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {job_campo_alias}
             {data_emissao_campo_alias}
             {data_entrega_itens_campo_alias}
+            {data_saida_campo_alias}
             {ano_mes_emissao_campo_alias}
             {ano_emissao_campo_alias}
             {mes_emissao_campo_alias}
@@ -1904,6 +1952,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {tipo_cliente_campo_alias}
             {chave_transportadora_campo_alias}
             {familia_produto_campo_alias}
+            {chave_produto_campo_alias}
             {produto_campo_alias}
             {unidade_campo_alias}
             {status_produto_orcamento_campo_alias}
@@ -1914,10 +1963,14 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {desconto_campo_alias}
             {quantidade_campo_alias}
             {peso_produto_proprio_campo_alias}
+            {quantidade_volumes_campo_alias}
             {media_dia_campo_alias}
             {frete_incluso_item_campo_alias}
             {custo_total_item_campo_alias}
             {lfrete_coluna_aliquotas_itens}
+            {pis_campo_alias}
+            {cofins_campo_alias}
+            {icms_campo_alias}
             {valor_bruto_campo_alias}
 
             {valor_mercadorias}
@@ -1979,6 +2032,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {data_entrega_itens_menor_igual_pesquisa}
             {data_emissao_menor_que_pesquisa}
             {especie_pesquisa}
+            {cobranca_frete_cif_pesquisa}
 
             {fonte_where_data}
 
@@ -2014,6 +2068,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {cidade_destino_campo}
             {destino_mercadorias_campo}
             {zona_franca_alc_campo}
+            {chave_produto_campo}
+            {data_saida_campo}
+            {quantidade_volumes_campo}
             1
 
         {having}
@@ -2062,7 +2119,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'ALIQUOTA_IR', 'ALIQUOTA_CSLL', 'ALIQUOTA_COMISSAO', 'ALIQUOTA_DESPESA_ADM',
                                      'ALIQUOTA_DESPESA_COM', 'ALIQUOTAS_TOTAIS', 'MC_COR_AJUSTE', 'JOB',
                                      'CHAVE_TRANSPORTADORA', 'UF_ORIGEM', 'UF_DESTINO', 'CIDADE_DESTINO',
-                                     'DESTINO_MERCADORIAS', 'ZONA_FRANCA_ALC',]
+                                     'DESTINO_MERCADORIAS', 'ZONA_FRANCA_ALC', 'CHAVE_PRODUTO', 'DATA_SAIDA',
+                                     'VOLUMES_QUANTIDADE',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',

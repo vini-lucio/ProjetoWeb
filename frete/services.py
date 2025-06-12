@@ -9,8 +9,8 @@ from django.core.exceptions import ObjectDoesNotExist
 
 def get_dados_orcamento(orcamento: int):
     """Retorna os dados de entrega para calculo de frete"""
-    from dashboards.services import get_relatorios_vendas
 
+    from dashboards.services import get_relatorios_vendas
     resultado = get_relatorios_vendas('orcamentos', documento=orcamento, coluna_documento=True, coluna_cliente=True,
                                       coluna_estado=True, coluna_chave_transportadora=True, coluna_valor_bruto=True,
                                       coluna_estado_origem=True, coluna_estado_destino=True, coluna_cidade_destino=True,
@@ -28,101 +28,59 @@ def get_dados_orcamento(orcamento: int):
     return resultado
 
 
-def get_dados_pedidos_em_aberto():
+def get_dados_pedidos_em_aberto(parametro_carteira: dict = {}):
     """Retorna os dados de entrega para conferencia de atendimento das transportadoras nos pedidos em aberto"""
-    sql = """
-        SELECT
-            VENDEDORES.NOMERED AS CARTEIRA,
-            PEDIDOS.NUMPED AS PEDIDO,
-            PEDIDOS.CHAVE_TRANSPORTADORA,
-            JOBS.UF AS UF_ORIGEM,
-            ESTADOS.SIGLA AS UF_FATURAMENTO,
-            COALESCE(UF_ORDEM.UF_ORDEM, ESTADOS2.SIGLA, ESTADOS.SIGLA) AS UF_DESTINO,
-            COALESCE(UF_ORDEM.CIDADE_ORDEM, PLATAFORMAS.CIDADE_ENT, CLIENTES.CIDADE) AS CIDADE_DESTINO
 
-        FROM
-            (
-                SELECT
-                    PEDIDOS_ORDEM.CHAVE AS CHAVE_PEDIDO,
-                    ESTADOS_ORDEM.SIGLA AS UF_ORDEM,
-                    CLIENTES_ORDEM.CIDADE AS CIDADE_ORDEM
+    from dashboards.services import get_relatorios_vendas
+    resultado = get_relatorios_vendas('pedidos', **parametro_carteira, coluna_carteira=True, coluna_documento=True,
+                                      coluna_chave_transportadora=True, coluna_estado_origem=True, coluna_estado=True,
+                                      coluna_estado_destino=True, coluna_cidade_destino=True,
+                                      status_documento_em_aberto=True, cobranca_frete_cif=True,
+                                      incluir_orcamentos_oportunidade=True, incluir_sem_valor_comercial=True,)
 
-                FROM
-                    COPLAS.ESTADOS ESTADOS_ORDEM,
-                    COPLAS.PEDIDOS PEDIDOS_ORDEM,
-                    COPLAS.CLIENTES CLIENTES_ORDEM
-
-                WHERE
-                    PEDIDOS_ORDEM.CHAVE_CLIENTE_REMESSA = CLIENTES_ORDEM.CODCLI AND
-                    CLIENTES_ORDEM.UF = ESTADOS_ORDEM.CHAVE AND
-                    PEDIDOS_ORDEM.STATUS != 'LIQUIDADO' AND
-
-                    (
-                        PEDIDOS_ORDEM.CHAVE_TRANSPORTADORA = 8475 OR
-                        PEDIDOS_ORDEM.COBRANCA_FRETE IN (0, 1, 4, 5)
-                    )
-            ) UF_ORDEM,
-            COPLAS.VENDEDORES,
-            COPLAS.ESTADOS ESTADOS2,
-            COPLAS.PLATAFORMAS,
-            COPLAS.ESTADOS,
-            COPLAS.CLIENTES,
-            COPLAS.JOBS,
-            COPLAS.PEDIDOS
-
-        WHERE
-            VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
-            PEDIDOS.CHAVE = UF_ORDEM.CHAVE_PEDIDO(+) AND
-            PLATAFORMAS.UF_ENT = ESTADOS2.CHAVE(+) AND
-            PEDIDOS.CHAVE_PLATAFORMA = PLATAFORMAS.CHAVE(+) AND
-            CLIENTES.CODCLI = PEDIDOS.CHAVE_CLIENTE AND
-            ESTADOS.CHAVE = CLIENTES.UF AND
-            JOBS.CODIGO = PEDIDOS.CHAVE_JOB AND
-            PEDIDOS.STATUS != 'LIQUIDADO' AND
-
-            (
-                PEDIDOS.CHAVE_TRANSPORTADORA = 8475 OR
-                PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5)
-            )
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True)
+    for pedido in resultado:
+        pedido['PEDIDO'] = pedido.pop('DOCUMENTO')
+        pedido['UF_FATURAMENTO'] = pedido.pop('UF_PRINCIPAL')
 
     return resultado
 
 
 def get_dados_itens_orcamento(orcamento: int):
     """Retorna os dados dos itens do orcamento para calculo de frete"""
-    sql = """
-        SELECT
-            PRODUTOS.CODIGO,
-            ORCAMENTOS_ITENS.CHAVE_PRODUTO,
-            ORCAMENTOS_ITENS.QUANTIDADE,
-            ORCAMENTOS_ITENS.ANALISE_PIS + ORCAMENTOS_ITENS.ANALISE_COFINS AS PIS_COFINS,
-            ORCAMENTOS_ITENS.ANALISE_ICMS AS ICMS
-
-        FROM
-            COPLAS.PRODUTOS,
-            COPLAS.ORCAMENTOS,
-            COPLAS.ORCAMENTOS_ITENS
-
-        WHERE
-            ORCAMENTOS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
-            ORCAMENTOS.CHAVE = ORCAMENTOS_ITENS.CHAVE_PEDIDO AND
-
-            ORCAMENTOS.NUMPED = :orcamento
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, orcamento=orcamento)
+    from dashboards.services import get_relatorios_vendas
+    resultado = get_relatorios_vendas('orcamentos', documento=orcamento, coluna_produto=True, coluna_quantidade=True,
+                                      coluna_pis=True, coluna_cofins=True, coluna_icms=True, coluna_chave_produto=True,
+                                      incluir_orcamentos_oportunidade=True, incluir_sem_valor_comercial=True,)
 
     if not resultado:
         raise ObjectDoesNotExist("Orçamento sem itens")
+
+    for item_orcamento in resultado:
+        item_orcamento['CODIGO'] = item_orcamento.pop('PRODUTO')
+        item_orcamento['PIS_COFINS'] = item_orcamento.pop('PIS', 0) + item_orcamento.pop('COFINS', 0)
 
     return resultado
 
 
 def get_dados_notas(data_inicio, data_fim):
     """Retorna os dados dos itens do orcamento para calculo de frete"""
+    # from dashboards.services import get_relatorios_vendas
+    # teste = get_relatorios_vendas('faturamentos', inicio=data_inicio, fim=data_fim, coluna_data_saida=True,
+    #                               coluna_carteira=True, coluna_documento=True, coluna_cliente=True,
+    #                               coluna_valor_bruto=True, coluna_quantidade_volumes=True,
+
+    #                               # TODO: coluna orcamento da nota / pedido
+    #                               incluir_sem_valor_comercial=True,)
+
+    # for nota in teste:
+    #     nota['NF'] = nota.pop('DOCUMENTO')
+
+    # for tes in teste:
+    #     print(tes)
+    # print()
+    # print()
+    # print()
+
     sql = """
         SELECT DISTINCT
             NOTAS.DATA_SAIDA,
@@ -139,7 +97,6 @@ def get_dados_notas(data_inicio, data_fim):
             TRANSPORTADORAS.NOMERED AS TRANSPORTADORA,
             CASE WHEN NOTAS.COBRANCA_FRETE IN (0, 1, 4, 5) THEN 'REMETENTE' WHEN NOTAS.COBRANCA_FRETE IN (2, 6) THEN 'DESTINATARIO' ELSE 'INCORRETO' END AS FRETE,
             NOTAS.VALOR_FRETE AS FRETE_NOTA
-            -- , JOBS.UF AS UF_ORIGEM
 
         FROM
             COPLAS.VENDEDORES,
@@ -163,14 +120,14 @@ def get_dados_notas(data_inicio, data_fim):
             NOTAS.DATA_EMISSAO >= :data_inicio AND
             NOTAS.DATA_EMISSAO <= :data_fim
 
-            -- NOTAS.DATA_EMISSAO >= TO_DATE(:data_inicio,'DD-MM-YYYY') AND
-            -- NOTAS.DATA_EMISSAO <= TO_DATE(:data_fim,'DD-MM-YYYY')
-
         ORDER BY
             TRANSPORTADORAS.NOMERED, NOTAS.NF
     """
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim)
+
+    # for r in resultado:
+    #     print(r)
 
     return resultado
 
