@@ -64,22 +64,27 @@ def get_dados_itens_orcamento(orcamento: int):
 
 def get_dados_notas(data_inicio, data_fim):
     """Retorna os dados dos itens do orcamento para calculo de frete"""
+
     # from dashboards.services import get_relatorios_vendas
     # teste = get_relatorios_vendas('faturamentos', inicio=data_inicio, fim=data_fim, coluna_data_saida=True,
     #                               coluna_carteira=True, coluna_documento=True, coluna_cliente=True,
-    #                               coluna_valor_bruto=True, coluna_quantidade_volumes=True,
-
-    #                               # TODO: coluna orcamento da nota / pedido
+    #                               coluna_valor_bruto=True, coluna_quantidade_volumes=True, coluna_peso_bruto_nota=True,
+    #                               coluna_estado_destino=True, coluna_cidade_destino=True, coluna_transportadora=True,
+    #                               coluna_cobranca_frete=True, coluna_frete_destacado=True, coluna_orcamento=True,
     #                               incluir_sem_valor_comercial=True,)
+
+    # # TODO: testar se os dois modos estam iguais
 
     # for nota in teste:
     #     nota['NF'] = nota.pop('DOCUMENTO')
-
-    # for tes in teste:
-    #     print(tes)
-    # print()
-    # print()
-    # print()
+    #     nota['PESO_BRUTO'] = nota.pop('PESO_BRUTO_NOTA')
+    #     nota['UF_ENTREGA'] = nota.pop('UF_DESTINO')
+    #     nota['CIDADE_ENTREGA'] = nota.pop('CIDADE_DESTINO')
+    #     nota['FRETE'] = nota.pop('COBRANCA_FRETE')
+    #     nota['FRETE_NOTA'] = nota.pop('FRETE_DESTACADO')
+    #     nota['NOMERED'] = nota.pop('CLIENTE')
+    #     nota['VALOR_TOTAL'] = nota.pop('VALOR_BRUTO')
+    # teste = sorted(teste, key=lambda nf: nf['TRANSPORTADORA'])
 
     sql = """
         SELECT DISTINCT
@@ -125,9 +130,6 @@ def get_dados_notas(data_inicio, data_fim):
     """
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim)
-
-    # for r in resultado:
-    #     print(r)
 
     return resultado
 

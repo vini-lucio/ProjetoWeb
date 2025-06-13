@@ -769,6 +769,33 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     if nao_converter_moeda:
         conversao_moeda = ""
 
+    notas_documentos_from = """
+        (
+            SELECT DISTINCT
+                NOTAS.CHAVE AS CHAVE_NOTA,
+                ORCAMENTOS.NUMPED AS ORCAMENTO,
+                PEDIDOS.NUMPED AS PEDIDO
+
+            FROM
+                COPLAS.ORCAMENTOS,
+                COPLAS.PEDIDOS,
+                COPLAS.NOTAS_ITENS,
+                COPLAS.NOTAS
+
+            WHERE
+                NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
+                PEDIDOS.CHAVE = NOTAS_ITENS.NUMPED AND
+                ORCAMENTOS.CHAVE = PEDIDOS.CHAVE_ORCAMENTO AND
+
+                NOTAS.DATA_EMISSAO >= :data_inicio AND
+                NOTAS.DATA_EMISSAO <= :data_fim
+        ) DOCUMENTOS,
+    """
+    notas_documentos_join = "NOTAS.CHAVE = DOCUMENTOS.CHAVE_NOTA(+) AND"
+
+    notas_transportadoras_from = "COPLAS.TRANSPORTADORAS,"
+    notas_transportadoras_join = "TRANSPORTADORAS.CODTRANSP = NOTAS.CHAVE_TRANSPORTADORA AND"
+
     notas_destino_from = """
         (
             SELECT
@@ -884,12 +911,18 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_notas = {
+        'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "NOTAS.PESO_BRUTO AS PESO_BRUTO_NOTA,",
+                                   'peso_bruto_nota_campo': "NOTAS.PESO_BRUTO,", },
+
         'coluna_custo_total_item': {'custo_total_item_campo_alias': "SUM(NOTAS_ITENS.ANALISE_CUSTO_MEDIO) AS CUSTO_TOTAL_ITEM,"},
 
         'coluna_valor_bruto': {'valor_bruto_campo_alias': "SUM(NOTAS_ITENS.VALOR_CONTABIL) AS VALOR_BRUTO,"},
 
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM(COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0)) AS FRETE_INCLUSO_ITEM,"},
+        'coluna_frete_destacado': {'frete_destacado_campo_alias': "SUM(NOTAS_ITENS.RATEIO_FRETE) AS FRETE_DESTACADO,"},
 
+        'coluna_cobranca_frete': {'cobranca_frete_campo_alias': "CASE WHEN NOTAS.COBRANCA_FRETE IN (0, 1, 4, 5) THEN 'REMETENTE' WHEN NOTAS.COBRANCA_FRETE IN (2, 6) THEN 'DESTINATARIO' ELSE 'INCORRETO' END AS COBRANCA_FRETE,",
+                                  'cobranca_frete_campo': "CASE WHEN NOTAS.COBRANCA_FRETE IN (0, 1, 4, 5) THEN 'REMETENTE' WHEN NOTAS.COBRANCA_FRETE IN (2, 6) THEN 'DESTINATARIO' ELSE 'INCORRETO' END,", },
         'cobranca_frete_cif': {'cobranca_frete_cif_pesquisa': "(NOTAS.CHAVE_TRANSPORTADORA = 8475 OR NOTAS.COBRANCA_FRETE IN (0, 1, 4, 5)) AND", },
 
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
@@ -1062,6 +1095,19 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                              'documento_campo': "NOTAS.NF,", },
         'documento': {'documento_pesquisa': "NOTAS.NF = :documento AND", },
 
+        'coluna_orcamento': {'orcamento_campo_alias': "DOCUMENTOS.ORCAMENTO,",
+                             'orcamento_campo': "DOCUMENTOS.ORCAMENTO,",
+                             'documentos_from': notas_documentos_from,
+                             'documentos_join': notas_documentos_join, },
+        'coluna_pedido': {'pedido_campo_alias': "DOCUMENTOS.PEDIDO,",
+                          'pedido_campo': "DOCUMENTOS.PEDIDO,",
+                          'documentos_from': notas_documentos_from,
+                          'documentos_join': notas_documentos_join, },
+        'coluna_nota': {'nota_campo_alias': "",
+                        'nota_campo': "",
+                        'documentos_from': "",
+                        'documentos_join': "", },
+
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
 
@@ -1091,6 +1137,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_chave_transportadora': {'chave_transportadora_campo_alias': "NOTAS.CHAVE_TRANSPORTADORA AS CHAVE_TRANSPORTADORA,",
                                         'chave_transportadora_campo': "NOTAS.CHAVE_TRANSPORTADORA,", },
+        'coluna_transportadora': {'transportadora_campo_alias': "TRANSPORTADORAS.NOMERED AS TRANSPORTADORA,",
+                                  'transportadora_campo': "TRANSPORTADORAS.NOMERED,",
+                                  'transportadoras_from': notas_transportadoras_from,
+                                  'transportadoras_join': notas_transportadoras_join, },
 
         'coluna_destino_mercadorias': {'destino_mercadorias_campo_alias': "NOTAS.DESTINO AS DESTINO_MERCADORIAS,",
                                        'destino_mercadorias_campo': "NOTAS.DESTINO,", },
@@ -1098,6 +1148,45 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_zona_franca_alc': {'zona_franca_alc_campo_alias': "CASE WHEN NOTAS.ZONA_FRANCA = 'SIM' OR NOTAS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END AS ZONA_FRANCA_ALC,",
                                    'zona_franca_alc_campo': "CASE WHEN NOTAS.ZONA_FRANCA = 'SIM' OR NOTAS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END,", },
     }
+
+    pedidos_documentos_from = """
+        (
+            SELECT DISTINCT
+                PEDIDOS.CHAVE AS CHAVE_PEDIDO,
+                ORCAMENTOS.NUMPED AS ORCAMENTO,
+                NOTAS.NF AS NOTA
+
+            FROM
+                COPLAS.ORCAMENTOS,
+                COPLAS.PEDIDOS,
+                COPLAS.NOTAS_ITENS,
+                COPLAS.NOTAS
+
+            WHERE
+                ORCAMENTOS.CHAVE = PEDIDOS.CHAVE_ORCAMENTO AND
+                PEDIDOS.CHAVE = NOTAS_ITENS.NUMPED(+) AND
+                NOTAS.CHAVE(+) = NOTAS_ITENS.CHAVE_NOTA AND
+
+                (
+                    (
+                        NOTAS.FATURA_REMESSA_ORDEM IS NULL AND
+                        NOTAS.ESPECIE = 'S' AND
+                        (
+                            NOTAS.TIPO_TRIANGULARIZACAO = 'FATURA' OR
+                            NOTAS.TIPO_TRIANGULARIZACAO IS NULL
+                        )
+                    ) OR
+                    NOTAS.CHAVE IS NULL
+                ) AND
+
+                PEDIDOS.DATA_PEDIDO >= :data_inicio AND
+                PEDIDOS.DATA_PEDIDO <= :data_fim
+        ) DOCUMENTOS,
+    """
+    pedidos_documentos_join = "PEDIDOS.CHAVE = DOCUMENTOS.CHAVE_PEDIDO(+) AND"
+
+    pedidos_transportadoras_from = "COPLAS.TRANSPORTADORAS,"
+    pedidos_transportadoras_join = "TRANSPORTADORAS.CODTRANSP = PEDIDOS.CHAVE_TRANSPORTADORA AND"
 
     pedidos_destino_from = """
         (
@@ -1201,12 +1290,18 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
+        'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "",
+                                   'peso_bruto_nota_campo': "", },
+
         'coluna_custo_total_item': {'custo_total_item_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_CUSTO_MEDIO {conversao_moeda}) AS CUSTO_TOTAL_ITEM,".format(conversao_moeda=conversao_moeda)},
 
         'coluna_valor_bruto': {'valor_bruto_campo_alias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL + PEDIDOS_ITENS.RATEIO_FRETE + PEDIDOS_ITENS.VALOR_IPI + PEDIDOS_ITENS.ICMS_SUBSTITUICAO_VALOR) {conversao_moeda}) AS VALOR_BRUTO,".format(conversao_moeda=conversao_moeda)},
 
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0)) {conversao_moeda}) AS FRETE_INCLUSO_ITEM,".format(conversao_moeda=conversao_moeda)},
+        'coluna_frete_destacado': {'frete_destacado_campo_alias': "SUM(PEDIDOS_ITENS.RATEIO_FRETE) AS FRETE_DESTACADO,"},
 
+        'coluna_cobranca_frete': {'cobranca_frete_campo_alias': "CASE WHEN PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5) THEN 'REMETENTE' WHEN PEDIDOS.COBRANCA_FRETE IN (2, 6) THEN 'DESTINATARIO' ELSE 'INCORRETO' END AS COBRANCA_FRETE,",
+                                  'cobranca_frete_campo': "CASE WHEN PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5) THEN 'REMETENTE' WHEN PEDIDOS.COBRANCA_FRETE IN (2, 6) THEN 'DESTINATARIO' ELSE 'INCORRETO' END,", },
         'cobranca_frete_cif': {'cobranca_frete_cif_pesquisa': "(PEDIDOS.CHAVE_TRANSPORTADORA = 8475 OR PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5)) AND", },
 
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
@@ -1350,6 +1445,19 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                              'documento_campo': "PEDIDOS.NUMPED,", },
         'documento': {'documento_pesquisa': "PEDIDOS.NUMPED = :documento AND", },
 
+        'coluna_orcamento': {'orcamento_campo_alias': "DOCUMENTOS.ORCAMENTO,",
+                             'orcamento_campo': "DOCUMENTOS.ORCAMENTO,",
+                             'documentos_from': pedidos_documentos_from,
+                             'documentos_join': pedidos_documentos_join, },
+        'coluna_pedido': {'pedido_campo_alias': "",
+                          'pedido_campo': "",
+                          'documentos_from': "",
+                          'documentos_join': "", },
+        'coluna_nota': {'nota_campo_alias': "DOCUMENTOS.NOTA,",
+                        'nota_campo': "DOCUMENTOS.NOTA,",
+                        'documentos_from': pedidos_documentos_from,
+                        'documentos_join': pedidos_documentos_join, },
+
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
 
@@ -1379,6 +1487,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_chave_transportadora': {'chave_transportadora_campo_alias': "PEDIDOS.CHAVE_TRANSPORTADORA AS CHAVE_TRANSPORTADORA,",
                                         'chave_transportadora_campo': "PEDIDOS.CHAVE_TRANSPORTADORA,", },
+        'coluna_transportadora': {'transportadora_campo_alias': "TRANSPORTADORAS.NOMERED AS TRANSPORTADORA,",
+                                  'transportadora_campo': "TRANSPORTADORAS.NOMERED,",
+                                  'transportadoras_from': pedidos_transportadoras_from,
+                                  'transportadoras_join': pedidos_transportadoras_join, },
 
         'coluna_destino_mercadorias': {'destino_mercadorias_campo_alias': "PEDIDOS.DESTINO AS DESTINO_MERCADORIAS,",
                                        'destino_mercadorias_campo': "PEDIDOS.DESTINO,", },
@@ -1386,6 +1498,45 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_zona_franca_alc': {'zona_franca_alc_campo_alias': "CASE WHEN PEDIDOS.ZONA_FRANCA = 'SIM' OR PEDIDOS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END AS ZONA_FRANCA_ALC,",
                                    'zona_franca_alc_campo': "CASE WHEN PEDIDOS.ZONA_FRANCA = 'SIM' OR PEDIDOS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END,", },
     }
+
+    orcamentos_documentos_from = """
+        (
+            SELECT DISTINCT
+                ORCAMENTOS.CHAVE AS CHAVE_ORCAMENTO,
+                PEDIDOS.NUMPED AS PEDIDO,
+                NOTAS.NF AS NOTA
+
+            FROM
+                COPLAS.ORCAMENTOS,
+                COPLAS.PEDIDOS,
+                COPLAS.NOTAS_ITENS,
+                COPLAS.NOTAS
+
+            WHERE
+                ORCAMENTOS.CHAVE = PEDIDOS.CHAVE_ORCAMENTO(+) AND
+                PEDIDOS.CHAVE = NOTAS_ITENS.NUMPED(+) AND
+                NOTAS.CHAVE(+) = NOTAS_ITENS.CHAVE_NOTA AND
+
+                (
+                    (
+                        NOTAS.FATURA_REMESSA_ORDEM IS NULL AND
+                        NOTAS.ESPECIE = 'S' AND
+                        (
+                            NOTAS.TIPO_TRIANGULARIZACAO = 'FATURA' OR
+                            NOTAS.TIPO_TRIANGULARIZACAO IS NULL
+                        )
+                    ) OR
+                    NOTAS.CHAVE IS NULL
+                ) AND
+
+                ORCAMENTOS.DATA_PEDIDO >= :data_inicio AND
+                ORCAMENTOS.DATA_PEDIDO <= :data_fim
+        ) DOCUMENTOS,
+    """
+    orcamentos_documentos_join = "ORCAMENTOS.CHAVE = DOCUMENTOS.CHAVE_ORCAMENTO(+) AND"
+
+    orcamentos_transportadoras_from = "COPLAS.TRANSPORTADORAS,"
+    orcamentos_transportadoras_join = "TRANSPORTADORAS.CODTRANSP = ORCAMENTOS.CHAVE_TRANSPORTADORA AND"
 
     orcamentos_status_produto_orcamento_tipo_from = "COPLAS.STATUS_ORCAMENTOS_ITENS,"
     orcamentos_status_produto_orcamento_tipo_join = "STATUS_ORCAMENTOS_ITENS.DESCRICAO = ORCAMENTOS_ITENS.STATUS AND"
@@ -1499,12 +1650,18 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
+        'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "",
+                                   'peso_bruto_nota_campo': "", },
+
         'coluna_custo_total_item': {'custo_total_item_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_CUSTO_MEDIO {conversao_moeda}) AS CUSTO_TOTAL_ITEM,".format(conversao_moeda=conversao_moeda)},
 
         'coluna_valor_bruto': {'valor_bruto_campo_alias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL + ORCAMENTOS_ITENS.RATEIO_FRETE + ORCAMENTOS_ITENS.VALOR_IPI + ORCAMENTOS_ITENS.ICMS_SUBSTITUICAO_VALOR) {conversao_moeda}) AS VALOR_BRUTO,".format(conversao_moeda=conversao_moeda)},
 
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0)) {conversao_moeda}) AS FRETE_INCLUSO_ITEM,".format(conversao_moeda=conversao_moeda)},
+        'coluna_frete_destacado': {'frete_destacado_campo_alias': "SUM(ORCAMENTOS_ITENS.RATEIO_FRETE) AS FRETE_DESTACADO,"},
 
+        'coluna_cobranca_frete': {'cobranca_frete_campo_alias': "CASE WHEN ORCAMENTOS.COBRANCA_FRETE IN (0, 1, 4, 5) THEN 'REMETENTE' WHEN ORCAMENTOS.COBRANCA_FRETE IN (2, 6) THEN 'DESTINATARIO' ELSE 'INCORRETO' END AS COBRANCA_FRETE,",
+                                  'cobranca_frete_campo': "CASE WHEN ORCAMENTOS.COBRANCA_FRETE IN (0, 1, 4, 5) THEN 'REMETENTE' WHEN ORCAMENTOS.COBRANCA_FRETE IN (2, 6) THEN 'DESTINATARIO' ELSE 'INCORRETO' END,", },
         'cobranca_frete_cif': {'cobranca_frete_cif_pesquisa': "(ORCAMENTOS.CHAVE_TRANSPORTADORA = 8475 OR ORCAMENTOS.COBRANCA_FRETE IN (0, 1, 4, 5)) AND", },
 
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
@@ -1648,6 +1805,19 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                              'documento_campo': "ORCAMENTOS.NUMPED,", },
         'documento': {'documento_pesquisa': "ORCAMENTOS.NUMPED = :documento AND", },
 
+        'coluna_orcamento': {'orcamento_campo_alias': "",
+                             'orcamento_campo': "",
+                             'documentos_from': "",
+                             'documentos_join': "", },
+        'coluna_pedido': {'pedido_campo_alias': "DOCUMENTOS.PEDIDO,",
+                          'pedido_campo': "DOCUMENTOS.PEDIDO,",
+                          'documentos_from': orcamentos_documentos_from,
+                          'documentos_join': orcamentos_documentos_join, },
+        'coluna_nota': {'nota_campo_alias': "DOCUMENTOS.NOTA,",
+                        'nota_campo': "DOCUMENTOS.NOTA,",
+                        'documentos_from': orcamentos_documentos_from,
+                        'documentos_join': orcamentos_documentos_join, },
+
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
 
@@ -1677,6 +1847,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_chave_transportadora': {'chave_transportadora_campo_alias': "ORCAMENTOS.CHAVE_TRANSPORTADORA AS CHAVE_TRANSPORTADORA,",
                                         'chave_transportadora_campo': "ORCAMENTOS.CHAVE_TRANSPORTADORA,", },
+        'coluna_transportadora': {'transportadora_campo_alias': "TRANSPORTADORAS.NOMERED AS TRANSPORTADORA,",
+                                  'transportadora_campo': "TRANSPORTADORAS.NOMERED,",
+                                  'transportadoras_from': orcamentos_transportadoras_from,
+                                  'transportadoras_join': orcamentos_transportadoras_join, },
 
         'coluna_destino_mercadorias': {'destino_mercadorias_campo_alias': "ORCAMENTOS.DESTINO AS DESTINO_MERCADORIAS,",
                                        'destino_mercadorias_campo': "ORCAMENTOS.DESTINO,", },
@@ -1716,6 +1890,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_valor_bruto': {'valor_bruto_campo_alias': "SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) {conversao_moeda}) AS VALOR_BRUTO,".format(conversao_moeda=conversao_moeda)},
 
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "0 AS FRETE_INCLUSO_ITEM,"},
+        'coluna_frete_destacado': {'frete_destacado_campo_alias': "0 AS FRETE_DESTACADO,"},
 
         'valor_mercadorias_maior_igual': {'having': 'HAVING 1=1',
                                           'valor_mercadorias_maior_igual_having': "AND SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) {conversao_moeda}) >= :valor_mercadorias_maior_igual".format(conversao_moeda=conversao_moeda), },
@@ -1935,8 +2110,12 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {mes_emissao_campo_alias}
             {dia_emissao_campo_alias}
             {documento_campo_alias}
+            {orcamento_campo_alias}
+            {pedido_campo_alias}
+            {nota_campo_alias}
             {orcamento_oportunidade_campo_alias}
             {status_documento_campo_alias}
+            {peso_bruto_nota_campo_alias}
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
             {cliente_campo_alias}
@@ -1951,6 +2130,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {zona_franca_alc_campo_alias}
             {tipo_cliente_campo_alias}
             {chave_transportadora_campo_alias}
+            {transportadora_campo_alias}
+            {cobranca_frete_campo_alias}
             {familia_produto_campo_alias}
             {chave_produto_campo_alias}
             {produto_campo_alias}
@@ -1965,6 +2146,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {peso_produto_proprio_campo_alias}
             {quantidade_volumes_campo_alias}
             {media_dia_campo_alias}
+            {frete_destacado_campo_alias}
             {frete_incluso_item_campo_alias}
             {custo_total_item_campo_alias}
             {lfrete_coluna_aliquotas_itens}
@@ -1985,6 +2167,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {notas_peso_liquido_from}
             {status_produto_orcamento_tipo_from}
             {destino_from}
+            {transportadoras_from}
+            {documentos_from}
             COPLAS.VENDEDORES,
             {fonte_itens}
             {fonte}
@@ -2001,6 +2185,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {lfrete_join}
             {status_produto_orcamento_tipo_join}
             {destino_join}
+            {transportadoras_join}
+            {documentos_join}
             PRODUTOS.CHAVE_UNIDADE = UNIDADES.CHAVE AND
             FAMILIA_PRODUTOS.CHAVE = PRODUTOS.CHAVE_FAMILIA AND
             CLIENTES.UF = ESTADOS.CHAVE AND
@@ -2071,6 +2257,12 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {chave_produto_campo}
             {data_saida_campo}
             {quantidade_volumes_campo}
+            {peso_bruto_nota_campo}
+            {transportadora_campo}
+            {cobranca_frete_campo}
+            {orcamento_campo}
+            {pedido_campo}
+            {nota_campo}
             1
 
         {having}
@@ -2120,7 +2312,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'ALIQUOTA_DESPESA_COM', 'ALIQUOTAS_TOTAIS', 'MC_COR_AJUSTE', 'JOB',
                                      'CHAVE_TRANSPORTADORA', 'UF_ORIGEM', 'UF_DESTINO', 'CIDADE_DESTINO',
                                      'DESTINO_MERCADORIAS', 'ZONA_FRANCA_ALC', 'CHAVE_PRODUTO', 'DATA_SAIDA',
-                                     'VOLUMES_QUANTIDADE',]
+                                     'VOLUMES_QUANTIDADE', 'PESO_BRUTO_NOTA', 'TRANSPORTADORA', 'COBRANCA_FRETE',
+                                     'ORCAMENTO', 'PEDIDO', 'NOTA',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',
