@@ -338,6 +338,7 @@ class FuncionariosAdmin(BaseModelAdminRedRequiredLog):
 
 @admin.register(Afastamentos)
 class AfastamentosAdmin(BaseModelAdminRedRequiredLog):
+    form = criar_form_campo_grande(Afastamentos, ['observacoes'])
     list_display = 'id', 'funcionario', 'data_afastamento_as_ddmmyyyy', 'data_retorno_as_ddmmyyyy', 'motivo',
     list_display_links = list_display
     ordering = '-id',

@@ -499,6 +499,7 @@ class Afastamentos(BaseLogModel):
                                              blank=True)
     data_retorno = models.DateField("Data Retorno", auto_now=False, auto_now_add=False, null=True, blank=True)
     motivo = models.CharField("Motivo", max_length=100)
+    observacoes = models.CharField("Observações", max_length=100, null=True, blank=True)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     @property
