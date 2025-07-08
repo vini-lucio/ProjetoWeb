@@ -394,11 +394,18 @@ class Jobs(models.Model):
                 name='jobs_unique_descricao',
                 violation_error_message="Descrição é unica em Jobs"
             ),
+            models.UniqueConstraint(
+                fields=['sigla',],
+                name='jobs_unique_sigla',
+                violation_error_message="Sigla é unica em Jobs"
+            ),
         ]
 
     status_jobs = status_ativo_inativo
 
     descricao = models.CharField("Descrição", max_length=30)
+    # TODO: remover null true
+    sigla = models.CharField("Sigla", max_length=3, null=True, blank=True)
     razao_social = models.CharField("Razão Social", max_length=100, null=True, blank=True)
     cnpj = models.CharField("CNPJ", max_length=20, null=True, blank=True)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)

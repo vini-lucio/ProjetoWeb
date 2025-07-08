@@ -43,7 +43,7 @@ def vendas_carteira(request):
                 fim = formulario.cleaned_data.get('fim') if not em_aberto else None
 
                 valores_periodo = get_relatorios_vendas(fonte=fonte, inicio=inicio, fim=fim, coluna_data_emissao=True,
-                                                        coluna_status_documento=True,
+                                                        coluna_status_documento=True, coluna_job=True,
                                                         status_documento_em_aberto=em_aberto,
                                                         coluna_rentabilidade=True, coluna_documento=True,
                                                         coluna_rentabilidade_cor=True, coluna_cliente=True,

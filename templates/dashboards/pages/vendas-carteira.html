@@ -179,6 +179,7 @@
                         <table>
                             <tr class="principal-claro">
                                 <th></th>
+                                <th>J</th>
                                 {% if not formulario.carteira.value %}<th>Carteira</th>{% endif %}
                                 <th>Documento</th>
                                 <th>Cliente</th>
@@ -195,6 +196,7 @@
                                         {% if valor.STATUS_DOCUMENTO == 'PERDIDO' %}style="background-color: black;"{% endif %}
                                         class="fonte-verde"
                                     >{% if valor.OPORTUNIDADE == 'SIM' %}O{% endif %}</td>
+                                    <td>{{ valor.JOB | slice:":1" }}</td>
                                     {% if not formulario.carteira.value %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
                                     <td>{{ valor.DOCUMENTO | stringformat:"d" }}</td>
                                     <td>{{ valor.CLIENTE }}</td>
@@ -207,6 +209,7 @@
                             {% endfor %}
                             <tr class="principal-claro">
                                 <td></td>
+                                <td></td>
                                 {% if not formulario.carteira.value %}<td></td>{% endif %}
                                 <td></td>
                                 <td></td>
@@ -218,6 +221,7 @@
                             </tr>
                             {% if valor_devolucoes %}
                                 <tr class="principal-claro">
+                                    <td></td>
                                     <td></td>
                                     {% if not formulario.carteira.value %}<td></td>{% endif %}
                                     <td></td>
@@ -232,6 +236,7 @@
                             {% if valor_liquidados %}
                                 <tr class="principal-claro">
                                     <td></td>
+                                    <td></td>
                                     {% if not formulario.carteira.value %}<td></td>{% endif %}
                                     <td></td>
                                     <td></td>
@@ -244,6 +249,7 @@
                             {% endif %}
                             {% if valor_perdidos %}
                                 <tr class="principal-claro">
+                                    <td></td>
                                     <td></td>
                                     {% if not formulario.carteira.value %}<td></td>{% endif %}
                                     <td></td>
@@ -258,6 +264,7 @@
                             {% if valor_em_abertos %}
                                 <tr class="principal-claro">
                                     <td></td>
+                                    <td></td>
                                     {% if not formulario.carteira.value %}<td></td>{% endif %}
                                     <td></td>
                                     <td></td>
@@ -270,6 +277,7 @@
                             {% endif %}
                             {% if valor_oportunidades_em_aberto %}
                                 <tr class="principal-claro">
+                                    <td></td>
                                     <td></td>
                                     {% if not formulario.carteira.value %}<td></td>{% endif %}
                                     <td></td>
