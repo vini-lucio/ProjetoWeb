@@ -1,7 +1,6 @@
 from decimal import Decimal
 from math import ceil
 from frete.models import TransportadorasRegioesValores
-from utils.oracle.conectar import executar_oracle
 from utils.site_setup import (get_transportadoras_regioes_cidades, get_produtos, get_site_setup, get_estados_icms,
                               get_cidades)
 from django.core.exceptions import ObjectDoesNotExist
@@ -47,6 +46,7 @@ def get_dados_pedidos_em_aberto(parametro_carteira: dict = {}):
 
 def get_dados_itens_orcamento(orcamento: int):
     """Retorna os dados dos itens do orcamento para calculo de frete"""
+
     from dashboards.services import get_relatorios_vendas
     resultado = get_relatorios_vendas('orcamentos', documento=orcamento, coluna_produto=True, coluna_quantidade=True,
                                       coluna_pis=True, coluna_cofins=True, coluna_icms=True, coluna_chave_produto=True,
@@ -65,117 +65,60 @@ def get_dados_itens_orcamento(orcamento: int):
 def get_dados_notas(data_inicio, data_fim):
     """Retorna os dados dos itens do orcamento para calculo de frete"""
 
-    # from dashboards.services import get_relatorios_vendas
-    # teste = get_relatorios_vendas('faturamentos', inicio=data_inicio, fim=data_fim, coluna_data_saida=True,
-    #                               coluna_carteira=True, coluna_documento=True, coluna_cliente=True,
-    #                               coluna_valor_bruto=True, coluna_quantidade_volumes=True, coluna_peso_bruto_nota=True,
-    #                               coluna_estado_destino=True, coluna_cidade_destino=True, coluna_transportadora=True,
-    #                               coluna_cobranca_frete=True, coluna_frete_destacado=True, coluna_orcamento=True,
-    #                               incluir_sem_valor_comercial=True,)
+    from dashboards.services import get_relatorios_vendas
+    resultado = get_relatorios_vendas('faturamentos', inicio=data_inicio, fim=data_fim, coluna_data_saida=True,
+                                      coluna_carteira=True, coluna_documento=True, coluna_cliente=True,
+                                      coluna_valor_bruto=True, coluna_quantidade_volumes=True,
+                                      coluna_peso_bruto_nota=True, coluna_estado_destino=True,
+                                      coluna_cidade_destino=True, coluna_transportadora=True,
+                                      coluna_cobranca_frete=True, coluna_frete_destacado=True, coluna_orcamento=True,
+                                      incluir_sem_valor_comercial=True,)
 
-    # # TODO: testar se os dois modos estam iguais
-
-    # for nota in teste:
-    #     nota['NF'] = nota.pop('DOCUMENTO')
-    #     nota['PESO_BRUTO'] = nota.pop('PESO_BRUTO_NOTA')
-    #     nota['UF_ENTREGA'] = nota.pop('UF_DESTINO')
-    #     nota['CIDADE_ENTREGA'] = nota.pop('CIDADE_DESTINO')
-    #     nota['FRETE'] = nota.pop('COBRANCA_FRETE')
-    #     nota['FRETE_NOTA'] = nota.pop('FRETE_DESTACADO')
-    #     nota['NOMERED'] = nota.pop('CLIENTE')
-    #     nota['VALOR_TOTAL'] = nota.pop('VALOR_BRUTO')
-    # teste = sorted(teste, key=lambda nf: nf['TRANSPORTADORA'])
-
-    sql = """
-        SELECT DISTINCT
-            NOTAS.DATA_SAIDA,
-            VENDEDORES.NOMERED AS CARTEIRA,
-            NOTAS.NF,
-            ORCAMENTOS.NUMPED AS ORCAMENTO,
-            CLIENTES.NOMERED,
-            NOTAS.VALOR_MERCADORIAS,
-            NOTAS.VALOR_TOTAL,
-            NOTAS.VOLUMES_QUANTIDADE,
-            NOTAS.PESO_BRUTO,
-            COALESCE(NOTAS.CLI_ENT_UF, NOTAS.CLI_UF) AS UF_ENTREGA,
-            COALESCE(NOTAS.CLI_ENT_CIDADE, NOTAS.CLI_CIDADE) AS CIDADE_ENTREGA,
-            TRANSPORTADORAS.NOMERED AS TRANSPORTADORA,
-            CASE WHEN NOTAS.COBRANCA_FRETE IN (0, 1, 4, 5) THEN 'REMETENTE' WHEN NOTAS.COBRANCA_FRETE IN (2, 6) THEN 'DESTINATARIO' ELSE 'INCORRETO' END AS FRETE,
-            NOTAS.VALOR_FRETE AS FRETE_NOTA
-
-        FROM
-            COPLAS.VENDEDORES,
-            COPLAS.ORCAMENTOS,
-            COPLAS.PEDIDOS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.TRANSPORTADORAS,
-            COPLAS.NOTAS,
-            COPLAS.JOBS,
-            COPLAS.CLIENTES
-
-        WHERE
-            VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
-            CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
-            TRANSPORTADORAS.CODTRANSP = NOTAS.CHAVE_TRANSPORTADORA AND
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-            PEDIDOS.CHAVE = NOTAS_ITENS.NUMPED AND
-            JOBS.CODIGO = NOTAS.CHAVE_JOB AND
-            ORCAMENTOS.CHAVE = PEDIDOS.CHAVE_ORCAMENTO AND
-
-            NOTAS.DATA_EMISSAO >= :data_inicio AND
-            NOTAS.DATA_EMISSAO <= :data_fim
-
-        ORDER BY
-            TRANSPORTADORAS.NOMERED, NOTAS.NF
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim)
+    for nota in resultado:
+        nota['DATA_SAIDA'] = nota.pop('DATA_SAIDA')
+        nota['CARTEIRA'] = nota.pop('CARTEIRA')
+        nota['NF'] = nota.pop('DOCUMENTO')
+        nota['ORCAMENTO'] = nota.pop('ORCAMENTO')
+        nota['NOMERED'] = nota.pop('CLIENTE')
+        nota['VALOR_MERCADORIAS'] = nota.pop('VALOR_MERCADORIAS')
+        nota['VALOR_TOTAL'] = nota.pop('VALOR_BRUTO')
+        nota['VOLUMES_QUANTIDADE'] = nota.pop('VOLUMES_QUANTIDADE')
+        nota['PESO_BRUTO'] = nota.pop('PESO_BRUTO_NOTA')
+        nota['UF_ENTREGA'] = nota.pop('UF_DESTINO')
+        nota['CIDADE_ENTREGA'] = nota.pop('CIDADE_DESTINO')
+        nota['TRANSPORTADORA'] = nota.pop('TRANSPORTADORA')
+        nota['FRETE'] = nota.pop('COBRANCA_FRETE')
+        nota['FRETE_NOTA'] = nota.pop('FRETE_DESTACADO')
+    resultado = sorted(resultado, key=lambda nf: nf['TRANSPORTADORA'])
 
     return resultado
 
 
 def get_dados_notas_monitoramento(data_inicio, data_fim):
     """Retorna os dados dos itens do orcamento para calculo de frete"""
-    sql = """
-        SELECT DISTINCT
-            TRANSPORTADORAS.CODTRANSP,
-            ORCAMENTOS.NUMPED AS ORCAMENTO,
-            NOTAS.DATA_DESPACHO,
-            NOTAS.NF,
-            CLIENTES.NOMERED,
-            COALESCE(NOTAS.CLI_ENT_UF, NOTAS.CLI_UF) AS UF_ENTREGA,
-            COALESCE(NOTAS.CLI_ENT_CIDADE, NOTAS.CLI_CIDADE) AS CIDADE_ENTREGA,
-            TRANSPORTADORAS.NOMERED AS TRANSPORTADORA,
-            CASE WHEN NOTAS.COBRANCA_FRETE = 1 THEN 'COM COBRANCA' ELSE 'SEM COBRANCA' END AS FRETE
 
-        FROM
-            COPLAS.VENDEDORES,
-            COPLAS.ORCAMENTOS,
-            COPLAS.PEDIDOS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.TRANSPORTADORAS,
-            COPLAS.NOTAS,
-            COPLAS.CLIENTES
+    from dashboards.services import get_relatorios_vendas
+    resultado = get_relatorios_vendas('faturamentos',
+                                      data_despacho_maior_igual=data_inicio, data_despacho_menor_igual=data_fim,
+                                      coluna_orcamento=True,
+                                      coluna_documento=True, coluna_cliente=True, coluna_estado_destino=True,
+                                      coluna_cidade_destino=True, coluna_transportadora=True,
+                                      coluna_data_despacho=True, coluna_frete_destacado=True,
+                                      coluna_frete_incluso_item=True,
+                                      cobranca_frete_cif=True, transportadoras_geram_titulos=True,
+                                      incluir_sem_valor_comercial=True,)
 
-        WHERE
-            VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
-            CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
-            TRANSPORTADORAS.CODTRANSP = NOTAS.CHAVE_TRANSPORTADORA AND
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-            PEDIDOS.CHAVE = NOTAS_ITENS.NUMPED AND
-            ORCAMENTOS.CHAVE = PEDIDOS.CHAVE_ORCAMENTO AND
-            NOTAS.COBRANCA_FRETE IN (0, 1) AND
-            TRANSPORTADORAS.CODTRANSP NOT IN (8003, 8475, 7738, 6766, 7733, 8264) AND
-            COALESCE(NOTAS.CLI_ENT_CIDADE, NOTAS.CLI_CIDADE) != 'EXTERIOR' AND
-
-            NOTAS.DATA_DESPACHO >= :data_inicio AND
-            NOTAS.DATA_DESPACHO <= :data_fim
-
-        ORDER BY
-            NOTAS.NF
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim)
+    for nota in resultado:
+        nota['ORCAMENTO'] = nota.pop('ORCAMENTO')
+        nota['DATA_DESPACHO'] = nota.pop('DATA_DESPACHO')
+        nota['NF'] = nota.pop('DOCUMENTO')
+        nota['NOMERED'] = nota.pop('CLIENTE')
+        nota['UF_ENTREGA'] = nota.pop('UF_DESTINO')
+        nota['CIDADE_ENTREGA'] = nota.pop('CIDADE_DESTINO')
+        nota['TRANSPORTADORA'] = nota.pop('TRANSPORTADORA')
+        nota['FRETE'] = 'COM COBRANCA' if nota.pop('FRETE_DESTACADO') + \
+            nota.pop('FRETE_INCLUSO_ITEM') else 'SEM COBRANCA'
+        nota.pop('VALOR_MERCADORIAS')
 
     return resultado
 
