@@ -761,9 +761,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
     conversao_moeda = ""
     if fonte == 'orcamentos':
-        conversao_moeda = " * (SELECT COALESCE(MAX(VALOR), 1) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO)"
+        conversao_moeda = " * CASE WHEN ORCAMENTOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT COALESCE(MAX(VALOR), 1) FROM COPLAS.VALORES WHERE CODMOEDA = ORCAMENTOS.CHAVE_MOEDA AND DATA = ORCAMENTOS.DATA_PEDIDO) END"
     if fonte == 'pedidos':
-        conversao_moeda = " * (SELECT COALESCE(MAX(VALOR), 1) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO)"
+        conversao_moeda = " * CASE WHEN PEDIDOS.CHAVE_MOEDA = 0 THEN 1 ELSE (SELECT COALESCE(MAX(VALOR), 1) FROM COPLAS.VALORES WHERE CODMOEDA = PEDIDOS.CHAVE_MOEDA AND DATA = PEDIDOS.DATA_PEDIDO) END"
 
     nao_converter_moeda = kwargs_formulario.pop('nao_converter_moeda', False)
     if nao_converter_moeda:

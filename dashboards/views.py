@@ -249,7 +249,7 @@ def listagens(request, listagem: str):
 
             descricao_listagem = ''
             if listagem == 'sumidos':
-                descricao_listagem = 'Grupos que compravam com frequencia e não compram a 6 meses'
+                descricao_listagem = 'Grupos que compravam com frequencia (em 1 ano) e não compram a 6 meses'
                 inicio = data_x_dias(180 + 365, passado=True)
                 fim = data_x_dias(180, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
@@ -257,7 +257,7 @@ def listagens(request, listagem: str):
                                               **parametros_comuns, **carteira_parametros)
 
             if listagem == 'presentes':
-                descricao_listagem = 'Grupos que compram quase todo mês e não compram a 2 meses'
+                descricao_listagem = 'Grupos que compram quase todo mês (em 6 meses) e não compram a 2 meses'
                 inicio = data_x_dias(60 + 180, passado=True)
                 fim = data_x_dias(60, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
@@ -265,7 +265,7 @@ def listagens(request, listagem: str):
                                               **parametros_comuns, **carteira_parametros)
 
             if listagem == 'nuncamais':
-                descricao_listagem = 'Grupos que compravam com frequencia e não compram a 2 anos'
+                descricao_listagem = 'Grupos que compravam com frequencia (desde sempre) e não compram a 2 anos'
                 inicio = None
                 fim = data_x_dias(730, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
