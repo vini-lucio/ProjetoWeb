@@ -748,6 +748,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         SQLs estão em um dict onde a chave é o nome do campo do formulario e o valor é um dict com o placeholder como
         chave e o codigo sql como valor
     """
+    coluna_mes_a_mes = kwargs_formulario.get('coluna_mes_a_mes', False)
+    if coluna_mes_a_mes:
+        mes_a_mes_inicio = pd.date_range(kwargs_formulario['inicio'], kwargs_formulario['fim'], freq='MS')
+        mes_a_mes_fim = pd.date_range(kwargs_formulario['inicio'], kwargs_formulario['fim'], freq='ME')
+        mes_a_mes = list(zip(mes_a_mes_inicio.date, mes_a_mes_fim.date))
+
     incluir_orcamentos_oportunidade = kwargs_formulario.pop('incluir_orcamentos_oportunidade', False)
     incluir_orcamentos_oportunidade = "" if incluir_orcamentos_oportunidade else "ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND"
 
@@ -873,8 +879,15 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     """.format(lfrete_notas=lfrete_notas, incluir_sem_valor_comercial=incluir_sem_valor_comercial)
     notas_lfrete_join = "LFRETE.CHAVE_NOTA_ITEM = NOTAS_ITENS.CHAVE AND"
 
+    notas_valor_mercadorias = "NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0))"
+
+    notas_valor_mercadorias_mes_a_mes = ""
+    if fonte == 'faturamentos' and coluna_mes_a_mes:
+        for i, f in mes_a_mes:
+            notas_valor_mercadorias_mes_a_mes += f", SUM(CASE WHEN NOTAS.DATA_EMISSAO >= TO_DATE('{i}', 'YYYY-MM-DD') AND NOTAS.DATA_EMISSAO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {notas_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}_{i.month:02d}"
+
     map_sql_notas_base = {
-        'valor_mercadorias': "SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0))) AS VALOR_MERCADORIAS",
+        'valor_mercadorias': f"SUM({notas_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
         'notas_peso_liquido_from': """
             (
@@ -911,6 +924,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_notas = {
+        'coluna_mes_a_mes': {'mes_a_mes_campo_alias': notas_valor_mercadorias_mes_a_mes},
+
         'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "NOTAS.PESO_BRUTO AS PESO_BRUTO_NOTA,",
                                    'peso_bruto_nota_campo': "NOTAS.PESO_BRUTO,", },
 
@@ -1273,8 +1288,16 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     """.format(lfrete_pedidos=lfrete_pedidos, incluir_sem_valor_comercial=incluir_sem_valor_comercial)
     pedidos_lfrete_join = "LFRETE.CHAVE_PEDIDO_ITEM = PEDIDOS_ITENS.CHAVE AND"
 
+    pedidos_valor_mercadorias = "(PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}".format(
+        conversao_moeda=conversao_moeda)
+
+    pedidos_valor_mercadorias_mes_a_mes = ""
+    if fonte == 'pedidos' and coluna_mes_a_mes:
+        for i, f in mes_a_mes:
+            pedidos_valor_mercadorias_mes_a_mes += f", SUM(CASE WHEN PEDIDOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND PEDIDOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {pedidos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}_{i.month:02d}"
+
     map_sql_pedidos_base = {
-        'valor_mercadorias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL - (COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}) AS VALOR_MERCADORIAS".format(conversao_moeda=conversao_moeda),
+        'valor_mercadorias': f"SUM({pedidos_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
         'notas_peso_liquido_from': "",
 
@@ -1298,6 +1321,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
+        'coluna_mes_a_mes': {'mes_a_mes_campo_alias': pedidos_valor_mercadorias_mes_a_mes},
+
         'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "",
                                    'peso_bruto_nota_campo': "", },
 
@@ -1636,8 +1661,16 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                incluir_sem_valor_comercial=incluir_sem_valor_comercial)
     orcamentos_lfrete_join = "LFRETE.CHAVE_ORCAMENTO_ITEM = ORCAMENTOS_ITENS.CHAVE AND"
 
+    orcamentos_valor_mercadorias = "(ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}".format(
+        conversao_moeda=conversao_moeda)
+
+    orcamentos_valor_mercadorias_mes_a_mes = ""
+    if fonte == 'orcamentos' and coluna_mes_a_mes:
+        for i, f in mes_a_mes:
+            orcamentos_valor_mercadorias_mes_a_mes += f", SUM(CASE WHEN ORCAMENTOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND ORCAMENTOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {orcamentos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}_{i.month:02d}"
+
     map_sql_orcamentos_base = {
-        'valor_mercadorias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL - (COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0))) {conversao_moeda}) AS VALOR_MERCADORIAS".format(conversao_moeda=conversao_moeda),
+        'valor_mercadorias': f"SUM({orcamentos_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
         'notas_peso_liquido_from': "",
 
@@ -1666,6 +1699,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
+        'coluna_mes_a_mes': {'mes_a_mes_campo_alias': orcamentos_valor_mercadorias_mes_a_mes},
+
         'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "",
                                    'peso_bruto_nota_campo': "", },
 
@@ -1895,8 +1930,16 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     orcamentos_itens_excluidos_lfrete_from = ""
     orcamentos_itens_excluidos_lfrete_join = ""
 
+    orcamentos_itens_excluidos_valor_mercadorias = "(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) {conversao_moeda}".format(
+        conversao_moeda=conversao_moeda)
+
+    orcamentos_itens_excluidos_valor_mercadorias_mes_a_mes = ""
+    if fonte == 'orcamentos' and trocar_para_itens_excluidos and coluna_mes_a_mes:
+        for i, f in mes_a_mes:
+            orcamentos_itens_excluidos_valor_mercadorias_mes_a_mes += f", SUM(CASE WHEN ORCAMENTOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND ORCAMENTOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {orcamentos_itens_excluidos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}_{i.month:02d}"
+
     map_sql_orcamentos_base_itens_excluidos = {
-        'valor_mercadorias': "SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) {conversao_moeda}) AS VALOR_MERCADORIAS".format(conversao_moeda=conversao_moeda),
+        'valor_mercadorias': f"SUM({orcamentos_itens_excluidos_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
         'fonte_itens': "COPLAS.ORCAMENTOS_ITENS_EXCLUIDOS,",
 
@@ -1909,6 +1952,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos_itens_excluidos = {
+        'coluna_mes_a_mes': {'mes_a_mes_campo_alias': orcamentos_itens_excluidos_valor_mercadorias_mes_a_mes},
+
         'coluna_custo_total_item': {'custo_total_item_campo_alias': "0 AS CUSTO_TOTAL_ITEM,"},
 
         'coluna_valor_bruto': {'valor_bruto_campo_alias': "SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) {conversao_moeda}) AS VALOR_BRUTO,".format(conversao_moeda=conversao_moeda)},
@@ -2015,7 +2060,6 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
 
 def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], **kwargs):
-    # TODO: coluna de cada mes? cada ano?
     kwargs_sql = {}
     kwargs_sql_itens_excluidos = {}
     kwargs_ora = {}
@@ -2043,6 +2087,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     especie = kwargs.get('especie')
     data_despacho_maior_igual = kwargs.get('data_despacho_maior_igual')
     data_despacho_menor_igual = kwargs.get('data_despacho_menor_igual')
+
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
 
     if not data_inicio:
@@ -2194,6 +2239,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {lfrete_valor_coluna}
             {lfrete_coluna_cor}
             {mc_cor_ajuste_campo_alias}
+
+            {mes_a_mes_campo_alias}
 
         FROM
             {lfrete_from}
