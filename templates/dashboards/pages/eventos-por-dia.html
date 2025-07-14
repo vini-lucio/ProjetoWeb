@@ -17,18 +17,9 @@
                 </div>
                 <div class="grid-simples">
                     <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
-                    <a target="_blank" href="{% url "dashboards:eventos-por-dia" %}{% if formulario.carteira.value %}?carteira={{ formulario.carteira.value }}{% endif %}">
-                        <div class="botao-div botao-escuro">Eventos Por Dia</div>
-                    </a>
                 </div>
             </form>
         </div>
-
-        {% if dados %}
-            <div class="grid link-conteudo link-conteudo-escuro">
-                <button class="botao botao-escuro" form="form" name="exportar-submit" type="submit">Exportar</button>
-            </div>
-        {% endif %}
 
         <div class="link-conteudo link-conteudo-escuro">
 
@@ -41,25 +32,17 @@
                 <div class="tabela-simples">
                     <table>
                         <tr class="principal-claro">
-                            <th>Cliente</th>
-                            <th></th>
-                            <th>Usuario</th>
                             <th>Data</th>
-                            <th>Tipo</th>
-                            <th>Prioridade</th>
-                            <th>R$ Orç. Em Aberto</th>
-                            <th>Condição</th>
+                            <th>Dia</th>
+                            <th>Usuario</th>
+                            <th>Eventos</th>
                         </tr>
                         {% for dado in dados %}
                             <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
-                                <td>{{ dado.NOMERED }}</td>
-                                <td>{% if dado.CHAVE_GRUPOECONOMICO %}<a target="_blank" href="{% url "analysis:grupo-economico" dado.CHAVE_GRUPOECONOMICO %}">𓃑</a>{% endif %}</td>
-                                <td>{{ dado.USUARIO }}</td>
                                 <td>{{ dado.DATA | date:"d/m/Y" }}</td>
-                                <td>{{ dado.TIPO }}</td>
-                                <td>{{ dado.PRIORIDADE }}</td>
-                                <td>R$ {{ dado.ORC_EM_ABERTO | floatformat:2 }}</td>
-                                <td>{{ dado.CONDICAO }}</td>
+                                <td>{{ dado.DATA | date:"D" }}</td>
+                                <td>{{ dado.USUARIO }}</td>
+                                <td>{{ dado.EVENTOS }}</td>
                             </tr>
                         {% endfor %}
                     </table>

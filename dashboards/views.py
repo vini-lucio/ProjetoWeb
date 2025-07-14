@@ -2,7 +2,7 @@ from typing import Dict, Literal
 from django.shortcuts import render
 from django.http import HttpResponse
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
-                       DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento)
+                       DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia)
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
                     FormDashboardVendasCarteiras, FormAnaliseOrcamentos)
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
@@ -97,9 +97,10 @@ def vendas_carteira(request):
                                                              status_documento_em_aberto=True, coluna_documento=True,
                                                              coluna_cliente=True, coluna_data_entrega_itens=True,
                                                              coluna_orcamento_oportunidade=True,
+                                                             coluna_log_nome_inclusao_documento=True,
                                                              incluir_orcamentos_oportunidade=True,
                                                              **carteira_parametros)
-                excel = arquivo_excel(orcamentos_em_aberto, cabecalho_negrito=True, formatar_numero=(['H', 'I'], 2),
+                excel = arquivo_excel(orcamentos_em_aberto, cabecalho_negrito=True, formatar_numero=(['I', 'J'], 2),
                                       formatar_data=['B', 'C'], ajustar_largura_colunas=True)
                 arquivo = salvar_excel_temporario(excel)
                 nome_arquivo = 'ORCAMENTOS_EM_ABERTO'
@@ -216,6 +217,29 @@ def eventos_dia(request):
     contexto.update({'formulario': formulario})
 
     return render(request, 'dashboards/pages/eventos-dia.html', contexto)
+
+
+def eventos_por_dia(request):
+    titulo_pagina = 'Eventos Por Dia'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = FormVendedoresMixIn()
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormVendedoresMixIn(request.GET)
+        if formulario.is_valid():
+            carteira = formulario.cleaned_data.get('carteira')
+            carteira_nome = carteira.nome if carteira else '%%'
+            contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Todos'
+
+            dados = eventos_em_aberto_por_dia(carteira=carteira_nome)
+
+            contexto.update({'dados': dados, })
+
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/eventos-por-dia.html', contexto)
 
 
 def listagens(request, listagem: str):

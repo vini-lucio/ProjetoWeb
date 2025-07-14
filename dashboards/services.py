@@ -743,6 +743,53 @@ def eventos_dia_atrasos(carteira: str = '%%') -> list | None:
     return resultado
 
 
+def eventos_em_aberto_por_dia(carteira: str = '%%') -> list | None:
+    """Retorna eventos do dia e em atraso"""
+    carteira, filtro_nao_carteira = carteira_mapping(carteira)
+
+    sql = """
+        SELECT
+            CLIENTES_HISTORICO.DATA,
+            TO_CHAR(CLIENTES_HISTORICO.DATA, 'DY') AS DIA,
+            VENDEDORES.NOMERED AS CARTEIRA,
+            V_COLABORADORES.USUARIO,
+            COUNT(DISTINCT CLIENTES_HISTORICO.CHAVE) AS EVENTOS
+
+        FROM
+            COPLAS.V_COLABORADORES,
+            COPLAS.CLIENTES_HISTORICO,
+            COPLAS.CLIENTES,
+            COPLAS.VENDEDORES
+
+        WHERE
+            CLIENTES.CODCLI = CLIENTES_HISTORICO.CHAVE_CLIENTE
+            AND CLIENTES_HISTORICO.CHAVE_RESPONSAVEL = V_COLABORADORES.CHAVE
+            AND CLIENTES.CHAVE_VENDEDOR3 = VENDEDORES.CODVENDEDOR
+            AND CLIENTES_HISTORICO.DATA_REALIZADO IS NULL
+
+            AND VENDEDORES.NOMERED LIKE :carteira
+            AND {filtro_nao_carteira}
+            1 = 1
+
+        GROUP BY
+            CLIENTES_HISTORICO.DATA,
+            VENDEDORES.NOMERED,
+            V_COLABORADORES.USUARIO
+
+        ORDER BY
+            CLIENTES_HISTORICO.DATA DESC
+    """
+
+    sql = sql.format(filtro_nao_carteira=filtro_nao_carteira)
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, carteira=carteira)
+
+    if not resultado:
+        return []
+
+    return resultado
+
+
 def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], trocar_para_itens_excluidos: bool = False, **kwargs_formulario):
     """
         SQLs estão em um dict onde a chave é o nome do campo do formulario e o valor é um dict com o placeholder como
@@ -1115,6 +1162,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                              'documento_campo': "NOTAS.NF,", },
         'documento': {'documento_pesquisa': "NOTAS.NF = :documento AND", },
 
+        'coluna_log_nome_inclusao_documento': {'log_nome_inclusao_documento_campo_alias': "NOTAS.LOG_NOME_FATURAMENTO AS LOG_NOME_INCLUSAO_DOCUMENTO,",
+                                               'log_nome_inclusao_documento_campo': "NOTAS.LOG_NOME_FATURAMENTO,", },
+
         'coluna_orcamento': {'orcamento_campo_alias': "DOCUMENTOS.ORCAMENTO,",
                              'orcamento_campo': "DOCUMENTOS.ORCAMENTO,",
                              'documentos_from': notas_documentos_from,
@@ -1482,6 +1532,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_documento': {'documento_campo_alias': "PEDIDOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "PEDIDOS.NUMPED,", },
         'documento': {'documento_pesquisa': "PEDIDOS.NUMPED = :documento AND", },
+
+        'coluna_log_nome_inclusao_documento': {'log_nome_inclusao_documento_campo_alias': "PEDIDOS.LOG_NOME AS LOG_NOME_INCLUSAO_DOCUMENTO,",
+                                               'log_nome_inclusao_documento_campo': "PEDIDOS.LOG_NOME,", },
 
         'coluna_orcamento': {'orcamento_campo_alias': "DOCUMENTOS.ORCAMENTO,",
                              'orcamento_campo': "DOCUMENTOS.ORCAMENTO,",
@@ -1861,6 +1914,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                              'documento_campo': "ORCAMENTOS.NUMPED,", },
         'documento': {'documento_pesquisa': "ORCAMENTOS.NUMPED = :documento AND", },
 
+        'coluna_log_nome_inclusao_documento': {'log_nome_inclusao_documento_campo_alias': "ORCAMENTOS.LOG_NOME_INCLUSAO AS LOG_NOME_INCLUSAO_DOCUMENTO,",
+                                               'log_nome_inclusao_documento_campo': "ORCAMENTOS.LOG_NOME_INCLUSAO,", },
+
         'coluna_orcamento': {'orcamento_campo_alias': "",
                              'orcamento_campo': "",
                              'documentos_from': "",
@@ -2188,6 +2244,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {mes_emissao_campo_alias}
             {dia_emissao_campo_alias}
             {documento_campo_alias}
+            {log_nome_inclusao_documento_campo_alias}
             {orcamento_campo_alias}
             {pedido_campo_alias}
             {nota_campo_alias}
@@ -2347,6 +2404,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {orcamento_campo}
             {pedido_campo}
             {nota_campo}
+            {log_nome_inclusao_documento_campo}
             1
 
         {having}
@@ -2397,7 +2455,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'CHAVE_TRANSPORTADORA', 'UF_ORIGEM', 'UF_DESTINO', 'CIDADE_DESTINO',
                                      'DESTINO_MERCADORIAS', 'ZONA_FRANCA_ALC', 'CHAVE_PRODUTO', 'DATA_SAIDA',
                                      'VOLUMES_QUANTIDADE', 'PESO_BRUTO_NOTA', 'TRANSPORTADORA', 'COBRANCA_FRETE',
-                                     'ORCAMENTO', 'PEDIDO', 'NOTA', 'DATA_DESPACHO',]
+                                     'ORCAMENTO', 'PEDIDO', 'NOTA', 'DATA_DESPACHO', 'LOG_NOME_INCLUSAO_DOCUMENTO',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',
