@@ -86,7 +86,7 @@
                     <div class="moldura-verde-dashboard-2 principal-escuro-2 alinhar-topo" style="{% if dados.porcentagem_meta_mes >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
                         <div style="position: relative;">
                             <div class="centralizar fonte-muito-pequena-dashboard" style="width: 100%; position: absolute; z-index: 2;">
-                                {{ dados.porcentagem_mc_mes | floatformat:"2" }}%
+                                {{ dados.porcentagem_meta_mes | floatformat:"0" }}%
                             </div>
                             <div class="grafico-barra" style="position: relative; z-index: 1; --largura: {% if dados.porcentagem_meta_mes > 100 %}100{% else %}{{ dados.porcentagem_meta_mes }}{% endif %}%; --cor-barra: {% if dados.rentabilidade_pedidos_mes_rentabilidade_mes != 0 %}var({{ dados.cor_rentabilidade_css_mes }}){% else %}transparent{% endif %}"></div>
                         </div>
@@ -106,7 +106,7 @@
                     <div class="moldura-verde-dashboard-2 principal-escuro-2 alinhar-topo" style="{% if dados.porcentagem_meta_dia >= 100 %}border:0.4rem solid var(--roxo-rentabilidade-2){% endif %}">
                         <div style="position: relative;">
                             <div class="centralizar fonte-muito-pequena-dashboard" style="width: 100%; position: absolute; z-index: 2;">
-                                {{ dados.porcentagem_mc_dia | floatformat:"2" }}%
+                                {{ dados.porcentagem_meta_dia | floatformat:"0" }}%
                             </div>
                             <div class="grafico-barra" style="position: relative; z-index: 1; --largura: {% if dados.porcentagem_meta_dia > 100 %}100{% else %}{{ dados.porcentagem_meta_dia }}{% endif %}%; --cor-barra: {% if dados.rentabilidade_pedidos_dia != 0 %}var({{ dados.cor_rentabilidade_css_dia }}){% else %}transparent{% endif %}"></div>
                         </div>

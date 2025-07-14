@@ -122,10 +122,10 @@ def analise_orcamentos(request):
 
     contexto: dict = {'titulo_pagina': titulo_pagina, 'cores_rentabilidade': cores_rentabilidade, }
 
-    formulario = FormAnaliseOrcamentos()
+    formulario = FormAnaliseOrcamentos(usuario=request.user)
 
     if request.method == 'GET' and request.GET:
-        formulario = FormAnaliseOrcamentos(request.GET)
+        formulario = FormAnaliseOrcamentos(request.GET, usuario=request.user)
         if formulario.is_valid():
             orcamento = formulario.cleaned_data.get('pesquisar')
             contexto['titulo_pagina'] += f' {orcamento}'

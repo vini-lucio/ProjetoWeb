@@ -7,9 +7,13 @@ from datetime import date, timedelta
 
 
 class FormAnaliseOrcamentos(FormPesquisarIntegerMixIn, forms.Form):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, usuario, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['pesquisar'].label = 'n° Orçamento'
+
+        if not usuario or (not usuario.is_superuser and not usuario.groups.filter(name='Supervisão').exists()):
+            escolhas = self.fields['desconto'].choices
+            self.fields['desconto'].choices = [escolha for escolha in escolhas if escolha[0] != 'desconto_preco_atual']
 
     descontos = {
         'desconto_preco_tabela': '% Sobre Preço de Tabela',
