@@ -17,13 +17,13 @@ import pandas as pd
 
 
 class DashBoardVendas():
-    # TODO: detalhar vendido por dia????
     def __init__(self, carteira='%%', executar_completo: bool = True,
                  dados_pedidos_mes_entrega_mes_dias: pd.DataFrame | None = None,
                  dados_pedidos_fora_mes_entrega_mes: pd.DataFrame | None = None,
                  dados_desvolucoes_mes: pd.DataFrame | None = None,
                  ) -> None:
         self.carteira = carteira
+        self.vendedor = None
         self.site_setup = get_site_setup()
         parametro_carteira = {}
         if self.site_setup:
@@ -39,13 +39,13 @@ class DashBoardVendas():
                 self.meta_diaria_real = self.site_setup.meta_diaria_real_as_float
                 self.meta_mes = self.site_setup.meta_mes_as_float
             else:
-                vendedor = Vendedores.objects.get(nome=self.carteira)
-                parametro_carteira = {'carteira': vendedor}
-                if vendedor.nome == 'PAREDE DE CONCRETO':
+                self.vendedor = Vendedores.objects.get(nome=self.carteira)
+                parametro_carteira = {'carteira': self.vendedor}
+                if self.vendedor.nome == 'PAREDE DE CONCRETO':
                     parametro_carteira = {'carteira_parede_de_concreto': True}
-                if vendedor.nome == 'PREMOLDADO / POSTE':
+                if self.vendedor.nome == 'PREMOLDADO / POSTE':
                     parametro_carteira = {'carteira_premoldado_poste': True}
-                self.meta_mes = float(vendedor.meta_mes)
+                self.meta_mes = float(self.vendedor.meta_mes)
                 self.meta_diaria = self.meta_mes / self.dias_meta if self.dias_meta else 0.0
                 self.meta_diaria_real = self.meta_mes / self.dias_meta_reais if self.dias_meta_reais else 0.0
 

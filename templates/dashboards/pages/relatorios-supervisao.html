@@ -11,7 +11,7 @@
                 <h1>{{  titulo_pagina_2  }}</h1>
             </div>
 
-            <form method="get">
+            <form method="get" action="#resultado">
                 {% comment %} <div class="grid-simples link-conteudo">
                     {{ formulario.as_p }}
                 </div> {% endcomment %}
@@ -68,7 +68,7 @@
             {% endif %}
 
             {% if dados %}
-                <div class="tabela-simples">
+                <div id="resultado" class="tabela-simples">
                     <table>
                         <tr>
                             {% if formulario.coluna_job.value %}<th>Job</th>{% endif %}

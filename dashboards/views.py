@@ -361,16 +361,14 @@ def vendas_supervisao(request):
 
 def relatorios_supervisao(request, fonte: str):
     fonte_relatorio = fonte
-    if fonte_relatorio not in ('faturamentos', 'orcamentos'):
+    if fonte_relatorio not in ('faturamentos', 'orcamentos', 'pedidos'):
         return HttpResponse("Pagina invalida", status=404)
 
     direito_exportar_emails = request.user.has_perm('analysis.export_contatosemails')
 
     titulo_pagina = 'Dashboard Vendas - Relatorios Supervisão'
 
-    titulo_pagina_2 = 'Relatorios Faturamentos'
-    if fonte_relatorio == 'orcamentos':
-        titulo_pagina_2 = 'Relatorios Orçamentos'
+    titulo_pagina_2 = f'Relatorios {fonte_relatorio}'
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, 'titulo_pagina_2': titulo_pagina_2,
                       'fonte_relatorio': fonte_relatorio, 'direito_exportar_emails': direito_exportar_emails, }
@@ -415,9 +413,7 @@ def relatorios_supervisao(request, fonte: str):
             if 'exportar-submit' in request.GET:
                 excel = arquivo_excel(dados, cabecalho_negrito=True, ajustar_largura_colunas=True)
                 arquivo = salvar_excel_temporario(excel)
-                nome_arquivo = 'relatorio_faturamentos'
-                if fonte_relatorio == 'orcamentos':
-                    nome_arquivo = 'relatorio_orcamentos'
+                nome_arquivo = f'relatorio_{fonte_relatorio}'
                 response = arquivo_excel_response(arquivo, nome_arquivo)
                 return response
 

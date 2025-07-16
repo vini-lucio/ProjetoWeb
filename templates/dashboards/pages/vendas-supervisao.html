@@ -143,7 +143,13 @@
                             </div>
                             <div class="grid-3-colunas">
                                 <div>
-                                    <p>{{ carteira.carteira }}</p>
+                                    {% if carteira.vendedor %}
+                                        <a target="_blank" href="{% url "dashboards:relatorios-supervisao" 'pedidos' %}?inicio={{ dados.site_setup.primeiro_dia_mes | date:"Y-m-d" }}&fim={{ dados.site_setup.ultimo_dia_mes | date:"Y-m-d" }}&coluna_carteira=on&coluna_quantidade_documentos=on&coluna_dia_emissao=on&carteira={{ carteira.vendedor.chave_analysis }}&listar-submit=#resultado">
+                                            <p>{{ carteira.carteira }}</p>
+                                        </a>
+                                    {% else %}
+                                        <p>{{ carteira.carteira }}</p>
+                                    {% endif %}
                                 </div>
                                 <div>
                                     <p>R$ {{ carteira.pedidos_mes | floatformat:"2" }} / <span class="fonte-verde">R$ {{ carteira.meta_mes | floatformat:"2" }}</span></p>
