@@ -149,9 +149,10 @@ def relatorios(request):
                     notas = get_dados_notas(data_inicio, data_fim)
 
                     for nota in notas:
-                        valor_calculo_frete, *_ = calcular_frete(nota['ORCAMENTO'],
-                                                                 transportadora_regiao_valor_especifico=agili)
-                        nota.update({'VALOR_CALCULO_FRETE': valor_calculo_frete[0]['valor_frete_empresa']})
+                        if nota.get('ORCAMENTO', None):
+                            valor_calculo_frete, *_ = calcular_frete(nota['ORCAMENTO'],
+                                                                     transportadora_regiao_valor_especifico=agili)
+                            nota.update({'VALOR_CALCULO_FRETE': valor_calculo_frete[0]['valor_frete_empresa']})
 
                     excel = arquivo_excel(notas)
                     arquivo = salvar_excel_temporario(excel)
@@ -182,7 +183,7 @@ def relatorios(request):
 
                 response = arquivo_excel_response(arquivo, nome_arquivo)
                 return response
-            except ZeroDivisionError as error:
+            except (ZeroDivisionError, ObjectDoesNotExist) as error:
                 contexto.update({'erros': error})
 
     contexto.update({'formulario': PeriodoInicioFimForm()})
