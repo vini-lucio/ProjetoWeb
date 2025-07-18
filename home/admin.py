@@ -367,6 +367,7 @@ class VendedoresAdmin(BaseModelAdminRedRequired):
     ordering = 'nome',
     search_fields = 'nome',
     inlines = VendedoresRegioesInLine, VendedoresEstadosInLine,
+    autocomplete_fields = 'responsavel',
 
     def get_inlines(self, request, obj):
         if obj:

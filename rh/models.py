@@ -8,7 +8,7 @@ from utils.base_models import BaseLogModel
 from utils.converter import (converter_data_django_para_str_ddmmyyyy, converter_hora_django_para_str_hh24mm,
                              somar_dias_django_para_str_ddmmyyyy)
 from utils.conferir_alteracao import campo_django_mudou
-from utils.choices import certidao_tipos
+from utils.choices import certidao_tipos, meses as meses_choices
 from utils.data_hora_atual import hoje
 from .services import get_funcionarios_salarios_atuais
 
@@ -1375,20 +1375,7 @@ class PremioAssiduidadeBasesCalculo(BaseLogModel):
             ),
         ]
 
-    meses = {
-        1: '01 - Janeiro',
-        2: '02 - Fevereiro',
-        3: '03 - Março',
-        4: '04 - Abril',
-        5: '05 - Maio',
-        6: '06 - Junho',
-        7: '07 - Julho',
-        8: '08 - Agosto',
-        9: '09 - Setembro',
-        10: '10 - Outubro',
-        11: '11 - Novembro',
-        12: '12 - Dezembro',
-    }
+    meses = meses_choices
 
     ano_referencia = models.IntegerField("Ano Referencia")
     mes_referencia = models.IntegerField("Mes Referencia", choices=meses)  # type:ignore
