@@ -2,22 +2,19 @@ import json
 from pathlib import Path
 from django.core.management.base import BaseCommand
 # ########### alterar model do import #########################################
-from dashboards.models import IndicadoresPeriodos
+from dashboards.models import MetasCarteiras
 # ########### alterar/comentar get do import ##################################
-# from utils.site_setup import (get_transportadoras_regioes_valores, get_transportadoras, get_estados, get_estados_icms,
-#                               get_transportadoras_origem_destino, get_cidades)
+from dashboards.models import IndicadoresValores
+from rh.models import Funcionarios
+from home.models import Vendedores
 
 BASE_DIR = Path(__file__).parent.parent.parent.parent
 origem = BASE_DIR / '__localcode' / 'migracao' / 'migrar.json'
 
 # ########### alterar/comentar get ############################################
-# estrangeiro_transportadora_regiao_valores = get_transportadoras_regioes_valores()
-# estrangeiro_cidades = get_cidades()
-# transportadoras = get_transportadoras()
-# estados_origem = get_estados()
-# estados_destino = get_estados()
-# estados_origem_destino = get_estados_icms()
-# transportadoras_origem_destino = get_transportadoras_origem_destino()
+indicador_valor = IndicadoresValores.objects
+funcionarios = Funcionarios.objects
+vendedores = Vendedores.objects
 
 
 class Command(BaseCommand):
@@ -29,38 +26,43 @@ class Command(BaseCommand):
 
         for item in dados:
             # ########### alterar/comentar chave estrangeira ##################
-            # fk_transportadora = transportadoras.filter(nome=item['transportadora']).first()
-            # fk_origem = estados_origem.filter(chave_migracao=item['origem']).first()
-            # fk_destino = estados_destino.filter(chave_migracao=item['destino']).first()
-            # fk_origem_destino = estados_origem_destino.filter(uf_origem=fk_origem, uf_destino=fk_destino).first()
-            # fk_transportadora_origem_destino = transportadoras_origem_destino.filter(
-            #     transportadora=fk_transportadora,
-            #     estado_origem_destino=fk_origem_destino
-            # ).first()
-            # fk_transportadora_regiao_valores = estrangeiro_transportadora_regiao_valores.filter(
-            #     transportadora_origem_destino=fk_transportadora_origem_destino,
-            #     descricao=item['descricao'],
-            # ).first()
-            # fk_cidades = estrangeiro_cidades.filter(estado=fk_destino, nome=item['cidade']).first()
+            fk_indicador_valor = indicador_valor.filter(indicador_id=item['indicador_id'],
+                                                        periodo__ano_referencia=item['ano_referencia'],
+                                                        periodo__mes_referencia=item['mes_referencia'],).first()
+            fk_funcionario = funcionarios.filter(pk=item['responsavel_id']).first()
+            fk_vendedor = vendedores.filter(pk=item['vendedor_id']).first()
+
             # ########### alterar/comentar chave estrangeira obrigatoria ######
-            # if fk_transportadora_regiao_valores and fk_cidades:
-            # ########### alterar model do import #########################
-            instancia = IndicadoresPeriodos(
-                # ######## alterar campos json vs model e chave estrangeira
-                # transportadora_regiao_valor=fk_transportadora_regiao_valores,
-                # cidade=fk_cidades,
-                ano_referencia=item['ano_referencia'],
-                mes_referencia=item['mes_referencia'],
-                data_inicio=item['data_inicio'],
-                data_fim=item['data_fim'],
-                primeiro_dia_util=item['primeiro_dia_util'],
-                primeiro_dia_util_proximo_mes=item['primeiro_dia_util_proximo_mes'],
-                dias_uteis_considerar=str(item['dias_uteis_considerar']),
-                dias_uteis_reais=str(item['dias_uteis_reais']),
-                # ######## usar str() em float ############################
-            )
-            instancia.full_clean()
-            instancia.save()
+            if fk_indicador_valor and fk_vendedor:
+                # ########### alterar model do import incluir #########################
+                # instancia = MetasCarteiras(
+                #     # ######## alterar campos json vs model e chave estrangeira
+                #     # transportadora_regiao_valor=fk_transportadora_regiao_valores,
+                #     # cidade=fk_cidades,
+                #     ano_referencia=item['ano_referencia'],
+                #     mes_referencia=item['mes_referencia'],
+                #     data_inicio=item['data_inicio'],
+                #     data_fim=item['data_fim'],
+                #     primeiro_dia_util=item['primeiro_dia_util'],
+                #     primeiro_dia_util_proximo_mes=item['primeiro_dia_util_proximo_mes'],
+                #     dias_uteis_considerar=str(item['dias_uteis_considerar']),
+                #     dias_uteis_reais=str(item['dias_uteis_reais']),
+                #     # ######## usar str() em float ############################
+                # )
+                # instancia.full_clean()
+                # instancia.save()
+
+                # ########### buscar model do import atualizar #########################
+                instancia = MetasCarteiras.objects.filter(
+                    indicador_valor=fk_indicador_valor, vendedor=fk_vendedor).first()
+                if instancia:
+                    instancia.responsavel = fk_funcionario
+                    instancia.valor_meta = str(round(item['valor_meta'], 2))
+                    instancia.valor_real = str(round(item['valor_real'], 2))
+                    instancia.considerar_total = item['considerar_total']
+                    instancia.full_clean()
+                    instancia.save()
+                    # ######## usar str() em float ############################
 
         self.stdout.write(self.style.SUCCESS("Dados importados com sucesso"))
 
