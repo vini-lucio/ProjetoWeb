@@ -1,3 +1,4 @@
+from dashboards.services import get_relatorios_vendas
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -5,7 +6,7 @@ from django.db.models import Sum
 from home.models import Vendedores
 from rh.models import Funcionarios
 from utils.choices import meses as meses_choices
-from utils.site_setup import get_consultores_tecnicos_ativos
+from utils.site_setup import get_consultores_tecnicos_ativos, get_site_setup
 
 
 class Indicadores(models.Model):
@@ -66,6 +67,32 @@ class IndicadoresPeriodos(models.Model):
                 instancia.full_clean()
                 instancia.save()
 
+    @classmethod
+    def get_indicador_periodo_create(cls):
+        site_setup = get_site_setup()
+        if site_setup:
+            primeiro_dia_mes = site_setup.primeiro_dia_mes
+            ano = primeiro_dia_mes.year
+            mes = primeiro_dia_mes.month
+
+            periodo = cls.objects.filter(ano_referencia=ano, mes_referencia=mes).first()
+            if periodo:
+                return periodo
+
+            instancia = cls(
+                ano_referencia=ano,
+                mes_referencia=mes,
+                data_inicio=site_setup.primeiro_dia_mes,
+                data_fim=site_setup.ultimo_dia_mes,
+                primeiro_dia_util=site_setup.primeiro_dia_util_mes,
+                primeiro_dia_util_proximo_mes=site_setup.primeiro_dia_util_proximo_mes,
+                dias_uteis_considerar=site_setup.dias_uteis_mes,
+                dias_uteis_reais=site_setup.dias_uteis_mes_reais
+            )
+            instancia.full_clean()
+            instancia.save()
+            return instancia
+
 
 class IndicadoresValores(models.Model):
     class Meta:
@@ -95,7 +122,8 @@ class IndicadoresValores(models.Model):
                 carteiras = get_consultores_tecnicos_ativos()
                 for carteira in carteiras:
                     instancia = MetasCarteiras(indicador_valor=self, vendedor=carteira,
-                                               responsavel=carteira.responsavel)
+                                               responsavel=carteira.responsavel, valor_meta=carteira.meta_mes,
+                                               considerar_total=carteira.considerar_total)
                     instancia.full_clean()
                     instancia.save()
 
@@ -176,3 +204,29 @@ class MetasCarteiras(models.Model):
 
     def __str__(self) -> str:
         return f'{self.indicador_valor} | {self.vendedor}'
+
+    @classmethod
+    def atualizar_metas_carteiras_valores(cls, carteira: Vendedores | None):
+        indicador_periodo = IndicadoresPeriodos.get_indicador_periodo_create()
+        inicio = indicador_periodo.data_inicio if indicador_periodo else None
+        fim = indicador_periodo.data_fim if indicador_periodo else None
+
+        indicador_valor = IndicadoresValores.objects.filter(indicador__descricao='Meta Carteiras',
+                                                            periodo=indicador_periodo).first()
+
+        metas_carteiras = cls.objects.filter(indicador_valor=indicador_valor)
+        if carteira:
+            metas_carteiras = metas_carteiras.filter(vendedor=carteira)
+
+        for meta_carteira in metas_carteiras:
+            vendedor = meta_carteira.vendedor
+            carteira_parametros = vendedor.carteira_parametros()
+            valor = get_relatorios_vendas('faturamentos', inicio=inicio, fim=fim, **carteira_parametros)
+            valor = valor[0]['VALOR_MERCADORIAS'] if valor else 0
+
+            meta_carteira.responsavel = vendedor.responsavel
+            meta_carteira.valor_meta = str(round(vendedor.meta_mes, 2))
+            meta_carteira.valor_real = str(round(valor, 2))
+            meta_carteira.considerar_total = vendedor.considerar_total
+            meta_carteira.full_clean()
+            meta_carteira.save()

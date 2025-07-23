@@ -91,6 +91,7 @@ def vendas_carteira(request):
                                  'valor_devolucoes': valor_devolucoes})
 
             if 'exportar-orcamentos-submit' in request.GET:
+                # TODO: incluir coluna de proximo evento do grupo
                 orcamentos_em_aberto = get_relatorios_vendas(fonte='orcamentos', coluna_job=True, coluna_carteira=True,
                                                              coluna_data_emissao=True,
                                                              coluna_peso_produto_proprio=True,

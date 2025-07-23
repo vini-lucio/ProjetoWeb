@@ -1,3 +1,4 @@
+from django.apps import apps
 from django.db import models
 from django.utils.text import slugify
 from utils.imagens import redimensionar_imagem
@@ -895,11 +896,20 @@ class Vendedores(models.Model):
     responsavel = models.ForeignKey('rh.Funcionarios', verbose_name="Responsavel", on_delete=models.PROTECT,
                                     related_name="%(class)s", null=True, blank=True)
     meta_mes = models.DecimalField("Meta do Mês", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
+    considerar_total = models.BooleanField("Considerar Valores no Total", default=False)
     status = models.CharField("Status", max_length=10, choices=status_vendedores, default='ativo')  # type:ignore
 
     @classmethod
     def filter_ativos(cls):
         return cls.objects.filter(status='ativo')
+
+    def carteira_parametros(self):
+        """Retorna os parametros para relatorios de vendas de carteiras que não são carteiras"""
+        if self.nome == 'PAREDE DE CONCRETO':
+            return {'carteira_parede_de_concreto': True}
+        if self.nome == 'PREMOLDADO / POSTE':
+            return {'carteira_premoldado_poste': True}
+        return {'carteira': self}
 
     def save(self, *args, **kwargs) -> None:
         if self.pk and self.status == 'inativo':
@@ -907,7 +917,11 @@ class Vendedores(models.Model):
             if regioes:
                 regioes.delete()
 
-        return super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
+
+        if self.pk:
+            MetasCarteiras = apps.get_model('dashboards', 'MetasCarteiras')
+            MetasCarteiras.atualizar_metas_carteiras_valores(self)  # type:ignore
 
     def __str__(self) -> str:
         return f'{self.nome}'
