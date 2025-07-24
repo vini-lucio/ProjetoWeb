@@ -206,7 +206,7 @@ class MetasCarteiras(models.Model):
         return f'{self.indicador_valor} | {self.vendedor}'
 
     @classmethod
-    def atualizar_metas_carteiras_valores(cls, carteira: Vendedores | None):
+    def atualizar_metas_carteiras_valores(cls, carteira: Vendedores | None = None):
         indicador_periodo = IndicadoresPeriodos.get_indicador_periodo_create()
         inicio = indicador_periodo.data_inicio if indicador_periodo else None
         fim = indicador_periodo.data_fim if indicador_periodo else None
