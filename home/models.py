@@ -585,7 +585,10 @@ class Atualizacoes(models.Model):
         ]
 
     descricao = models.CharField("Descrição", max_length=100)
+    app = models.CharField("App", max_length=100)
+    arquivo = models.CharField("Arquivo", max_length=100)
     nome_funcao = models.CharField("Nome Função", max_length=200)
+    gera_arquivo = models.BooleanField("Gera Arquivo?", default=False)
     observacoes = models.CharField("Observações", max_length=300, blank=True, null=True)
 
     def __str__(self) -> str:

@@ -11,10 +11,10 @@ from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn, ExportarXlsxMixIn)
 from utils.exportar_excel import arquivo_excel
-import home.services as services
 import os
 import zipfile
 import tempfile
+import importlib
 
 
 class HomeLinksDocumentosInLine(admin.TabularInline):
@@ -197,38 +197,41 @@ class BancosAdmin(BaseModelAdminRedRequired):
 
 @admin.register(Atualizacoes)
 class AtualizacoesAdmin(BaseModelAdminRedRequired):
-    list_display = 'id', 'descricao',
+    list_display = 'id', 'app', 'arquivo', 'descricao', 'gera_arquivo',
     list_display_links = list_display
+    list_filter = 'gera_arquivo',
     ordering = 'descricao',
-    search_fields = 'descricao',
-    actions = 'exportar_atualizacoes',
+    search_fields = 'descricao', 'app', 'arquivo',
+    actions = 'exportar_atualizacoes', 'executar_funcoes',
 
     campos_exportar = ['descricao', 'nome_funcao']
 
     @admin.action(description="Exportar .XLSX Selecionados .ZIP")
     def exportar_atualizacoes(self, request, queryset):
-        campos_exportar = [field for field in self.campos_exportar]
+        # campos_exportar = [field for field in self.campos_exportar]
 
         with tempfile.TemporaryDirectory() as pasta_temporaria:
             caminhos_arquivos_compactar = []
 
             for obj in queryset:
-                nome_arquivo = getattr(obj, campos_exportar[1])
-                funcao = getattr(services, getattr(obj, campos_exportar[1]))
-                resultado = funcao()
+                if obj.gera_arquivo:
+                    nome_arquivo_exportar = obj.nome_funcao
+                    modulo = importlib.import_module(f'{obj.app}.{obj.arquivo}')
+                    funcao = getattr(modulo, nome_arquivo_exportar)
+                    resultado = funcao()
 
-                cabecalho = [cabecalho for cabecalho in resultado[0].keys()]
+                    cabecalho = [cabecalho for cabecalho in resultado[0].keys()]
 
-                conteudo = []
-                for registro in resultado:
-                    linha = [valor for chave, valor in registro.items()]
-                    conteudo.append(linha)
+                    conteudo = []
+                    for registro in resultado:
+                        linha = [valor for chave, valor in registro.items()]
+                        conteudo.append(linha)
 
-                workbook = arquivo_excel(conteudo, cabecalho)
+                    workbook = arquivo_excel(conteudo, cabecalho)
 
-                caminho_arquivo_excel = os.path.join(pasta_temporaria, f'{nome_arquivo}.xlsx')
-                workbook.save(caminho_arquivo_excel)  # type:ignore
-                caminhos_arquivos_compactar.append(caminho_arquivo_excel)
+                    caminho_arquivo_excel = os.path.join(pasta_temporaria, f'{nome_arquivo_exportar}.xlsx')
+                    workbook.save(caminho_arquivo_excel)  # type:ignore
+                    caminhos_arquivos_compactar.append(caminho_arquivo_excel)
 
             caminho_arquivo_zip = os.path.join(pasta_temporaria, 'atualizacoes.zip')
             with zipfile.ZipFile(caminho_arquivo_zip, 'w') as arquivo_zip:
@@ -240,6 +243,16 @@ class AtualizacoesAdmin(BaseModelAdminRedRequired):
                 response['Content-Disposition'] = 'attachment; filename=atualizacoes.zip'
 
         return response
+
+    @admin.action(description="Executar funções selecionadas")
+    def executar_funcoes(self, request, queryset):
+        for obj in queryset:
+            modulo = importlib.import_module(f'{obj.app}.{obj.arquivo}')
+            funcao = getattr(modulo, obj.nome_funcao)
+            if obj.arquivo == 'tasks':
+                funcao.now()
+            else:
+                funcao()
 
 
 @admin.register(ProdutosModelos)

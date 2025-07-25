@@ -18,7 +18,6 @@ from django.contrib.auth.decorators import user_passes_test
 # TODO: testar celery ou django-background-tasks (exemplo: guardar informações mensais ao invez de atualizar online (como as predições), migrações automaticas, fechamentos)
 # TODO: relatorios por semelhantes ao get_relatorios_vendas
 # TODO: todos os relatorios onde usam despesa administrativas (do site_setup) tratar por job (iniciado na função de cor)
-# TODO: tabela com historico de metas
 # TODO: conferencia de campos não obrigatorios para serem preenchidos (exemplo: cadastros de produtos campos de calculo de frete e modelo, modelos sem tags)
 # TODO: melhorar tags (identificar produtos que estão em somente uma tag para melhorar sugestão da tag? remover tags de produtos muitos genericos (cadeiriha, circular)?)
 # TODO: Paginas personalizadas com informassões consolidades de clientes, produtos, vendas, produção, financeiro, etc???????
