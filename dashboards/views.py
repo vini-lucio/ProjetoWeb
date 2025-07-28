@@ -9,6 +9,7 @@ from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo
 from utils.data_hora_atual import data_x_dias
 from utils.base_forms import FormVendedoresMixIn
 from utils.cor_rentabilidade import get_cores_rentabilidade
+from utils.site_setup import get_site_setup
 import pandas as pd
 
 
@@ -91,7 +92,6 @@ def vendas_carteira(request):
                                  'valor_devolucoes': valor_devolucoes})
 
             if 'exportar-orcamentos-submit' in request.GET:
-                # TODO: incluir coluna de proximo evento do grupo
                 orcamentos_em_aberto = get_relatorios_vendas(fonte='orcamentos', coluna_job=True, coluna_carteira=True,
                                                              coluna_data_emissao=True,
                                                              coluna_peso_produto_proprio=True,
@@ -99,10 +99,11 @@ def vendas_carteira(request):
                                                              coluna_cliente=True, coluna_data_entrega_itens=True,
                                                              coluna_orcamento_oportunidade=True,
                                                              coluna_log_nome_inclusao_documento=True,
+                                                             coluna_proximo_evento_grupo_economico=True,
                                                              incluir_orcamentos_oportunidade=True,
                                                              **carteira_parametros)
-                excel = arquivo_excel(orcamentos_em_aberto, cabecalho_negrito=True, formatar_numero=(['I', 'J'], 2),
-                                      formatar_data=['B', 'C'], ajustar_largura_colunas=True)
+                excel = arquivo_excel(orcamentos_em_aberto, cabecalho_negrito=True, formatar_numero=(['J', 'K'], 2),
+                                      formatar_data=['B', 'C', 'I'], ajustar_largura_colunas=True)
                 arquivo = salvar_excel_temporario(excel)
                 nome_arquivo = 'ORCAMENTOS_EM_ABERTO'
                 nome_arquivo += f'_{carteira_nome}' if carteira_nome != '%%' else '_TODOS'
@@ -185,6 +186,39 @@ def analise_orcamentos(request):
     contexto.update({'formulario': formulario})
 
     return render(request, 'dashboards/pages/analise_orcamentos.html', contexto)
+
+
+def detalhes_dia(request):
+    titulo_pagina = 'Detalhes Por Dia'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = FormVendedoresMixIn()
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormVendedoresMixIn(request.GET)
+        if formulario.is_valid():
+            carteira = formulario.cleaned_data.get('carteira')
+            carteira_nome = carteira.nome if carteira else '%%'
+            contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Todos'
+
+            carteira_parametros = carteira.carteira_parametros()  # type:ignore
+
+            site_setup = get_site_setup()
+            inicio = None
+            fim = None
+            if site_setup:
+                inicio = site_setup.primeiro_dia_mes
+                fim = site_setup.ultimo_dia_mes
+            dados = get_relatorios_vendas(fonte='pedidos', inicio=inicio, fim=fim, coluna_dia_emissao=True,
+                                          coluna_familia_produto=True,
+                                          **carteira_parametros)
+
+            contexto.update({'dados': dados, })
+
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/detalhes-dia.html', contexto)
 
 
 def eventos_dia(request):

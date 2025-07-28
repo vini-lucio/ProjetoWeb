@@ -822,6 +822,21 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     if nao_converter_moeda:
         conversao_moeda = ""
 
+    notas_proximo_evento_grupo_economico_from = """
+        (
+            SELECT CLIENTES.CHAVE_GRUPOECONOMICO,
+                MIN(CLIENTES_HISTORICO.DATA) AS PROXIMO_EVENTO_GRUPO
+            FROM COPLAS.CLIENTES,
+                COPLAS.CLIENTES_HISTORICO
+            WHERE CLIENTES.CODCLI = CLIENTES_HISTORICO.CHAVE_CLIENTE
+                AND CLIENTES_HISTORICO.DATA_REALIZADO IS NULL
+                AND CLIENTES.CHAVE_GRUPOECONOMICO IS NOT NULL
+                AND CLIENTES.CHAVE_GRUPOECONOMICO != 1
+            GROUP BY CLIENTES.CHAVE_GRUPOECONOMICO
+        ) PROXIMO_EVENTO_GRUPO,
+    """
+    notas_proximo_evento_grupo_economico_join = "CLIENTES.CHAVE_GRUPOECONOMICO = PROXIMO_EVENTO_GRUPO.CHAVE_GRUPOECONOMICO(+) AND"
+
     notas_documentos_from = """
         (
             SELECT DISTINCT
@@ -1215,12 +1230,32 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                           'transportadoras_from': notas_transportadoras_from,
                                           'transportadoras_join': notas_transportadoras_join, },
 
+        'coluna_proximo_evento_grupo_economico': {'proximo_evento_grupo_economico_campo_alias': "PROXIMO_EVENTO_GRUPO.PROXIMO_EVENTO_GRUPO,",
+                                                  'proximo_evento_grupo_economico_campo': "PROXIMO_EVENTO_GRUPO.PROXIMO_EVENTO_GRUPO,",
+                                                  'proximo_evento_grupo_economico_from': notas_proximo_evento_grupo_economico_from,
+                                                  'proximo_evento_grupo_economico_join': notas_proximo_evento_grupo_economico_join, },
+
         'coluna_destino_mercadorias': {'destino_mercadorias_campo_alias': "NOTAS.DESTINO AS DESTINO_MERCADORIAS,",
                                        'destino_mercadorias_campo': "NOTAS.DESTINO,", },
 
         'coluna_zona_franca_alc': {'zona_franca_alc_campo_alias': "CASE WHEN NOTAS.ZONA_FRANCA = 'SIM' OR NOTAS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END AS ZONA_FRANCA_ALC,",
                                    'zona_franca_alc_campo': "CASE WHEN NOTAS.ZONA_FRANCA = 'SIM' OR NOTAS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END,", },
     }
+
+    pedidos_proximo_evento_grupo_economico_from = """
+        (
+            SELECT CLIENTES.CHAVE_GRUPOECONOMICO,
+                MIN(CLIENTES_HISTORICO.DATA) AS PROXIMO_EVENTO_GRUPO
+            FROM COPLAS.CLIENTES,
+                COPLAS.CLIENTES_HISTORICO
+            WHERE CLIENTES.CODCLI = CLIENTES_HISTORICO.CHAVE_CLIENTE
+                AND CLIENTES_HISTORICO.DATA_REALIZADO IS NULL
+                AND CLIENTES.CHAVE_GRUPOECONOMICO IS NOT NULL
+                AND CLIENTES.CHAVE_GRUPOECONOMICO != 1
+            GROUP BY CLIENTES.CHAVE_GRUPOECONOMICO
+        ) PROXIMO_EVENTO_GRUPO,
+    """
+    pedidos_proximo_evento_grupo_economico_join = "CLIENTES.CHAVE_GRUPOECONOMICO = PROXIMO_EVENTO_GRUPO.CHAVE_GRUPOECONOMICO(+) AND"
 
     pedidos_documentos_from = """
         (
@@ -1586,12 +1621,32 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                           'transportadoras_from': pedidos_transportadoras_from,
                                           'transportadoras_join': pedidos_transportadoras_join, },
 
+        'coluna_proximo_evento_grupo_economico': {'proximo_evento_grupo_economico_campo_alias': "PROXIMO_EVENTO_GRUPO.PROXIMO_EVENTO_GRUPO,",
+                                                  'proximo_evento_grupo_economico_campo': "PROXIMO_EVENTO_GRUPO.PROXIMO_EVENTO_GRUPO,",
+                                                  'proximo_evento_grupo_economico_from': pedidos_proximo_evento_grupo_economico_from,
+                                                  'proximo_evento_grupo_economico_join': pedidos_proximo_evento_grupo_economico_join, },
+
         'coluna_destino_mercadorias': {'destino_mercadorias_campo_alias': "PEDIDOS.DESTINO AS DESTINO_MERCADORIAS,",
                                        'destino_mercadorias_campo': "PEDIDOS.DESTINO,", },
 
         'coluna_zona_franca_alc': {'zona_franca_alc_campo_alias': "CASE WHEN PEDIDOS.ZONA_FRANCA = 'SIM' OR PEDIDOS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END AS ZONA_FRANCA_ALC,",
                                    'zona_franca_alc_campo': "CASE WHEN PEDIDOS.ZONA_FRANCA = 'SIM' OR PEDIDOS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END,", },
     }
+
+    orcamentos_proximo_evento_grupo_economico_from = """
+        (
+            SELECT CLIENTES.CHAVE_GRUPOECONOMICO,
+                MIN(CLIENTES_HISTORICO.DATA) AS PROXIMO_EVENTO_GRUPO
+            FROM COPLAS.CLIENTES,
+                COPLAS.CLIENTES_HISTORICO
+            WHERE CLIENTES.CODCLI = CLIENTES_HISTORICO.CHAVE_CLIENTE
+                AND CLIENTES_HISTORICO.DATA_REALIZADO IS NULL
+                AND CLIENTES.CHAVE_GRUPOECONOMICO IS NOT NULL
+                AND CLIENTES.CHAVE_GRUPOECONOMICO != 1
+            GROUP BY CLIENTES.CHAVE_GRUPOECONOMICO
+        ) PROXIMO_EVENTO_GRUPO,
+    """
+    orcamentos_proximo_evento_grupo_economico_join = "CLIENTES.CHAVE_GRUPOECONOMICO = PROXIMO_EVENTO_GRUPO.CHAVE_GRUPOECONOMICO(+) AND"
 
     orcamentos_documentos_from = """
         (
@@ -1967,6 +2022,11 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                           'transportadoras_from': orcamentos_transportadoras_from,
                                           'transportadoras_join': orcamentos_transportadoras_join, },
 
+        'coluna_proximo_evento_grupo_economico': {'proximo_evento_grupo_economico_campo_alias': "PROXIMO_EVENTO_GRUPO.PROXIMO_EVENTO_GRUPO,",
+                                                  'proximo_evento_grupo_economico_campo': "PROXIMO_EVENTO_GRUPO.PROXIMO_EVENTO_GRUPO,",
+                                                  'proximo_evento_grupo_economico_from': orcamentos_proximo_evento_grupo_economico_from,
+                                                  'proximo_evento_grupo_economico_join': orcamentos_proximo_evento_grupo_economico_join, },
+
         'coluna_destino_mercadorias': {'destino_mercadorias_campo_alias': "ORCAMENTOS.DESTINO AS DESTINO_MERCADORIAS,",
                                        'destino_mercadorias_campo': "ORCAMENTOS.DESTINO,", },
 
@@ -2254,6 +2314,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
             {cliente_campo_alias}
+            {proximo_evento_grupo_economico_campo_alias}
             {quantidade_documentos_campo_alias}
             {quantidade_meses_campo_alias}
             {estado_origem_campo_alias}
@@ -2306,6 +2367,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {destino_from}
             {transportadoras_from}
             {documentos_from}
+            {proximo_evento_grupo_economico_from}
             COPLAS.VENDEDORES,
             {fonte_itens}
             {fonte}
@@ -2324,6 +2386,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {destino_join}
             {transportadoras_join}
             {documentos_join}
+            {proximo_evento_grupo_economico_join}
             PRODUTOS.CHAVE_UNIDADE = UNIDADES.CHAVE AND
             FAMILIA_PRODUTOS.CHAVE = PRODUTOS.CHAVE_FAMILIA AND
             CLIENTES.UF = ESTADOS.CHAVE AND
@@ -2405,6 +2468,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {pedido_campo}
             {nota_campo}
             {log_nome_inclusao_documento_campo}
+            {proximo_evento_grupo_economico_campo}
             1
 
         {having}
@@ -2455,7 +2519,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'CHAVE_TRANSPORTADORA', 'UF_ORIGEM', 'UF_DESTINO', 'CIDADE_DESTINO',
                                      'DESTINO_MERCADORIAS', 'ZONA_FRANCA_ALC', 'CHAVE_PRODUTO', 'DATA_SAIDA',
                                      'VOLUMES_QUANTIDADE', 'PESO_BRUTO_NOTA', 'TRANSPORTADORA', 'COBRANCA_FRETE',
-                                     'ORCAMENTO', 'PEDIDO', 'NOTA', 'DATA_DESPACHO', 'LOG_NOME_INCLUSAO_DOCUMENTO',]
+                                     'ORCAMENTO', 'PEDIDO', 'NOTA', 'DATA_DESPACHO', 'LOG_NOME_INCLUSAO_DOCUMENTO',
+                                     'PROXIMO_EVENTO_GRUPO',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',

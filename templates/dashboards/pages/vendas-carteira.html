@@ -95,7 +95,7 @@
                                 <p>Meta Mes</p>
                             </div>
                             <div>
-                                <p>R$ {{ dados.pedidos_mes | floatformat:"2" }} / <span class="fonte-verde">R$ {{ dados.meta_mes | floatformat:"2" }}</span></p>
+                                <p>R$ {{ dados.pedidos_mes | floatformat:"2" }} / <span class="fonte-verde">R$ {{ dados.meta_mes | floatformat:"2" }}</span> <a target="_blank" href="{% url "dashboards:detalhes-dia" %}{% if formulario.carteira.value %}?carteira={{ formulario.carteira.value }}{% endif %}">⊕</a></p>
                             </div>
                             <div>
                                 <p><span class="{% if dados.faltam_meta_mes > 0 %}fonte-vermelho{% else %}fonte-verde{% endif %}">(R$ {{ dados.faltam_meta_mes | floatformat:"2" }})</span> (Em dia <span class="{% if dados.meta_em_dia < 0 %}fonte-vermelho{% else %}fonte-verde{% endif %}">R$ {{ dados.meta_em_dia | floatformat:"2" }}</span>)</p>
