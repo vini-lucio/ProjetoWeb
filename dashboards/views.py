@@ -189,7 +189,7 @@ def analise_orcamentos(request):
 
 
 def detalhes_dia(request):
-    titulo_pagina = 'Detalhes Por Dia'
+    titulo_pagina = 'Detalhes'
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
 
@@ -210,8 +210,7 @@ def detalhes_dia(request):
             if site_setup:
                 inicio = site_setup.primeiro_dia_mes
                 fim = site_setup.ultimo_dia_mes
-            dados = get_relatorios_vendas(fonte='pedidos', inicio=inicio, fim=fim, coluna_dia_emissao=True,
-                                          coluna_familia_produto=True,
+            dados = get_relatorios_vendas(fonte='pedidos', inicio=inicio, fim=fim, coluna_familia_produto=True,
                                           **carteira_parametros)
 
             contexto.update({'dados': dados, })

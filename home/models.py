@@ -5,7 +5,8 @@ from utils.imagens import redimensionar_imagem
 from django_summernote.models import AbstractAttachment
 from django.db.models import Q, Max
 from utils.base_models import BaseLogModel
-from utils.converter import converter_data_django_para_str_ddmmyyyy, converter_data_django_para_dia_semana
+from utils.converter import (converter_data_django_para_str_ddmmyyyy, converter_data_django_para_dia_semana,
+                             somente_digitos)
 from utils.choices import status_ativo_inativo
 from utils.conferir_alteracao import campo_django_mudou
 
@@ -968,3 +969,43 @@ class VendedoresEstados(models.Model):
 
     def __str__(self) -> str:
         return f'{self.vendedor} - {self.estado}'
+
+
+class ControleInscricoesEstaduais(models.Model):
+    class Meta:
+        verbose_name = "Controle Inscrições Estaduais"
+        verbose_name_plural = "Controle Inscrições Estaduais"
+
+    ultimo_documento = models.IntegerField("Ultimo Orçamento Conferido")
+    ultima_conferencia = models.DateTimeField("Ultima Conferencia", auto_now=False, auto_now_add=False)
+
+    def __str__(self) -> str:
+        return "Controle Inscrições Estaduais"
+
+
+class InscricoesEstaduais(models.Model):
+    class Meta:
+        verbose_name = 'Inscrição Estadual'
+        verbose_name_plural = 'Inscrições Estaduais'
+
+    cnpj = models.CharField("CNPJ", max_length=18)
+    inscricao_estadual = models.CharField("Inscrição Estadual", max_length=20, null=True, blank=True)
+    estado = models.ForeignKey(Estados, verbose_name="Estado", on_delete=models.PROTECT, related_name="%(class)s",
+                               null=True, blank=True)
+    habilitado = models.BooleanField("Habilitado", default=True)
+    ultima_conferencia = models.DateTimeField("Ultima Conferencia", auto_now=False, auto_now_add=False)
+
+    @property
+    def cnpj_digitos(self):
+        return somente_digitos(self.cnpj)
+
+    cnpj_digitos.fget.short_description = 'CNPJ'  # type:ignore
+
+    @property
+    def inscricao_estadual_digitos(self):
+        return somente_digitos(self.inscricao_estadual) if self.inscricao_estadual else None
+
+    inscricao_estadual_digitos.fget.short_description = 'Inscrição Estadual'  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.cnpj} / {self.estado}'

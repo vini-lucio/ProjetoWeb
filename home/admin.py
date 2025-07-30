@@ -6,7 +6,7 @@ from django.http import HttpRequest, HttpResponse
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
                          ProdutosModelosTags, Unidades, Produtos, EstadosIcms, Vendedores, CanaisVendas, Regioes,
-                         VendedoresRegioes, VendedoresEstados)
+                         VendedoresRegioes, VendedoresEstados, ControleInscricoesEstaduais, InscricoesEstaduais)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn, ExportarXlsxMixIn)
@@ -387,6 +387,22 @@ class VendedoresAdmin(BaseModelAdminRedRequired):
             if obj.status == 'ativo':
                 return super().get_inlines(request, obj)
         return []
+
+
+@admin.register(ControleInscricoesEstaduais)
+class ControleInscricoesEstaduaisAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'ultimo_documento', 'ultima_conferencia'
+    list_display_links = list_display
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return not ControleInscricoesEstaduais.objects.exists()
+
+
+@admin.register(InscricoesEstaduais)
+class InscricoesEstaduaisAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'cnpj', 'inscricao_estadual', 'estado', 'habilitado', 'ultima_conferencia',
+    list_display_links = list_display
+    search_fields = 'cnpj', 'inscricao_estadual',
 
 
 # @admin.register(VendedoresRegioes)

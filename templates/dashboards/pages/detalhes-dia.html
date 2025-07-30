@@ -32,13 +32,11 @@
                 <div class="tabela-simples">
                     <table>
                         <tr class="principal-claro">
-                            <th>Dia</th>
                             <th>Familia</th>
                             <th>R$ Valor Mercadorias</th>
                         </tr>
                         {% for dado in dados %}
                             <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
-                                <td>{{ dado.DIA_EMISSAO }}</td>
                                 <td>{{ dado.FAMILIA_PRODUTO }}</td>
                                 <td>R$ {{ dado.VALOR_MERCADORIAS | floatformat:2 }}</td>
                             </tr>

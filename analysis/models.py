@@ -296,6 +296,7 @@ class CLIENTES(ReadOnlyMixin, models.Model):
     CHAVE_GRUPOECONOMICO = models.ForeignKey(GRUPO_ECONOMICO, db_column="CHAVE_GRUPOECONOMICO",
                                              verbose_name="Grupo Economico", on_delete=models.PROTECT,
                                              related_name="%(class)s", null=True, blank=True)
+    TIPO = models.CharField("Natureza", max_length=20, null=True, blank=True)
 
     def __str__(self):
         return self.NOMERED

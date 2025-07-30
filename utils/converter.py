@@ -2,6 +2,11 @@ import pandas
 from datetime import datetime, timedelta
 from django.conf import settings
 from pathlib import Path
+import re
+
+
+def somente_digitos(string: str):
+    return re.sub(r'\D', '', string)
 
 
 def converter_excel_para_json_temporario(caminho_excel_media):
