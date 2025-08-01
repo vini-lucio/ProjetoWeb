@@ -1,6 +1,7 @@
 from typing import Literal
 from analysis.models import STATUS_ORCAMENTOS_ITENS
 from utils.custom import DefaultDict
+from utils.converter import somente_digitos
 from utils.oracle.conectar import executar_oracle
 from utils.data_hora_atual import data_hora_atual, hoje, data_x_dias
 from utils.cor_rentabilidade import cor_rentabilidade_css, falta_mudar_cor_mes
@@ -10,7 +11,7 @@ from utils.lfrete import notas as lfrete_notas, orcamentos as lfrete_orcamentos,
 from utils.perdidos_justificativas import justificativas
 from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valores_atendimento
 from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes
-from home.models import Vendedores
+from home.models import Vendedores, InscricoesEstaduais
 from django.core.exceptions import ObjectDoesNotExist
 from datetime import datetime
 import pandas as pd
@@ -221,10 +222,14 @@ class DashboardVendasSupervisao(DashBoardVendas):
         for carteira in get_consultores_tecnicos_ativos():
             dados = {}
             if carteira.nome not in ('PAREDE DE CONCRETO', 'PREMOLDADO / POSTE'):
+                dados_desvolucoes_mes = self.desvolucoes_mes
+                if not dados_desvolucoes_mes.empty:
+                    dados_desvolucoes_mes = self.desvolucoes_mes[self.desvolucoes_mes['CARTEIRA'] == carteira.nome]
+
                 dados.update({
                     'dados_pedidos_mes_entrega_mes_dias': self.pedidos_mes_entrega_mes_dias[self.pedidos_mes_entrega_mes_dias['CARTEIRA'] == carteira.nome],
                     'dados_pedidos_fora_mes_entrega_mes': self.pedidos_fora_mes_entrega_mes[self.pedidos_fora_mes_entrega_mes['CARTEIRA'] == carteira.nome],
-                    'dados_desvolucoes_mes': self.desvolucoes_mes[self.desvolucoes_mes['CARTEIRA'] == carteira.nome],
+                    'dados_desvolucoes_mes': dados_desvolucoes_mes,
                 })
             self.carteiras.append(DashboardVendasCarteira(carteira.nome, executar_completo=False, **dados))
 
@@ -369,6 +374,45 @@ def conversao_de_orcamentos(parametro_carteira: dict):
     conversao = fechado / total * 100 if total else 0
 
     return float(conversao)
+
+
+def confere_inscricoes_estaduais(inscricoes_estaduais: list[dict]):
+    erros = []
+    for inscricao in inscricoes_estaduais:
+        cgc_cadastro = inscricao['CGC']
+        inscricao_cadastro = inscricao['INSCRICAO_ESTADUAL']
+        inscricao_cadastro_digitos = somente_digitos(inscricao_cadastro) if inscricao_cadastro else None
+        uf_cadastro = inscricao['UF_PRINCIPAL']
+
+        if not cgc_cadastro:
+            continue
+
+        inscricoes_api = InscricoesEstaduais.objects.filter(cnpj=cgc_cadastro)
+
+        if not inscricoes_api.exists():
+            continue
+
+        # inscrição correta
+        inscricao_valida = inscricoes_api.filter(inscricao_estadual=inscricao_cadastro_digitos,
+                                                 estado__sigla=uf_cadastro, habilitado=True)
+        if inscricao_valida.exists():
+            continue
+
+        # api e cadastro isento de inscrição
+        isento_api = inscricoes_api.first()
+        if isento_api:
+            isento_api = True if not isento_api.inscricao_estadual else False
+            if isento_api and not inscricao_cadastro_digitos:
+                continue
+
+        # api sem inscrição habilitada no estado e cadastro isento de inscrição
+        inscricao_valida = inscricoes_api.filter(estado__sigla=uf_cadastro, habilitado=True)
+        if not inscricao_valida.exists() and not inscricao_cadastro_digitos:
+            continue
+
+        erros.append(inscricao)
+
+    return erros
 
 
 def confere_orcamento(orcamento: int = 0) -> list | None:
@@ -586,6 +630,18 @@ def confere_pedidos(carteira: str = '%%', parametro_carteira: dict = {}) -> list
     if erros_atendimento_transportadoras:
         for erro_atendiemto_transportadoras in erros_atendimento_transportadoras:
             resultado.append(erro_atendiemto_transportadoras)
+
+    # inscricoes = get_relatorios_vendas('pedidos', coluna_estado=True, coluna_cgc=True, coluna_inscricao_estadual=True,
+    #                                    # TODO: descomentar
+    #                                    #    status_documento_em_aberto=True,
+    #                                    incluir_sem_valor_comercial=True,
+    #                                    **parametro_carteira)
+
+    # erros_inscricoes_estaduais = confere_inscricoes_estaduais(inscricoes)
+    # print()
+    # print()
+    # print()
+    # print(erros_inscricoes_estaduais)
 
     if not resultado:
         return []
@@ -986,6 +1042,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_notas = {
+        'coluna_cgc': {'cgc_campo_alias': "CLIENTES.CGC,",
+                       'cgc_campo': "CLIENTES.CGC,", },
+
+        'coluna_inscricao_estadual': {'inscricao_estadual_campo_alias': "CLIENTES.INSCRICAO AS INSCRICAO_ESTADUAL,",
+                                      'inscricao_estadual_campo': "CLIENTES.INSCRICAO,", },
+
         'coluna_mes_a_mes': {'mes_a_mes_campo_alias': notas_valor_mercadorias_mes_a_mes},
 
         'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "NOTAS.PESO_BRUTO AS PESO_BRUTO_NOTA,",
@@ -1406,6 +1468,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
+        'coluna_cgc': {'cgc_campo_alias': "CLIENTES.CGC,",
+                       'cgc_campo': "CLIENTES.CGC,", },
+
+        'coluna_inscricao_estadual': {'inscricao_estadual_campo_alias': "CLIENTES.INSCRICAO AS INSCRICAO_ESTADUAL,",
+                                      'inscricao_estadual_campo': "CLIENTES.INSCRICAO,", },
+
         'coluna_mes_a_mes': {'mes_a_mes_campo_alias': pedidos_valor_mercadorias_mes_a_mes},
 
         'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "",
@@ -1807,6 +1875,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
+        'coluna_cgc': {'cgc_campo_alias': "CLIENTES.CGC,",
+                       'cgc_campo': "CLIENTES.CGC,", },
+
+        'coluna_inscricao_estadual': {'inscricao_estadual_campo_alias': "CLIENTES.INSCRICAO AS INSCRICAO_ESTADUAL,",
+                                      'inscricao_estadual_campo': "CLIENTES.INSCRICAO,", },
+
         'coluna_mes_a_mes': {'mes_a_mes_campo_alias': orcamentos_valor_mercadorias_mes_a_mes},
 
         'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "",
@@ -2314,6 +2388,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
             {cliente_campo_alias}
+            {cgc_campo_alias}
+            {inscricao_estadual_campo_alias}
             {proximo_evento_grupo_economico_campo_alias}
             {quantidade_documentos_campo_alias}
             {quantidade_meses_campo_alias}
@@ -2469,6 +2545,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {nota_campo}
             {log_nome_inclusao_documento_campo}
             {proximo_evento_grupo_economico_campo}
+            {cgc_campo}
+            {inscricao_estadual_campo}
             1
 
         {having}
@@ -2520,7 +2598,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'DESTINO_MERCADORIAS', 'ZONA_FRANCA_ALC', 'CHAVE_PRODUTO', 'DATA_SAIDA',
                                      'VOLUMES_QUANTIDADE', 'PESO_BRUTO_NOTA', 'TRANSPORTADORA', 'COBRANCA_FRETE',
                                      'ORCAMENTO', 'PEDIDO', 'NOTA', 'DATA_DESPACHO', 'LOG_NOME_INCLUSAO_DOCUMENTO',
-                                     'PROXIMO_EVENTO_GRUPO',]
+                                     'PROXIMO_EVENTO_GRUPO', 'CGC', 'INSCRICAO_ESTADUAL',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',

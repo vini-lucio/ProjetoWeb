@@ -1,8 +1,9 @@
 from background_task import background
-from background_task.models import Task
+from background_task.models import Task, CompletedTask
 from analysis.models import ORCAMENTOS
 from dashboards.models import MetasCarteiras
 from home.models import ControleInscricoesEstaduais, InscricoesEstaduais, Estados
+from django.conf import settings
 from django.utils import timezone
 from django.db.models import Max
 from utils.converter import somente_digitos
@@ -13,13 +14,14 @@ import datetime
 import time
 
 
+hoje = timezone.localtime().date()
+agora = timezone.now()
+
+
 @background(remove_existing_tasks=True)
 def atualiza_metas_carteiras_valores():
     MetasCarteiras.atualizar_metas_carteiras_valores()
 
-
-hoje = timezone.localtime().date()
-agora = timezone.now()
 
 atualiza_metas_carteiras_valores_hora = datetime.time(hour=20, minute=00)
 atualiza_metas_carteiras_valores_agenda = timezone.make_aware(
@@ -122,5 +124,20 @@ def confere_inscricoes_api():
             inscricoes_inexistentes.delete()
 
 
-confere_inscricoes_api_agenda = agora + datetime.timedelta(minutes=10)
-confere_inscricoes_api(schedule=confere_inscricoes_api_agenda, repeat=600)  # type:ignore
+if not settings.DEBUG:
+    confere_inscricoes_api_agenda = agora + datetime.timedelta(minutes=10)
+    confere_inscricoes_api(schedule=confere_inscricoes_api_agenda, repeat=600)  # type:ignore
+
+
+@background(remove_existing_tasks=True)
+def limpar_completed_tasks():
+    dia_anterior = timezone.now() - datetime.timedelta(days=1)
+    completed_tasks = CompletedTask.objects.filter(run_at__lt=dia_anterior)
+    completed_tasks.delete()
+
+
+limpar_completed_tasks_hora = datetime.time(hour=23, minute=50)
+limpar_completed_tasks_agenda = timezone.make_aware(
+    datetime.datetime.combine(hoje, limpar_completed_tasks_hora)
+)
+limpar_completed_tasks(schedule=limpar_completed_tasks_agenda, repeat=Task.DAILY)  # type:ignore

@@ -147,7 +147,6 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
             if modelos != {None}:
                 tags = []
                 for modelo in modelos:
-                    print(modelo)
                     [tags.append(tag) for tag in modelo.tags.all()]  # type:ignore
                 tags_contagem = Counter(tags).most_common()
                 context.update({'tags_contagem': tags_contagem})
