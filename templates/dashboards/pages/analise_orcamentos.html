@@ -4,7 +4,7 @@
 
 {% block conteudo %}
 
-    {% if confere_orcamento %}
+    {% if confere_orcamento or confere_inscricoes_estaduais %}
         <section class="principal principal-escuro">
             <div class="dashboard-vendas-conteudo dashboard-vendas-conteudo-escuro">
                 <div class="moldura-vermelha-dashboard div-dashboard-erros principal-escuro-2">
@@ -13,6 +13,9 @@
                     </div>
                     {% for orcamento in confere_orcamento %}
                         <p><span class="fonte-verde">{{ orcamento.ORCAMENTO | stringformat:"d" }} - {{ orcamento.CONSULTOR }}</span> - {{ orcamento.ERRO }}</p>
+                    {% endfor %}
+                    {% for inscricao in confere_inscricoes_estaduais %}
+                        <p><span class="fonte-verde">{{ inscricao.PEDIDO | stringformat:"d" }} - {{ inscricao.CONSULTOR }}</span> - {{ inscricao.ERRO }}</p>
                     {% endfor %}
                 </div>
             </div>

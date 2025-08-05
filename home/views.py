@@ -19,11 +19,9 @@ from django.contrib.auth.decorators import user_passes_test
 # TODO: relatorios por semelhantes ao get_relatorios_vendas
 # TODO: todos os relatorios onde usam despesa administrativas (do site_setup) tratar por job (iniciado na função de cor)
 # TODO: conferencia de campos não obrigatorios para serem preenchidos (exemplo: cadastros de produtos campos de calculo de frete e modelo, modelos sem tags)
-# TODO: melhorar tags (identificar produtos que estão em somente uma tag para melhorar sugestão da tag? remover tags de produtos muitos genericos (cadeiriha, circular)?)
 # TODO: Paginas personalizadas com informassões consolidades de clientes, produtos, vendas, produção, financeiro, etc???????
 # TODO: rest
 # TODO: documentar
-# TODO: dashboard vendas carteira poder exportar todos os eventos em aberto, inclusive o futuro
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')

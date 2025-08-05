@@ -2,9 +2,10 @@ from typing import Dict, Literal
 from django.shortcuts import render
 from django.http import HttpResponse
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
-                       DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia)
+                       DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
+                       confere_inscricoes_estaduais)
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
-                    FormDashboardVendasCarteiras, FormAnaliseOrcamentos)
+                    FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos)
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.data_hora_atual import data_x_dias
 from utils.base_forms import FormVendedoresMixIn
@@ -181,7 +182,9 @@ def analise_orcamentos(request):
                 dados = dt_dados.to_dict(orient='records')
 
                 confere = confere_orcamento(orcamento)  # type:ignore
-                contexto.update({'dados': dados, 'confere_orcamento': confere})
+                confere_ie = confere_inscricoes_estaduais('orcamentos', {'documento': orcamento})  # type:ignore
+                contexto.update({'dados': dados, 'confere_orcamento': confere,
+                                 'confere_inscricoes_estaduais': confere_ie})
 
     contexto.update({'formulario': formulario})
 
@@ -225,16 +228,17 @@ def eventos_dia(request):
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
 
-    formulario = FormVendedoresMixIn()
+    formulario = FormEventos()
 
     if request.method == 'GET' and request.GET:
-        formulario = FormVendedoresMixIn(request.GET)
+        formulario = FormEventos(request.GET)
         if formulario.is_valid():
             carteira = formulario.cleaned_data.get('carteira')
+            incluir_futuros = formulario.cleaned_data.get('incluir_futuros', False)
             carteira_nome = carteira.nome if carteira else '%%'
             contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Todos'
 
-            dados = eventos_dia_atrasos(carteira=carteira_nome)
+            dados = eventos_dia_atrasos(carteira=carteira_nome, incluir_futuros=incluir_futuros)
 
             contexto.update({'dados': dados, })
 

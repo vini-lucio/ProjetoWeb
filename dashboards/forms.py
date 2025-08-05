@@ -176,3 +176,7 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
         super_agrupamento['Filtros sobre Produto'].append('considerar_itens_excluidos')
 
         return super_agrupamento
+
+
+class FormEventos(FormVendedoresMixIn, forms.Form):
+    incluir_futuros = forms.BooleanField(label="Incluir Eventos Futuros", initial=False, required=False)

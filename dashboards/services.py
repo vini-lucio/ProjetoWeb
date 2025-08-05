@@ -177,8 +177,10 @@ class DashBoardVendas():
         self.data_hora_atual = data_hora_atual()
 
         self.confere_pedidos = []
+        self.confere_inscricoes_estaduais = []
         if executar_completo:
             self.confere_pedidos = confere_pedidos(self.carteira, parametro_carteira)
+            self.confere_inscricoes_estaduais = confere_inscricoes_estaduais('pedidos', parametro_carteira)
 
 
 class DashboardVendasCarteira(DashBoardVendas):
@@ -376,10 +378,18 @@ def conversao_de_orcamentos(parametro_carteira: dict):
     return float(conversao)
 
 
-def confere_inscricoes_estaduais(inscricoes_estaduais: list[dict]):
+def confere_inscricoes_estaduais(fonte, parametro_carteira: dict = {}, parametro_documento: dict = {}):
+    inscricoes = get_relatorios_vendas(fonte, coluna_estado=True, coluna_cgc=True, coluna_inscricao_estadual=True,
+                                       coluna_carteira=True, coluna_documento=True,
+                                       status_documento_em_aberto=True,
+                                       incluir_sem_valor_comercial=True, incluir_orcamentos_oportunidade=True,
+                                       **parametro_carteira, **parametro_documento)
+
     erros = []
-    for inscricao in inscricoes_estaduais:
+    for inscricao in inscricoes:
         cgc_cadastro = inscricao['CGC']
+        carteira = inscricao['CARTEIRA']
+        pedido = inscricao['DOCUMENTO']
         inscricao_cadastro = inscricao['INSCRICAO_ESTADUAL']
         inscricao_cadastro_digitos = somente_digitos(inscricao_cadastro) if inscricao_cadastro else None
         uf_cadastro = inscricao['UF_PRINCIPAL']
@@ -410,6 +420,9 @@ def confere_inscricoes_estaduais(inscricoes_estaduais: list[dict]):
         if not inscricao_valida.exists() and not inscricao_cadastro_digitos:
             continue
 
+        inscricao['ERRO'] = 'CONFERIR INSCRICAO ESTADUAL'
+        inscricao['CONSULTOR'] = carteira
+        inscricao['PEDIDO'] = pedido
         erros.append(inscricao)
 
     return erros
@@ -631,18 +644,6 @@ def confere_pedidos(carteira: str = '%%', parametro_carteira: dict = {}) -> list
         for erro_atendiemto_transportadoras in erros_atendimento_transportadoras:
             resultado.append(erro_atendiemto_transportadoras)
 
-    # inscricoes = get_relatorios_vendas('pedidos', coluna_estado=True, coluna_cgc=True, coluna_inscricao_estadual=True,
-    #                                    # TODO: descomentar
-    #                                    #    status_documento_em_aberto=True,
-    #                                    incluir_sem_valor_comercial=True,
-    #                                    **parametro_carteira)
-
-    # erros_inscricoes_estaduais = confere_inscricoes_estaduais(inscricoes)
-    # print()
-    # print()
-    # print()
-    # print(erros_inscricoes_estaduais)
-
     if not resultado:
         return []
 
@@ -672,9 +673,13 @@ def confere_pedidos_atendimento_transportadoras(parametro_carteira: dict = {}) -
     return erros
 
 
-def eventos_dia_atrasos(carteira: str = '%%') -> list | None:
+def eventos_dia_atrasos(carteira: str = '%%', incluir_futuros: bool = False) -> list | None:
     """Retorna eventos do dia e em atraso"""
     carteira, filtro_nao_carteira = carteira_mapping(carteira)
+
+    periodo = "CLIENTES_HISTORICO.DATA <= TRUNC(SYSDATE) AND"
+    if incluir_futuros:
+        periodo = ""
 
     sql = """
         SELECT
@@ -763,7 +768,7 @@ def eventos_dia_atrasos(carteira: str = '%%') -> list | None:
             VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
             CLIENTES_HISTORICO.CHAVE_CLIENTE = CLIENTES.CODCLI AND
             CLIENTES_HISTORICO.CHAVE_RESPONSAVEL = V_COLABORADORES.CHAVE AND
-            CLIENTES_HISTORICO.DATA <= TRUNC(SYSDATE) AND
+            {periodo}
             CLIENTES_HISTORICO.DATA_REALIZADO IS NULL AND
 
             VENDEDORES.NOMERED LIKE :carteira AND
@@ -789,7 +794,7 @@ def eventos_dia_atrasos(carteira: str = '%%') -> list | None:
             ORC_EM_ABERTO DESC
     """
 
-    sql = sql.format(filtro_nao_carteira=filtro_nao_carteira)
+    sql = sql.format(filtro_nao_carteira=filtro_nao_carteira, periodo=periodo)
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, carteira=carteira)
 

@@ -4,7 +4,7 @@
 
 {% block conteudo %}
 
-    {% if dados.confere_pedidos %}
+    {% if dados.confere_pedidos or dados.confere_inscricoes_estaduais %}
         <section class="principal principal-escuro">
             <div class="dashboard-vendas-conteudo dashboard-vendas-conteudo-escuro">
                 <div class="moldura-vermelha-dashboard div-dashboard-erros principal-escuro-2">
@@ -13,6 +13,9 @@
                     </div>
                     {% for pedido in dados.confere_pedidos %}
                         <p><span class="fonte-verde">{{ pedido.PEDIDO | stringformat:"d" }} - {{ pedido.CONSULTOR }}</span> - {{ pedido.ERRO }}</p>
+                    {% endfor %}
+                    {% for inscricao in dados.confere_inscricoes_estaduais %}
+                        <p><span class="fonte-verde">{{ inscricao.PEDIDO | stringformat:"d" }} - {{ inscricao.CONSULTOR }}</span> - {{ inscricao.ERRO }}</p>
                     {% endfor %}
                 </div>
             </div>

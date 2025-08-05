@@ -211,7 +211,7 @@ class GRUPO_ECONOMICO(ReadOnlyMixin, models.Model):
     @property
     def quantidade_clientes_ativos_por_tipo(self):
         clientes_ativos = self.clientes_ativos
-        quantidade_tipos = clientes_ativos.values(TIPO=F('CHAVE_TIPO__DESCRICAO')).annotate(
+        quantidade_tipos = clientes_ativos.values(SEGMENTO=F('CHAVE_TIPO__DESCRICAO')).annotate(
             QUANTIDADE=Count('CHAVE_TIPO')).order_by('-QUANTIDADE')
         return quantidade_tipos
 
