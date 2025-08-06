@@ -22,6 +22,7 @@ from django.contrib.auth.decorators import user_passes_test
 # TODO: Paginas personalizadas com informassões consolidades de clientes, produtos, vendas, produção, financeiro, etc???????
 # TODO: rest
 # TODO: documentar
+# TODO: aumentar lista de clientes nos relatorios do dashboard de vendas por carteira (botão para trazer mais)
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')

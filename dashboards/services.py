@@ -338,7 +338,7 @@ def dias_decorridos(primeiro_dia_mes: str, ultimo_dia_mes: str) -> float:
     """Quantidade de dias com orçamentos no mes"""
     sql = """
         SELECT
-            COUNT(DISTINCT ORCAMENTOS.DATA_PEDIDO) AS DIAS_DECORRIDOS
+            COUNT(DISTINCT TRUNC(ORCAMENTOS.DATA_PEDIDO)) AS DIAS_DECORRIDOS
 
         FROM
             COPLAS.ORCAMENTOS
@@ -420,6 +420,7 @@ def confere_inscricoes_estaduais(fonte, parametro_carteira: dict = {}, parametro
         if not inscricao_valida.exists() and not inscricao_cadastro_digitos:
             continue
 
+        # TODO: verificar quais estados precisam informar os zeros a esquerda
         inscricao['ERRO'] = 'CONFERIR INSCRICAO ESTADUAL'
         inscricao['CONSULTOR'] = carteira
         inscricao['PEDIDO'] = pedido
