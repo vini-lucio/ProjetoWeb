@@ -13,6 +13,8 @@ from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valo
 from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes
 from home.models import Vendedores, InscricoesEstaduais
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import IntegerField
+from django.db.models.functions import Cast
 from datetime import datetime
 import pandas as pd
 
@@ -408,6 +410,17 @@ def confere_inscricoes_estaduais(fonte, parametro_carteira: dict = {}, parametro
         if inscricao_valida.exists():
             continue
 
+        # estados que podem ter inscrição com 0 a esquerda, mas não são obrigados a ter:
+        if uf_cadastro in ['AM', 'BA', 'CE', 'MT', 'PE', 'RS'] and inscricao_cadastro_digitos:
+            inscricao_cadastro_digitos_int = int(inscricao_cadastro_digitos)
+            inscricao_valida = inscricoes_api.annotate(inscricao_estadual_int=Cast('inscricao_estadual',
+                                                                                   IntegerField()))
+            inscricao_valida = inscricao_valida.filter(inscricao_estadual_int=inscricao_cadastro_digitos_int,
+                                                       estado__sigla=uf_cadastro, habilitado=True)
+
+            if inscricao_valida.exists():
+                continue
+
         # api e cadastro isento de inscrição
         isento_api = inscricoes_api.first()
         if isento_api:
@@ -420,7 +433,6 @@ def confere_inscricoes_estaduais(fonte, parametro_carteira: dict = {}, parametro
         if not inscricao_valida.exists() and not inscricao_cadastro_digitos:
             continue
 
-        # TODO: verificar quais estados precisam informar os zeros a esquerda
         inscricao['ERRO'] = 'CONFERIR INSCRICAO ESTADUAL'
         inscricao['CONSULTOR'] = carteira
         inscricao['PEDIDO'] = pedido
@@ -887,7 +899,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     notas_proximo_evento_grupo_economico_from = """
         (
             SELECT CLIENTES.CHAVE_GRUPOECONOMICO,
-                MIN(CLIENTES_HISTORICO.DATA) AS PROXIMO_EVENTO_GRUPO
+                MIN(CLIENTES_HISTORICO.DATA) AS PROXIMO_EVENTO_GRUPO,
+                MAX(CLIENTES_HISTORICO.DATA) AS ULTIMO_EVENTO_GRUPO
             FROM COPLAS.CLIENTES,
                 COPLAS.CLIENTES_HISTORICO
             WHERE CLIENTES.CODCLI = CLIENTES_HISTORICO.CHAVE_CLIENTE
@@ -1302,6 +1315,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                                   'proximo_evento_grupo_economico_campo': "PROXIMO_EVENTO_GRUPO.PROXIMO_EVENTO_GRUPO,",
                                                   'proximo_evento_grupo_economico_from': notas_proximo_evento_grupo_economico_from,
                                                   'proximo_evento_grupo_economico_join': notas_proximo_evento_grupo_economico_join, },
+        'desconsiderar_grupo_economico_com_evento_futuro': {'desconsiderar_grupo_economico_com_evento_futuro_pesquisa': "(PROXIMO_EVENTO_GRUPO.ULTIMO_EVENTO_GRUPO IS NULL OR PROXIMO_EVENTO_GRUPO.ULTIMO_EVENTO_GRUPO <= TRUNC(SYSDATE)) AND",
+                                                            'proximo_evento_grupo_economico_from': notas_proximo_evento_grupo_economico_from,
+                                                            'proximo_evento_grupo_economico_join': notas_proximo_evento_grupo_economico_join, },
 
         'coluna_destino_mercadorias': {'destino_mercadorias_campo_alias': "NOTAS.DESTINO AS DESTINO_MERCADORIAS,",
                                        'destino_mercadorias_campo': "NOTAS.DESTINO,", },
@@ -1313,7 +1329,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     pedidos_proximo_evento_grupo_economico_from = """
         (
             SELECT CLIENTES.CHAVE_GRUPOECONOMICO,
-                MIN(CLIENTES_HISTORICO.DATA) AS PROXIMO_EVENTO_GRUPO
+                MIN(CLIENTES_HISTORICO.DATA) AS PROXIMO_EVENTO_GRUPO,
+                MAX(CLIENTES_HISTORICO.DATA) AS ULTIMO_EVENTO_GRUPO
             FROM COPLAS.CLIENTES,
                 COPLAS.CLIENTES_HISTORICO
             WHERE CLIENTES.CODCLI = CLIENTES_HISTORICO.CHAVE_CLIENTE
@@ -1699,6 +1716,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                                   'proximo_evento_grupo_economico_campo': "PROXIMO_EVENTO_GRUPO.PROXIMO_EVENTO_GRUPO,",
                                                   'proximo_evento_grupo_economico_from': pedidos_proximo_evento_grupo_economico_from,
                                                   'proximo_evento_grupo_economico_join': pedidos_proximo_evento_grupo_economico_join, },
+        'desconsiderar_grupo_economico_com_evento_futuro': {'desconsiderar_grupo_economico_com_evento_futuro_pesquisa': "(PROXIMO_EVENTO_GRUPO.ULTIMO_EVENTO_GRUPO IS NULL OR PROXIMO_EVENTO_GRUPO.ULTIMO_EVENTO_GRUPO <= TRUNC(SYSDATE)) AND",
+                                                            'proximo_evento_grupo_economico_from': pedidos_proximo_evento_grupo_economico_from,
+                                                            'proximo_evento_grupo_economico_join': pedidos_proximo_evento_grupo_economico_join, },
 
         'coluna_destino_mercadorias': {'destino_mercadorias_campo_alias': "PEDIDOS.DESTINO AS DESTINO_MERCADORIAS,",
                                        'destino_mercadorias_campo': "PEDIDOS.DESTINO,", },
@@ -1710,7 +1730,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     orcamentos_proximo_evento_grupo_economico_from = """
         (
             SELECT CLIENTES.CHAVE_GRUPOECONOMICO,
-                MIN(CLIENTES_HISTORICO.DATA) AS PROXIMO_EVENTO_GRUPO
+                MIN(CLIENTES_HISTORICO.DATA) AS PROXIMO_EVENTO_GRUPO,
+                MAX(CLIENTES_HISTORICO.DATA) AS ULTIMO_EVENTO_GRUPO
             FROM COPLAS.CLIENTES,
                 COPLAS.CLIENTES_HISTORICO
             WHERE CLIENTES.CODCLI = CLIENTES_HISTORICO.CHAVE_CLIENTE
@@ -2106,6 +2127,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                                   'proximo_evento_grupo_economico_campo': "PROXIMO_EVENTO_GRUPO.PROXIMO_EVENTO_GRUPO,",
                                                   'proximo_evento_grupo_economico_from': orcamentos_proximo_evento_grupo_economico_from,
                                                   'proximo_evento_grupo_economico_join': orcamentos_proximo_evento_grupo_economico_join, },
+        'desconsiderar_grupo_economico_com_evento_futuro': {'desconsiderar_grupo_economico_com_evento_futuro_pesquisa': "(PROXIMO_EVENTO_GRUPO.ULTIMO_EVENTO_GRUPO IS NULL OR PROXIMO_EVENTO_GRUPO.ULTIMO_EVENTO_GRUPO <= TRUNC(SYSDATE)) AND",
+                                                            'proximo_evento_grupo_economico_from': orcamentos_proximo_evento_grupo_economico_from,
+                                                            'proximo_evento_grupo_economico_join': orcamentos_proximo_evento_grupo_economico_join, },
 
         'coluna_destino_mercadorias': {'destino_mercadorias_campo_alias': "ORCAMENTOS.DESTINO AS DESTINO_MERCADORIAS,",
                                        'destino_mercadorias_campo': "ORCAMENTOS.DESTINO,", },
@@ -2504,6 +2528,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {transportadoras_geram_titulos_pesquisa}
             {data_despacho_maior_igual_pesquisa}
             {data_despacho_menor_igual_pesquisa}
+            {desconsiderar_grupo_economico_com_evento_futuro_pesquisa}
 
             {fonte_where_data}
 

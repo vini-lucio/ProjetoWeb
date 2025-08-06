@@ -5,7 +5,7 @@ from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relator
                        DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
                        confere_inscricoes_estaduais)
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
-                    FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos)
+                    FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormEventosDesconsiderar)
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.data_hora_atual import data_x_dias
 from utils.base_forms import FormVendedoresMixIn
@@ -288,11 +288,12 @@ def listagens(request, listagem: str):
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
 
-    formulario = FormVendedoresMixIn()
+    formulario = FormEventosDesconsiderar()
 
     if request.method == 'GET' and request.GET:
-        formulario = FormVendedoresMixIn(request.GET)
+        formulario = FormEventosDesconsiderar(request.GET)
         if formulario.is_valid():
+            desconsiderar_futuros = formulario.cleaned_data.get('desconsiderar_futuros')
             carteira = formulario.cleaned_data.get('carteira')
             carteira_nome = carteira.nome if carteira else '%%'
             contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Todos'
@@ -308,6 +309,8 @@ def listagens(request, listagem: str):
                                  'status_cliente_ativo': True, 'ordenar_valor_descrescente_prioritario': True,
                                  'nao_compraram_depois': True, 'desconsiderar_justificativas': True,
                                  'considerar_itens_excluidos': True, }
+            if desconsiderar_futuros:
+                parametros_comuns.update({'desconsiderar_grupo_economico_com_evento_futuro': True})
 
             descricao_listagem = ''
             if listagem == 'sumidos':
@@ -315,7 +318,7 @@ def listagens(request, listagem: str):
                 inicio = data_x_dias(180 + 365, passado=True)
                 fim = data_x_dias(180, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
-                                              quantidade_meses_maior_que=3,
+                                              quantidade_meses_maior_que=2,  # originalmente 3
                                               **parametros_comuns, **carteira_parametros)
 
             if listagem == 'presentes':
@@ -323,7 +326,7 @@ def listagens(request, listagem: str):
                 inicio = data_x_dias(60 + 180, passado=True)
                 fim = data_x_dias(60, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
-                                              quantidade_meses_maior_que=3,
+                                              quantidade_meses_maior_que=2,  # originalmente 3
                                               **parametros_comuns, **carteira_parametros)
 
             if listagem == 'nuncamais':
@@ -331,7 +334,7 @@ def listagens(request, listagem: str):
                 inicio = None
                 fim = data_x_dias(730, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
-                                              quantidade_meses_maior_que=9,
+                                              quantidade_meses_maior_que=7,  # originalmente 9
                                               **parametros_comuns, **carteira_parametros)
 
             if listagem == 'potenciais':

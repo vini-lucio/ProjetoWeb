@@ -180,3 +180,8 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
 
 class FormEventos(FormVendedoresMixIn, forms.Form):
     incluir_futuros = forms.BooleanField(label="Incluir Eventos Futuros", initial=False, required=False)
+
+
+class FormEventosDesconsiderar(FormVendedoresMixIn, forms.Form):
+    desconsiderar_futuros = forms.BooleanField(label="Desconsiderar grupos com eventos futuros", initial=False,
+                                               required=False)
