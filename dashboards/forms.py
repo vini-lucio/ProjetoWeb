@@ -98,6 +98,10 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     job = forms.ModelChoiceField(jobs, label="Job", required=False)
     grupo_economico = forms.CharField(label="Grupo Economico", max_length=300, required=False)
     carteira = forms.ModelChoiceField(carteiras, label="Carteira", required=False)
+    carteira_parede_de_concreto = forms.BooleanField(label="Carteira Parede de Concreto",
+                                                     initial=False, required=False)
+    carteira_premoldado_poste = forms.BooleanField(label="Carteira Pré Moldado / Poste",
+                                                   initial=False, required=False)
     tipo_cliente = forms.ModelChoiceField(clientes_tipos, label="Tipo", required=False)
     cidade = forms.CharField(label="Cidade Principal", max_length=300, required=False)
     estado = forms.ModelChoiceField(estados, label="Estado Principal", required=False)
@@ -120,7 +124,8 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
                                      'coluna_mes_emissao', 'coluna_dia_emissao', 'coluna_media_dia',
                                      'coluna_documento',],
 
-            'Filtros sobre Cliente': ['grupo_economico', 'carteira', 'tipo_cliente', 'cidade', 'estado',
+            'Filtros sobre Cliente': ['grupo_economico', 'carteira', 'carteira_parede_de_concreto',
+                                      'carteira_premoldado_poste', 'tipo_cliente', 'cidade', 'estado',
                                       'informacao_estrategica',],
             'Filtros sobre Produto': ['familia_produto', 'produto',],
             'Filtros Gerais': ['job',],

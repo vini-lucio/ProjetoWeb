@@ -915,6 +915,15 @@ class Vendedores(models.Model):
             return {'carteira_premoldado_poste': True}
         return {'carteira': self}
 
+    @property
+    def carteira_parametros_formulario(self):
+        """Retorna os parametros para relatorios de vendas de carteiras que não são carteiras"""
+        if self.nome == 'PAREDE DE CONCRETO':
+            return 'carteira_parede_de_concreto=on'
+        if self.nome == 'PREMOLDADO / POSTE':
+            return 'carteira_premoldado_poste=on'
+        return f'carteira={self.chave_analysis}'
+
     def save(self, *args, **kwargs) -> None:
         if self.pk and self.status == 'inativo':
             regioes = self.vendedoresregioes.all()  # type:ignore

@@ -280,6 +280,7 @@ def eventos_por_dia(request):
     return render(request, 'dashboards/pages/eventos-por-dia.html', contexto)
 
 
+# TODO: uaurio poder mudar parametro para aumentar lista?
 def listagens(request, listagem: str):
     if listagem not in ('sumidos', 'nuncamais', 'presentes', 'potenciais',):
         return HttpResponse("Pagina invalida", status=404)

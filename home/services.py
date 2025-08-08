@@ -10,6 +10,37 @@ from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDAD
 from utils.site_setup import get_site_setup
 from utils.lfrete import notas as lfrete_notas
 from utils.conferir_alteracao import campo_migrar_mudou
+from dateutil.relativedelta import relativedelta
+import pandas as pd
+
+
+def status_orcamentos_ano_mes_a_mes():
+    """Totaliza o valor das contas de marketing no periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_ano_fim
+
+        data_ano_inicio_anterior = data_ano_inicio - relativedelta(years=1)
+        data_ano_fim_anterior = data_ano_fim - relativedelta(years=1)
+
+    atual = get_relatorios_vendas('orcamentos', inicio=data_ano_inicio, fim=data_ano_fim, coluna_mes_a_mes=True,
+                                  coluna_status_produto_orcamento=True)
+
+    anterior = get_relatorios_vendas('orcamentos', inicio=data_ano_inicio_anterior, fim=data_ano_fim_anterior,
+                                     coluna_status_produto_orcamento=True)
+
+    atual = pd.DataFrame(atual)
+    atual = atual.rename(columns={'VALOR_MERCADORIAS': 'TOTAL_ATUAL'})
+
+    anterior = pd.DataFrame(anterior)
+    anterior = anterior.rename(columns={'VALOR_MERCADORIAS': 'TOTAL_ANTERIOR'})
+
+    resultado = pd.merge(anterior, atual, how='outer', on='STATUS').fillna(0)
+    resultado = resultado.to_dict(orient='records')
+
+    return resultado
 
 
 def tipo_clientes_ano_mes_a_mes():
