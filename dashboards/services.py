@@ -336,6 +336,7 @@ def recebido_a_receber(primeiro_dia_mes: str, ultimo_dia_mes: str, carteira: str
     return float(resultado[0][0]), float(resultado[0][1]),
 
 
+# TODO: trocar select para get_relatorios_vendas
 def dias_decorridos(primeiro_dia_mes: str, ultimo_dia_mes: str) -> float:
     """Quantidade de dias com orçamentos no mes"""
     sql = """
@@ -875,6 +876,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         mes_a_mes_fim = pd.date_range(kwargs_formulario['inicio'], kwargs_formulario['fim'], freq='ME')
         mes_a_mes = list(zip(mes_a_mes_inicio.date, mes_a_mes_fim.date))
 
+    familia_produto = kwargs_formulario.get('familia_produto', False)
+    chave_familia_produto = '= :chave_familia_produto'
+    if isinstance(familia_produto, list):
+        chave_familia_produto = ', '.join(f'{f}' for f in familia_produto)
+        chave_familia_produto = f'IN ({chave_familia_produto})'
+
     incluir_orcamentos_oportunidade = kwargs_formulario.pop('incluir_orcamentos_oportunidade', False)
     incluir_orcamentos_oportunidade = "" if incluir_orcamentos_oportunidade else "ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND"
 
@@ -1131,7 +1138,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_familia_produto': {'familia_produto_campo_alias': "FAMILIA_PRODUTOS.FAMILIA AS FAMILIA_PRODUTO,",
                                    'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
-        'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND", },
+        'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE {chave_familia_produto} AND".format(chave_familia_produto=chave_familia_produto), },
 
         'coluna_chave_produto': {'chave_produto_campo_alias': "PRODUTOS.CPROD AS CHAVE_PRODUTO,",
                                  'chave_produto_campo': "PRODUTOS.CPROD,", },
@@ -1253,6 +1260,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_pis': {'pis_campo_alias': "SUM(NOTAS_ITENS.ANALISE_PIS) AS PIS,", },
         'coluna_cofins': {'cofins_campo_alias': "SUM(NOTAS_ITENS.ANALISE_COFINS) AS COFINS,", },
         'coluna_icms': {'icms_campo_alias': "SUM(NOTAS_ITENS.ANALISE_ICMS) AS ICMS,", },
+        'coluna_icms_partilha': {'icms_partilha_campo_alias': "SUM(NOTAS_ITENS.ANALISE_ICMS_PARTILHA) AS ICMS_PARTILHA,", },
+        'coluna_ipi': {'ipi_campo_alias': "SUM(NOTAS_ITENS.VALOR_IPI_COM_FRETE) AS IPI,", },
+        'coluna_st': {'st_campo_alias': "SUM(NOTAS_ITENS.ICMS_SUBSTITUICAO_VALOR) AS ST,", },
+        'coluna_irpj_csll': {'irpj_csll_campo_alias': "SUM(NOTAS_ITENS.ANALISE_CONTRIBUICAO) AS IRPJ_CSLL,", },
 
         'coluna_documento': {'documento_campo_alias': "NOTAS.NF AS DOCUMENTO,",
                              'documento_campo': "NOTAS.NF,", },
@@ -1561,7 +1572,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_familia_produto': {'familia_produto_campo_alias': "FAMILIA_PRODUTOS.FAMILIA AS FAMILIA_PRODUTO,",
                                    'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
-        'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND", },
+        'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE {chave_familia_produto} AND".format(chave_familia_produto=chave_familia_produto), },
 
         'coluna_chave_produto': {'chave_produto_campo_alias': "PRODUTOS.CPROD AS CHAVE_PRODUTO,",
                                  'chave_produto_campo': "PRODUTOS.CPROD,", },
@@ -1654,6 +1665,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_pis': {'pis_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_PIS {conversao_moeda}) AS PIS,".format(conversao_moeda=conversao_moeda), },
         'coluna_cofins': {'cofins_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_COFINS {conversao_moeda}) AS COFINS,".format(conversao_moeda=conversao_moeda), },
         'coluna_icms': {'icms_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_ICMS {conversao_moeda}) AS ICMS,".format(conversao_moeda=conversao_moeda), },
+        'coluna_icms_partilha': {'icms_partilha_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_ICMS_PARTILHA {conversao_moeda}) AS ICMS_PARTILHA,".format(conversao_moeda=conversao_moeda), },
+        'coluna_ipi': {'ipi_campo_alias': "SUM(PEDIDOS_ITENS.VALOR_IPI {conversao_moeda}) AS IPI,".format(conversao_moeda=conversao_moeda), },
+        'coluna_st': {'st_campo_alias': "SUM(PEDIDOS_ITENS.ICMS_SUBSTITUICAO_VALOR {conversao_moeda}) AS ST,".format(conversao_moeda=conversao_moeda), },
+        'coluna_irpj_csll': {'irpj_csll_campo_alias': "SUM(PEDIDOS_ITENS.ANALISE_CONTRIBUICAO {conversao_moeda}) AS IRPJ_CSLL,".format(conversao_moeda=conversao_moeda), },
 
         'coluna_documento': {'documento_campo_alias': "PEDIDOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "PEDIDOS.NUMPED,", },
@@ -1972,7 +1987,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_familia_produto': {'familia_produto_campo_alias': "FAMILIA_PRODUTOS.FAMILIA AS FAMILIA_PRODUTO,",
                                    'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
-        'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE = :chave_familia_produto AND", },
+        'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE {chave_familia_produto} AND".format(chave_familia_produto=chave_familia_produto), },
 
         'coluna_chave_produto': {'chave_produto_campo_alias': "PRODUTOS.CPROD AS CHAVE_PRODUTO,",
                                  'chave_produto_campo': "PRODUTOS.CPROD,", },
@@ -2065,6 +2080,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_pis': {'pis_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_PIS {conversao_moeda}) AS PIS,".format(conversao_moeda=conversao_moeda), },
         'coluna_cofins': {'cofins_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_COFINS {conversao_moeda}) AS COFINS,".format(conversao_moeda=conversao_moeda), },
         'coluna_icms': {'icms_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_ICMS {conversao_moeda}) AS ICMS,".format(conversao_moeda=conversao_moeda), },
+        'coluna_icms_partilha': {'icms_partilha_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_ICMS_PARTILHA {conversao_moeda}) AS ICMS_PARTILHA,".format(conversao_moeda=conversao_moeda), },
+        'coluna_ipi': {'ipi_campo_alias': "SUM(ORCAMENTOS_ITENS.VALOR_IPI {conversao_moeda}) AS IPI,".format(conversao_moeda=conversao_moeda), },
+        'coluna_st': {'st_campo_alias': "SUM(ORCAMENTOS_ITENS.ICMS_SUBSTITUICAO_VALOR {conversao_moeda}) AS ST,".format(conversao_moeda=conversao_moeda), },
+        'coluna_irpj_csll': {'irpj_csll_campo_alias': "SUM(ORCAMENTOS_ITENS.ANALISE_CONTRIBUICAO {conversao_moeda}) AS IRPJ_CSLL,".format(conversao_moeda=conversao_moeda), },
 
         'coluna_documento': {'documento_campo_alias': "ORCAMENTOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "ORCAMENTOS.NUMPED,", },
@@ -2235,6 +2254,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_pis': {'pis_campo_alias': "0 AS PIS,", },
         'coluna_cofins': {'cofins_campo_alias': "0 AS COFINS,", },
         'coluna_icms': {'icms_campo_alias': "0 AS ICMS,", },
+        'coluna_icms_partilha': {'icms_partilha_campo_alias': "0 AS ICMS_PARTILHA,", },
+        'coluna_ipi': {'ipi_campo_alias': "0 AS IPI,", },
+        'coluna_st': {'st_campo_alias': "0 AS ST,", },
+        'coluna_irpj_csll': {'irpj_csll_campo_alias': "0 AS IRPJ_CSLL,", },
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "ORCAMENTOS.DATA_ENTREGA,", },
@@ -2327,15 +2350,15 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         kwargs_ora.update({'grupo_economico': grupo_economico, })
 
     if carteira:
-        chave_carteira = carteira.chave_analysis
+        chave_carteira = carteira if isinstance(carteira, int) else carteira.chave_analysis
         kwargs_ora.update({'chave_carteira': chave_carteira, })
 
     if tipo_cliente:
-        chave_tipo_cliente = tipo_cliente.pk
+        chave_tipo_cliente = tipo_cliente if isinstance(tipo_cliente, int) else tipo_cliente.pk
         kwargs_ora.update({'chave_tipo_cliente': chave_tipo_cliente, })
 
-    if familia_produto:
-        chave_familia_produto = familia_produto.pk
+    if familia_produto and not isinstance(familia_produto, list):
+        chave_familia_produto = familia_produto if isinstance(familia_produto, int) else familia_produto.pk
         kwargs_ora.update({'chave_familia_produto': chave_familia_produto, })
 
     if produto:
@@ -2345,7 +2368,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         kwargs_ora.update({'cidade': cidade, })
 
     if estado:
-        chave_estado = estado.chave_analysis
+        chave_estado = estado if isinstance(estado, int) else estado.chave_analysis
         kwargs_ora.update({'chave_estado': chave_estado, })
 
     if status_produto_orcamento:
@@ -2371,11 +2394,12 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         kwargs_ora.update({'documento': documento})
 
     if informacao_estrategica:
-        chave_informacao_estrategica = informacao_estrategica.pk
+        chave_informacao_estrategica = informacao_estrategica if isinstance(
+            informacao_estrategica, int) else informacao_estrategica.pk
         kwargs_ora.update({'chave_informacao_estrategica': chave_informacao_estrategica, })
 
     if job:
-        chave_job = job.pk
+        chave_job = job if isinstance(job, int) else job.pk
         kwargs_ora.update({'chave_job': chave_job, })
 
     if data_entrega_itens_maior_que:
@@ -2452,9 +2476,13 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {frete_incluso_item_campo_alias}
             {custo_total_item_campo_alias}
             {lfrete_coluna_aliquotas_itens}
+            {ipi_campo_alias}
+            {st_campo_alias}
             {pis_campo_alias}
             {cofins_campo_alias}
             {icms_campo_alias}
+            {icms_partilha_campo_alias}
+            {irpj_csll_campo_alias}
             {valor_bruto_campo_alias}
 
             {valor_mercadorias}

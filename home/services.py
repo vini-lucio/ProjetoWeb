@@ -7,15 +7,16 @@ from home.models import (Cidades, Unidades, Produtos, Estados, EstadosIcms, Vend
                          ProdutosModelos)
 from rh.models import Comissoes, ComissoesVendedores, Faturamentos, FaturamentosVendedores
 from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES, PRODUTOS, CANAIS_VENDA, REGIOES
+from utils.completar import completar_meses
 from utils.site_setup import get_site_setup
-from utils.lfrete import notas as lfrete_notas
 from utils.conferir_alteracao import campo_migrar_mudou
 from dateutil.relativedelta import relativedelta
+import datetime
 import pandas as pd
 
 
 def status_orcamentos_ano_mes_a_mes():
-    """Totaliza o valor das contas de marketing no periodo informado em site setup mes a mes"""
+    """Totaliza o valor dos orçamentos por status no periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -26,10 +27,12 @@ def status_orcamentos_ano_mes_a_mes():
         data_ano_fim_anterior = data_ano_fim - relativedelta(years=1)
 
     atual = get_relatorios_vendas('orcamentos', inicio=data_ano_inicio, fim=data_ano_fim, coluna_mes_a_mes=True,
-                                  coluna_status_produto_orcamento=True)
+                                  coluna_status_produto_orcamento=True, desconsiderar_justificativas=True,
+                                  considerar_itens_excluidos=True,)
 
     anterior = get_relatorios_vendas('orcamentos', inicio=data_ano_inicio_anterior, fim=data_ano_fim_anterior,
-                                     coluna_status_produto_orcamento=True)
+                                     coluna_status_produto_orcamento=True, desconsiderar_justificativas=True,
+                                     considerar_itens_excluidos=True,)
 
     atual = pd.DataFrame(atual)
     atual = atual.rename(columns={'VALOR_MERCADORIAS': 'TOTAL_ATUAL'})
@@ -45,49 +48,29 @@ def status_orcamentos_ano_mes_a_mes():
 
 def tipo_clientes_ano_mes_a_mes():
     """Totaliza o valor por tipo de cliente no periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        ano = site_setup.atualizacoes_ano
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_ano_fim
 
-    sql = """
-        SELECT
-            CLIENTES_TIPOS.DESCRICAO AS TIPO,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano - 1 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS TOTAL_ANTERIOR,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS TOTAL_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 1 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS JAN_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 2 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS FEV_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 3 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS MAR_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 4 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS ABR_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 5 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS MAI_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 6 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS JUN_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 7 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS JUL_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 8 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS AGO_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 9 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS SET_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 10 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS OUT_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 11 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS NOV_ATUAL,
-            ROUND(SUM(CASE WHEN EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = :ano AND EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = 12 THEN NOTAS.VALOR_MERCADORIAS ELSE 0 END), 2) AS DEZ_ATUAL
+        data_ano_inicio_anterior = data_ano_inicio - relativedelta(years=1)
+        data_ano_fim_anterior = data_ano_fim - relativedelta(years=1)
 
-        FROM
-            COPLAS.CLIENTES,
-            COPLAS.CLIENTES_TIPOS,
-            COPLAS.NOTAS
+    atual = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim, coluna_mes_a_mes=True,
+                                  coluna_tipo_cliente=True)
 
-        WHERE
-            CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
-            CLIENTES.CHAVE_TIPO = CLIENTES_TIPOS.CHAVE AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
+    anterior = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio_anterior, fim=data_ano_fim_anterior,
+                                     coluna_tipo_cliente=True)
 
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) >= :ano - 1 AND
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) <= :ano
+    atual = pd.DataFrame(atual)
+    atual = atual.rename(columns={'VALOR_MERCADORIAS': 'TOTAL_ATUAL'})
 
-        GROUP BY
-            CLIENTES_TIPOS.DESCRICAO
+    anterior = pd.DataFrame(anterior)
+    anterior = anterior.rename(columns={'VALOR_MERCADORIAS': 'TOTAL_ANTERIOR'})
 
-        ORDER BY
-            CLIENTES_TIPOS.DESCRICAO
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano)
+    resultado = pd.merge(anterior, atual, how='outer', on='TIPO_CLIENTE').fillna(0)
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -194,96 +177,48 @@ def i4ref_terceirizacao_ano_mes_a_mes():
 
 def i4ref_imposto_vendido_ano_mes_a_mes():
     """Totaliza o valor do imposto vendido do 4REF do periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
         ano_inicio = site_setup.atualizacoes_ano_inicio
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = datetime.datetime(ano_inicio, 1, 1)
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS ANO,
-            ROUND(SUM(NOTAS_ITENS.VALOR_IPI_COM_FRETE), 2) AS IPI,
-            ROUND(SUM(NOTAS_ITENS.ICMS_SUBSTITUICAO_VALOR), 2) AS ST,
-            ROUND(SUM(NOTAS_ITENS.ANALISE_ICMS), 2) AS ICMS,
-            ROUND(SUM(NOTAS_ITENS.ANALISE_PIS), 2) AS PIS,
-            ROUND(SUM(NOTAS_ITENS.ANALISE_COFINS), 2) AS COFINS,
-            ROUND(SUM(NOTAS_ITENS.ANALISE_CONTRIBUICAO), 2) AS IRPJ_CSLL,
-            ROUND(SUM(NOTAS_ITENS.ANALISE_ICMS_PARTILHA), 2) AS ICMS_PARTILHA
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-        FROM
-            COPLAS.NOTAS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.PRODUTOS
+    resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim, coluna_ano_emissao=True,
+                                      coluna_mes_emissao=True, coluna_ipi=True, coluna_st=True, coluna_icms=True,
+                                      coluna_pis=True, coluna_cofins=True, coluna_irpj_csll=True,
+                                      coluna_icms_partilha=True, job=22)
 
-        WHERE
-            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
-            NOTAS_ITENS.CHAVE_NOTA = NOTAS.CHAVE AND
-            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-            NOTAS.CHAVE_JOB = 22 AND
-
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) >= :ano_inicio AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO),
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, ano_inicio=ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = pd.DataFrame(resultado)
+    resultado = resultado[['MES_EMISSAO', 'ANO_EMISSAO', 'IPI', 'ST', 'ICMS', 'PIS', 'COFINS', 'IRPJ_CSLL',
+                           'ICMS_PARTILHA',]]
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
 
 def i4ref_faturado_bruto_ano_mes_a_mes():
     """Totaliza o valor do faturamento bruto do 4REF do periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
         ano_inicio = site_setup.atualizacoes_ano_inicio
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = datetime.datetime(ano_inicio, 1, 1)
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS ANO,
-            ROUND(SUM(NOTAS_ITENS.VALOR_CONTABIL), 2) AS FATURADO
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-        FROM
-            COPLAS.NOTAS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.PRODUTOS
+    resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim, coluna_ano_emissao=True,
+                                      coluna_mes_emissao=True, coluna_valor_bruto=True, job=22)
 
-        WHERE
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
-            NOTAS.CHAVE_JOB = 22 AND
-
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) >= :ano_inicio AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO),
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, ano_inicio=ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = pd.DataFrame(resultado)
+    resultado = resultado[['MES_EMISSAO', 'ANO_EMISSAO', 'VALOR_BRUTO',]]
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
 
+# TODO: trocar select para get_relatorios_vendas
 def i4ref_custo_materia_prima_vendido_ano_mes_a_mes():
     """Totaliza o valor do custo das materias primas vendidas do 4REF do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -530,263 +465,65 @@ def i4ref_ano_mes_a_mes():
 
 def exportacoes_ano_mes_a_mes():
     """Totaliza o valor de exportações no periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            PERIODO.MES,
-            VALOR.VALOR_MERCADORIAS
-
-        FROM
-            (
-                SELECT 1 AS MES FROM DUAL UNION ALL
-                SELECT 2 AS MES FROM DUAL UNION ALL
-                SELECT 3 AS MES FROM DUAL UNION ALL
-                SELECT 4 AS MES FROM DUAL UNION ALL
-                SELECT 5 AS MES FROM DUAL UNION ALL
-                SELECT 6 AS MES FROM DUAL UNION ALL
-                SELECT 7 AS MES FROM DUAL UNION ALL
-                SELECT 8 AS MES FROM DUAL UNION ALL
-                SELECT 9 AS MES FROM DUAL UNION ALL
-                SELECT 10 AS MES FROM DUAL UNION ALL
-                SELECT 11 AS MES FROM DUAL UNION ALL
-                SELECT 12 AS MES FROM DUAL
-            ) PERIODO,
-            (
-                SELECT
-                    EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-                    SUM(NOTAS_ITENS.VALOR_MERCADORIAS - ROUND(NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 2)) AS VALOR_MERCADORIAS
-
-                FROM
-                    (
-                        SELECT
-                            CHAVE_NOTA,
-                            SUM(PESO_LIQUIDO) AS PESO_LIQUIDO
-
-                        FROM
-                            COPLAS.NOTAS_ITENS
-
-                        GROUP BY
-                            CHAVE_NOTA
-                    ) NOTAS_PESO_LIQUIDO,
-                    COPLAS.NOTAS,
-                    COPLAS.NOTAS_ITENS
-
-                WHERE
-                    NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
-                    NOTAS_ITENS.CHAVE_NOTA = NOTAS.CHAVE AND
-                    NOTAS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE CFOP LIKE '3.%' OR CFOP LIKE '7.%' OR CFOP LIKE '6.50%') AND
-                    NOTAS.VALOR_COMERCIAL = 'SIM' AND
-
-                    NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
-                    NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
-
-                GROUP BY
-                    EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-            ) VALOR
-
-        WHERE
-            PERIODO.MES = VALOR.MES(+)
-
-        ORDER BY
-            PERIODO.MES
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                      coluna_mes_emissao=True, carteira=738)
+    resultado = completar_meses(pd.DataFrame(resultado), to_dict=True)
 
     return resultado
 
 
 def revendas_ano_mes_a_mes():
     """Totaliza o valor de revendas no periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            SUM(NOTAS.VALOR_MERCADORIAS - NOTAS.VALOR_FRETE_INCL_ITEM) AS VALOR_MERCADORIAS
-
-        FROM
-            COPLAS.NOTAS,
-            COPLAS.CLIENTES
-
-        WHERE
-            CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-            CLIENTES.CHAVE_TIPO = 7552 AND
-
-            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                      coluna_mes_emissao=True, tipo_cliente=7552)
+    resultado = completar_meses(pd.DataFrame(resultado), to_dict=True)
 
     return resultado
 
 
 def parede_concreto_ano_mes_a_mes():
     """Totaliza o valor de parede de concreto no periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            PERIODO.MES,
-            VALOR.PP,
-            VALOR.PT,
-            VALOR.PQ,
-            VALOR.VALOR_TOTAL
-
-        FROM
-            (
-                SELECT 1 AS MES FROM DUAL UNION ALL
-                SELECT 2 AS MES FROM DUAL UNION ALL
-                SELECT 3 AS MES FROM DUAL UNION ALL
-                SELECT 4 AS MES FROM DUAL UNION ALL
-                SELECT 5 AS MES FROM DUAL UNION ALL
-                SELECT 6 AS MES FROM DUAL UNION ALL
-                SELECT 7 AS MES FROM DUAL UNION ALL
-                SELECT 8 AS MES FROM DUAL UNION ALL
-                SELECT 9 AS MES FROM DUAL UNION ALL
-                SELECT 10 AS MES FROM DUAL UNION ALL
-                SELECT 11 AS MES FROM DUAL UNION ALL
-                SELECT 12 AS MES FROM DUAL
-            ) PERIODO,
-            (
-                SELECT
-                    EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-                    SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_MERCADORIAS - ROUND(NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 2) ELSE 0 END) AS PP,
-                    SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN NOTAS_ITENS.VALOR_MERCADORIAS - ROUND(NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 2) ELSE 0 END) AS PT,
-                    SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - ROUND(NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 2) ELSE 0 END) AS PQ,
-                    SUM(NOTAS_ITENS.VALOR_MERCADORIAS - ROUND(NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 2)) AS VALOR_TOTAL
-
-                FROM
-                    (
-                        SELECT
-                            CHAVE_NOTA,
-                            SUM(PESO_LIQUIDO) AS PESO_LIQUIDO
-
-                        FROM
-                            COPLAS.NOTAS_ITENS
-
-                        GROUP BY
-                            CHAVE_NOTA
-                    ) NOTAS_PESO_LIQUIDO,
-                    COPLAS.CLIENTES_INFORMACOES_CLI,
-                    COPLAS.CLIENTES,
-                    COPLAS.NOTAS,
-                    COPLAS.NOTAS_ITENS,
-                    COPLAS.PRODUTOS
-
-                WHERE
-                    NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
-                    NOTAS_ITENS.CHAVE_NOTA = NOTAS.CHAVE AND
-                    NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
-                    NOTAS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
-                    CLIENTES.CODCLI = CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE AND
-                    CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO = 23 AND
-                    NOTAS.VALOR_COMERCIAL = 'SIM' AND
-                    PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378, 12441) AND
-
-                    NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-                    NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-                GROUP BY
-                    EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-            ) VALOR
-
-        WHERE
-            PERIODO.MES = VALOR.MES(+)
-
-        ORDER BY
-            PERIODO.MES
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                      coluna_mes_emissao=True, carteira_parede_de_concreto=True)
+    resultado = completar_meses(pd.DataFrame(resultado), to_dict=True)
 
     return resultado
 
 
 def eolicas_ano_mes_a_mes():
     """Totaliza o valor das eolicas no periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            PERIODO.MES,
-            VALOR.VALOR_MERCADORIAS
-
-        FROM
-            (
-                SELECT 1 AS MES FROM DUAL UNION ALL
-                SELECT 2 AS MES FROM DUAL UNION ALL
-                SELECT 3 AS MES FROM DUAL UNION ALL
-                SELECT 4 AS MES FROM DUAL UNION ALL
-                SELECT 5 AS MES FROM DUAL UNION ALL
-                SELECT 6 AS MES FROM DUAL UNION ALL
-                SELECT 7 AS MES FROM DUAL UNION ALL
-                SELECT 8 AS MES FROM DUAL UNION ALL
-                SELECT 9 AS MES FROM DUAL UNION ALL
-                SELECT 10 AS MES FROM DUAL UNION ALL
-                SELECT 11 AS MES FROM DUAL UNION ALL
-                SELECT 12 AS MES FROM DUAL
-            ) PERIODO,
-            (
-                SELECT
-                    EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-                    SUM(NOTAS.VALOR_MERCADORIAS - NOTAS.VALOR_FRETE_INCL_ITEM) AS VALOR_MERCADORIAS
-
-                FROM
-                    COPLAS.CLIENTES_INFORMACOES_CLI,
-                    COPLAS.CLIENTES,
-                    COPLAS.NOTAS
-
-                WHERE
-                    NOTAS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
-                    CLIENTES.CODCLI = CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE AND
-                    CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO = 19 AND
-                    NOTAS.VALOR_COMERCIAL = 'SIM' AND
-
-                    NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-                    NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-                GROUP BY
-                    EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-            ) VALOR
-
-        WHERE
-            PERIODO.MES = VALOR.MES(+)
-
-        ORDER BY
-            PERIODO.MES
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                      coluna_mes_emissao=True, informacao_estrategica=19)
+    resultado = completar_meses(pd.DataFrame(resultado), to_dict=True)
 
     return resultado
 
 
+# TODO: trocar select para get_relatorios_vendas
 def ticket_medio_ano_mes_a_mes():
     """Totaliza o ticket medio das notas no periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -825,83 +562,7 @@ def ticket_medio_ano_mes_a_mes():
     return resultado
 
 
-def revendas_centro_oeste_norte_ano_mes_a_mes():
-    """Totaliza o valor das revendas do centro oeste e norte do periodo informado em site setup mes a mes"""
-    site_setup = get_site_setup()
-    if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
-
-    sql = """
-        SELECT
-            PERIODO.MES,
-            VALOR.VALOR_TOTAL
-
-        FROM
-            (
-                SELECT 1 AS MES FROM DUAL UNION ALL
-                SELECT 2 AS MES FROM DUAL UNION ALL
-                SELECT 3 AS MES FROM DUAL UNION ALL
-                SELECT 4 AS MES FROM DUAL UNION ALL
-                SELECT 5 AS MES FROM DUAL UNION ALL
-                SELECT 6 AS MES FROM DUAL UNION ALL
-                SELECT 7 AS MES FROM DUAL UNION ALL
-                SELECT 8 AS MES FROM DUAL UNION ALL
-                SELECT 9 AS MES FROM DUAL UNION ALL
-                SELECT 10 AS MES FROM DUAL UNION ALL
-                SELECT 11 AS MES FROM DUAL UNION ALL
-                SELECT 12 AS MES FROM DUAL
-            ) PERIODO,
-            (
-                SELECT
-                    EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-                    SUM(NOTAS_ITENS.VALOR_MERCADORIAS - ROUND(NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM, 2)) AS VALOR_TOTAL
-
-                FROM
-                    (
-                        SELECT
-                            NOTAS_ITENS.CHAVE_NOTA,
-                            SUM(NOTAS_ITENS.PESO_LIQUIDO) AS PESO_LIQUIDO
-
-                        FROM
-                            COPLAS.NOTAS_ITENS
-
-                        GROUP BY
-                            NOTAS_ITENS.CHAVE_NOTA
-                    ) NOTAS_PESO_LIQUIDO,
-                    COPLAS.CLIENTES,
-                    COPLAS.NOTAS,
-                    COPLAS.NOTAS_ITENS
-
-                WHERE
-                    NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
-                    NOTAS_ITENS.CHAVE_NOTA = NOTAS.CHAVE AND
-                    NOTAS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
-                    NOTAS.VALOR_COMERCIAL = 'SIM' AND
-
-                    CLIENTES.CHAVE_VENDEDOR3 = 682 AND
-                    CLIENTES.CHAVE_TIPO = 7552 AND
-
-                    NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-                    NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-                GROUP BY
-                    EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-            ) VALOR
-
-        WHERE
-            PERIODO.MES = VALOR.MES(+)
-
-        ORDER BY
-            PERIODO.MES
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
-
-    return resultado
-
-
+# TODO: trocar select para get_relatorios_vendas
 def vec_antes_depois_visita_ano_mes_a_mes():
     """Totaliza o valor dos orçamentos de clientes visitados antes e depois do periodo informado em site setup mes a
     mes"""
@@ -986,6 +647,7 @@ def vec_antes_depois_visita_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar select para get_relatorios_vendas
 def quantidade_notas_ano_mes_a_mes():
     """Totaliza a quantidede de notas de saida emitidas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -1066,6 +728,7 @@ def produtividade_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar select para get_relatorios_vendas
 def peso_faturado_abc_ano_mes_a_mes():
     """Totaliza o peso faturado por classe ABC (todas as notas com CFOP de baixa de estoque) do periodo informado em
     site setup mes a mes"""
@@ -1363,81 +1026,43 @@ def inadimplencia_ano_mes_a_mes():
 
 def lucro_ano_mes_a_mes():
     """Totaliza o lucro do periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            ROUND(LFRETE.MC_SEM_FRETE / SUM(NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM)) * 100, 2) AS LUCRO_TOTAL,
-            ROUND(LFRETE.MC_SEM_FRETE_PP / SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END) * 100, 2) AS LUCRO_PP,
-            ROUND(LFRETE.MC_SEM_FRETE_PT / SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END) * 100, 2) AS LUCRO_PT,
-            ROUND(LFRETE.MC_SEM_FRETE_PQ / SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END) * 100, 2) AS LUCRO_PQ
+    total = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                  coluna_mes_emissao=True, coluna_rentabilidade=True,)
+    total = pd.DataFrame(total)
+    total = total[['MES_EMISSAO', 'MC']]
+    total = total.rename(columns={'MC': 'TOTAL'})
 
-        FROM
-            (
-                SELECT
-                    CHAVE_NOTA,
-                    SUM(PESO_LIQUIDO) AS PESO_LIQUIDO
+    pp = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_rentabilidade=True,
+                               familia_produto=7766,)
+    pp = pd.DataFrame(pp)
+    pp = pp[['MES_EMISSAO', 'MC']]
+    pp = pp.rename(columns={'MC': 'PP'})
 
-                FROM
-                    COPLAS.NOTAS_ITENS
+    pt = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_rentabilidade=True,
+                               familia_produto=[7767, 12441,],)
+    pt = pd.DataFrame(pt)
+    pt = pt[['MES_EMISSAO', 'MC']]
+    pt = pt.rename(columns={'MC': 'PT'})
 
-                GROUP BY
-                    CHAVE_NOTA
-            ) NOTAS_PESO_LIQUIDO,
-            COPLAS.NOTAS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.PRODUTOS,
-            (
-                SELECT
-                    MES,
-                    ROUND(SUM(MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM), 2) AS MC_SEM_FRETE,
-                    ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 7766 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PP,
-                    ROUND(SUM(CASE WHEN CHAVE_FAMILIA IN (7767, 12441) THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PT,
-                    ROUND(SUM(CASE WHEN CHAVE_FAMILIA = 8378 THEN MC + PIS + COFINS + ICMS + IR + CSLL + COMISSAO_FRETE_ITEM + DESPESA_ADM_FRETE_ITEM + DESPESA_COM_FRETE_ITEM ELSE 0 END), 2) AS MC_SEM_FRETE_PQ
+    pq = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_rentabilidade=True,
+                               familia_produto=8378,)
+    pq = pd.DataFrame(pq)
+    pq = pq[['MES_EMISSAO', 'MC']]
+    pq = pq.rename(columns={'MC': 'PQ'})
 
-                FROM
-                    (
-                        {lfrete_notas} AND
-
-                            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-                            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
-                            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
-                    ) LFRETE
-
-                GROUP BY
-                    MES
-            ) LFRETE
-
-        WHERE
-            NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = LFRETE.MES AND
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
-            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378, 12441) AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-
-            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO),
-            LFRETE.MC_SEM_FRETE,
-            LFRETE.MC_SEM_FRETE_PP,
-            LFRETE.MC_SEM_FRETE_PT,
-            LFRETE.MC_SEM_FRETE_PQ
-
-        ORDER BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    sql = sql.format(lfrete_notas=lfrete_notas)
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = pd.merge(total, pp, how='outer', on='MES_EMISSAO')
+    resultado = pd.merge(resultado, pt, how='outer', on='MES_EMISSAO')
+    resultado = pd.merge(resultado, pq, how='outer', on='MES_EMISSAO')
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -1668,6 +1293,7 @@ def peso_materia_prima_produto_proprio_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar select para get_relatorios_vendas
 def peso_faturado_produto_proprio_ano_mes_a_mes():
     """Totaliza o peso faturado de produto proprio (todas as notas com CFOP de baixa de estoque) do periodo informado
     em site setup mes a mes"""
@@ -1872,117 +1498,85 @@ def insvestimento_retiradas_ano_mes_a_mes():
 
 def imposto_faturado_ano_mes_a_mes():
     """Totaliza os impostos do faturamento do periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_IPI_COM_FRETE ELSE 0 END), 2) AS IPI_PP,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.ICMS_SUBSTITUICAO_VALOR ELSE 0 END), 2) AS ST_PP,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.ANALISE_ICMS ELSE 0 END), 2) AS ICMS_PP,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.ANALISE_PIS ELSE 0 END), 2) AS PIS_PP,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.ANALISE_COFINS ELSE 0 END), 2) AS COFINS_PP,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.ANALISE_CONTRIBUICAO ELSE 0 END), 2) AS IRPJ_CSLL_PP,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.ANALISE_ICMS_PARTILHA ELSE 0 END), 2) AS ICMS_PARTILHA_PP,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.VALOR_IPI_COM_FRETE ELSE 0 END), 2) AS IPI_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.ICMS_SUBSTITUICAO_VALOR ELSE 0 END), 2) AS ST_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.ANALISE_ICMS ELSE 0 END), 2) AS ICMS_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.ANALISE_PIS ELSE 0 END), 2) AS PIS_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.ANALISE_COFINS ELSE 0 END), 2) AS COFINS_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.ANALISE_CONTRIBUICAO ELSE 0 END), 2) AS IRPJ_CSLL_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.ANALISE_ICMS_PARTILHA ELSE 0 END), 2) AS ICMS_PARTILHA_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_IPI_COM_FRETE ELSE 0 END), 2) AS IPI_PQ,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.ICMS_SUBSTITUICAO_VALOR ELSE 0 END), 2) AS ST_PQ,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.ANALISE_ICMS ELSE 0 END), 2) AS ICMS_PQ,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.ANALISE_PIS ELSE 0 END), 2) AS PIS_PQ,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.ANALISE_COFINS ELSE 0 END), 2) AS COFINS_PQ,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.ANALISE_CONTRIBUICAO ELSE 0 END), 2) AS IRPJ_CSLL_PQ,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.ANALISE_ICMS_PARTILHA ELSE 0 END), 2) AS ICMS_PARTILHA_PQ
+    pp = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_ipi=True, coluna_st=True, coluna_icms=True,
+                               coluna_pis=True, coluna_cofins=True, coluna_irpj_csll=True,
+                               coluna_icms_partilha=True, job=22,
+                               familia_produto=7766,)
+    pp = pd.DataFrame(pp)
+    pp = pp[['MES_EMISSAO', 'IPI', 'ST', 'ICMS', 'PIS', 'COFINS', 'IRPJ_CSLL', 'ICMS_PARTILHA',]]
+    pp = pp.rename(columns={'IPI': 'IPI_PP', 'ST': 'ST_PP', 'ICMS': 'ICMS_PP', 'PIS': 'PIS_PP', 'COFINS': 'COFINS_PP',
+                            'IRPJ_CSLL': 'IRPJ_CSLL_PP', 'ICMS_PARTILHA': 'ICMS_PARTILHA_PP', })
 
-        FROM
-            COPLAS.NOTAS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.PRODUTOS
+    pt = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_ipi=True, coluna_st=True, coluna_icms=True,
+                               coluna_pis=True, coluna_cofins=True, coluna_irpj_csll=True,
+                               coluna_icms_partilha=True, job=22,
+                               familia_produto=7767,)
+    pt = pd.DataFrame(pt)
+    pt = pt[['MES_EMISSAO', 'IPI', 'ST', 'ICMS', 'PIS', 'COFINS', 'IRPJ_CSLL', 'ICMS_PARTILHA',]]
+    pt = pt.rename(columns={'IPI': 'IPI_PT', 'ST': 'ST_PT', 'ICMS': 'ICMS_PT', 'PIS': 'PIS_PT', 'COFINS': 'COFINS_PT',
+                            'IRPJ_CSLL': 'IRPJ_CSLL_PT', 'ICMS_PARTILHA': 'ICMS_PARTILHA_PT', })
 
-        WHERE
-            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
-            NOTAS_ITENS.CHAVE_NOTA = NOTAS.CHAVE AND
-            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-            NOTAS.CHAVE_JOB = 22 AND
+    pq = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_ipi=True, coluna_st=True, coluna_icms=True,
+                               coluna_pis=True, coluna_cofins=True, coluna_irpj_csll=True,
+                               coluna_icms_partilha=True, job=22,
+                               familia_produto=8378,)
+    pq = pd.DataFrame(pq)
+    pq = pq[['MES_EMISSAO', 'IPI', 'ST', 'ICMS', 'PIS', 'COFINS', 'IRPJ_CSLL', 'ICMS_PARTILHA',]]
+    pq = pq.rename(columns={'IPI': 'IPI_PQ', 'ST': 'ST_PQ', 'ICMS': 'ICMS_PQ', 'PIS': 'PIS_PQ', 'COFINS': 'COFINS_PQ',
+                            'IRPJ_CSLL': 'IRPJ_CSLL_PQ', 'ICMS_PARTILHA': 'ICMS_PARTILHA_PQ', })
 
-            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = pd.merge(pp, pt, how='outer', on='MES_EMISSAO')
+    resultado = pd.merge(resultado, pq, how='outer', on='MES_EMISSAO')
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
 
 def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
     """Totaliza o faturamento do valor das mercadorias do periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
         if not mes_atual:
-            data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-            data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+            data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+            data_ano_fim = site_setup.atualizacoes_data_mes_fim
         else:
-            data_ano_inicio = site_setup.primeiro_dia_mes_as_ddmmyyyy
-            data_ano_fim = site_setup.ultimo_dia_mes_as_ddmmyyyy
+            data_ano_inicio = site_setup.primeiro_dia_mes
+            data_ano_fim = site_setup.ultimo_dia_mes
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS FATURADO_PP,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7767, 12441) THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS FATURADO_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS FATURADO_PQ,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378, 12441) THEN NOTAS_ITENS.VALOR_MERCADORIAS - (NOTAS_ITENS.PESO_LIQUIDO / NOTAS_PESO_LIQUIDO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM) ELSE 0 END), 2) AS FATURADO_TOTAL
+    pp = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, familia_produto=7766,)
+    pp = pd.DataFrame(pp)
+    pp = pp.rename(columns={'VALOR_MERCADORIAS': 'PP'})
 
-        FROM
-            (
-                SELECT
-                    NOTAS_ITENS.CHAVE_NOTA,
-                    SUM(NOTAS_ITENS.PESO_LIQUIDO) AS PESO_LIQUIDO
+    pt = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, familia_produto=[7767, 12441,],)
+    pt = pd.DataFrame(pt)
+    pt = pt.rename(columns={'VALOR_MERCADORIAS': 'PT'})
 
-                FROM
-                    COPLAS.NOTAS_ITENS
+    pq = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, familia_produto=8378,)
+    pq = pd.DataFrame(pq)
+    pq = pq.rename(columns={'VALOR_MERCADORIAS': 'PQ'})
 
-                GROUP BY
-                    NOTAS_ITENS.CHAVE_NOTA
-            ) NOTAS_PESO_LIQUIDO,
-            COPLAS.NOTAS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.PRODUTOS
+    total = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                  coluna_mes_emissao=True,)
+    total = pd.DataFrame(total)
+    total = total.rename(columns={'VALOR_MERCADORIAS': 'TOTAL'})
 
-        WHERE
-            NOTAS.CHAVE = NOTAS_PESO_LIQUIDO.CHAVE_NOTA(+) AND
-            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
-            NOTAS_ITENS.CHAVE_NOTA = NOTAS.CHAVE AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-
-            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = pd.merge(pp, pt, how='outer', on='MES_EMISSAO')
+    resultado = pd.merge(resultado, pq, how='outer', on='MES_EMISSAO')
+    resultado = pd.merge(resultado, total, how='outer', on='MES_EMISSAO')
+    resultado = resultado.to_dict(orient='records')
 
     if mes_atual and resultado:
         resultado = resultado[0]
@@ -1992,46 +1586,44 @@ def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
 
 def faturado_bruto_ano_mes_a_mes(*, mes_atual: bool = False):
     """Totaliza o faturamento bruto do periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
         if not mes_atual:
-            data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-            data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+            data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+            data_ano_fim = site_setup.atualizacoes_data_mes_fim
         else:
-            data_ano_inicio = site_setup.primeiro_dia_mes_as_ddmmyyyy
-            data_ano_fim = site_setup.ultimo_dia_mes_as_ddmmyyyy
+            data_ano_inicio = site_setup.primeiro_dia_mes
+            data_ano_fim = site_setup.ultimo_dia_mes
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.VALOR_CONTABIL ELSE 0 END), 2) AS FATURADO_PP,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN NOTAS_ITENS.VALOR_CONTABIL ELSE 0 END), 2) AS FATURADO_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN NOTAS_ITENS.VALOR_CONTABIL ELSE 0 END), 2) AS FATURADO_PQ,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) THEN NOTAS_ITENS.VALOR_CONTABIL ELSE 0 END), 2) AS FATURADO_TOTAL
+    pp = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_valor_bruto=True, familia_produto=7766, job=22,)
+    pp = pd.DataFrame(pp)
+    pp = pp[['MES_EMISSAO', 'VALOR_BRUTO']]
+    pp = pp.rename(columns={'VALOR_BRUTO': 'FATURADO_PP'})
 
-        FROM
-            COPLAS.NOTAS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.PRODUTOS
+    pt = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_valor_bruto=True, familia_produto=7767, job=22,)
+    pt = pd.DataFrame(pt)
+    pt = pt[['MES_EMISSAO', 'VALOR_BRUTO']]
+    pt = pt.rename(columns={'VALOR_BRUTO': 'FATURADO_PT'})
 
-        WHERE
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
-            NOTAS.VALOR_COMERCIAL='SIM' AND
-            NOTAS.CHAVE_JOB = 22 AND
+    pq = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_valor_bruto=True, familia_produto=8378, job=22,)
+    pq = pd.DataFrame(pq)
+    pq = pq[['MES_EMISSAO', 'VALOR_BRUTO']]
+    pq = pq.rename(columns={'VALOR_BRUTO': 'FATURADO_PQ'})
 
-            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+    total = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                  coluna_mes_emissao=True, coluna_valor_bruto=True, job=22,)
+    total = pd.DataFrame(total)
+    total = total[['MES_EMISSAO', 'VALOR_BRUTO']]
+    total = total.rename(columns={'VALOR_BRUTO': 'FATURADO_TOTAL'})
 
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = pd.merge(pp, pt, how='outer', on='MES_EMISSAO')
+    resultado = pd.merge(resultado, pq, how='outer', on='MES_EMISSAO')
+    resultado = pd.merge(resultado, total, how='outer', on='MES_EMISSAO')
+    resultado = resultado.to_dict(orient='records')
 
     if mes_atual and resultado:
         resultado = resultado[0]
@@ -2185,6 +1777,7 @@ def despesa_operacional_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar select para get_relatorios_vendas
 def custo_materia_prima_faturada_ano_mes_a_mes():
     """Totaliza o custo das materias primas dos produtos faturados do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -4388,6 +3981,7 @@ def migrar_comissoes(data_inicio, data_fim):
                 instancia_dividida.save()
 
 
+# TODO: trocar select para get_relatorios_vendas
 def migrar_faturamentos(data_inicio, data_fim):
     sql = """
         SELECT
