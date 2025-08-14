@@ -1055,6 +1055,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_notas = {
+        'cfop_baixa_estoque': {'cfop_baixa_estoque_pesquisa': "NOTAS_ITENS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE BAIXA_ESTOQUE = 'SIM' AND CHAVE NOT IN (8791, 10077)) AND", },
+
         'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "COUNT(DISTINCT TRUNC(NOTAS.DATA_EMISSAO)) AS DIAS_DECORRIDOS,"},
 
         'coluna_estoque_abc': {'estoque_abc_campo_alias': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END AS ESTOQUE_ABC,",
@@ -1495,6 +1497,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
+        'cfop_baixa_estoque': {'cfop_baixa_estoque_pesquisa': "PEDIDOS_ITENS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE BAIXA_ESTOQUE = 'SIM' AND CHAVE NOT IN (8791, 10077)) AND", },
+
         'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "COUNT(DISTINCT TRUNC(PEDIDOS.DATA_PEDIDO)) AS DIAS_DECORRIDOS,"},
 
         'coluna_estoque_abc': {'estoque_abc_campo_alias': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END AS ESTOQUE_ABC,",
@@ -1916,6 +1920,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
+        'cfop_baixa_estoque': {'cfop_baixa_estoque_pesquisa': "ORCAMENTOS_ITENS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE BAIXA_ESTOQUE = 'SIM' AND CHAVE NOT IN (8791, 10077)) AND", },
+
         'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "COUNT(DISTINCT TRUNC(ORCAMENTOS.DATA_PEDIDO)) AS DIAS_DECORRIDOS,"},
 
         'coluna_estoque_abc': {'estoque_abc_campo_alias': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END AS ESTOQUE_ABC,",
@@ -2196,6 +2202,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos_itens_excluidos = {
+        'cfop_baixa_estoque': {'cfop_baixa_estoque_pesquisa': "", },
+
         'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "0 AS DIAS_DECORRIDOS,"},
 
         'coluna_mes_a_mes': {'mes_a_mes_campo_alias': orcamentos_itens_excluidos_valor_mercadorias_mes_a_mes},
@@ -2571,6 +2579,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {data_despacho_menor_igual_pesquisa}
             {desconsiderar_grupo_economico_com_evento_futuro_pesquisa}
             {estoque_abc_pesquisa}
+            {cfop_baixa_estoque_pesquisa}
 
             {fonte_where_data}
 

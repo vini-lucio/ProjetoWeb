@@ -542,7 +542,7 @@ def ticket_medio_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar select para get_relatorios_vendas
+# Não trocado para get_relatorios_vendas, muito especifico
 def vec_antes_depois_visita_ano_mes_a_mes():
     """Totaliza o valor dos orçamentos de clientes visitados antes e depois do periodo informado em site setup mes a
     mes"""
@@ -690,47 +690,47 @@ def produtividade_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar select para get_relatorios_vendas
 def peso_faturado_abc_ano_mes_a_mes():
     """Totaliza o peso faturado por classe ABC (todas as notas com CFOP de baixa de estoque) do periodo informado em
     site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            ROUND(SUM(NOTAS_ITENS.QUANTIDADE * PRODUTOS.PESO_LIQUIDO), 2) AS PESO_FAT_KG,
-            ROUND(SUM(CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN NOTAS_ITENS.QUANTIDADE * PRODUTOS.PESO_LIQUIDO ELSE 0 END), 2) AS PESO_FAT_KG_A,
-            ROUND(SUM(CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN NOTAS_ITENS.QUANTIDADE * PRODUTOS.PESO_LIQUIDO ELSE 0 END), 2) AS PESO_FAT_KG_B,
-            ROUND(SUM(CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN NOTAS_ITENS.QUANTIDADE * PRODUTOS.PESO_LIQUIDO ELSE 0 END), 2) AS PESO_FAT_KG_C
+    total = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                  coluna_mes_emissao=True, coluna_peso_produto_proprio=True,
+                                  incluir_sem_valor_comercial=True, cfop_baixa_estoque=True,)
+    total = pd.DataFrame(total)
+    total = total[['MES_EMISSAO', 'PESO_PP']]
+    total = total.rename(columns={'PESO_PP': 'TOTAL'})
 
-        FROM
-            COPLAS.NOTAS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.PRODUTOS
+    estoque_a = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                      coluna_mes_emissao=True, coluna_peso_produto_proprio=True,
+                                      incluir_sem_valor_comercial=True, cfop_baixa_estoque=True, estoque_abc='A')
+    estoque_a = pd.DataFrame(estoque_a)
+    estoque_a = estoque_a[['MES_EMISSAO', 'PESO_PP']]
+    estoque_a = estoque_a.rename(columns={'PESO_PP': 'A'})
 
-        WHERE
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-            PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
-            PRODUTOS.CHAVE_FAMILIA = 7766 AND
-            NOTAS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE BAIXA_ESTOQUE = 'SIM' AND CHAVE NOT IN (8791, 10077)) AND
-            NOTAS.CHAVE_JOB = 22 AND
+    estoque_b = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                      coluna_mes_emissao=True, coluna_peso_produto_proprio=True,
+                                      incluir_sem_valor_comercial=True, cfop_baixa_estoque=True, estoque_abc='B')
+    estoque_b = pd.DataFrame(estoque_b)
+    estoque_b = estoque_b[['MES_EMISSAO', 'PESO_PP']]
+    estoque_b = estoque_b.rename(columns={'PESO_PP': 'B'})
 
-            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+    estoque_c = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                      coluna_mes_emissao=True, coluna_peso_produto_proprio=True,
+                                      incluir_sem_valor_comercial=True, cfop_baixa_estoque=True, estoque_abc='C')
+    estoque_c = pd.DataFrame(estoque_c)
+    estoque_c = estoque_c[['MES_EMISSAO', 'PESO_PP']]
+    estoque_c = estoque_c.rename(columns={'PESO_PP': 'C'})
 
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = pd.merge(total, estoque_a, how='outer', on='MES_EMISSAO')
+    resultado = pd.merge(resultado, estoque_b, how='outer', on='MES_EMISSAO')
+    resultado = pd.merge(resultado, estoque_c, how='outer', on='MES_EMISSAO')
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -1255,44 +1255,21 @@ def peso_materia_prima_produto_proprio_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar select para get_relatorios_vendas
 def peso_faturado_produto_proprio_ano_mes_a_mes():
     """Totaliza o peso faturado de produto proprio (todas as notas com CFOP de baixa de estoque) do periodo informado
     em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            SUM(NOTAS_ITENS.PESO_LIQUIDO * CASE WHEN NOTAS.ESPECIE = 'E' THEN (-1) ELSE 1 END) AS PESO_KG
-
-        FROM
-            COPLAS.PRODUTOS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.NOTAS
-
-        WHERE
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
-            PRODUTOS.CHAVE_FAMILIA = 7766 AND
-            NOTAS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE BAIXA_ESTOQUE = 'SIM' AND CHAVE NOT IN (8791, 10077)) AND
-            NOTAS.CHAVE_JOB = 22 AND
-
-            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                      coluna_mes_emissao=True, coluna_peso_produto_proprio=True,
+                                      incluir_sem_valor_comercial=True, cfop_baixa_estoque=True,)
+    resultado = pd.DataFrame(resultado)
+    resultado = resultado[['MES_EMISSAO', 'PESO_PP']]
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 

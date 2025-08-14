@@ -31,11 +31,12 @@ def get_dados_pedidos_em_aberto(parametro_carteira: dict = {}):
     """Retorna os dados de entrega para conferencia de atendimento das transportadoras nos pedidos em aberto"""
 
     from dashboards.services import get_relatorios_vendas
-    resultado = get_relatorios_vendas('pedidos', **parametro_carteira, coluna_carteira=True, coluna_documento=True,
+    resultado = get_relatorios_vendas('pedidos', coluna_carteira=True, coluna_documento=True,
                                       coluna_chave_transportadora=True, coluna_estado_origem=True, coluna_estado=True,
                                       coluna_estado_destino=True, coluna_cidade_destino=True,
                                       status_documento_em_aberto=True, cobranca_frete_cif=True,
-                                      incluir_orcamentos_oportunidade=True, incluir_sem_valor_comercial=True,)
+                                      incluir_orcamentos_oportunidade=True, incluir_sem_valor_comercial=True,
+                                      **parametro_carteira)
 
     for pedido in resultado:
         pedido['PEDIDO'] = pedido.pop('DOCUMENTO')
@@ -106,7 +107,7 @@ def get_dados_notas_monitoramento(data_inicio, data_fim):
                                       coluna_data_despacho=True, coluna_frete_destacado=True,
                                       coluna_frete_incluso_item=True,
                                       cobranca_frete_cif=True, transportadoras_geram_titulos=True,
-                                      incluir_sem_valor_comercial=True,)
+                                      incluir_sem_valor_comercial=True, especie='S',)
 
     for nota in resultado:
         nota['ORCAMENTO'] = nota.pop('ORCAMENTO')
