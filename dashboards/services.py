@@ -52,7 +52,8 @@ class DashBoardVendas():
                 self.meta_diaria = self.meta_mes / self.dias_meta if self.dias_meta else 0.0
                 self.meta_diaria_real = self.meta_mes / self.dias_meta_reais if self.dias_meta_reais else 0.0
 
-        self.dias_decorridos = dias_decorridos(self.primeiro_dia_mes, self.ultimo_dia_mes)
+        self.dias_decorridos = dias_decorridos(
+            self.site_setup.primeiro_dia_mes, self.site_setup.ultimo_dia_mes)  # type:ignore
         self.meta_acumulada_dia_real = self.dias_decorridos * self.meta_diaria_real
 
         if dados_pedidos_mes_entrega_mes_dias is None:
@@ -336,27 +337,13 @@ def recebido_a_receber(primeiro_dia_mes: str, ultimo_dia_mes: str, carteira: str
     return float(resultado[0][0]), float(resultado[0][1]),
 
 
-# TODO: trocar select para get_relatorios_vendas
-def dias_decorridos(primeiro_dia_mes: str, ultimo_dia_mes: str) -> float:
+def dias_decorridos(primeiro_dia_mes, ultimo_dia_mes) -> float:
     """Quantidade de dias com orçamentos no mes"""
-    sql = """
-        SELECT
-            COUNT(DISTINCT TRUNC(ORCAMENTOS.DATA_PEDIDO)) AS DIAS_DECORRIDOS
+    resultado = get_relatorios_vendas('pedidos', inicio=primeiro_dia_mes, fim=ultimo_dia_mes,
+                                      coluna_dias_decorridos=True)
+    resultado = resultado[0].get('DIAS_DECORRIDOS', 0.00) if resultado else 0.00
 
-        FROM
-            COPLAS.ORCAMENTOS
-
-        WHERE
-            ORCAMENTOS.DATA_PEDIDO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-            ORCAMENTOS.DATA_PEDIDO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY')
-    """
-
-    resultado = executar_oracle(sql, primeiro_dia_mes=primeiro_dia_mes, ultimo_dia_mes=ultimo_dia_mes)
-
-    if not resultado:
-        return 0.00
-
-    return float(resultado[0][0])
+    return float(resultado)
 
 
 def conversao_de_orcamentos(parametro_carteira: dict):
@@ -1068,6 +1055,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_notas = {
+        'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "COUNT(DISTINCT TRUNC(NOTAS.DATA_EMISSAO)) AS DIAS_DECORRIDOS,"},
+
+        'coluna_estoque_abc': {'estoque_abc_campo_alias': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END AS ESTOQUE_ABC,",
+                               'estoque_abc_campo': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END,", },
+        'estoque_abc': {'estoque_abc_pesquisa': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END = UPPER(:estoque_abc) AND", },
+
         'coluna_cgc': {'cgc_campo_alias': "CLIENTES.CGC,",
                        'cgc_campo': "CLIENTES.CGC,", },
 
@@ -1502,6 +1495,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
+        'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "COUNT(DISTINCT TRUNC(PEDIDOS.DATA_PEDIDO)) AS DIAS_DECORRIDOS,"},
+
+        'coluna_estoque_abc': {'estoque_abc_campo_alias': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END AS ESTOQUE_ABC,",
+                               'estoque_abc_campo': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END,", },
+        'estoque_abc': {'estoque_abc_pesquisa': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END = UPPER(:estoque_abc) AND", },
+
         'coluna_cgc': {'cgc_campo_alias': "CLIENTES.CGC,",
                        'cgc_campo': "CLIENTES.CGC,", },
 
@@ -1917,6 +1916,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
+        'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "COUNT(DISTINCT TRUNC(ORCAMENTOS.DATA_PEDIDO)) AS DIAS_DECORRIDOS,"},
+
+        'coluna_estoque_abc': {'estoque_abc_campo_alias': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END AS ESTOQUE_ABC,",
+                               'estoque_abc_campo': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END,", },
+        'estoque_abc': {'estoque_abc_pesquisa': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END = UPPER(:estoque_abc) AND", },
+
         'coluna_cgc': {'cgc_campo_alias': "CLIENTES.CGC,",
                        'cgc_campo': "CLIENTES.CGC,", },
 
@@ -2191,6 +2196,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos_itens_excluidos = {
+        'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "0 AS DIAS_DECORRIDOS,"},
+
         'coluna_mes_a_mes': {'mes_a_mes_campo_alias': orcamentos_itens_excluidos_valor_mercadorias_mes_a_mes},
 
         'coluna_custo_total_item': {'custo_total_item_campo_alias': "0 AS CUSTO_TOTAL_ITEM,"},
@@ -2330,6 +2337,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     especie = kwargs.get('especie')
     data_despacho_maior_igual = kwargs.get('data_despacho_maior_igual')
     data_despacho_menor_igual = kwargs.get('data_despacho_menor_igual')
+    estoque_abc = kwargs.get('estoque_abc')
 
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
 
@@ -2420,9 +2428,13 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     if data_despacho_menor_igual:
         kwargs_ora.update({'data_despacho_menor_igual': data_despacho_menor_igual})
 
+    if estoque_abc:
+        kwargs_ora.update({'estoque_abc': estoque_abc})
+
     sql_base = """
         SELECT
             {job_campo_alias}
+            {dias_decorridos_campo_alias}
             {data_emissao_campo_alias}
             {data_despacho_campo_alias}
             {data_entrega_itens_campo_alias}
@@ -2459,6 +2471,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {transportadora_campo_alias}
             {cobranca_frete_campo_alias}
             {familia_produto_campo_alias}
+            {estoque_abc_campo_alias}
             {chave_produto_campo_alias}
             {produto_campo_alias}
             {unidade_campo_alias}
@@ -2557,6 +2570,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {data_despacho_maior_igual_pesquisa}
             {data_despacho_menor_igual_pesquisa}
             {desconsiderar_grupo_economico_com_evento_futuro_pesquisa}
+            {estoque_abc_pesquisa}
 
             {fonte_where_data}
 
@@ -2606,6 +2620,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {proximo_evento_grupo_economico_campo}
             {cgc_campo}
             {inscricao_estadual_campo}
+            {estoque_abc_campo}
             1
 
         {having}
@@ -2627,6 +2642,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {tipo_cliente_campo}
             {familia_produto_campo}
             {proporcao_campo}
+            {estoque_abc_campo}
             {produto_campo}
             {status_produto_orcamento_campo}
             {status_produto_orcamento_tipo_campo}
@@ -2657,7 +2673,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'DESTINO_MERCADORIAS', 'ZONA_FRANCA_ALC', 'CHAVE_PRODUTO', 'DATA_SAIDA',
                                      'VOLUMES_QUANTIDADE', 'PESO_BRUTO_NOTA', 'TRANSPORTADORA', 'COBRANCA_FRETE',
                                      'ORCAMENTO', 'PEDIDO', 'NOTA', 'DATA_DESPACHO', 'LOG_NOME_INCLUSAO_DOCUMENTO',
-                                     'PROXIMO_EVENTO_GRUPO', 'CGC', 'INSCRICAO_ESTADUAL',]
+                                     'PROXIMO_EVENTO_GRUPO', 'CGC', 'INSCRICAO_ESTADUAL', 'ESTOQUE_ABC',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',

@@ -523,41 +523,21 @@ def eolicas_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar select para get_relatorios_vendas
 def ticket_medio_ano_mes_a_mes():
     """Totaliza o ticket medio das notas no periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            SUM(NOTAS.VALOR_MERCADORIAS - NOTAS.VALOR_FRETE_INCL_ITEM) AS VALOR_MERCADORIAS,
-            COUNT(DISTINCT NOTAS.CHAVE) AS NOTAS,
-            MEDIAN(NOTAS.VALOR_MERCADORIAS - NOTAS.VALOR_FRETE_INCL_ITEM) AS MEDIANA_PEDIDO
+    resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                      coluna_mes_emissao=True, coluna_documento=True,)
 
-        FROM
-            COPLAS.NOTAS,
-            COPLAS.CLIENTES
-
-        WHERE
-            CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-
-            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = pd.DataFrame(resultado)
+    resultado = resultado.groupby('MES_EMISSAO').agg(VALOR_MERCADORIAS=('VALOR_MERCADORIAS', 'sum'),
+                                                     MEDIANA_PEDIDO=('VALOR_MERCADORIAS', 'median'),).reset_index()
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -647,38 +627,20 @@ def vec_antes_depois_visita_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar select para get_relatorios_vendas
 def quantidade_notas_ano_mes_a_mes():
     """Totaliza a quantidede de notas de saida emitidas do periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            COUNT(NOTAS.CHAVE) AS NOTAS
+    resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                      coluna_mes_emissao=True, coluna_quantidade_documentos=True, especie='S',)
 
-        FROM
-            COPLAS.NOTAS
-
-        WHERE
-            NOTAS.ESPECIE = 'S' AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-
-            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = pd.DataFrame(resultado)
+    resultado = resultado[['MES_EMISSAO', 'QUANTIDADE_DOCUMENTOS']]
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
