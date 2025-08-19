@@ -86,8 +86,8 @@ def migracao(request):
             formulario_migrar_faturamentos = ConfirmacaoMigrarData(
                 request.POST, id_confirma=id_confirma_faturamentos)
             if formulario_migrar_faturamentos.is_valid() and formulario_migrar_faturamentos.cleaned_data['confirma']:
-                inicio = str(formulario_migrar_faturamentos.cleaned_data['inicio'])
-                fim = str(formulario_migrar_faturamentos.cleaned_data['fim'])
+                inicio = formulario_migrar_faturamentos.cleaned_data['inicio']
+                fim = formulario_migrar_faturamentos.cleaned_data['fim']
                 migrar_faturamentos(inicio, fim)
                 mensagem = "Migração de faturamentos concluída!"
                 extra_tags = 'faturamentos'

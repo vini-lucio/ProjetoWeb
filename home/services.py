@@ -218,152 +218,52 @@ def i4ref_faturado_bruto_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar select para get_relatorios_vendas
 def i4ref_custo_materia_prima_vendido_ano_mes_a_mes():
     """Totaliza o valor do custo das materias primas vendidas do 4REF do periodo informado em site setup mes a mes"""
+
+    # Não funciona com a fluxus
+
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        ano = site_setup.atualizacoes_ano
         ano_inicio = site_setup.atualizacoes_ano_inicio
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = datetime.datetime(ano_inicio, 1, 1)
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS ANO,
-            SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END) AS CUSTO_MP_PP,
-            SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END) AS CUSTO_MP_PT,
-            SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END) AS CUSTO_MP_PQ,
-            SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 AND PRODUTOS.CHAVE_MARCA = 181 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END) AS CUSTO_MP_PT_NC4,
-            SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 AND PRODUTOS.CHAVE_MARCA != 181 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END) AS CUSTO_MP_PT_SEM_NC4
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-        FROM
-            COPLAS.NOTAS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.PRODUTOS,
-            (
-                SELECT
-                    ULTIMO_CUSTO.MES,
-                    ULTIMO_CUSTO.ANO,
-                    PROCESSOS.CHAVE_PRODUTO,
-                    SUM(PROCESSOS_MATERIAIS.QUANTIDADE * CUSTOS_PRODUTOS_LOG.CUSTOT_NOVO) AS CUSTO_MP
+    pp = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim, coluna_ano_emissao=True,
+                               coluna_mes_emissao=True, coluna_custo_materia_prima_notas=True, familia_produto=7766,
+                               job=22,)
+    pp = pd.DataFrame(pp)
+    pp = pp[['MES_EMISSAO', 'ANO_EMISSAO', 'CUSTO_MP']]
+    pp = pp.rename(columns={'CUSTO_MP': 'CUSTO_MP_PP'})
 
-                FROM
-                    COPLAS.PROCESSOS,
-                    COPLAS.PROCESSOS_MATERIAIS,
-                    COPLAS.PRODUTOS MATERIAIS,
-                    COPLAS.CUSTOS_PRODUTOS_LOG,
-                    (
-                        SELECT
-                            PERIODO.MES,
-                            PERIODO.ANO,
-                            MAX(CUSTOS_PRODUTOS_LOG.CHAVE) AS ULTIMO_CUSTO
+    pt = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim, coluna_ano_emissao=True,
+                               coluna_mes_emissao=True, coluna_custo_materia_prima_notas=True, familia_produto=7767,
+                               job=22,)
+    pt = pd.DataFrame(pt)
+    pt = pt[['MES_EMISSAO', 'ANO_EMISSAO', 'CUSTO_MP']]
+    pt = pt.rename(columns={'CUSTO_MP': 'CUSTO_MP_PT'})
 
-                        FROM
-                            COPLAS.CUSTOS_PRODUTOS_LOG,
-                            (
-                                SELECT 12 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 11 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 10 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 9 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 8 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 7 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 6 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 5 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 4 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 3 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 2 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 1 AS MES, (:ano - 3) AS ANO, (:ano - 3) + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+    pq = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim, coluna_ano_emissao=True,
+                               coluna_mes_emissao=True, coluna_custo_materia_prima_notas=True, familia_produto=8378,
+                               job=22,)
+    pq = pd.DataFrame(pq)
+    pq = pq[['MES_EMISSAO', 'ANO_EMISSAO', 'CUSTO_MP']]
+    pq = pq.rename(columns={'CUSTO_MP': 'CUSTO_MP_PQ'})
 
-                                SELECT 12 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 11 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 10 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 9 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 8 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 7 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 6 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 5 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 4 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 3 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 2 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 1 AS MES, (:ano - 2) AS ANO, (:ano - 2) + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
+    nc4 = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim, coluna_ano_emissao=True,
+                                coluna_mes_emissao=True, coluna_custo_materia_prima_notas=True, familia_produto=7767,
+                                job=22, produto_marca=181)
+    nc4 = pd.DataFrame(nc4)
+    nc4 = nc4[['MES_EMISSAO', 'ANO_EMISSAO', 'CUSTO_MP']]
+    nc4 = nc4.rename(columns={'CUSTO_MP': 'CUSTO_MP_NC4'})
 
-                                SELECT 12 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 11 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 10 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 9 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 8 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 7 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 6 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 5 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 4 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 3 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 2 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 1 AS MES, (:ano - 1) AS ANO, (:ano - 1) + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-
-                                SELECT 12 AS MES, :ano AS ANO, :ano + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 11 AS MES, :ano AS ANO, :ano + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 10 AS MES, :ano AS ANO, :ano + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 9 AS MES, :ano AS ANO, :ano + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 8 AS MES, :ano AS ANO, :ano + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 7 AS MES, :ano AS ANO, :ano + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 6 AS MES, :ano AS ANO, :ano + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 5 AS MES, :ano AS ANO, :ano + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 4 AS MES, :ano AS ANO, :ano + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 3 AS MES, :ano AS ANO, :ano + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 2 AS MES, :ano AS ANO, :ano + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 1 AS MES, :ano AS ANO, :ano + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL
-                            ) PERIODO
-
-                        WHERE
-                            CUSTOS_PRODUTOS_LOG.CUSTOT_NOVO > 0 AND
-                            CUSTOS_PRODUTOS_LOG.CHAVE_JOB = 22 AND
-                            EXTRACT(YEAR FROM CUSTOS_PRODUTOS_LOG.DATA) + EXTRACT(MONTH FROM CUSTOS_PRODUTOS_LOG.DATA) / 12.00 + EXTRACT(DAY FROM CUSTOS_PRODUTOS_LOG.DATA) / 365.00 < PERIODO.ANOMESDIA
-
-                        GROUP BY
-                            PERIODO.MES,
-                            PERIODO.ANO,
-                            CUSTOS_PRODUTOS_LOG.CHAVE_PRODUTO
-                    ) ULTIMO_CUSTO
-
-                WHERE
-                    CUSTOS_PRODUTOS_LOG.CHAVE_PRODUTO = MATERIAIS.CPROD AND
-                    CUSTOS_PRODUTOS_LOG.CHAVE = ULTIMO_CUSTO.ULTIMO_CUSTO AND
-                    PROCESSOS.CHAVE = PROCESSOS_MATERIAIS.CHAVE_PROCESSO AND
-                    PROCESSOS_MATERIAIS.CHAVE_MATERIAL = MATERIAIS.CPROD AND
-                    PROCESSOS.PADRAO = 'SIM' AND
-                    CUSTOS_PRODUTOS_LOG.CHAVE_JOB = 22
-
-                GROUP BY
-                    ULTIMO_CUSTO.MES,
-                    ULTIMO_CUSTO.ANO,
-                    PROCESSOS.CHAVE_PRODUTO
-            ) CUSTO_MP
-
-        WHERE
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = CUSTO_MP.MES AND
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) = CUSTO_MP.ANO AND
-            PRODUTOS.CPROD = CUSTO_MP.CHAVE_PRODUTO AND
-            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
-            NOTAS.CHAVE_JOB = 22 AND
-
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) >= :ano_inicio AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, ano_inicio=ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = pd.merge(pp, pt, how='outer', on=['ANO_EMISSAO', 'MES_EMISSAO'])
+    resultado = pd.merge(resultado, pq, how='outer', on=['ANO_EMISSAO', 'MES_EMISSAO'])
+    resultado = pd.merge(resultado, nc4, how='outer', on=['ANO_EMISSAO', 'MES_EMISSAO'])
+    resultado['CUSTO_MP_SEM_NC4'] = resultado['CUSTO_MP_PT'] - resultado['CUSTO_MP_NC4']
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -1716,108 +1616,50 @@ def despesa_operacional_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar select para get_relatorios_vendas
 def custo_materia_prima_faturada_ano_mes_a_mes():
     """Totaliza o custo das materias primas dos produtos faturados do periodo informado em site setup mes a mes"""
+
+    # Não funciona com a fluxus
+
+    from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        mes = site_setup.atualizacoes_mes
-        ano = site_setup.atualizacoes_ano
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) AS MES,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END), 2) AS CUSTO_MP_PP,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END), 2) AS CUSTO_MP_PT,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END), 2) AS CUSTO_MP_PQ,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 AND PRODUTOS.CHAVE_MARCA = 181 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END), 2) AS CUSTO_MP_PT_NC4,
-            ROUND(SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7767 AND PRODUTOS.CHAVE_MARCA != 181 THEN CUSTO_MP.CUSTO_MP * NOTAS_ITENS.QUANTIDADE ELSE 0 END), 2) AS CUSTO_MP_PT_SEM_NC4
+    pp = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_custo_materia_prima_notas=True, familia_produto=7766,
+                               job=22,)
+    pp = pd.DataFrame(pp)
+    pp = pp[['MES_EMISSAO', 'CUSTO_MP']]
+    pp = pp.rename(columns={'CUSTO_MP': 'CUSTO_MP_PP'})
 
-        FROM
-            COPLAS.NOTAS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.PRODUTOS,
-            (
-                SELECT
-                    ULTIMO_CUSTO.MES,
-                    PROCESSOS.CHAVE_PRODUTO,
-                    SUM(PROCESSOS_MATERIAIS.QUANTIDADE * CUSTOS_PRODUTOS_LOG.CUSTOT_NOVO) AS CUSTO_MP
+    pt = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_custo_materia_prima_notas=True, familia_produto=7767,
+                               job=22,)
+    pt = pd.DataFrame(pt)
+    pt = pt[['MES_EMISSAO', 'CUSTO_MP']]
+    pt = pt.rename(columns={'CUSTO_MP': 'CUSTO_MP_PT'})
 
-                FROM
-                    COPLAS.PROCESSOS,
-                    COPLAS.PROCESSOS_MATERIAIS,
-                    COPLAS.PRODUTOS MATERIAIS,
-                    COPLAS.CUSTOS_PRODUTOS_LOG,
-                    (
-                        SELECT
-                            PERIODO.MES,
-                            MAX(CUSTOS_PRODUTOS_LOG.CHAVE) AS ULTIMO_CUSTO
+    pq = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                               coluna_mes_emissao=True, coluna_custo_materia_prima_notas=True, familia_produto=8378,
+                               job=22,)
+    pq = pd.DataFrame(pq)
+    pq = pq[['MES_EMISSAO', 'CUSTO_MP']]
+    pq = pq.rename(columns={'CUSTO_MP': 'CUSTO_MP_PQ'})
 
-                        FROM
-                            COPLAS.CUSTOS_PRODUTOS_LOG,
-                            (
-                                SELECT 12 AS MES, :ano + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 11 AS MES, :ano + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 10 AS MES, :ano + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 9 AS MES, :ano + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 8 AS MES, :ano + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 7 AS MES, :ano + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 6 AS MES, :ano + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 5 AS MES, :ano + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 4 AS MES, :ano + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 3 AS MES, :ano + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 2 AS MES, :ano + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                                SELECT 1 AS MES, :ano + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL
-                            ) PERIODO
+    nc4 = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                coluna_mes_emissao=True, coluna_custo_materia_prima_notas=True, familia_produto=7767,
+                                job=22, produto_marca=181)
+    nc4 = pd.DataFrame(nc4)
+    nc4 = nc4[['MES_EMISSAO', 'CUSTO_MP']]
+    nc4 = nc4.rename(columns={'CUSTO_MP': 'CUSTO_MP_NC4'})
 
-                        WHERE
-                            CUSTOS_PRODUTOS_LOG.CUSTOT_NOVO > 0 AND
-                            CUSTOS_PRODUTOS_LOG.CHAVE_JOB = 22 AND
-                            EXTRACT(YEAR FROM CUSTOS_PRODUTOS_LOG.DATA) + EXTRACT(MONTH FROM CUSTOS_PRODUTOS_LOG.DATA) / 12.00 + EXTRACT(DAY FROM CUSTOS_PRODUTOS_LOG.DATA) / 365.00 < PERIODO.ANOMESDIA AND
-
-                            PERIODO.MES <= :mes
-
-                        GROUP BY
-                            PERIODO.MES,
-                            CUSTOS_PRODUTOS_LOG.CHAVE_PRODUTO
-                    ) ULTIMO_CUSTO
-
-                WHERE
-                    CUSTOS_PRODUTOS_LOG.CHAVE_PRODUTO = MATERIAIS.CPROD AND
-                    CUSTOS_PRODUTOS_LOG.CHAVE = ULTIMO_CUSTO.ULTIMO_CUSTO AND
-                    PROCESSOS.CHAVE = PROCESSOS_MATERIAIS.CHAVE_PROCESSO AND
-                    PROCESSOS_MATERIAIS.CHAVE_MATERIAL = MATERIAIS.CPROD AND
-                    PROCESSOS.PADRAO = 'SIM' AND
-                    CUSTOS_PRODUTOS_LOG.CHAVE_JOB = 22
-
-                GROUP BY
-                    ULTIMO_CUSTO.MES,
-                    PROCESSOS.CHAVE_PRODUTO
-            ) CUSTO_MP
-
-        WHERE
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) = CUSTO_MP.MES AND
-            PRODUTOS.CPROD = CUSTO_MP.CHAVE_PRODUTO AND
-            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-            PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378) AND
-            NOTAS.CHAVE_JOB = 22 AND
-
-            NOTAS.DATA_EMISSAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = pd.merge(pp, pt, how='outer', on='MES_EMISSAO')
+    resultado = pd.merge(resultado, pq, how='outer', on='MES_EMISSAO')
+    resultado = pd.merge(resultado, nc4, how='outer', on='MES_EMISSAO')
+    resultado['CUSTO_MP_SEM_NC4'] = resultado['CUSTO_MP_PT'] - resultado['CUSTO_MP_NC4']
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -3920,93 +3762,56 @@ def migrar_comissoes(data_inicio, data_fim):
                 instancia_dividida.save()
 
 
-# TODO: trocar select para get_relatorios_vendas
 def migrar_faturamentos(data_inicio, data_fim):
-    sql = """
-        SELECT
-            NOTAS.DATA_EMISSAO,
-            NOTAS.NF,
-            NOTAS.PARCELAS,
-            CLIENTES.NOMERED AS CLIENTE,
-            ESTADOS.SIGLA AS UF_CLIENTE,
-            COALESCE(UF_ORDEM.UF_ORDEM, NOTAS.CLI_ENT_UF, ESTADOS.SIGLA) AS UF_ENTREGA,
-            NOTAS_ORCAMENTO.LOG_NOME_INCLUSAO AS LOG_INCLUSAO_ORCAMENTO,
-            REPRE_CAD.NOMERED AS REPRESENTANTE_CLIENTE,
-            REPRESENTANTES.NOMERED AS REPRESENTANTE_NOTA,
-            SEGUNDO_REPRE_CAD.NOMERED AS SEGUNDO_REPRE_CLIENTE,
-            SEGUNDO_REPRESENTANTE.NOMERED AS SEGUNDO_REPRE_NOTA,
-            VENDEDORES.NOMERED AS CARTEIRA_CLIENTE,
-            CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END AS ESPECIE,
-            CASE NOTAS.ATIVA WHEN 'NAO' THEN 'CANCELADA' END AS STATUS,
-            ROUND(SUM(COALESCE(NOTAS_ITENS.VALOR_MERCADORIAS, 0)) - COALESCE(SUM(NOTAS_ITENS.PESO_LIQUIDO / NOTAS_ORCAMENTO.PESO_LIQUIDO * NOTAS.VALOR_FRETE_INCL_ITEM), 0), 2) AS VALOR_MERCADORIAS,
-            0 AS DIVISAO,
-            0 AS ERRO,
-            INFRA.CONTEUDO AS INFRA,
-            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END AS PREMOLDADO_POSTE,
-            PC.CONTEUDO AS PC
+    from dashboards.services import get_relatorios_vendas
 
-        FROM
-            (SELECT DISTINCT CHAVE_CLIENTE, 'INFRA' AS CONTEUDO FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CHAVE_INFORMACAO = 8) INFRA,
-            (SELECT DISTINCT CHAVE_CLIENTE, 'PC' AS CONTEUDO FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CHAVE_INFORMACAO = 23) PC,
-            (SELECT DISTINCT NOTAS.CHAVE, ORCAMENTOS.LOG_NOME_INCLUSAO, ORCAMENTOS.PESO_LIQUIDO FROM COPLAS.ORCAMENTOS, COPLAS.PEDIDOS, COPLAS.NOTAS_ITENS, COPLAS.NOTAS WHERE NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA(+) AND NOTAS_ITENS.NUMPED = PEDIDOS.CHAVE(+) AND PEDIDOS.CHAVE_ORCAMENTO = ORCAMENTOS.CHAVE(+)) NOTAS_ORCAMENTO,
-            (SELECT NOTAS_ORDEM.CHAVE AS CHAVE_NOTA, ESTADOS_ORDEM.SIGLA AS UF_ORDEM FROM COPLAS.ESTADOS ESTADOS_ORDEM, COPLAS.NOTAS NOTAS_ORDEM, COPLAS.CLIENTES CLIENTES_ORDEM WHERE NOTAS_ORDEM.CHAVE_CLIENTE_REMESSA = CLIENTES_ORDEM.CODCLI AND CLIENTES_ORDEM.UF = ESTADOS_ORDEM.CHAVE) UF_ORDEM,
-            COPLAS.ESTADOS,
-            COPLAS.VENDEDORES,
-            COPLAS.VENDEDORES REPRESENTANTES,
-            COPLAS.VENDEDORES SEGUNDO_REPRESENTANTE,
-            COPLAS.VENDEDORES REPRE_CAD,
-            COPLAS.VENDEDORES SEGUNDO_REPRE_CAD,
-            COPLAS.NOTAS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.PRODUTOS,
-            COPLAS.CLIENTES,
-            COPLAS.CLIENTES_TIPOS
+    origem = get_relatorios_vendas('faturamentos', inicio=data_inicio, fim=data_fim, coluna_data_emissao=True,
+                                   coluna_documento=True, coluna_cliente=True, coluna_estado=True,
+                                   coluna_estado_destino=True, coluna_carteira=True, coluna_parcelas=True,
+                                   coluna_log_nome_inclusao_orcamento=True, coluna_representante=True,
+                                   coluna_representante_documento=True, coluna_segundo_representante=True,
+                                   coluna_segundo_representante_documento=True, coluna_especie=True,
+                                   coluna_status_documento=True, coluna_tipo_cliente=True,
+                                   coluna_informacao_estrategica=True,
+                                   familia_produto=[7766, 7767, 8378, 12441])
 
-        WHERE
-            CLIENTES.CHAVE_TIPO = CLIENTES_TIPOS.CHAVE AND
-            CLIENTES.CODVEND = REPRE_CAD.CODVENDEDOR(+) AND
-            CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRE_CAD.CODVENDEDOR(+) AND
-            CLIENTES.CODCLI = INFRA.CHAVE_CLIENTE(+) AND
-            CLIENTES.CODCLI = PC.CHAVE_CLIENTE(+) AND
-            NOTAS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTE.CODVENDEDOR(+) AND
-            NOTAS.CHAVE = UF_ORDEM.CHAVE_NOTA(+) AND
-            NOTAS.CHAVE_VENDEDOR = REPRESENTANTES.CODVENDEDOR(+) AND
-            NOTAS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
-            CLIENTES.UF = ESTADOS.CHAVE AND
-            CLIENTES.CHAVE_VENDEDOR3 = VENDEDORES.CODVENDEDOR(+) AND
-            NOTAS.CHAVE = NOTAS_ORCAMENTO.CHAVE(+) AND
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA(+) AND
-            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD(+) AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-            (PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378, 12441) OR PRODUTOS.CPROD IS NULL) AND
+    infra = get_relatorios_vendas('faturamentos', inicio=data_inicio, fim=data_fim, coluna_documento=True,
+                                  informacao_estrategica=8)
+    infra = pd.DataFrame(infra)
+    infra = infra[['DOCUMENTO']]
+    infra['INFRA'] = 'INFRA'
 
-            NOTAS.DATA_EMISSAO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
-            NOTAS.DATA_EMISSAO <= TO_DATE(:data_fim,'YYYY-MM-DD')
+    parede_concreto = get_relatorios_vendas('faturamentos', inicio=data_inicio, fim=data_fim, coluna_documento=True,
+                                            informacao_estrategica=23)
+    parede_concreto = pd.DataFrame(parede_concreto)
+    parede_concreto = parede_concreto[['DOCUMENTO']]
+    parede_concreto['PC'] = 'PC'
 
-        GROUP BY
-            NOTAS.DATA_EMISSAO,
-            NOTAS.NF,
-            NOTAS.PARCELAS,
-            CLIENTES.NOMERED,
-            ESTADOS.SIGLA,
-            COALESCE(UF_ORDEM.UF_ORDEM, NOTAS.CLI_ENT_UF, ESTADOS.SIGLA),
-            NOTAS_ORCAMENTO.LOG_NOME_INCLUSAO,
-            REPRE_CAD.NOMERED,
-            REPRESENTANTES.NOMERED,
-            SEGUNDO_REPRE_CAD.NOMERED,
-            SEGUNDO_REPRESENTANTE.NOMERED,
-            VENDEDORES.NOMERED,
-            CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END,
-            CASE NOTAS.ATIVA WHEN 'NAO' THEN 'CANCELADA' END,
-            INFRA.CONTEUDO,
-            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END,
-            PC.CONTEUDO
+    origem = pd.DataFrame(origem)
+    origem['DIVISAO'] = 0
+    origem['ERRO'] = 0
+    origem = pd.merge(origem, infra, how='left', on='DOCUMENTO').fillna('')
+    origem = pd.merge(origem, parede_concreto, how='left', on='DOCUMENTO').fillna('')
+    origem.loc[(origem['TIPO_CLIENTE'] != 'POSTE') & (origem['TIPO_CLIENTE'] != 'PRE-MOLDADO'), 'TIPO_CLIENTE'] = ''
 
-        ORDER BY
-            NOTAS.NF
-    """
+    origem = origem.rename(columns={
+        'DOCUMENTO': 'NF',
+        'STATUS_DOCUMENTO': 'STATUS',
+        'REPRESENTANTE': 'REPRESENTANTE_CLIENTE',
+        'REPRESENTANTE_DOCUMENTO': 'REPRESENTANTE_NOTA',
+        'SEGUNDO_REPRESENTANTE': 'SEGUNDO_REPRE_CLIENTE',
+        'SEGUNDO_REPRESENTANTE_DOCUMENTO': 'SEGUNDO_REPRE_NOTA',
+        'CARTEIRA': 'CARTEIRA_CLIENTE',
+        'UF_PRINCIPAL': 'UF_CLIENTE',
+        'UF_DESTINO': 'UF_ENTREGA',
+        'TIPO_CLIENTE': 'PREMOLDADO_POSTE',
+    })
+    origem = origem[['DATA_EMISSAO', 'NF', 'PARCELAS', 'CLIENTE', 'UF_CLIENTE', 'UF_ENTREGA', 'LOG_INCLUSAO_ORCAMENTO',
+                     'REPRESENTANTE_CLIENTE', 'REPRESENTANTE_NOTA', 'SEGUNDO_REPRE_CLIENTE', 'SEGUNDO_REPRE_NOTA',
+                     'CARTEIRA_CLIENTE', 'ESPECIE', 'STATUS', 'VALOR_MERCADORIAS', 'DIVISAO', 'ERRO', 'INFRA',
+                     'PREMOLDADO_POSTE', 'PC',]]
 
-    origem = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim)
+    origem = origem.to_dict(orient='records')
 
     if origem:
         Faturamentos.objects.all().delete()

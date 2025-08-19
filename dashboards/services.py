@@ -462,6 +462,9 @@ def confere_orcamento(orcamento: int = 0) -> list | None:
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.ENDERECO_NUMERO_ENT IS NULL THEN 'NUMERO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE EM BRANCO'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.ENDERECO_COMPLEMENTO_ENT LIKE ' %' THEN 'COMPLEMENTO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE COM ESPACO NO INICIO'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.ENDERECO_COMPLEMENTO_ENT LIKE '% ' THEN 'COMPLEMENTO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE COM ESPACO NO FIM'
+                        WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.BAIRRO_ENT LIKE ' %' THEN 'BAIRRO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE COM ESPACO NO INICIO'
+                        WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.BAIRRO_ENT LIKE '% ' THEN 'BAIRRO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE COM ESPACO NO FIM'
+                        WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.BAIRRO_ENT IS NULL THEN 'BAIRRO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE EM BRANCO'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.CEP_ENT NOT LIKE '________' THEN 'CEP DO CANTEIRO DE ENTREGA INCORRETO'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.TIPO IS NULL AND PLATAFORMAS.RAZAO_SOCIAL IS NOT NULL THEN 'TIPO/CNPJ DO CANTEIRO DE ENTREGA INCORRETO'
                         WHEN ORCAMENTOS.CHAVE_TIPO = 32 AND ORCAMENTOS.FORMA_FATURAMENTO = 'DUPLICATA' AND ORDEM_CLIENTE.ENVIAR_BOLETO_PDF = 'NAO' THEN 'CAMPO ENVIAR BOLETO POR EMAIL DA ORDEM DESMARCADO'
@@ -569,6 +572,9 @@ def confere_pedidos(carteira: str = '%%', parametro_carteira: dict = {}) -> list
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.ENDERECO_NUMERO_ENT IS NULL THEN 'NUMERO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE EM BRANCO'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.ENDERECO_COMPLEMENTO_ENT LIKE ' %' THEN 'COMPLEMENTO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE COM ESPACO NO INICIO'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.ENDERECO_COMPLEMENTO_ENT LIKE '% ' THEN 'COMPLEMENTO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE COM ESPACO NO FIM'
+                        WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.BAIRRO_ENT LIKE ' %' THEN 'BAIRRO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE COM ESPACO NO INICIO'
+                        WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.BAIRRO_ENT LIKE '% ' THEN 'BAIRRO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE COM ESPACO NO FIM'
+                        WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.BAIRRO_ENT IS NULL THEN 'BAIRRO DO ENDERECO DO CANTEIRO DE ENTREGA DO CLIENTE EM BRANCO'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.CEP_ENT NOT LIKE '________' THEN 'CEP DO CANTEIRO DE ENTREGA INCORRETO'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.TIPO IS NULL AND PLATAFORMAS.RAZAO_SOCIAL IS NOT NULL THEN 'TIPO/CNPJ DO CANTEIRO DE ENTREGA INCORRETO'
                         WHEN PEDIDOS.CHAVE_TIPO = 32 AND PEDIDOS.FORMA_FATURAMENTO = 'DUPLICATA' AND ORDEM_CLIENTE.ENVIAR_BOLETO_PDF = 'NAO' THEN 'CAMPO ENVIAR BOLETO POR EMAIL DA ORDEM DESMARCADO'
@@ -595,6 +601,7 @@ def confere_pedidos(carteira: str = '%%', parametro_carteira: dict = {}) -> list
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.UF_ENT != CLIENTES.UF AND PLATAFORMAS.CNPJ_CPF = CLIENTES.CGC AND PLATAFORMAS.INSCRICAO = CLIENTES.INSCRICAO THEN 'INSCRICAO ESTADUAL DO ENDERECO DE ENTREGA INCORRETA'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.TIPO IS NOT NULL AND PLATAFORMAS.CNPJ_CPF IS NULL THEN 'CNPJ/CPF DO ENDERECO DE ENTREGA INCORRETO'
                         WHEN TRANSPORTADORAS.GERAR_TITULO_FRETE = 'SIM' AND PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5) AND (PEDIDOS.VALOR_FRETE_EMPRESA IS NULL OR PEDIDOS.VALOR_FRETE_EMPRESA = 0) THEN 'PREENCHER VALOR FRETE COPLAS/EMPRESA'
+                        WHEN PEDIDOS.CHAVE_TRANSPORTADORA = 6798 AND PEDIDOS.CHAVE_TIPO NOT IN (47, 71, 12, 36, 45) THEN 'TRANSPORTADORA INCORRETA'
                         WHEN CLIENTES.CHAVE_TIPO IN (7908, 7904, 7911) AND PRODUTOS.CODIGO LIKE '%TAMPAO%' AND PRODUTOS.CODIGO NOT LIKE '%CLARO%' THEN 'TROCAR PARA TAMPAO CLARO'
                     END AS ERRO
 
@@ -911,7 +918,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
             SELECT DISTINCT
                 NOTAS.CHAVE AS CHAVE_NOTA,
                 ORCAMENTOS.NUMPED AS ORCAMENTO,
-                PEDIDOS.NUMPED AS PEDIDO
+                PEDIDOS.NUMPED AS PEDIDO,
+                ORCAMENTOS.LOG_NOME_INCLUSAO AS LOG_INCLUSAO_ORCAMENTO
 
             FROM
                 COPLAS.ORCAMENTOS,
@@ -1055,6 +1063,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_notas = {
+        'coluna_parcelas': {'parcelas_campo_alias': "NOTAS.PARCELAS,",
+                            'parcelas_campo': "NOTAS.PARCELAS,", },
+
+        # coluna_custo_materia_prima_notas Não funciona com a fluxus, conferir se mudar a forma de beneficiamento
+        'coluna_custo_materia_prima_notas': {'custo_materia_prima_notas_campo_alias': "SUM(COALESCE(CASE WHEN PRODUTOS.CHAVE_MARCA IN (178, 177) THEN NOTAS_ITENS.CUSTO_MP_MED * NOTAS_ITENS.QUANTIDADE ELSE NULL END, CASE WHEN PRODUTOS.CHAVE_MARCA NOT IN (178, 177) THEN NOTAS_ITENS.ANALISE_CUSTO_MEDIO - NOTAS_ITENS.CUSTO_MP_MED * NOTAS_ITENS.QUANTIDADE ELSE NULL END, 0)) AS CUSTO_MP,"},
+
         'cfop_baixa_estoque': {'cfop_baixa_estoque_pesquisa': "NOTAS_ITENS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE BAIXA_ESTOQUE = 'SIM' AND CHAVE NOT IN (8791, 10077)) AND", },
 
         'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "COUNT(DISTINCT TRUNC(NOTAS.DATA_EMISSAO)) AS DIAS_DECORRIDOS,"},
@@ -1127,6 +1141,26 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'carteira_parede_de_concreto': {'carteira_parede_de_concreto_pesquisa': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=23) AND", },
         'carteira_premoldado_poste': {'carteira_premoldado_poste_pesquisa': "CLIENTES.CHAVE_TIPO IN (7908, 7904) AND", },
 
+        'coluna_representante': {'representante_campo_alias': "REPRESENTANTES.NOMERED AS REPRESENTANTE,",
+                                 'representante_campo': "REPRESENTANTES.NOMERED,",
+                                 'representantes_from': "COPLAS.VENDEDORES REPRESENTANTES,",
+                                 'representantes_join': "CLIENTES.CODVEND = REPRESENTANTES.CODVENDEDOR(+) AND", },
+
+        'coluna_representante_documento': {'representante_documento_campo_alias': "REPRESENTANTES_DOCUMENTO.NOMERED AS REPRESENTANTE_DOCUMENTO,",
+                                           'representante_documento_campo': "REPRESENTANTES_DOCUMENTO.NOMERED,",
+                                           'representantes_documento_from': "COPLAS.VENDEDORES REPRESENTANTES_DOCUMENTO,",
+                                           'representantes_documento_join': "NOTAS.CHAVE_VENDEDOR = REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+
+        'coluna_segundo_representante': {'segundo_representante_campo_alias': "SEGUNDO_REPRESENTANTES.NOMERED AS SEGUNDO_REPRESENTANTE,",
+                                         'segundo_representante_campo': "SEGUNDO_REPRESENTANTES.NOMERED,",
+                                         'segundo_representantes_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES,",
+                                         'segundo_representantes_join': "CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES.CODVENDEDOR(+) AND", },
+
+        'coluna_segundo_representante_documento': {'segundo_representante_documento_campo_alias': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED AS SEGUNDO_REPRESENTANTE_DOCUMENTO,",
+                                                   'segundo_representante_documento_campo': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED,",
+                                                   'segundo_representantes_documento_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES_DOCUMENTO,",
+                                                   'segundo_representantes_documento_join': "NOTAS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+
         'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
                                 'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
         'tipo_cliente': {'tipo_cliente_pesquisa': "CLIENTES_TIPOS.CHAVE = :chave_tipo_cliente AND", },
@@ -1140,6 +1174,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
                            'produto_campo': "PRODUTOS.CODIGO,", },
         'produto': {'produto_pesquisa': "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND", },
+        'produto_marca': {'produto_marca_pesquisa': "PRODUTOS.CHAVE_MARCA = :chave_produto_marca AND", },
 
         'coluna_unidade': {'unidade_campo_alias': "UNIDADES.UNIDADE,",
                            'unidade_campo': "UNIDADES.UNIDADE,", },
@@ -1279,6 +1314,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                         'nota_campo': "",
                         'documentos_from': "",
                         'documentos_join': "", },
+        'coluna_log_nome_inclusao_orcamento': {'log_nome_inclusao_orcamento_campo_alias': "DOCUMENTOS.LOG_INCLUSAO_ORCAMENTO,",
+                                               'log_nome_inclusao_orcamento_campo': "DOCUMENTOS.LOG_INCLUSAO_ORCAMENTO,",
+                                               'documentos_from': notas_documentos_from,
+                                               'documentos_join': notas_documentos_join, },
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
@@ -1288,8 +1327,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'data_entrega_itens_maior_que': {'data_entrega_itens_maior_que_pesquisa': "", },
         'data_entrega_itens_menor_igual': {'data_entrega_itens_menor_igual_pesquisa': "", },
 
-        'coluna_status_documento': {'status_documento_campo_alias': "",
-                                    'status_documento_campo': "", },
+        'coluna_status_documento': {'status_documento_campo_alias': "CASE NOTAS.ATIVA WHEN 'NAO' THEN 'CANCELADA' END AS STATUS_DOCUMENTO,",
+                                    'status_documento_campo': "CASE NOTAS.ATIVA WHEN 'NAO' THEN 'CANCELADA' END,", },
         'status_documento_em_aberto': {'status_documento_em_aberto_pesquisa': "", },
 
         'coluna_orcamento_oportunidade': {'orcamento_oportunidade_campo_alias': "",
@@ -1305,6 +1344,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.PESO_LIQUIDO ELSE 0 END) AS PESO_PP,", },
 
+        'coluna_especie': {'especie_campo_alias': "CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END AS ESPECIE,",
+                           'especie_campo': "CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END,", },
         'especie': {'especie_pesquisa': "NOTAS.ESPECIE = :especie AND", },
 
         'coluna_chave_transportadora': {'chave_transportadora_campo_alias': "NOTAS.CHAVE_TRANSPORTADORA AS CHAVE_TRANSPORTADORA,",
@@ -1353,7 +1394,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
             SELECT DISTINCT
                 PEDIDOS.CHAVE AS CHAVE_PEDIDO,
                 ORCAMENTOS.NUMPED AS ORCAMENTO,
-                NOTAS.NF AS NOTA
+                NOTAS.NF AS NOTA,
+                ORCAMENTOS.LOG_NOME_INCLUSAO AS LOG_INCLUSAO_ORCAMENTO
 
             FROM
                 COPLAS.ORCAMENTOS,
@@ -1497,6 +1539,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
+        'coluna_parcelas': {'parcelas_campo_alias': "",
+                            'parcelas_campo': "", },
+
+        # coluna_custo_materia_prima_notas Não funciona com a fluxus, conferir se mudar a forma de beneficiamento
+        'coluna_custo_materia_prima_notas': {'custo_materia_prima_notas_campo_alias': ""},
+
         'cfop_baixa_estoque': {'cfop_baixa_estoque_pesquisa': "PEDIDOS_ITENS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE BAIXA_ESTOQUE = 'SIM' AND CHAVE NOT IN (8791, 10077)) AND", },
 
         'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "COUNT(DISTINCT TRUNC(PEDIDOS.DATA_PEDIDO)) AS DIAS_DECORRIDOS,"},
@@ -1569,6 +1617,26 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'carteira_parede_de_concreto': {'carteira_parede_de_concreto_pesquisa': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=23) AND", },
         'carteira_premoldado_poste': {'carteira_premoldado_poste_pesquisa': "CLIENTES.CHAVE_TIPO IN (7908, 7904) AND", },
 
+        'coluna_representante': {'representante_campo_alias': "REPRESENTANTES.NOMERED AS REPRESENTANTE,",
+                                 'representante_campo': "REPRESENTANTES.NOMERED,",
+                                 'representantes_from': "COPLAS.VENDEDORES REPRESENTANTES,",
+                                 'representantes_join': "CLIENTES.CODVEND = REPRESENTANTES.CODVENDEDOR(+) AND", },
+
+        'coluna_representante_documento': {'representante_documento_campo_alias': "REPRESENTANTES_DOCUMENTO.NOMERED AS REPRESENTANTE_DOCUMENTO,",
+                                           'representante_documento_campo': "REPRESENTANTES_DOCUMENTO.NOMERED,",
+                                           'representantes_documento_from': "COPLAS.VENDEDORES REPRESENTANTES_DOCUMENTO,",
+                                           'representantes_documento_join': "PEDIDOS.CHAVE_VENDEDOR = REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+
+        'coluna_segundo_representante': {'segundo_representante_campo_alias': "SEGUNDO_REPRESENTANTES.NOMERED AS SEGUNDO_REPRESENTANTE,",
+                                         'segundo_representante_campo': "SEGUNDO_REPRESENTANTES.NOMERED,",
+                                         'segundo_representantes_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES,",
+                                         'segundo_representantes_join': "CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES.CODVENDEDOR(+) AND", },
+
+        'coluna_segundo_representante_documento': {'segundo_representante_documento_campo_alias': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED AS SEGUNDO_REPRESENTANTE_DOCUMENTO,",
+                                                   'segundo_representante_documento_campo': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED,",
+                                                   'segundo_representantes_documento_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES_DOCUMENTO,",
+                                                   'segundo_representantes_documento_join': "PEDIDOS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+
         'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
                                 'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
         'tipo_cliente': {'tipo_cliente_pesquisa': "CLIENTES_TIPOS.CHAVE = :chave_tipo_cliente AND", },
@@ -1582,6 +1650,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
                            'produto_campo': "PRODUTOS.CODIGO,", },
         'produto': {'produto_pesquisa': "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND", },
+        'produto_marca': {'produto_marca_pesquisa': "PRODUTOS.CHAVE_MARCA = :chave_marca AND", },
 
         'coluna_unidade': {'unidade_campo_alias': "UNIDADES.UNIDADE,",
                            'unidade_campo': "UNIDADES.UNIDADE,", },
@@ -1692,6 +1761,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                         'nota_campo': "DOCUMENTOS.NOTA,",
                         'documentos_from': pedidos_documentos_from,
                         'documentos_join': pedidos_documentos_join, },
+        'coluna_log_nome_inclusao_orcamento': {'log_nome_inclusao_orcamento_campo_alias': "DOCUMENTOS.LOG_INCLUSAO_ORCAMENTO,",
+                                               'log_nome_inclusao_orcamento_campo': "DOCUMENTOS.LOG_INCLUSAO_ORCAMENTO,",
+                                               'documentos_from': pedidos_documentos_from,
+                                               'documentos_join': pedidos_documentos_join, },
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
@@ -1718,6 +1791,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN PEDIDOS_ITENS.PESO_LIQUIDO ELSE 0 END) AS PESO_PP,", },
 
+        'coluna_especie': {'especie_campo_alias': "",
+                           'especie_campo': "", },
         'especie': {'especie_pesquisa': "", },
 
         'coluna_chave_transportadora': {'chave_transportadora_campo_alias': "PEDIDOS.CHAVE_TRANSPORTADORA AS CHAVE_TRANSPORTADORA,",
@@ -1920,6 +1995,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
+        'coluna_parcelas': {'parcelas_campo_alias': "",
+                            'parcelas_campo': "", },
+
+        # coluna_custo_materia_prima_notas Não funciona com a fluxus, conferir se mudar a forma de beneficiamento
+        'coluna_custo_materia_prima_notas': {'custo_materia_prima_notas_campo_alias': ""},
+
         'cfop_baixa_estoque': {'cfop_baixa_estoque_pesquisa': "ORCAMENTOS_ITENS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE BAIXA_ESTOQUE = 'SIM' AND CHAVE NOT IN (8791, 10077)) AND", },
 
         'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "COUNT(DISTINCT TRUNC(ORCAMENTOS.DATA_PEDIDO)) AS DIAS_DECORRIDOS,"},
@@ -1992,6 +2073,26 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'carteira_parede_de_concreto': {'carteira_parede_de_concreto_pesquisa': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=23) AND", },
         'carteira_premoldado_poste': {'carteira_premoldado_poste_pesquisa': "CLIENTES.CHAVE_TIPO IN (7908, 7904) AND", },
 
+        'coluna_representante': {'representante_campo_alias': "REPRESENTANTES.NOMERED AS REPRESENTANTE,",
+                                 'representante_campo': "REPRESENTANTES.NOMERED,",
+                                 'representantes_from': "COPLAS.VENDEDORES REPRESENTANTES,",
+                                 'representantes_join': "CLIENTES.CODVEND = REPRESENTANTES.CODVENDEDOR(+) AND", },
+
+        'coluna_representante_documento': {'representante_documento_campo_alias': "REPRESENTANTES_DOCUMENTO.NOMERED AS REPRESENTANTE_DOCUMENTO,",
+                                           'representante_documento_campo': "REPRESENTANTES_DOCUMENTO.NOMERED,",
+                                           'representantes_documento_from': "COPLAS.VENDEDORES REPRESENTANTES_DOCUMENTO,",
+                                           'representantes_documento_join': "ORCAMENTOS.CHAVE_VENDEDOR = REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+
+        'coluna_segundo_representante': {'segundo_representante_campo_alias': "SEGUNDO_REPRESENTANTES.NOMERED AS SEGUNDO_REPRESENTANTE,",
+                                         'segundo_representante_campo': "SEGUNDO_REPRESENTANTES.NOMERED,",
+                                         'segundo_representantes_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES,",
+                                         'segundo_representantes_join': "CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES.CODVENDEDOR(+) AND", },
+
+        'coluna_segundo_representante_documento': {'segundo_representante_documento_campo_alias': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED AS SEGUNDO_REPRESENTANTE_DOCUMENTO,",
+                                                   'segundo_representante_documento_campo': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED,",
+                                                   'segundo_representantes_documento_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES_DOCUMENTO,",
+                                                   'segundo_representantes_documento_join': "ORCAMENTOS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+
         'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
                                 'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
         'tipo_cliente': {'tipo_cliente_pesquisa': "CLIENTES_TIPOS.CHAVE = :chave_tipo_cliente AND", },
@@ -2005,6 +2106,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
                            'produto_campo': "PRODUTOS.CODIGO,", },
         'produto': {'produto_pesquisa': "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND", },
+        'produto_marca': {'produto_marca_pesquisa': "PRODUTOS.CHAVE_MARCA = :chave_marca AND", },
 
         'coluna_unidade': {'unidade_campo_alias': "UNIDADES.UNIDADE,",
                            'unidade_campo': "UNIDADES.UNIDADE,", },
@@ -2115,6 +2217,10 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                         'nota_campo': "DOCUMENTOS.NOTA,",
                         'documentos_from': orcamentos_documentos_from,
                         'documentos_join': orcamentos_documentos_join, },
+        'coluna_log_nome_inclusao_orcamento': {'log_nome_inclusao_orcamento_campo_alias': "",
+                                               'log_nome_inclusao_orcamento_campo': "",
+                                               'documentos_from': "",
+                                               'documentos_join': "", },
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
@@ -2141,6 +2247,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN ORCAMENTOS_ITENS.PESO_LIQUIDO ELSE 0 END) AS PESO_PP,", },
 
+        'coluna_especie': {'especie_campo_alias': "",
+                           'especie_campo': "", },
         'especie': {'especie_pesquisa': "", },
 
         'coluna_chave_transportadora': {'chave_transportadora_campo_alias': "ORCAMENTOS.CHAVE_TRANSPORTADORA AS CHAVE_TRANSPORTADORA,",
@@ -2202,6 +2310,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos_itens_excluidos = {
+        # coluna_custo_materia_prima_notas Não funciona com a fluxus, conferir se mudar a forma de beneficiamento
+        'coluna_custo_materia_prima_notas': {'custo_materia_prima_notas_campo_alias': ""},
+
         'cfop_baixa_estoque': {'cfop_baixa_estoque_pesquisa': "", },
 
         'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "0 AS DIAS_DECORRIDOS,"},
@@ -2329,6 +2440,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     tipo_cliente = kwargs.get('tipo_cliente')
     familia_produto = kwargs.get('familia_produto')
     produto = kwargs.get('produto')
+    produto_marca = kwargs.get('produto_marca')
     cidade = kwargs.get('cidade')
     estado = kwargs.get('estado')
     status_produto_orcamento = kwargs.get('status_produto_orcamento')
@@ -2379,6 +2491,10 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
 
     if produto:
         kwargs_ora.update({'produto': produto, })
+
+    if produto_marca:
+        chave_produto_marca = produto_marca if isinstance(produto_marca, int) else produto_marca.pk
+        kwargs_ora.update({'chave_produto_marca': chave_produto_marca, })
 
     if cidade:
         kwargs_ora.update({'cidade': cidade, })
@@ -2452,13 +2568,20 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {mes_emissao_campo_alias}
             {dia_emissao_campo_alias}
             {documento_campo_alias}
+            {especie_campo_alias}
+            {parcelas_campo_alias}
             {log_nome_inclusao_documento_campo_alias}
             {orcamento_campo_alias}
+            {log_nome_inclusao_orcamento_campo_alias}
             {pedido_campo_alias}
             {nota_campo_alias}
             {orcamento_oportunidade_campo_alias}
             {status_documento_campo_alias}
             {peso_bruto_nota_campo_alias}
+            {representante_campo_alias}
+            {representante_documento_campo_alias}
+            {segundo_representante_campo_alias}
+            {segundo_representante_documento_campo_alias}
             {carteira_campo_alias}
             {grupo_economico_campo_alias}
             {cliente_campo_alias}
@@ -2505,6 +2628,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {icms_partilha_campo_alias}
             {irpj_csll_campo_alias}
             {valor_bruto_campo_alias}
+            {custo_materia_prima_notas_campo_alias}
 
             {valor_mercadorias}
 
@@ -2523,6 +2647,10 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {transportadoras_from}
             {documentos_from}
             {proximo_evento_grupo_economico_from}
+            {representantes_from}
+            {representantes_documento_from}
+            {segundo_representantes_from}
+            {segundo_representantes_documento_from}
             COPLAS.VENDEDORES,
             {fonte_itens}
             {fonte}
@@ -2542,6 +2670,10 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {transportadoras_join}
             {documentos_join}
             {proximo_evento_grupo_economico_join}
+            {representantes_join}
+            {representantes_documento_join}
+            {segundo_representantes_join}
+            {segundo_representantes_documento_join}
             PRODUTOS.CHAVE_UNIDADE = UNIDADES.CHAVE AND
             FAMILIA_PRODUTOS.CHAVE = PRODUTOS.CHAVE_FAMILIA AND
             CLIENTES.UF = ESTADOS.CHAVE AND
@@ -2580,6 +2712,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {desconsiderar_grupo_economico_com_evento_futuro_pesquisa}
             {estoque_abc_pesquisa}
             {cfop_baixa_estoque_pesquisa}
+            {produto_marca_pesquisa}
 
             {fonte_where_data}
 
@@ -2630,6 +2763,13 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {cgc_campo}
             {inscricao_estadual_campo}
             {estoque_abc_campo}
+            {parcelas_campo}
+            {log_nome_inclusao_orcamento_campo}
+            {representante_campo}
+            {representante_documento_campo}
+            {segundo_representante_campo}
+            {segundo_representante_documento_campo}
+            {especie_campo}
             1
 
         {having}
@@ -2682,7 +2822,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'DESTINO_MERCADORIAS', 'ZONA_FRANCA_ALC', 'CHAVE_PRODUTO', 'DATA_SAIDA',
                                      'VOLUMES_QUANTIDADE', 'PESO_BRUTO_NOTA', 'TRANSPORTADORA', 'COBRANCA_FRETE',
                                      'ORCAMENTO', 'PEDIDO', 'NOTA', 'DATA_DESPACHO', 'LOG_NOME_INCLUSAO_DOCUMENTO',
-                                     'PROXIMO_EVENTO_GRUPO', 'CGC', 'INSCRICAO_ESTADUAL', 'ESTOQUE_ABC',]
+                                     'PROXIMO_EVENTO_GRUPO', 'CGC', 'INSCRICAO_ESTADUAL', 'ESTOQUE_ABC', 'PARCELAS',
+                                     'LOG_INCLUSAO_ORCAMENTO', 'REPRESENTANTE', 'REPRESENTANTE_DOCUMENTO',
+                                     'SEGUNDO_REPRESENTANTE', 'SEGUNDO_REPRESENTANTE_DOCUMENTO', 'ESPECIE',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',
