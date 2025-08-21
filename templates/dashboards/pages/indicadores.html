@@ -1,0 +1,42 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            <form id="form" method="get">
+                <div class="grid-simples link-conteudo">
+                    {{ formulario.as_p }}
+                </div>
+                <div class="grid-simples">
+                    <button class="botao" name="submit" type="submit">Atualizar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="link-conteudo">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            <div>
+                {{  grafico_dados_html | safe  }}
+            </div>
+
+            {% for grafico_dados_carteira_html in grafico_dados_carteiras_html %}
+                <div>
+                    {{  grafico_dados_carteira_html | safe  }}
+                </div>
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

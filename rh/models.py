@@ -973,12 +973,13 @@ class Salarios(BaseLogModel):
 
     motivos = {
         'ADMISSAO': 'Admissão',
+        'AJUSTE DE FUNCAO': 'Ajuste de Função',
+        'AUMENTO ESPONTANEO': 'Aumento Espontâneo',
         'DISSIDIO': 'Dissidio',
         'OUTROS': 'Outros',
         'PROMOCAO EXTRA FUNCAO': 'Promoção Extra Função',
         'PROMOCAO INTRA FUNCAO': 'Promoção Intra Função',
         'REALINHAMENTO COM O MERCADO': 'Realinhamento com o mercado',
-        'AJUSTE DE FUNCAO': 'Ajuste de Função',
     }
 
     help_text_motivo = (

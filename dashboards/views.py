@@ -1,17 +1,24 @@
 from typing import Dict, Literal
 from django.shortcuts import render
 from django.http import HttpResponse
+from .models import IndicadoresValores, MetasCarteiras
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
                        DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
                        confere_inscricoes_estaduais)
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
-                    FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormEventosDesconsiderar)
+                    FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormEventosDesconsiderar,
+                    FormIndicadores)
+import plotly.express as px
+import plotly.io as pio
+import plotly.graph_objects as go
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.data_hora_atual import data_x_dias
 from utils.base_forms import FormVendedoresMixIn
 from utils.cor_rentabilidade import get_cores_rentabilidade
+from utils.plotly_parametros import update_layout_kwargs
 from utils.site_setup import get_site_setup
 import pandas as pd
+import numpy as np
 
 
 def vendas_carteira(request):
@@ -475,3 +482,137 @@ def relatorios_supervisao(request, fonte: str):
     contexto.update({'formulario': formulario, })
 
     return render(request, 'dashboards/pages/relatorios-supervisao.html', contexto)
+
+
+def indicadores(request):
+    titulo_pagina = 'Indicadores'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = FormIndicadores()
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormIndicadores(request.GET)
+        if formulario.is_valid():
+            indicador = formulario.cleaned_data.get('indicador')
+            inicio = formulario.cleaned_data.get('inicio')
+            fim = formulario.cleaned_data.get('fim')
+            valores = formulario.cleaned_data.get('valores')
+            frequencia = formulario.cleaned_data.get('frequencia')
+
+            periodo = {}
+            periodo.update({'periodo__data_inicio__gte': inicio}) if inicio else None
+            periodo.update({'periodo__data_inicio__lte': fim}) if fim else None
+
+            # Dados Totais
+
+            dados = IndicadoresValores.objects.filter(indicador=indicador, **periodo)
+            dados = dados.order_by('periodo__data_inicio')
+
+            dados_grafico = dados.values('periodo__data_inicio', 'periodo__ano_referencia', 'valor_meta', 'valor_real')
+            dados_grafico = pd.DataFrame(dados_grafico)
+            dados_grafico = dados_grafico.rename(columns={'periodo__data_inicio': 'Periodo',
+                                                          'periodo__ano_referencia': 'Ano',
+                                                          'valor_meta': 'Meta', 'valor_real': 'Real'})
+
+            if frequencia == 'anual':
+                dados_grafico = dados_grafico.drop('Periodo', axis=1)
+                dados_grafico = dados_grafico.rename(columns={'Ano': 'Periodo'})
+                dados_grafico = dados_grafico.groupby('Periodo').sum().reset_index()
+
+            dados_grafico['Real'] = dados_grafico['Real'].astype(float)
+            dados_grafico['Meta'] = dados_grafico['Meta'].astype(float)
+            dados_grafico['Meta %'] = 100
+            dados_grafico.loc[dados_grafico['Meta'] == 0, 'Meta %'] = 0
+            dados_grafico['Real %'] = dados_grafico['Real'] / dados_grafico['Meta'] * 100
+            dados_grafico['Real %'] = dados_grafico['Real %'].fillna(0)
+            dados_grafico['Real %'] = np.floor(dados_grafico['Real %']).astype(float)
+
+            grafico_dados_html = ""
+            if not dados_grafico.empty:
+                y_total = ['Real %', 'Meta %'] if valores == 'proporcional' else ['Real', 'Meta']
+                y_label = '%' if valores == 'proporcional' else 'R$'
+
+                grafico_dados = px.line(dados_grafico, x='Periodo', y=y_total, title=f'{indicador} {y_label}',
+                                        labels={'variable': 'Valores', 'value': y_label}, markers=True,)
+                grafico_dados.update_layout(update_layout_kwargs)
+                grafico_dados_html = pio.to_html(grafico_dados, full_html=False)
+
+            # Dados por Carteira
+
+            grafico_dados_carteiras_html = []
+            if indicador.descricao == 'Meta Carteiras':  # type:ignore
+                dados_carteiras = MetasCarteiras.objects.filter(indicador_valor__in=dados)
+                dados_carteiras = dados_carteiras.order_by('indicador_valor__periodo__data_inicio')
+
+                dados_carteiras_grafico = dados_carteiras.values('indicador_valor__periodo__data_inicio',
+                                                                 'indicador_valor__periodo__ano_referencia',
+                                                                 'vendedor__nome', 'responsavel__nome',
+                                                                 'valor_meta', 'valor_real')
+                dados_carteiras_grafico = pd.DataFrame(dados_carteiras_grafico)
+                dados_carteiras_grafico = dados_carteiras_grafico.rename(columns={'indicador_valor__periodo__data_inicio': 'Periodo',
+                                                                                  'indicador_valor__periodo__ano_referencia': 'Ano',
+                                                                                  'vendedor__nome': 'Carteira',
+                                                                                  'responsavel__nome': 'Responsavel',
+                                                                                  'valor_meta': 'Meta',
+                                                                                  'valor_real': 'Real'})
+
+                if frequencia == 'anual':
+                    dados_carteiras_grafico = dados_carteiras_grafico.drop(['Periodo', 'Responsavel'], axis=1)
+                    dados_carteiras_grafico = dados_carteiras_grafico.rename(columns={'Ano': 'Periodo'})
+                    dados_carteiras_grafico = dados_carteiras_grafico.groupby(
+                        ['Periodo', 'Carteira']).sum().reset_index()
+
+                dados_carteiras_grafico['Real'] = dados_carteiras_grafico['Real'].astype(float)
+                dados_carteiras_grafico['Meta'] = dados_carteiras_grafico['Meta'].astype(float)
+                dados_carteiras_grafico['Meta %'] = 100
+                dados_carteiras_grafico.loc[dados_carteiras_grafico['Meta'] == 0, 'Meta %'] = 0
+                dados_carteiras_grafico['Real %'] = dados_carteiras_grafico['Real'] / \
+                    dados_carteiras_grafico['Meta'] * 100
+                dados_carteiras_grafico['Real %'] = dados_carteiras_grafico['Real %'].fillna(0)
+                dados_carteiras_grafico['Real %'] = np.floor(dados_carteiras_grafico['Real %']).astype(float)
+
+                if frequencia == 'mensal':
+                    dados_carteiras_grafico['Responsavel'] = dados_carteiras_grafico['Responsavel'].fillna('Ninguem')
+
+                carteiras = list(dados_carteiras_grafico['Carteira'].unique())
+                carteiras = sorted(carteiras)
+
+                y_carteira = ['Real %'] if valores == 'proporcional' else ['Real']
+                for carteira in carteiras:
+                    dados_carteira_grafico = dados_carteiras_grafico[dados_carteiras_grafico['Carteira'] == carteira]
+                    y_carteira_2 = dados_carteira_grafico['Meta %'] if valores == 'proporcional' else dados_carteira_grafico['Meta']
+
+                    custom_data = None
+                    hover_template = ''
+                    color = None
+                    if frequencia == 'mensal':
+                        custom_data = dados_carteira_grafico[['Responsavel']]
+                        hover_template = 'Responsável: %{customdata[0]}<br>'
+                        color = 'Responsavel'
+
+                    grafico_dados_carteira = px.line(dados_carteira_grafico, x='Periodo', y=y_carteira,
+                                                     color=color, markers=True,
+                                                     title=f'META {carteira} {y_label}',
+                                                     labels={'variable': 'Valores', 'value': y_label},)
+                    grafico_dados_carteira.add_trace(go.Scatter(
+                        x=dados_carteira_grafico['Periodo'],
+                        y=y_carteira_2,
+                        customdata=custom_data,
+                        mode='lines+markers',
+                        name=f'Meta {y_label}',
+                        line_color='black',
+                        hovertemplate=f'{hover_template}' + 'Período: %{x}<br>' +
+                        f'{y_label}' + ': %{y:,.2s}<extra></extra>'
+                    ))
+                    grafico_dados_carteira.update_layout(update_layout_kwargs)
+                    grafico_dados_carteira_html = pio.to_html(grafico_dados_carteira, full_html=False)
+
+                    grafico_dados_carteiras_html.append(grafico_dados_carteira_html)
+
+            contexto.update({'grafico_dados_html': grafico_dados_html,
+                             'grafico_dados_carteiras_html': grafico_dados_carteiras_html})
+
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/indicadores.html', contexto)

@@ -1,4 +1,5 @@
 from django import forms
+from .models import Indicadores
 from utils.base_forms import FormPeriodoInicioFimMixIn, FormVendedoresMixIn, FormPesquisarIntegerMixIn
 from analysis.models import (VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS, STATUS_ORCAMENTOS_ITENS,
                              INFORMACOES_CLI, JOBS)
@@ -190,3 +191,30 @@ class FormEventos(FormVendedoresMixIn, forms.Form):
 class FormEventosDesconsiderar(FormVendedoresMixIn, forms.Form):
     desconsiderar_futuros = forms.BooleanField(label="Desconsiderar grupos com eventos futuros", initial=False,
                                                required=False)
+
+
+class FormIndicadores(FormPeriodoInicioFimMixIn, forms.Form):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # self.fields['inicio'].initial = hoje_as_yyyymmdd()
+        # self.fields['fim'].initial = hoje_as_yyyymmdd()
+        self.fields['inicio'].required = False
+        self.fields['fim'].required = False
+
+    indicadores = Indicadores.objects
+
+    valores_tipos = {
+        'proporcional': 'Proporcional',
+        'real': 'Real',
+    }
+
+    frequencias = {
+        'mensal': 'Mensal',
+        'anual': 'Anual',
+    }
+
+    indicador = forms.ModelChoiceField(indicadores, label="Indicador")
+    valores = forms.ChoiceField(label="Valores", choices=valores_tipos,  # type: ignore
+                                initial='proporcional', required=True)
+    frequencia = forms.ChoiceField(label="Frequencia Valores", choices=frequencias,  # type: ignore
+                                   initial='mensal', required=True)
