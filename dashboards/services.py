@@ -1,5 +1,6 @@
 from typing import Literal
 from analysis.models import STATUS_ORCAMENTOS_ITENS
+from dashboards.services_financeiro import get_relatorios_financeiros
 from utils.custom import DefaultDict
 from utils.converter import somente_digitos
 from utils.oracle.conectar import executar_oracle
@@ -196,7 +197,9 @@ class DashboardVendasCarteira(DashBoardVendas):
 
         self.recebido, self.a_receber = (0.0, 0.0)
         if executar_completo:
-            self.recebido, self.a_receber = recebido_a_receber(self.primeiro_dia_mes, self.ultimo_dia_mes, carteira)
+            self.recebido, self.a_receber = recebido_a_receber(self.site_setup.primeiro_dia_mes,  # type:ignore
+                                                               self.site_setup.ultimo_dia_mes,  # type:ignore
+                                                               self.vendedor)
 
 
 class DashboardVendasTv(DashBoardVendas):
@@ -259,82 +262,41 @@ def carteira_mapping(carteira):
     return carteira, filtro_nao_carteira
 
 
-def recebido_a_receber(primeiro_dia_mes: str, ultimo_dia_mes: str, carteira: str = '%%') -> tuple[float, float]:
+def recebido_a_receber(primeiro_dia_mes, ultimo_dia_mes, carteira) -> tuple[float, float]:
     """Valor recebido e a receber dos titulos com valor comercial no mes"""
-    carteira, filtro_nao_carteira = carteira_mapping(carteira)
+    recebido = 0.0
+    a_receber = 0.0
 
-    sql = """
-        SELECT
-            COALESCE(RECEBIDO.MERCADORIAS_RECEBIDO, 0) AS MERCADORIAS_RECEBIDO,
-            COALESCE(A_RECEBER.MERCADORIAS_A_RECEBER, 0) AS MERCADORIAS_A_RECEBER
+    parametro_carteira = carteira.carteira_parametros() if carteira else {}
+    notas = get_relatorios_vendas('faturamentos', coluna_chave_documento=True, coluna_valor_bruto=True,
+                                  data_vencimento_titulo_entre=[primeiro_dia_mes, ultimo_dia_mes], **parametro_carteira)
+    notas = pd.DataFrame(notas)
 
-        FROM
-            (
-                SELECT
-                    SUM(ROUND(NOTAS_ITENS.VALOR_MERCADORIAS / NOTAS.VALOR_TOTAL * (RECEBER.VALORTOTAL - (RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0)) - NOTAS.VALOR_FRETE_INCL_ITEM), 2)) AS MERCADORIAS_RECEBIDO
+    if notas.empty:
+        return float(recebido), float(a_receber)
 
-                FROM
-                    COPLAS.VENDEDORES,
-                    COPLAS.NOTAS,
-                    COPLAS.NOTAS_ITENS,
-                    COPLAS.CLIENTES,
-                    COPLAS.RECEBER,
-                    COPLAS.PRODUTOS
+    notas['PROPORCAO_MERCADORIAS'] = notas['VALOR_MERCADORIAS'] / notas['VALOR_BRUTO']
+    notas = notas[['CHAVE_DOCUMENTO', 'PROPORCAO_MERCADORIAS']]
 
-                WHERE
-                    VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
-                    PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
-                    NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND
-                    NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
-                    NOTAS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
-                    NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-                    NOTAS.VALOR_COMERCIAL = 'SIM' AND
-                    PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378, 12441) AND
+    receber = get_relatorios_financeiros('receber', data_vencimento_inicio=primeiro_dia_mes,
+                                         data_vencimento_fim=ultimo_dia_mes, coluna_valor_titulo=True,
+                                         coluna_chave_nota=True, coluna_data_vencimento=True,)
+    receber = pd.DataFrame(receber)
+    receber = receber[['CHAVE_NOTA', 'DATA_VENCIMENTO', 'VALOR_TITULO']]
 
-                    VENDEDORES.NOMERED LIKE :carteira AND
-                    {filtro_nao_carteira}
-                    RECEBER.DATAVENCIMENTO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-                    RECEBER.DATAVENCIMENTO <= TRUNC(SYSDATE)
-            ) RECEBIDO,
-            (
-                SELECT
-                    SUM(ROUND(NOTAS_ITENS.VALOR_MERCADORIAS / NOTAS.VALOR_TOTAL * (RECEBER.VALORTOTAL - (RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0)) - NOTAS.VALOR_FRETE_INCL_ITEM), 2)) AS MERCADORIAS_A_RECEBER
+    total = pd.merge(notas, receber, how='inner', left_on='CHAVE_DOCUMENTO', right_on='CHAVE_NOTA')
+    total['VALOR_TITULO_MERCADORIAS'] = total['VALOR_TITULO'] * total['PROPORCAO_MERCADORIAS']
+    total = total[['DATA_VENCIMENTO', 'VALOR_TITULO_MERCADORIAS']]
 
-                FROM
-                    COPLAS.VENDEDORES,
-                    COPLAS.NOTAS,
-                    COPLAS.NOTAS_ITENS,
-                    COPLAS.CLIENTES,
-                    COPLAS.RECEBER,
-                    COPLAS.PRODUTOS
+    recebido = total[(total['DATA_VENCIMENTO'].dt.date >= primeiro_dia_mes) & (
+        total['DATA_VENCIMENTO'].dt.date <= hoje())]
+    recebido = recebido['VALOR_TITULO_MERCADORIAS'].sum()
 
-                WHERE
-                    VENDEDORES.CODVENDEDOR = CLIENTES.CHAVE_VENDEDOR3 AND
-                    PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
-                    NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND
-                    NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
-                    NOTAS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
-                    NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA AND
-                    NOTAS.VALOR_COMERCIAL = 'SIM' AND
-                    PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378, 12441) AND
-                    RECEBER.CONDICAO = 'EM ABERTO' AND
+    a_receber = total[(total['DATA_VENCIMENTO'].dt.date > hoje()) & (
+        total['DATA_VENCIMENTO'].dt.date <= ultimo_dia_mes)]
+    a_receber = a_receber['VALOR_TITULO_MERCADORIAS'].sum()
 
-                    VENDEDORES.NOMERED LIKE :carteira AND
-                    {filtro_nao_carteira}
-                    RECEBER.DATAVENCIMENTO >= TO_DATE(:primeiro_dia_mes,'DD-MM-YYYY') AND
-                    RECEBER.DATAVENCIMENTO <= TO_DATE(:ultimo_dia_mes,'DD-MM-YYYY')
-            ) A_RECEBER
-    """
-
-    sql = sql.format(filtro_nao_carteira=filtro_nao_carteira)
-
-    resultado = executar_oracle(sql, primeiro_dia_mes=primeiro_dia_mes, ultimo_dia_mes=ultimo_dia_mes,
-                                carteira=carteira)
-
-    if not resultado:
-        return 0.00, 0.00,
-
-    return float(resultado[0][0]), float(resultado[0][1]),
+    return float(recebido), float(a_receber)
 
 
 def dias_decorridos(primeiro_dia_mes, ultimo_dia_mes) -> float:
@@ -601,8 +563,8 @@ def confere_pedidos(carteira: str = '%%', parametro_carteira: dict = {}) -> list
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.UF_ENT != CLIENTES.UF AND PLATAFORMAS.CNPJ_CPF = CLIENTES.CGC AND PLATAFORMAS.INSCRICAO = CLIENTES.INSCRICAO THEN 'INSCRICAO ESTADUAL DO ENDERECO DE ENTREGA INCORRETA'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.TIPO IS NOT NULL AND PLATAFORMAS.CNPJ_CPF IS NULL THEN 'CNPJ/CPF DO ENDERECO DE ENTREGA INCORRETO'
                         WHEN TRANSPORTADORAS.GERAR_TITULO_FRETE = 'SIM' AND PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5) AND (PEDIDOS.VALOR_FRETE_EMPRESA IS NULL OR PEDIDOS.VALOR_FRETE_EMPRESA = 0) THEN 'PREENCHER VALOR FRETE COPLAS/EMPRESA'
-                        WHEN PEDIDOS.CHAVE_TRANSPORTADORA = 6798 AND PEDIDOS.CHAVE_TIPO NOT IN (47, 71, 12, 36, 45) THEN 'TRANSPORTADORA INCORRETA'
-                        WHEN CLIENTES.CHAVE_TIPO IN (7908, 7904, 7911) AND PRODUTOS.CODIGO LIKE '%TAMPAO%' AND PRODUTOS.CODIGO NOT LIKE '%CLARO%' THEN 'TROCAR PARA TAMPAO CLARO'
+                        WHEN PEDIDOS.CHAVE_TRANSPORTADORA = 6798 AND PEDIDOS.STATUS != 'BLOQUEADO' AND PEDIDOS.CHAVE_TIPO NOT IN (47, 71, 12, 36, 45) THEN 'TRANSPORTADORA INCORRETA'
+                        WHEN CLIENTES.CHAVE_TIPO IN (7908, 7904, 7911) AND PEDIDOS.STATUS != 'BLOQUEADO' AND PRODUTOS.CODIGO LIKE '%TAMPAO%' AND PRODUTOS.CODIGO NOT LIKE '%CLARO%' THEN 'TROCAR PARA TAMPAO CLARO'
                     END AS ERRO
 
                 FROM
@@ -1063,6 +1025,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_notas = {
+        'data_vencimento_titulo_entre': {'data_vencimento_titulo_entre_pesquisa': "EXISTS(SELECT RECEBER.CHAVE FROM COPLAS.RECEBER WHERE NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND RECEBER.DATAVENCIMENTO BETWEEN :data_vencimento_titulo_inicio AND :data_vencimento_titulo_fim) AND", },
+
         'coluna_parcelas': {'parcelas_campo_alias': "NOTAS.PARCELAS,",
                             'parcelas_campo': "NOTAS.PARCELAS,", },
 
@@ -1297,6 +1261,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_documento': {'documento_campo_alias': "NOTAS.NF AS DOCUMENTO,",
                              'documento_campo': "NOTAS.NF,", },
+        'coluna_chave_documento': {'chave_documento_campo_alias': "NOTAS.CHAVE AS CHAVE_DOCUMENTO,",
+                                   'chave_documento_campo': "NOTAS.CHAVE,", },
         'documento': {'documento_pesquisa': "NOTAS.NF = :documento AND", },
 
         'coluna_log_nome_inclusao_documento': {'log_nome_inclusao_documento_campo_alias': "NOTAS.LOG_NOME_FATURAMENTO AS LOG_NOME_INCLUSAO_DOCUMENTO,",
@@ -1539,6 +1505,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
+        'data_vencimento_titulo_entre': {'data_vencimento_titulo_entre_pesquisa': "", },
+
         'coluna_parcelas': {'parcelas_campo_alias': "",
                             'parcelas_campo': "", },
 
@@ -1744,6 +1712,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_documento': {'documento_campo_alias': "PEDIDOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "PEDIDOS.NUMPED,", },
+        'coluna_chave_documento': {'chave_documento_campo_alias': "PEDIDOS.CHAVE AS CHAVE_DOCUMENTO,",
+                                   'chave_documento_campo': "PEDIDOS.CHAVE,", },
         'documento': {'documento_pesquisa': "PEDIDOS.NUMPED = :documento AND", },
 
         'coluna_log_nome_inclusao_documento': {'log_nome_inclusao_documento_campo_alias': "PEDIDOS.LOG_NOME AS LOG_NOME_INCLUSAO_DOCUMENTO,",
@@ -1995,6 +1965,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
+        'data_vencimento_titulo_entre': {'data_vencimento_titulo_entre_pesquisa': "", },
+
         'coluna_parcelas': {'parcelas_campo_alias': "",
                             'parcelas_campo': "", },
 
@@ -2200,6 +2172,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_documento': {'documento_campo_alias': "ORCAMENTOS.NUMPED AS DOCUMENTO,",
                              'documento_campo': "ORCAMENTOS.NUMPED,", },
+        'coluna_chave_documento': {'chave_documento_campo_alias': "ORCAMENTOS.CHAVE AS CHAVE_DOCUMENTO,",
+                                   'chave_documento_campo': "ORCAMENTOS.CHAVE,", },
         'documento': {'documento_pesquisa': "ORCAMENTOS.NUMPED = :documento AND", },
 
         'coluna_log_nome_inclusao_documento': {'log_nome_inclusao_documento_campo_alias': "ORCAMENTOS.LOG_NOME_INCLUSAO AS LOG_NOME_INCLUSAO_DOCUMENTO,",
@@ -2458,6 +2432,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     data_despacho_maior_igual = kwargs.get('data_despacho_maior_igual')
     data_despacho_menor_igual = kwargs.get('data_despacho_menor_igual')
     estoque_abc = kwargs.get('estoque_abc')
+    data_vencimento_titulo_entre = kwargs.get('data_vencimento_titulo_entre')
 
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
 
@@ -2555,6 +2530,11 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     if estoque_abc:
         kwargs_ora.update({'estoque_abc': estoque_abc})
 
+    if data_vencimento_titulo_entre:
+        data_vencimento_titulo_inicio, data_vencimento_titulo_fim = data_vencimento_titulo_entre
+        kwargs_ora.update({'data_vencimento_titulo_inicio': data_vencimento_titulo_inicio})
+        kwargs_ora.update({'data_vencimento_titulo_fim': data_vencimento_titulo_fim})
+
     sql_base = """
         SELECT
             {job_campo_alias}
@@ -2567,6 +2547,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {ano_emissao_campo_alias}
             {mes_emissao_campo_alias}
             {dia_emissao_campo_alias}
+            {chave_documento_campo_alias}
             {documento_campo_alias}
             {especie_campo_alias}
             {parcelas_campo_alias}
@@ -2713,6 +2694,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {estoque_abc_pesquisa}
             {cfop_baixa_estoque_pesquisa}
             {produto_marca_pesquisa}
+            {data_vencimento_titulo_entre_pesquisa}
 
             {fonte_where_data}
 
@@ -2726,6 +2708,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {ano_emissao_campo}
             {mes_emissao_campo}
             {dia_emissao_campo}
+            {chave_documento_campo}
             {documento_campo}
             {orcamento_oportunidade_campo}
             {status_documento_campo}
@@ -2824,7 +2807,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'ORCAMENTO', 'PEDIDO', 'NOTA', 'DATA_DESPACHO', 'LOG_NOME_INCLUSAO_DOCUMENTO',
                                      'PROXIMO_EVENTO_GRUPO', 'CGC', 'INSCRICAO_ESTADUAL', 'ESTOQUE_ABC', 'PARCELAS',
                                      'LOG_INCLUSAO_ORCAMENTO', 'REPRESENTANTE', 'REPRESENTANTE_DOCUMENTO',
-                                     'SEGUNDO_REPRESENTANTE', 'SEGUNDO_REPRESENTANTE_DOCUMENTO', 'ESPECIE',]
+                                     'SEGUNDO_REPRESENTANTE', 'SEGUNDO_REPRESENTANTE_DOCUMENTO', 'ESPECIE',
+                                     'CHAVE_DOCUMENTO',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',

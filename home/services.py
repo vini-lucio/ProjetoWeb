@@ -75,6 +75,7 @@ def tipo_clientes_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def contas_marketing_ano_mes_a_mes():
     """Totaliza o valor das contas de marketing no periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -123,6 +124,7 @@ def contas_marketing_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def i4ref_terceirizacao_ano_mes_a_mes():
     """Totaliza o valor da terceirização do 4REF do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -268,6 +270,7 @@ def i4ref_custo_materia_prima_vendido_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def i4ref_ano_mes_a_mes():
     """Totaliza o valor das contas do 4REF do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -790,6 +793,7 @@ def horas_improdutivas_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def inadimplencia_detalhe_ano_mes_a_mes():
     """Totaliza a inadimplencia detalhada por cliente do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -846,6 +850,7 @@ def inadimplencia_detalhe_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def inadimplencia_ano_mes_a_mes():
     """Totaliza a inadimplencia do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -1247,6 +1252,7 @@ def peso_estoque_produto_proprio_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def insvestimento_retiradas_ano_mes_a_mes():
     """Totaliza os investimentos e retiradas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -1470,6 +1476,7 @@ def faturado_bruto_ano_mes_a_mes(*, mes_atual: bool = False):
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def despesa_variavel_ano_mes_a_mes():
     """Totaliza a despesa variavel do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -1520,6 +1527,7 @@ def despesa_variavel_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def despesa_operacional_ano_mes_a_mes():
     """Totaliza a despesa operacional do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -2375,6 +2383,7 @@ def horas_produtivas_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def frete_cif_ano_mes_a_mes(*, mes_atual: bool = False):
     """Totaliza o valor dos fretes CIF do periodo informado em site setup mes a mes. Parametro para sobreescrever a data das atualizações"""
     site_setup = get_site_setup()
@@ -2431,6 +2440,7 @@ def frete_cif_ano_mes_a_mes(*, mes_atual: bool = False):
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def financeiro_ano_mes_a_mes():
     """Totaliza o valor das grandes contas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -2559,6 +2569,7 @@ def financeiro_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def financeiro_geral_ano_mes_a_mes():
     """Totaliza o valor geral das grandes contas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -2682,6 +2693,7 @@ def financeiro_geral_ano_mes_a_mes():
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def receitas_despesas_ano_mes_a_mes_12_meses():
     """Totaliza as receitas e despesas do periodo informado em site setup mes a mes (ultimos 12 meses de cada mes)"""
     site_setup = get_site_setup()
@@ -2949,6 +2961,7 @@ def minutos_produtivos_ano_mes_a_mes_12_meses():
     return resultado
 
 
+# TODO: trocar para get_relatorios_financeiros
 def contas_estrategicas_ano_mes_a_mes():
     """Totaliza o valor das contas estrategicas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -3447,6 +3460,7 @@ def migrar_vendedores():
                 instancia.save()
 
 
+# TODO: trocar para get_relatorios_financeiros
 def migrar_comissoes(data_inicio, data_fim):
     if data_fim:
         data_para_comissao = """

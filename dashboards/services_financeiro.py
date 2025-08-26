@@ -9,7 +9,7 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         chave e o codigo sql como valor
     """
     map_sql_pagar_base = {
-        'valor_efetivo': "SUM(PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000) AS VALOR_EFETIVO",
+        'valor_efetivo': "COALESCE(SUM(PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000), 0) AS VALOR_EFETIVO",
 
         'fonte': """
             COPLAS.PAGAR,
@@ -27,15 +27,24 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
     }
 
     map_sql_pagar = {
+        'coluna_data_vencimento': {'data_vencimento_campo_alias': "PAGAR.DATAVENCIMENTO AS DATA_VENCIMENTO,",
+                                   'data_vencimento_campo': "PAGAR.DATAVENCIMENTO,", },
+        'data_vencimento_inicio': {'data_vencimento_inicio_pesquisa': "PAGAR.DATAVENCIMENTO >= :data_vencimento_inicio AND", },
+        'data_vencimento_fim': {'data_vencimento_fim_pesquisa': "PAGAR.DATAVENCIMENTO <= :data_vencimento_fim AND", },
+
         'data_liquidacao_inicio': {'data_liquidacao_inicio_pesquisa': "PAGAR.DATALIQUIDACAO >= :data_liquidacao_inicio AND", },
         'data_liquidacao_fim': {'data_liquidacao_fim_pesquisa': "PAGAR.DATALIQUIDACAO <= :data_liquidacao_fim AND", },
 
         'coluna_codigo_plano_conta': {'codigo_plano_conta_campo_alias': "PLANO_DE_CONTAS.CONTA AS CODIGO_PLANO_CONTA,",
                                       'codigo_plano_conta_campo': "PLANO_DE_CONTAS.CONTA,", },
+
+        'coluna_valor_titulo': {'valor_titulo_campo_alias': "SUM(PAGAR.VALORTOTAL * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000) AS VALOR_TITULO,", },
+
+        'coluna_chave_nota': {'chave_nota_campo_alias': "NULL AS CHAVE_NOTA,", },
     }
 
     map_sql_receber_base = {
-        'valor_efetivo': "SUM(RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000) AS VALOR_EFETIVO",
+        'valor_efetivo': "COALESCE(SUM(RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000), 0) AS VALOR_EFETIVO",
 
         'fonte': """
             COPLAS.RECEBER,
@@ -53,11 +62,21 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
     }
 
     map_sql_receber = {
+        'coluna_data_vencimento': {'data_vencimento_campo_alias': "RECEBER.DATAVENCIMENTO AS DATA_VENCIMENTO,",
+                                   'data_vencimento_campo': "RECEBER.DATAVENCIMENTO,", },
+        'data_vencimento_inicio': {'data_vencimento_inicio_pesquisa': "RECEBER.DATAVENCIMENTO >= :data_vencimento_inicio AND", },
+        'data_vencimento_fim': {'data_vencimento_fim_pesquisa': "RECEBER.DATAVENCIMENTO <= :data_vencimento_fim AND", },
+
         'data_liquidacao_inicio': {'data_liquidacao_inicio_pesquisa': "RECEBER.DATALIQUIDACAO >= :data_liquidacao_inicio AND", },
         'data_liquidacao_fim': {'data_liquidacao_fim_pesquisa': "RECEBER.DATALIQUIDACAO <= :data_liquidacao_fim AND", },
 
         'coluna_codigo_plano_conta': {'codigo_plano_conta_campo_alias': "PLANO_DE_CONTAS.CONTA AS CODIGO_PLANO_CONTA,",
                                       'codigo_plano_conta_campo': "PLANO_DE_CONTAS.CONTA,", },
+
+        'coluna_valor_titulo': {'valor_titulo_campo_alias': "SUM(RECEBER.VALORTOTAL * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000) AS VALOR_TITULO,", },
+
+        'coluna_chave_nota': {'chave_nota_campo_alias': "RECEBER.CHAVE_NOTA,",
+                              'chave_nota_campo': "RECEBER.CHAVE_NOTA,", },
     }
 
     tipo_movimentacao_bancaria = 'C' if fonte == 'receber' else 'D'
@@ -69,10 +88,22 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
     }
 
     map_sql_movimentacao_bancaria = {
+        'coluna_data_vencimento': {'data_vencimento_campo_alias_mov_ban': "MOVBAN.DATA AS DATA_VENCIMENTO,",
+                                   'data_vencimento_campo_mov_ban': "MOVBAN.DATA,",
+                                   'data_vencimento_union_alias': "DATA_VENCIMENTO,", },
+        'data_vencimento_inicio': {'data_vencimento_inicio_pesquisa_mov_ban': "MOVBAN.DATA >= :data_vencimento_inicio AND", },
+        'data_vencimento_fim': {'data_vencimento_fim_pesquisa_mov_ban': "MOVBAN.DATA <= :data_vencimento_fim AND", },
+
         'data_liquidacao_inicio': {'data_liquidacao_inicio_pesquisa_mov_ban': "MOVBAN.DATA >= :data_liquidacao_inicio AND", },
         'data_liquidacao_fim': {'data_liquidacao_fim_pesquisa_mov_ban': "MOVBAN.DATA <= :data_liquidacao_fim AND", },
 
         'coluna_codigo_plano_conta': {'codigo_plano_conta_union_alias': "CODIGO_PLANO_CONTA,", },
+
+        'coluna_valor_titulo': {'valor_titulo_campo_alias_mov_ban': "SUM(MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) AS VALOR_TITULO,",
+                                'valor_titulo_union_alias': "SUM(VALOR_TITULO) AS VALOR_TITULO,", },
+
+        'coluna_chave_nota': {'chave_nota_campo_alias_mov_ban': "NULL AS CHAVE_NOTA,",
+                              'chave_nota_union_alias': "CHAVE_NOTA,", },
     }
 
     sql_final = {}
@@ -106,6 +137,8 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
 
     data_liquidacao_inicio = kwargs.get('data_liquidacao_inicio')
     data_liquidacao_fim = kwargs.get('data_liquidacao_fim')
+    data_vencimento_inicio = kwargs.get('data_vencimento_inicio')
+    data_vencimento_fim = kwargs.get('data_vencimento_fim')
 
     kwargs_sql.update(map_relatorio_financeiro_sql_string_placeholders(fonte, **kwargs))
 
@@ -117,9 +150,18 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
     if data_liquidacao_fim:
         kwargs_ora.update({'data_liquidacao_fim': data_liquidacao_fim})
 
+    if data_vencimento_inicio:
+        kwargs_ora.update({'data_vencimento_inicio': data_vencimento_inicio})
+
+    if data_vencimento_fim:
+        kwargs_ora.update({'data_vencimento_fim': data_vencimento_fim})
+
     sql_base = """
         SELECT
             {codigo_plano_conta_union_alias}
+            {chave_nota_union_alias}
+            {data_vencimento_union_alias}
+            {valor_titulo_union_alias}
 
             {valor_efetivo_union_alias}
 
@@ -127,6 +169,9 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
             (
                 SELECT
                     {codigo_plano_conta_campo_alias}
+                    {chave_nota_campo_alias}
+                    {data_vencimento_campo_alias}
+                    {valor_titulo_campo_alias}
 
                     {valor_efetivo}
 
@@ -139,17 +184,24 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
 
                     {data_liquidacao_inicio_pesquisa}
                     {data_liquidacao_fim_pesquisa}
+                    {data_vencimento_inicio_pesquisa}
+                    {data_vencimento_fim_pesquisa}
 
                     1 = 1
 
                 GROUP BY
                     {codigo_plano_conta_campo}
+                    {chave_nota_campo}
+                    {data_vencimento_campo}
                     1
 
                 UNION ALL
 
                 SELECT
                     {codigo_plano_conta_campo_alias}
+                    {chave_nota_campo_alias_mov_ban}
+                    {data_vencimento_campo_alias_mov_ban}
+                    {valor_titulo_campo_alias_mov_ban}
 
                     {valor_efetivo_mov_ban}
 
@@ -170,20 +222,26 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
 
                     {data_liquidacao_inicio_pesquisa_mov_ban}
                     {data_liquidacao_fim_pesquisa_mov_ban}
+                    {data_vencimento_inicio_pesquisa_mov_ban}
+                    {data_vencimento_fim_pesquisa_mov_ban}
 
                     1 = 1
 
                 GROUP BY
                     {codigo_plano_conta_campo}
+                    {data_vencimento_campo_mov_ban}
                     1
             )
 
         GROUP BY
             {codigo_plano_conta_union_alias}
+            {chave_nota_union_alias}
+            {data_vencimento_union_alias}
             1
 
         ORDER BY
             {codigo_plano_conta_union_alias}
+            {data_vencimento_union_alias}
             VALOR_EFETIVO DESC
     """
 
