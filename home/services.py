@@ -3,6 +3,7 @@ from collections import Counter
 from decimal import Decimal
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
+from dashboards.services_financeiro import get_relatorios_financeiros
 from home.models import (Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores, CanaisVendas, Regioes,
                          ProdutosModelos)
 from rh.models import Comissoes, ComissoesVendedores, Faturamentos, FaturamentosVendedores
@@ -75,51 +76,45 @@ def tipo_clientes_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar para get_relatorios_financeiros
 def contas_marketing_ano_mes_a_mes():
     """Totaliza o valor das contas de marketing no periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) AS MES,
-            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1396 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS CORREIOS,
-            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1481 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS MIDIA,
-            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1482 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS FEIRAS_EVENTOS,
-            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1483 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS BRINDES,
-            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1484 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS IMPRESSO,
-            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1537 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS INSTITUCIONAL,
-            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1561 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS PATROCINIO,
-            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1565 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS FERRAMENTAS,
-            ROUND(SUM(CASE WHEN PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = 1608 THEN PAGAR.VALORPAGO * (PAGAR_PLANOCONTA.PERCENTUAL / 100) ELSE 0 END), 2) AS CAMPANHA_COMERCIAL
+    relatorios = []
+    plano_contas = [
+        (1396, 'CORREIOS'),
+        (1481, 'MIDIA'),
+        (1482, 'FEIRAS_EVENTOS'),
+        (1483, 'BRINDES'),
+        (1484, 'IMPRESSO'),
+        (1537, 'INSTITUCIONAL'),
+        (1561, 'PATROCINIO'),
+        (1565, 'FERRAMENTAS'),
+        (1608, 'CAMPANHA_COMERCIAL'),
+    ]
 
-        FROM
-            COPLAS.PAGAR,
-            COPLAS.PAGAR_JOB,
-            COPLAS.PAGAR_PLANOCONTA
+    for chave_plano, descricao_plano in plano_contas:
+        relatorio = get_relatorios_financeiros('pagar', coluna_mes_liquidacao=True, job=22,
+                                               data_liquidacao_inicio=data_ano_inicio,
+                                               data_liquidacao_fim=data_ano_fim, plano_conta=chave_plano)
+        relatorio = completar_meses(pd.DataFrame(relatorio), 'MES_LIQUIDACAO')
+        if 'VALOR_EFETIVO' not in relatorio.columns:  # type:ignore
+            relatorio['VALOR_EFETIVO'] = 0  # type:ignore
+        relatorio = relatorio.rename(columns={'VALOR_EFETIVO': descricao_plano})  # type:ignore
 
-        WHERE
-            PAGAR.CHAVE = PAGAR_JOB.CHAVE_PAGAR AND
-            PAGAR.CHAVE = PAGAR_PLANOCONTA.CHAVE_PAGAR AND
-            PAGAR.CONDICAO = 'LIQUIDADO' AND
-            PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS IN (1396, 1481, 1482, 1483, 1484, 1537, 1561, 1565, 1608) AND
-            PAGAR_JOB.CHAVE_JOB = 22 AND
+        relatorios.append(relatorio)
 
-            PAGAR.DATALIQUIDACAO >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
-            PAGAR.DATALIQUIDACAO <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
+    resultado = pd.DataFrame()
+    for relatorio in relatorios:
+        if resultado.empty:
+            resultado = pd.DataFrame(relatorio)
+            continue
+        resultado = pd.merge(resultado, relatorio, how='inner', on='MES_LIQUIDACAO')
 
-        GROUP BY
-            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -376,7 +371,7 @@ def exportacoes_ano_mes_a_mes():
 
     resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                       coluna_mes_emissao=True, carteira=738)
-    resultado = completar_meses(pd.DataFrame(resultado), to_dict=True)
+    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', to_dict=True)
 
     return resultado
 
@@ -391,7 +386,7 @@ def revendas_ano_mes_a_mes():
 
     resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                       coluna_mes_emissao=True, tipo_cliente=7552)
-    resultado = completar_meses(pd.DataFrame(resultado), to_dict=True)
+    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', to_dict=True)
 
     return resultado
 
@@ -406,7 +401,7 @@ def parede_concreto_ano_mes_a_mes():
 
     resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                       coluna_mes_emissao=True, carteira_parede_de_concreto=True)
-    resultado = completar_meses(pd.DataFrame(resultado), to_dict=True)
+    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', to_dict=True)
 
     return resultado
 
@@ -421,7 +416,7 @@ def eolicas_ano_mes_a_mes():
 
     resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                       coluna_mes_emissao=True, informacao_estrategica=19)
-    resultado = completar_meses(pd.DataFrame(resultado), to_dict=True)
+    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', to_dict=True)
 
     return resultado
 
@@ -2961,115 +2956,42 @@ def minutos_produtivos_ano_mes_a_mes_12_meses():
     return resultado
 
 
-# TODO: trocar para get_relatorios_financeiros
 def contas_estrategicas_ano_mes_a_mes():
     """Totaliza o valor das contas estrategicas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            CONTAS_ESTRATEGICAS.MES,
-            SUM(CONTAS_ESTRATEGICAS.MERCADORIA_REVENDA) AS MERCADORIA_REVENDA,
-            SUM(CONTAS_ESTRATEGICAS.IMPOSTOS) AS IMPOSTOS,
-            SUM(CONTAS_ESTRATEGICAS.MP) AS MP,
-            SUM(CONTAS_ESTRATEGICAS.ENERGIA) AS ENERGIA,
-            SUM(CONTAS_ESTRATEGICAS.SALARIOS_ENCARGOS) AS SALARIOS_ENCARGOS
+    relatorios = []
+    plano_contas = [
+        ('2.01.01.%', 'MERCADORIA_REVENDA'),
+        ('2.03.%', 'IMPOSTOS'),
+        ('2.01.02.%', 'MP'),
+        ('3.02.03.%', 'ENERGIA'),
+        ('3.03.%', 'SALARIOS_ENCARGOS'),
+    ]
 
-        FROM
-            (
-                SELECT
-                    EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) AS MES,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.01.01.%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS MERCADORIA_REVENDA,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.03.%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS IMPOSTOS,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.01.02.%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS MP,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '3.02.03.%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS ENERGIA,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '3.03.%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS SALARIOS_ENCARGOS
+    for codigo_plano, descricao_plano in plano_contas:
+        relatorio = get_relatorios_financeiros('pagar', coluna_mes_liquidacao=True, job=22,
+                                               centro_resultado_coplas=True,
+                                               data_liquidacao_inicio=data_ano_inicio,
+                                               data_liquidacao_fim=data_ano_fim, plano_conta_codigo=codigo_plano)
+        relatorio = completar_meses(pd.DataFrame(relatorio), 'MES_LIQUIDACAO')
+        if 'VALOR_EFETIVO' not in relatorio.columns:  # type:ignore
+            relatorio['VALOR_EFETIVO'] = 0  # type:ignore
+        relatorio = relatorio.rename(columns={'VALOR_EFETIVO': descricao_plano})  # type:ignore
 
-                FROM
-                    COPLAS.PAGAR,
-                    COPLAS.PAGAR_PLANOCONTA,
-                    COPLAS.PAGAR_CENTRORESULTADO,
-                    COPLAS.PAGAR_JOB,
-                    COPLAS.PLANO_DE_CONTAS
+        relatorios.append(relatorio)
 
-                WHERE
-                    PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
-                    PAGAR.CHAVE = PAGAR_PLANOCONTA.CHAVE_PAGAR AND
-                    PAGAR.CHAVE = PAGAR_CENTRORESULTADO.CHAVE_PAGAR AND
-                    PAGAR.CHAVE = PAGAR_JOB.CHAVE_PAGAR AND
-                    PAGAR_JOB.CHAVE_JOB = 22 AND
-                    PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
-                    (
-                        PLANO_DE_CONTAS.CONTA LIKE '2.01.01.%' OR
-                        PLANO_DE_CONTAS.CONTA LIKE '2.03.%' OR
-                        PLANO_DE_CONTAS.CONTA LIKE '2.01.02.%' OR
-                        PLANO_DE_CONTAS.CONTA LIKE '3.02.03.%' OR
-                        PLANO_DE_CONTAS.CONTA LIKE '3.03.%'
-                    ) AND
+    resultado = pd.DataFrame()
+    for relatorio in relatorios:
+        if resultado.empty:
+            resultado = pd.DataFrame(relatorio)
+            continue
+        resultado = pd.merge(resultado, relatorio, how='inner', on='MES_LIQUIDACAO')
 
-                    -- primeiro dia do ano
-                    PAGAR.DATALIQUIDACAO>=TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
-                    -- ultimo dia do mes
-                    PAGAR.DATALIQUIDACAO<=TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
-
-                GROUP BY
-                    EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO)
-
-                UNION ALL
-
-                SELECT
-                    EXTRACT(MONTH FROM MOVBAN.DATA) AS MES,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.01.01.%' THEN MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS MERCADORIA_REVENDA,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.03.%' THEN MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS IMPOSTOS,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.01.02.%' THEN MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS MP,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '3.02.03.%' THEN MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS ENERGIA,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '3.03.%' THEN MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS SALARIOS_ENCARGOS
-
-                FROM
-                    COPLAS.MOVBAN,
-                    COPLAS.MOVBAN_PLANOCONTA,
-                    COPLAS.MOVBAN_CENTRORESULTADO,
-                    COPLAS.MOVBAN_JOB,
-                    COPLAS.PLANO_DE_CONTAS
-
-                WHERE
-                    MOVBAN_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
-                    MOVBAN.CHAVE = MOVBAN_PLANOCONTA.CHAVE_MOVBAN AND
-                    MOVBAN.CHAVE = MOVBAN_CENTRORESULTADO.CHAVE_MOVBAN AND
-                    MOVBAN.CHAVE = MOVBAN_JOB.CHAVE_MOVBAN AND
-                    MOVBAN.TIPO = 'D' AND
-                    MOVBAN.AUTOMATICO = 'NAO' AND
-                    MOVBAN_JOB.CHAVE_JOB = 22 AND
-                    MOVBAN_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
-                    (
-                        PLANO_DE_CONTAS.CONTA LIKE '2.01.01.%' OR
-                        PLANO_DE_CONTAS.CONTA LIKE '2.03.%' OR
-                        PLANO_DE_CONTAS.CONTA LIKE '2.01.02.%' OR
-                        PLANO_DE_CONTAS.CONTA LIKE '3.02.03.%' OR
-                        PLANO_DE_CONTAS.CONTA LIKE '3.03.%'
-                    ) AND
-
-                    -- primeiro dia do ano
-                    MOVBAN.DATA>=TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
-                    -- ultimo dia do mes
-                    MOVBAN.DATA<=TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
-
-                GROUP BY
-                    EXTRACT(MONTH FROM MOVBAN.DATA)
-            ) CONTAS_ESTRATEGICAS
-
-        GROUP BY
-            MES
-
-        ORDER BY
-            MES
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 

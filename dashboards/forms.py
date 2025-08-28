@@ -60,6 +60,7 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
         self.fields['fim'].initial = hoje_as_yyyymmdd()
 
     carteiras = VENDEDORES.objects.filter(CHAVE_CANAL=9).all().order_by('NOMERED')
+    representantes = VENDEDORES.objects.all().order_by('NOMERED')
     clientes_tipos = CLIENTES_TIPOS.objects.all().order_by('DESCRICAO')
     cidades = FAIXAS_CEP.objects.all().order_by('CIDADE')
     estados = ESTADOS.objects.all().order_by('ESTADO')
@@ -95,6 +96,10 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_media_dia = forms.BooleanField(label="Coluna R$ Médio por Dia", help_text="de venda (exceto excluidos)",
                                           initial=False, required=False)
     coluna_documento = forms.BooleanField(label="Coluna Documento", initial=False, required=False)
+    coluna_representante_documento = forms.BooleanField(label="Coluna Representante Documento", initial=False,
+                                                        required=False)
+    coluna_segundo_representante = forms.BooleanField(label="Coluna Segundo Representante", initial=False,
+                                                      required=False)
 
     job = forms.ModelChoiceField(jobs, label="Job", required=False)
     grupo_economico = forms.CharField(label="Grupo Economico", max_length=300, required=False)
@@ -110,26 +115,28 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     produto = forms.CharField(label="Produto", max_length=300, required=False)
     informacao_estrategica = forms.ModelChoiceField(informacoes_estrategicas, label="Informação Estrategica",
                                                     required=False)
+    representante_documento = forms.ModelChoiceField(representantes, label="Representante Documento", required=False)
+    segundo_representante = forms.ModelChoiceField(representantes, label="Segundo Representante", required=False)
 
     def get_agrupamentos_campos(self):
         agrupamentos = {
             'Data de Emissao': ['inicio', 'fim',],
 
             'Visualizações sobre Cliente': ['coluna_grupo_economico', 'coluna_carteira', 'coluna_tipo_cliente',
-                                            'coluna_cidade', 'coluna_estado',],
+                                            'coluna_cidade', 'coluna_estado', 'coluna_segundo_representante',],
             'Visualizações sobre Produto': ['coluna_familia_produto', 'coluna_produto', 'coluna_unidade',
                                             'coluna_preco_tabela_inclusao', 'coluna_preco_venda_medio',
                                             'coluna_quantidade',],
             'Visualizações Gerais': ['coluna_job', 'coluna_rentabilidade', 'coluna_rentabilidade_valor',
                                      'coluna_proporcao', 'coluna_quantidade_documentos', 'coluna_ano_emissao',
                                      'coluna_mes_emissao', 'coluna_dia_emissao', 'coluna_media_dia',
-                                     'coluna_documento',],
+                                     'coluna_documento', 'coluna_representante_documento',],
 
             'Filtros sobre Cliente': ['grupo_economico', 'carteira', 'carteira_parede_de_concreto',
                                       'carteira_premoldado_poste', 'tipo_cliente', 'cidade', 'estado',
-                                      'informacao_estrategica',],
+                                      'informacao_estrategica', 'segundo_representante',],
             'Filtros sobre Produto': ['familia_produto', 'produto',],
-            'Filtros Gerais': ['job',],
+            'Filtros Gerais': ['job', 'representante_documento',],
         }
 
         return agrupamentos

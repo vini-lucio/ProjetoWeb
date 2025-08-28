@@ -81,6 +81,7 @@ def confere_inscricoes_api():
         if inscricoes_api == 'erro':
             continue
 
+        # TODO: alguns casos é incluido inscrição em branco mesmo quando tem inscrição na API
         if not inscricoes_api:
             inscricoes_nao_nulas = inscricoes.filter(inscricao_estadual__isnull=False, estado__isnull=False)
             if inscricoes_nao_nulas.exists():

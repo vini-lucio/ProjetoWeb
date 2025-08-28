@@ -1109,21 +1109,33 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                  'representante_campo': "REPRESENTANTES.NOMERED,",
                                  'representantes_from': "COPLAS.VENDEDORES REPRESENTANTES,",
                                  'representantes_join': "CLIENTES.CODVEND = REPRESENTANTES.CODVENDEDOR(+) AND", },
+        'representante': {'representante_pesquisa': "REPRESENTANTES.CODVENDEDOR = :chave_representante AND",
+                          'representantes_from': "COPLAS.VENDEDORES REPRESENTANTES,",
+                          'representantes_join': "CLIENTES.CODVEND = REPRESENTANTES.CODVENDEDOR(+) AND", },
 
         'coluna_representante_documento': {'representante_documento_campo_alias': "REPRESENTANTES_DOCUMENTO.NOMERED AS REPRESENTANTE_DOCUMENTO,",
                                            'representante_documento_campo': "REPRESENTANTES_DOCUMENTO.NOMERED,",
                                            'representantes_documento_from': "COPLAS.VENDEDORES REPRESENTANTES_DOCUMENTO,",
                                            'representantes_documento_join': "NOTAS.CHAVE_VENDEDOR = REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+        'representante_documento': {'representante_documento_pesquisa': "REPRESENTANTES_DOCUMENTO.CODVENDEDOR = :chave_representante_documento AND",
+                                    'representantes_documento_from': "COPLAS.VENDEDORES REPRESENTANTES_DOCUMENTO,",
+                                    'representantes_documento_join': "NOTAS.CHAVE_VENDEDOR = REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
 
         'coluna_segundo_representante': {'segundo_representante_campo_alias': "SEGUNDO_REPRESENTANTES.NOMERED AS SEGUNDO_REPRESENTANTE,",
                                          'segundo_representante_campo': "SEGUNDO_REPRESENTANTES.NOMERED,",
                                          'segundo_representantes_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES,",
                                          'segundo_representantes_join': "CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES.CODVENDEDOR(+) AND", },
+        'segundo_representante': {'segundo_representante_pesquisa': "SEGUNDO_REPRESENTANTES.CODVENDEDOR = :chave_segundo_representante AND",
+                                  'segundo_representantes_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES,",
+                                  'segundo_representantes_join': "CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES.CODVENDEDOR(+) AND", },
 
         'coluna_segundo_representante_documento': {'segundo_representante_documento_campo_alias': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED AS SEGUNDO_REPRESENTANTE_DOCUMENTO,",
                                                    'segundo_representante_documento_campo': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED,",
                                                    'segundo_representantes_documento_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES_DOCUMENTO,",
                                                    'segundo_representantes_documento_join': "NOTAS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+        'segundo_representante_documento': {'segundo_representante_documento_pesquisa': "SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR = :chave_segundo_representante_documento AND",
+                                            'segundo_representantes_documento_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES_DOCUMENTO,",
+                                            'segundo_representantes_documento_join': "NOTAS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
 
         'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
                                 'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
@@ -1589,21 +1601,33 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                  'representante_campo': "REPRESENTANTES.NOMERED,",
                                  'representantes_from': "COPLAS.VENDEDORES REPRESENTANTES,",
                                  'representantes_join': "CLIENTES.CODVEND = REPRESENTANTES.CODVENDEDOR(+) AND", },
+        'representante': {'representante_pesquisa': "REPRESENTANTES.CODVENDEDOR = :chave_representante AND",
+                          'representantes_from': "COPLAS.VENDEDORES REPRESENTANTES,",
+                          'representantes_join': "CLIENTES.CODVEND = REPRESENTANTES.CODVENDEDOR(+) AND", },
 
         'coluna_representante_documento': {'representante_documento_campo_alias': "REPRESENTANTES_DOCUMENTO.NOMERED AS REPRESENTANTE_DOCUMENTO,",
                                            'representante_documento_campo': "REPRESENTANTES_DOCUMENTO.NOMERED,",
                                            'representantes_documento_from': "COPLAS.VENDEDORES REPRESENTANTES_DOCUMENTO,",
                                            'representantes_documento_join': "PEDIDOS.CHAVE_VENDEDOR = REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+        'representante_documento': {'representante_documento_pesquisa': "REPRESENTANTES_DOCUMENTO.CODVENDEDOR = :chave_representante_documento AND",
+                                    'representantes_documento_from': "COPLAS.VENDEDORES REPRESENTANTES_DOCUMENTO,",
+                                    'representantes_documento_join': "PEDIDOS.CHAVE_VENDEDOR = REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
 
         'coluna_segundo_representante': {'segundo_representante_campo_alias': "SEGUNDO_REPRESENTANTES.NOMERED AS SEGUNDO_REPRESENTANTE,",
                                          'segundo_representante_campo': "SEGUNDO_REPRESENTANTES.NOMERED,",
                                          'segundo_representantes_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES,",
                                          'segundo_representantes_join': "CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES.CODVENDEDOR(+) AND", },
+        'segundo_representante': {'segundo_representante_pesquisa': "SEGUNDO_REPRESENTANTES.CODVENDEDOR = :chave_segundo_representante AND",
+                                  'segundo_representantes_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES,",
+                                  'segundo_representantes_join': "CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES.CODVENDEDOR(+) AND", },
 
         'coluna_segundo_representante_documento': {'segundo_representante_documento_campo_alias': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED AS SEGUNDO_REPRESENTANTE_DOCUMENTO,",
                                                    'segundo_representante_documento_campo': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED,",
                                                    'segundo_representantes_documento_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES_DOCUMENTO,",
                                                    'segundo_representantes_documento_join': "PEDIDOS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+        'segundo_representante_documento': {'segundo_representante_documento_pesquisa': "SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR = :chave_segundo_representante_documento AND",
+                                            'segundo_representantes_documento_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES_DOCUMENTO,",
+                                            'segundo_representantes_documento_join': "PEDIDOS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
 
         'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
                                 'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
@@ -2049,21 +2073,33 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                  'representante_campo': "REPRESENTANTES.NOMERED,",
                                  'representantes_from': "COPLAS.VENDEDORES REPRESENTANTES,",
                                  'representantes_join': "CLIENTES.CODVEND = REPRESENTANTES.CODVENDEDOR(+) AND", },
+        'representante': {'representante_pesquisa': "REPRESENTANTES.CODVENDEDOR = :chave_representante AND",
+                          'representantes_from': "COPLAS.VENDEDORES REPRESENTANTES,",
+                          'representantes_join': "CLIENTES.CODVEND = REPRESENTANTES.CODVENDEDOR(+) AND", },
 
         'coluna_representante_documento': {'representante_documento_campo_alias': "REPRESENTANTES_DOCUMENTO.NOMERED AS REPRESENTANTE_DOCUMENTO,",
                                            'representante_documento_campo': "REPRESENTANTES_DOCUMENTO.NOMERED,",
                                            'representantes_documento_from': "COPLAS.VENDEDORES REPRESENTANTES_DOCUMENTO,",
                                            'representantes_documento_join': "ORCAMENTOS.CHAVE_VENDEDOR = REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+        'representante_documento': {'representante_documento_pesquisa': "REPRESENTANTES_DOCUMENTO.CODVENDEDOR = :chave_representante_documento AND",
+                                    'representantes_documento_from': "COPLAS.VENDEDORES REPRESENTANTES_DOCUMENTO,",
+                                    'representantes_documento_join': "ORCAMENTOS.CHAVE_VENDEDOR = REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
 
         'coluna_segundo_representante': {'segundo_representante_campo_alias': "SEGUNDO_REPRESENTANTES.NOMERED AS SEGUNDO_REPRESENTANTE,",
                                          'segundo_representante_campo': "SEGUNDO_REPRESENTANTES.NOMERED,",
                                          'segundo_representantes_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES,",
                                          'segundo_representantes_join': "CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES.CODVENDEDOR(+) AND", },
+        'segundo_representante': {'segundo_representante_pesquisa': "SEGUNDO_REPRESENTANTES.CODVENDEDOR = :chave_segundo_representante AND",
+                                  'segundo_representantes_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES,",
+                                  'segundo_representantes_join': "CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES.CODVENDEDOR(+) AND", },
 
         'coluna_segundo_representante_documento': {'segundo_representante_documento_campo_alias': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED AS SEGUNDO_REPRESENTANTE_DOCUMENTO,",
                                                    'segundo_representante_documento_campo': "SEGUNDO_REPRESENTANTES_DOCUMENTO.NOMERED,",
                                                    'segundo_representantes_documento_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES_DOCUMENTO,",
                                                    'segundo_representantes_documento_join': "ORCAMENTOS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
+        'segundo_representante_documento': {'segundo_representante_documento_pesquisa': "SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR = :chave_segundo_representante_documento AND",
+                                            'segundo_representantes_documento_from': "COPLAS.VENDEDORES SEGUNDO_REPRESENTANTES_DOCUMENTO,",
+                                            'segundo_representantes_documento_join': "ORCAMENTOS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTES_DOCUMENTO.CODVENDEDOR(+) AND", },
 
         'coluna_tipo_cliente': {'tipo_cliente_campo_alias': "CLIENTES_TIPOS.DESCRICAO AS TIPO_CLIENTE,",
                                 'tipo_cliente_campo': "CLIENTES_TIPOS.DESCRICAO,", },
@@ -2433,6 +2469,10 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     data_despacho_menor_igual = kwargs.get('data_despacho_menor_igual')
     estoque_abc = kwargs.get('estoque_abc')
     data_vencimento_titulo_entre = kwargs.get('data_vencimento_titulo_entre')
+    representante = kwargs.get('representante')
+    representante_documento = kwargs.get('representante_documento')
+    segundo_representante = kwargs.get('segundo_representante')
+    segundo_representante_documento = kwargs.get('segundo_representante_documento')
 
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
 
@@ -2534,6 +2574,25 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         data_vencimento_titulo_inicio, data_vencimento_titulo_fim = data_vencimento_titulo_entre
         kwargs_ora.update({'data_vencimento_titulo_inicio': data_vencimento_titulo_inicio})
         kwargs_ora.update({'data_vencimento_titulo_fim': data_vencimento_titulo_fim})
+
+    if representante:
+        chave_representante = representante if isinstance(representante, int) else representante.chave_analysis
+        kwargs_ora.update({'chave_representante': chave_representante, })
+
+    if representante_documento:
+        chave_representante_documento = representante_documento if isinstance(
+            representante_documento, int) else representante_documento.chave_analysis
+        kwargs_ora.update({'chave_representante_documento': chave_representante_documento, })
+
+    if segundo_representante:
+        chave_segundo_representante = segundo_representante if isinstance(
+            segundo_representante, int) else segundo_representante.chave_analysis
+        kwargs_ora.update({'chave_segundo_representante': chave_segundo_representante, })
+
+    if segundo_representante_documento:
+        chave_segundo_representante_documento = segundo_representante_documento if isinstance(
+            segundo_representante_documento, int) else segundo_representante_documento.chave_analysis
+        kwargs_ora.update({'chave_segundo_representante_documento': chave_segundo_representante_documento, })
 
     sql_base = """
         SELECT
@@ -2695,6 +2754,10 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {cfop_baixa_estoque_pesquisa}
             {produto_marca_pesquisa}
             {data_vencimento_titulo_entre_pesquisa}
+            {representante_pesquisa}
+            {representante_documento_pesquisa}
+            {segundo_representante_pesquisa}
+            {segundo_representante_documento_pesquisa}
 
             {fonte_where_data}
 

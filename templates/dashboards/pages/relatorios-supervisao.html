@@ -75,6 +75,8 @@
                             {% if formulario.coluna_ano_emissao.value %}<th>Ano</th>{% endif %}
                             {% if formulario.coluna_mes_emissao.value %}<th>Mês</th>{% endif %}
                             {% if formulario.coluna_dia_emissao.value %}<th>Dia</th>{% endif %}
+                            {% if formulario.coluna_representante_documento.value %}<th>Repre. Documento</th>{% endif %}
+                            {% if formulario.coluna_segundo_representante.value %}<th>Segundo Repre.</th>{% endif %}
                             {% if formulario.coluna_carteira.value %}<th>Carteira</th>{% endif %}
                             {% if formulario.coluna_documento.value %}<th>Documento</th>{% endif %}
                             {% if formulario.coluna_grupo_economico.value %}<th>Grupo Economico</th>{% endif %}
@@ -103,6 +105,8 @@
                                 {% if formulario.coluna_ano_emissao.value %}<td>{{ valor.ANO_EMISSAO }}</td>{% endif %}
                                 {% if formulario.coluna_mes_emissao.value %}<td>{{ valor.MES_EMISSAO }}</td>{% endif %}
                                 {% if formulario.coluna_dia_emissao.value %}<td>{{ valor.DIA_EMISSAO }}</td>{% endif %}
+                                {% if formulario.coluna_representante_documento.value %}<td>{{ valor.REPRESENTANTE_DOCUMENTO }}</td>{% endif %}
+                                {% if formulario.coluna_segundo_representante.value %}<td>{{ valor.SEGUNDO_REPRESENTANTE }}</td>{% endif %}
                                 {% if formulario.coluna_carteira.value %}<td>{{ valor.CARTEIRA }}</td>{% endif %}
                                 {% if formulario.coluna_documento.value %}<td>{{ valor.DOCUMENTO | stringformat:"d" }}</td>{% endif %}
                                 {% if formulario.coluna_grupo_economico.value %}<td>{{ valor.GRUPO }}</td>{% endif %}
@@ -131,6 +135,8 @@
                             {% if formulario.coluna_ano_emissao.value %}<td></td>{% endif %}
                             {% if formulario.coluna_mes_emissao.value %}<td></td>{% endif %}
                             {% if formulario.coluna_dia_emissao.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_representante_documento.value %}<td></td>{% endif %}
+                            {% if formulario.coluna_segundo_representante.value %}<td></td>{% endif %}
                             {% if formulario.coluna_carteira.value %}<td></td>{% endif %}
                             {% if formulario.coluna_documento.value %}<td></td>{% endif %}
                             {% if formulario.coluna_grupo_economico.value %}<td></td>{% endif %}
