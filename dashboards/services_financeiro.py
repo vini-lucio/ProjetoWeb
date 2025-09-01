@@ -8,10 +8,17 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         SQLs estão em um dict onde a chave é o nome do campo do formulario e o valor é um dict com o placeholder como
         chave e o codigo sql como valor
     """
+
+    valor_debito_negativo = kwargs_formulario.pop('valor_debito_negativo', False)
+    negativo = ""
+    if fonte == 'pagar' and valor_debito_negativo:
+        negativo = " * (-1)"
+
     map_sql_pagar_base = {
-        'valor_efetivo': "COALESCE(SUM(PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000), 0) AS VALOR_EFETIVO",
+        'valor_efetivo': "COALESCE(SUM(PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000), 0) {negativo} AS VALOR_EFETIVO".format(negativo=negativo),
 
         'fonte': """
+            COPLAS.FORNECEDORES,
             COPLAS.PAGAR,
             COPLAS.PAGAR_PLANOCONTA,
             COPLAS.PAGAR_CENTRORESULTADO,
@@ -20,6 +27,7 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         """,
 
         'fonte_joins': """
+            PAGAR.CODFOR = FORNECEDORES.CODFOR AND
             PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
             PAGAR.CHAVE = PAGAR_PLANOCONTA.CHAVE_PAGAR AND
             PAGAR.CHAVE = PAGAR_CENTRORESULTADO.CHAVE_PAGAR AND
@@ -29,8 +37,25 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
     }
 
     map_sql_pagar = {
+        'carteira_cobranca': {'carteira_cobranca_pesquisa': "PAGAR.CARTEIRACOBRANCA = :carteira_cobranca AND", },
+
+        'condicao': {'condicao_pesquisa': "PAGAR.CONDICAO = :condicao AND", },
+
+        'status_diferente': {'status_diferente_pesquisa': "PAGAR.STATUS != :status_diferente AND", },
+
+        'coluna_fornecedor': {'fornecedor_campo_alias': "FORNECEDORES.NOMERED AS FORNECEDOR,",
+                              'fornecedor_campo': "FORNECEDORES.NOMERED,", },
+        'fornecedor': {'fornecedor_pesquisa': "UPPER(FORNECEDORES.NOMERED) LIKE UPPER(:fornecedor) AND", },
+
         'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
 
+        'coluna_mes_emissao': {'mes_emissao_campo_alias': "EXTRACT(MONTH FROM PAGAR.DATAEMISSAO) AS MES_EMISSAO,",
+                               'mes_emissao_campo': "EXTRACT(MONTH FROM PAGAR.DATAEMISSAO),", },
+        'data_emissao_inicio': {'data_emissao_inicio_pesquisa': "PAGAR.DATAEMISSAO >= :data_emissao_inicio AND", },
+        'data_emissao_fim': {'data_emissao_fim_pesquisa': "PAGAR.DATAEMISSAO <= :data_emissao_fim AND", },
+
+        'coluna_mes_vencimento': {'mes_vencimento_campo_alias': "EXTRACT(MONTH FROM PAGAR.DATAVENCIMENTO) AS MES_VENCIMENTO,",
+                                  'mes_vencimento_campo': "EXTRACT(MONTH FROM PAGAR.DATAVENCIMENTO),", },
         'coluna_data_vencimento': {'data_vencimento_campo_alias': "PAGAR.DATAVENCIMENTO AS DATA_VENCIMENTO,",
                                    'data_vencimento_campo': "PAGAR.DATAVENCIMENTO,", },
         'data_vencimento_inicio': {'data_vencimento_inicio_pesquisa': "PAGAR.DATAVENCIMENTO >= :data_vencimento_inicio AND", },
@@ -44,19 +69,23 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         'coluna_codigo_plano_conta': {'codigo_plano_conta_campo_alias': "PLANO_DE_CONTAS.CONTA AS CODIGO_PLANO_CONTA,",
                                       'codigo_plano_conta_campo': "PLANO_DE_CONTAS.CONTA,", },
         'plano_conta': {'plano_conta_pesquisa': "PLANO_DE_CONTAS.CD_PLANOCONTA = :chave_plano_conta AND", },
+        'plano_conta_frete_cif': {'plano_conta_frete_cif_pesquisa': "PLANO_DE_CONTAS.CD_PLANOCONTA IN (1377, 1580, 1613, 1614, 1616, 1617, 1618) AND", },
         'plano_conta_codigo': {'plano_conta_codigo_pesquisa': "PLANO_DE_CONTAS.CONTA LIKE :plano_conta_codigo AND", },
 
-        'coluna_valor_titulo': {'valor_titulo_campo_alias': "SUM(PAGAR.VALORTOTAL * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000) AS VALOR_TITULO,", },
+        'coluna_valor_titulo': {'valor_titulo_campo_alias': "SUM(PAGAR.VALORTOTAL * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000) {negativo} AS VALOR_TITULO,".format(negativo=negativo), },
+        'coluna_valor_titulo_liquido_desconto': {'valor_titulo_liquido_desconto_campo_alias': "SUM((PAGAR.VALORTOTAL - PAGAR.ABATIMENTOS_DEVOLUCOES - PAGAR.ABATIMENTOS_OUTROS - COALESCE(PAGAR.DESCONTOS, 0)) * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000) {negativo} AS VALOR_LIQUIDO_DESCONTOS,".format(negativo=negativo), },
 
         'coluna_chave_nota': {'chave_nota_campo_alias': "NULL AS CHAVE_NOTA,", },
 
+        'centro_resultado': {'centro_resultado_pesquisa': "PAGAR_CENTRORESULTADO.CHAVE_CENTRO = :chave_centro_resultado AND", },
         'centro_resultado_coplas': {'centro_resultado_coplas_pesquisa': "PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND", },
     }
 
     map_sql_receber_base = {
-        'valor_efetivo': "COALESCE(SUM(RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000), 0) AS VALOR_EFETIVO",
+        'valor_efetivo': "COALESCE(SUM(RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000), 0) {negativo} AS VALOR_EFETIVO".format(negativo=negativo),
 
         'fonte': """
+            COPLAS.CLIENTES,
             COPLAS.RECEBER,
             COPLAS.RECEBER_PLANOCONTA,
             COPLAS.RECEBER_CENTRORESULTADO,
@@ -65,6 +94,7 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         """,
 
         'fonte_joins': """
+            RECEBER.CODCLI = CLIENTES.CODCLI AND
             RECEBER_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
             RECEBER.CHAVE = RECEBER_PLANOCONTA.CHAVE_RECEBER AND
             RECEBER.CHAVE = RECEBER_CENTRORESULTADO.CHAVE_RECEBER AND
@@ -74,8 +104,24 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
     }
 
     map_sql_receber = {
+        'carteira_cobranca': {'carteira_cobranca_pesquisa': "RECEBER.CARTEIRACOBRANCA = :carteira_cobranca AND", },
+
+        'condicao': {'condicao_pesquisa': "RECEBER.CONDICAO = :condicao AND", },
+
+        'status_diferente': {'status_diferente_pesquisa': "RECEBER.STATUS != :status_diferente AND", },
+
+        'coluna_fornecedor': {'fornecedor_campo_alias': "'N/A' AS FORNECEDOR,", },
+        'fornecedor': {'fornecedor_pesquisa': "", },
+
         'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
 
+        'coluna_mes_emissao': {'mes_emissao_campo_alias': "EXTRACT(MONTH FROM RECEBER.DATAEMISSAO) AS MES_EMISSAO,",
+                               'mes_emissao_campo': "EXTRACT(MONTH FROM RECEBER.DATAEMISSAO),", },
+        'data_emissao_inicio': {'data_emissao_inicio_pesquisa': "RECEBER.DATAEMISSAO >= :data_emissao_inicio AND", },
+        'data_emissao_fim': {'data_emissao_fim_pesquisa': "RECEBER.DATAEMISSAO <= :data_emissao_fim AND", },
+
+        'coluna_mes_vencimento': {'mes_vencimento_campo_alias': "EXTRACT(MONTH FROM RECEBER.DATAVENCIMENTO) AS MES_VENCIMENTO,",
+                                  'mes_vencimento_campo': "EXTRACT(MONTH FROM RECEBER.DATAVENCIMENTO),", },
         'coluna_data_vencimento': {'data_vencimento_campo_alias': "RECEBER.DATAVENCIMENTO AS DATA_VENCIMENTO,",
                                    'data_vencimento_campo': "RECEBER.DATAVENCIMENTO,", },
         'data_vencimento_inicio': {'data_vencimento_inicio_pesquisa': "RECEBER.DATAVENCIMENTO >= :data_vencimento_inicio AND", },
@@ -89,25 +135,47 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         'coluna_codigo_plano_conta': {'codigo_plano_conta_campo_alias': "PLANO_DE_CONTAS.CONTA AS CODIGO_PLANO_CONTA,",
                                       'codigo_plano_conta_campo': "PLANO_DE_CONTAS.CONTA,", },
         'plano_conta': {'plano_conta_pesquisa': "PLANO_DE_CONTAS.CD_PLANOCONTA = :chave_plano_conta AND", },
+        'plano_conta_frete_cif': {'plano_conta_frete_cif_pesquisa': "PLANO_DE_CONTAS.CD_PLANOCONTA IN (1377, 1580, 1613, 1614, 1616, 1617, 1618) AND", },
         'plano_conta_codigo': {'plano_conta_codigo_pesquisa': "PLANO_DE_CONTAS.CONTA LIKE :plano_conta_codigo AND", },
 
-        'coluna_valor_titulo': {'valor_titulo_campo_alias': "SUM(RECEBER.VALORTOTAL * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000) AS VALOR_TITULO,", },
+        'coluna_valor_titulo': {'valor_titulo_campo_alias': "SUM(RECEBER.VALORTOTAL * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000) {negativo} AS VALOR_TITULO,".format(negativo=negativo), },
+        'coluna_valor_titulo_liquido_desconto': {'valor_titulo_liquido_desconto_campo_alias': "SUM((RECEBER.VALORTOTAL - RECEBER.ABATIMENTOS_DEVOLUCOES - RECEBER.ABATIMENTOS_OUTROS - COALESCE(RECEBER.DESCONTOS, 0)) * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000) {negativo} AS VALOR_LIQUIDO_DESCONTOS,".format(negativo=negativo), },
 
         'coluna_chave_nota': {'chave_nota_campo_alias': "RECEBER.CHAVE_NOTA,",
                               'chave_nota_campo': "RECEBER.CHAVE_NOTA,", },
 
+        'centro_resultado': {'centro_resultado_pesquisa': "RECEBER_CENTRORESULTADO.CHAVE_CENTRO = :chave_centro_resultado AND", },
         'centro_resultado_coplas': {'centro_resultado_coplas_pesquisa': "RECEBER_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND", },
     }
 
     tipo_movimentacao_bancaria = 'C' if fonte == 'receber' else 'D'
     map_sql_movimentacao_bancaria_base = {
-        'valor_efetivo_mov_ban': "SUM(MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) AS VALOR_EFETIVO",
+        'valor_efetivo_mov_ban': "SUM(MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) {negativo} AS VALOR_EFETIVO".format(negativo=negativo),
         'valor_efetivo_union_alias': "SUM(VALOR_EFETIVO) AS VALOR_EFETIVO",
 
         'fonte_where_mov_ban': "MOVBAN.TIPO = '{}' AND".format(tipo_movimentacao_bancaria),
     }
 
     map_sql_movimentacao_bancaria = {
+        'carteira_cobranca': {'sem_filtro': "1 = 0 AND", },
+
+        'condicao': {'condicao_pesquisa_mov_ban': "'LIQUIDADO' = :condicao AND", },
+
+        'status_diferente': {'status_diferente_pesquisa_mov_ban': "MOVBAN.STATUS != :status_diferente AND", },
+
+        'coluna_fornecedor': {'fornecedor_campo_alias_mov_ban': "'N/A' AS FORNECEDOR,",
+                              'fornecedor_union_alias': "FORNECEDOR,", },
+        'fornecedor': {'sem_filtro': "1 = 0 AND", },
+
+        'coluna_mes_emissao': {'mes_emissao_campo_alias_mov_ban': "EXTRACT(MONTH FROM MOVBAN.DATA) AS MES_EMISSAO,",
+                               'mes_emissao_campo_mov_ban': "EXTRACT(MONTH FROM MOVBAN.DATA),",
+                               'mes_emissao_union_alias': "MES_EMISSAO,", },
+        'data_emissao_inicio': {'data_emissao_inicio_pesquisa_mov_ban': "MOVBAN.DATA >= :data_emissao_inicio AND", },
+        'data_emissao_fim': {'data_emissao_fim_pesquisa_mov_ban': "MOVBAN.DATA <= :data_emissao_fim AND", },
+
+        'coluna_mes_vencimento': {'mes_vencimento_campo_alias_mov_ban': "EXTRACT(MONTH FROM MOVBAN.DATA) AS MES_VENCIMENTO,",
+                                  'mes_vencimento_campo_mov_ban': "EXTRACT(MONTH FROM MOVBAN.DATA),",
+                                  'mes_vencimento_union_alias': "MES_VENCIMENTO,", },
         'coluna_data_vencimento': {'data_vencimento_campo_alias_mov_ban': "MOVBAN.DATA AS DATA_VENCIMENTO,",
                                    'data_vencimento_campo_mov_ban': "MOVBAN.DATA,",
                                    'data_vencimento_union_alias': "DATA_VENCIMENTO,", },
@@ -122,12 +190,15 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
 
         'coluna_codigo_plano_conta': {'codigo_plano_conta_union_alias': "CODIGO_PLANO_CONTA,", },
 
-        'coluna_valor_titulo': {'valor_titulo_campo_alias_mov_ban': "SUM(MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) AS VALOR_TITULO,",
+        'coluna_valor_titulo': {'valor_titulo_campo_alias_mov_ban': "SUM(MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) {negativo} AS VALOR_TITULO,".format(negativo=negativo),
                                 'valor_titulo_union_alias': "SUM(VALOR_TITULO) AS VALOR_TITULO,", },
+        'coluna_valor_titulo_liquido_desconto': {'valor_titulo_liquido_desconto_campo_alias_mov_ban': "SUM(MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) {negativo} AS VALOR_LIQUIDO_DESCONTOS,".format(negativo=negativo),
+                                                 'valor_titulo_liquido_desconto_union_alias': "SUM(VALOR_LIQUIDO_DESCONTOS) AS VALOR_LIQUIDO_DESCONTOS,", },
 
         'coluna_chave_nota': {'chave_nota_campo_alias_mov_ban': "NULL AS CHAVE_NOTA,",
                               'chave_nota_union_alias': "CHAVE_NOTA,", },
 
+        'centro_resultado': {'centro_resultado_pesquisa_mov_ban': "MOVBAN_CENTRORESULTADO.CHAVE_CENTRO = :chave_centro_resultado AND", },
         'centro_resultado_coplas': {'centro_resultado_coplas_pesquisa_mov_ban': "MOVBAN_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND", },
     }
 
@@ -167,6 +238,13 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
     plano_conta = kwargs.get('plano_conta')
     job = kwargs.get('job')
     plano_conta_codigo = kwargs.get('plano_conta_codigo')
+    fornecedor = kwargs.get('fornecedor')
+    data_emissao_inicio = kwargs.get('data_emissao_inicio')
+    data_emissao_fim = kwargs.get('data_emissao_fim')
+    status_diferente = kwargs.get('status_diferente')
+    centro_resultado = kwargs.get('centro_resultado')
+    condicao = kwargs.get('condicao')
+    carteira_cobranca = kwargs.get('carteira_cobranca')
 
     kwargs_sql.update(map_relatorio_financeiro_sql_string_placeholders(fonte, **kwargs))
 
@@ -195,24 +273,54 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
     if plano_conta_codigo:
         kwargs_ora.update({'plano_conta_codigo': plano_conta_codigo})
 
+    if fornecedor:
+        kwargs_ora.update({'fornecedor': fornecedor})
+
+    if data_emissao_inicio:
+        kwargs_ora.update({'data_emissao_inicio': data_emissao_inicio})
+
+    if data_emissao_fim:
+        kwargs_ora.update({'data_emissao_fim': data_emissao_fim})
+
+    if status_diferente:
+        kwargs_ora.update({'status_diferente': status_diferente})
+
+    if centro_resultado:
+        chave_centro_resultado = centro_resultado if isinstance(centro_resultado, int) else centro_resultado.pk
+        kwargs_ora.update({'chave_centro_resultado': chave_centro_resultado, })
+
+    if condicao:
+        kwargs_ora.update({'condicao': condicao})
+
+    if carteira_cobranca:
+        kwargs_ora.update({'carteira_cobranca': carteira_cobranca})
+
     sql_base = """
         SELECT
+            {mes_emissao_union_alias}
+            {mes_vencimento_union_alias}
             {mes_liquidacao_union_alias}
             {codigo_plano_conta_union_alias}
             {chave_nota_union_alias}
             {data_vencimento_union_alias}
+            {fornecedor_union_alias}
             {valor_titulo_union_alias}
+            {valor_titulo_liquido_desconto_union_alias}
 
             {valor_efetivo_union_alias}
 
         FROM
             (
                 SELECT
+                    {mes_emissao_campo_alias}
+                    {mes_vencimento_campo_alias}
                     {mes_liquidacao_campo_alias}
                     {codigo_plano_conta_campo_alias}
                     {chave_nota_campo_alias}
                     {data_vencimento_campo_alias}
+                    {fornecedor_campo_alias}
                     {valor_titulo_campo_alias}
+                    {valor_titulo_liquido_desconto_campo_alias}
 
                     {valor_efetivo}
 
@@ -231,24 +339,39 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     {job_pesquisa}
                     {plano_conta_codigo_pesquisa}
                     {centro_resultado_coplas_pesquisa}
+                    {fornecedor_pesquisa}
+                    {data_emissao_inicio_pesquisa}
+                    {data_emissao_fim_pesquisa}
+                    {status_diferente_pesquisa}
+                    {plano_conta_frete_cif_pesquisa}
+                    {centro_resultado_pesquisa}
+                    {condicao_pesquisa}
+                    {carteira_cobranca_pesquisa}
 
                     1 = 1
 
                 GROUP BY
+                    {mes_emissao_campo}
                     {mes_liquidacao_campo}
                     {codigo_plano_conta_campo}
                     {chave_nota_campo}
                     {data_vencimento_campo}
+                    {fornecedor_campo}
+                    {mes_vencimento_campo}
                     1
 
                 UNION ALL
 
                 SELECT
+                    {mes_emissao_campo_alias_mov_ban}
+                    {mes_vencimento_campo_alias_mov_ban}
                     {mes_liquidacao_campo_alias_mov_ban}
                     {codigo_plano_conta_campo_alias}
                     {chave_nota_campo_alias_mov_ban}
                     {data_vencimento_campo_alias_mov_ban}
+                    {fornecedor_campo_alias_mov_ban}
                     {valor_titulo_campo_alias_mov_ban}
+                    {valor_titulo_liquido_desconto_campo_alias_mov_ban}
 
                     {valor_efetivo_mov_ban}
 
@@ -261,6 +384,7 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     COPLAS.PLANO_DE_CONTAS
 
                 WHERE
+                    {sem_filtro}
                     MOVBAN_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
                     MOVBAN.CHAVE = MOVBAN_PLANOCONTA.CHAVE_MOVBAN AND
                     MOVBAN.CHAVE = MOVBAN_CENTRORESULTADO.CHAVE_MOVBAN AND
@@ -277,27 +401,41 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     {job_pesquisa}
                     {plano_conta_codigo_pesquisa}
                     {centro_resultado_coplas_pesquisa_mov_ban}
+                    {data_emissao_inicio_pesquisa_mov_ban}
+                    {data_emissao_fim_pesquisa_mov_ban}
+                    {status_diferente_pesquisa_mov_ban}
+                    {plano_conta_frete_cif_pesquisa}
+                    {centro_resultado_pesquisa_mov_ban}
+                    {condicao_pesquisa_mov_ban}
 
                     1 = 1
 
                 GROUP BY
+                    {mes_emissao_campo_mov_ban}
                     {mes_liquidacao_campo_mov_ban}
                     {codigo_plano_conta_campo}
                     {data_vencimento_campo_mov_ban}
+                    {mes_vencimento_campo_mov_ban}
                     1
             )
 
         GROUP BY
+            {mes_emissao_union_alias}
             {codigo_plano_conta_union_alias}
             {chave_nota_union_alias}
             {data_vencimento_union_alias}
             {mes_liquidacao_union_alias}
+            {fornecedor_union_alias}
+            {mes_vencimento_union_alias}
             1
 
         ORDER BY
+            {mes_emissao_union_alias}
+            {mes_vencimento_union_alias}
             {mes_liquidacao_union_alias}
             {codigo_plano_conta_union_alias}
             {data_vencimento_union_alias}
+            {fornecedor_union_alias}
             VALOR_EFETIVO DESC
     """
 
