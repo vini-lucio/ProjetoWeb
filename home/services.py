@@ -2368,8 +2368,7 @@ def frete_cif_ano_mes_a_mes(*, mes_atual: bool = False):
     total = get_relatorios_financeiros('pagar', data_emissao_inicio=data_ano_inicio, data_emissao_fim=data_ano_fim,
                                        coluna_mes_emissao=True, coluna_valor_titulo=True, job=22,
                                        centro_resultado_coplas=True, plano_conta_frete_cif=True,)
-    total = pd.DataFrame(total)
-    total = total.drop(columns=['VALOR_EFETIVO'])  # type:ignore
+    total = completar_meses(pd.DataFrame(total), 'MES_EMISSAO')
     if 'VALOR_TITULO' not in total.columns:  # type:ignore
         total['VALOR_TITULO'] = 0  # type:ignore
 
@@ -2377,8 +2376,7 @@ def frete_cif_ano_mes_a_mes(*, mes_atual: bool = False):
                                               coluna_mes_emissao=True, coluna_valor_titulo=True, job=22,
                                               fornecedor='%AGILLI BRASIL%',
                                               centro_resultado_coplas=True, plano_conta_frete_cif=True,)
-    agilli_total = pd.DataFrame(agilli_total)
-    agilli_total = agilli_total.drop(columns=['VALOR_EFETIVO'])  # type:ignore
+    agilli_total = completar_meses(pd.DataFrame(agilli_total), 'MES_EMISSAO')
     if 'VALOR_TITULO' not in agilli_total.columns:  # type:ignore
         agilli_total['VALOR_TITULO'] = 0  # type:ignore
 
@@ -2386,13 +2384,12 @@ def frete_cif_ano_mes_a_mes(*, mes_atual: bool = False):
                                              coluna_mes_emissao=True, coluna_valor_titulo=True, job=22,
                                              fornecedor='%AGILLI BRASIL%', status_diferente='PREVISAO',
                                              centro_resultado_coplas=True, plano_conta_frete_cif=True,)
-    agilli_real = pd.DataFrame(agilli_real)
-    agilli_real = agilli_real.drop(columns=['VALOR_EFETIVO'])  # type:ignore
+    agilli_real = completar_meses(pd.DataFrame(agilli_real), 'MES_EMISSAO')
     if 'VALOR_TITULO' not in agilli_real.columns:  # type:ignore
         agilli_real['VALOR_TITULO'] = 0  # type:ignore
     agilli_real = agilli_real.rename(columns={'VALOR_TITULO': 'AGILLI'})  # type:ignore
 
-    resultado = pd.merge(total, agilli_total, how='inner', on='MES_EMISSAO')
+    resultado = pd.merge(total, agilli_total, how='inner', on='MES_EMISSAO')  # type:ignore
     resultado['OUTRAS_TRANSPORTADORAS'] = resultado['VALOR_TITULO_x'] - resultado['VALOR_TITULO_y']
     resultado = resultado.drop(columns=['VALOR_TITULO_x', 'VALOR_TITULO_y'])
 
@@ -2400,7 +2397,7 @@ def frete_cif_ano_mes_a_mes(*, mes_atual: bool = False):
     resultado = resultado.to_dict(orient='records')  # type:ignore
 
     if mes_atual and resultado:
-        resultado = resultado[0]
+        resultado = resultado[data_ano_inicio.month - 1]
 
     return resultado
 
