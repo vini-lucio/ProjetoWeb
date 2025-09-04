@@ -43,6 +43,9 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
 
         'status_diferente': {'status_diferente_pesquisa': "PAGAR.STATUS != :status_diferente AND", },
 
+        'coluna_cliente': {'cliente_campo_alias': "'N/A' AS CLIENTE,", },
+        'cliente': {'cliente_pesquisa': "", },
+
         'coluna_fornecedor': {'fornecedor_campo_alias': "FORNECEDORES.NOMERED AS FORNECEDOR,",
                               'fornecedor_campo': "FORNECEDORES.NOMERED,", },
         'fornecedor': {'fornecedor_pesquisa': "UPPER(FORNECEDORES.NOMERED) LIKE UPPER(:fornecedor) AND", },
@@ -61,6 +64,8 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         'data_vencimento_inicio': {'data_vencimento_inicio_pesquisa': "PAGAR.DATAVENCIMENTO >= :data_vencimento_inicio AND", },
         'data_vencimento_fim': {'data_vencimento_fim_pesquisa': "PAGAR.DATAVENCIMENTO <= :data_vencimento_fim AND", },
 
+        'coluna_ano_liquidacao': {'ano_liquidacao_campo_alias': "EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO) AS ANO_LIQUIDACAO,",
+                                  'ano_liquidacao_campo': "EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO),", },
         'coluna_mes_liquidacao': {'mes_liquidacao_campo_alias': "EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) AS MES_LIQUIDACAO,",
                                   'mes_liquidacao_campo': "EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO),", },
         'data_liquidacao_inicio': {'data_liquidacao_inicio_pesquisa': "PAGAR.DATALIQUIDACAO >= :data_liquidacao_inicio AND", },
@@ -77,6 +82,8 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
 
         'coluna_chave_nota': {'chave_nota_campo_alias': "NULL AS CHAVE_NOTA,", },
 
+        'coluna_chave_centro_resultado': {'chave_centro_resultado_campo_alias': "PAGAR_CENTRORESULTADO.CHAVE_CENTRO AS CHAVE_CENTRO_RESULTADO,",
+                                          'chave_centro_resultado_campo': "PAGAR_CENTRORESULTADO.CHAVE_CENTRO,", },
         'centro_resultado': {'centro_resultado_pesquisa': "PAGAR_CENTRORESULTADO.CHAVE_CENTRO = :chave_centro_resultado AND", },
         'centro_resultado_coplas': {'centro_resultado_coplas_pesquisa': "PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND", },
     }
@@ -110,6 +117,10 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
 
         'status_diferente': {'status_diferente_pesquisa': "RECEBER.STATUS != :status_diferente AND", },
 
+        'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
+                           'cliente_campo': "CLIENTES.NOMERED,", },
+        'cliente': {'cliente_pesquisa': "UPPER(CLIENTES.NOMERED) LIKE UPPER(:cliente) AND", },
+
         'coluna_fornecedor': {'fornecedor_campo_alias': "'N/A' AS FORNECEDOR,", },
         'fornecedor': {'fornecedor_pesquisa': "", },
 
@@ -127,6 +138,8 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         'data_vencimento_inicio': {'data_vencimento_inicio_pesquisa': "RECEBER.DATAVENCIMENTO >= :data_vencimento_inicio AND", },
         'data_vencimento_fim': {'data_vencimento_fim_pesquisa': "RECEBER.DATAVENCIMENTO <= :data_vencimento_fim AND", },
 
+        'coluna_ano_liquidacao': {'ano_liquidacao_campo_alias': "EXTRACT(YEAR FROM RECEBER.DATALIQUIDACAO) AS ANO_LIQUIDACAO,",
+                                  'ano_liquidacao_campo': "EXTRACT(YEAR FROM RECEBER.DATALIQUIDACAO),", },
         'coluna_mes_liquidacao': {'mes_liquidacao_campo_alias': "EXTRACT(MONTH FROM RECEBER.DATALIQUIDACAO) AS MES_LIQUIDACAO,",
                                   'mes_liquidacao_campo': "EXTRACT(MONTH FROM RECEBER.DATALIQUIDACAO),", },
         'data_liquidacao_inicio': {'data_liquidacao_inicio_pesquisa': "RECEBER.DATALIQUIDACAO >= :data_liquidacao_inicio AND", },
@@ -144,6 +157,8 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         'coluna_chave_nota': {'chave_nota_campo_alias': "RECEBER.CHAVE_NOTA,",
                               'chave_nota_campo': "RECEBER.CHAVE_NOTA,", },
 
+        'coluna_chave_centro_resultado': {'chave_centro_resultado_campo_alias': "RECEBER_CENTRORESULTADO.CHAVE_CENTRO AS CHAVE_CENTRO_RESULTADO,",
+                                          'chave_centro_resultado_campo': "RECEBER_CENTRORESULTADO.CHAVE_CENTRO,", },
         'centro_resultado': {'centro_resultado_pesquisa': "RECEBER_CENTRORESULTADO.CHAVE_CENTRO = :chave_centro_resultado AND", },
         'centro_resultado_coplas': {'centro_resultado_coplas_pesquisa': "RECEBER_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND", },
     }
@@ -162,6 +177,10 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         'condicao': {'condicao_pesquisa_mov_ban': "'LIQUIDADO' = :condicao AND", },
 
         'status_diferente': {'status_diferente_pesquisa_mov_ban': "MOVBAN.STATUS != :status_diferente AND", },
+
+        'coluna_cliente': {'cliente_campo_alias_mov_ban': "'N/A' AS CLIENTE,",
+                           'cliente_union_alias': "CLIENTE,", },
+        'cliente': {'sem_filtro': "1 = 0 AND", },
 
         'coluna_fornecedor': {'fornecedor_campo_alias_mov_ban': "'N/A' AS FORNECEDOR,",
                               'fornecedor_union_alias': "FORNECEDOR,", },
@@ -182,6 +201,9 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         'data_vencimento_inicio': {'data_vencimento_inicio_pesquisa_mov_ban': "MOVBAN.DATA >= :data_vencimento_inicio AND", },
         'data_vencimento_fim': {'data_vencimento_fim_pesquisa_mov_ban': "MOVBAN.DATA <= :data_vencimento_fim AND", },
 
+        'coluna_ano_liquidacao': {'ano_liquidacao_campo_alias_mov_ban': "EXTRACT(YEAR FROM MOVBAN.DATA) AS ANO_LIQUIDACAO,",
+                                  'ano_liquidacao_campo_mov_ban': "EXTRACT(YEAR FROM MOVBAN.DATA),",
+                                  'ano_liquidacao_union_alias': "ANO_LIQUIDACAO,", },
         'coluna_mes_liquidacao': {'mes_liquidacao_campo_alias_mov_ban': "EXTRACT(MONTH FROM MOVBAN.DATA) AS MES_LIQUIDACAO,",
                                   'mes_liquidacao_campo_mov_ban': "EXTRACT(MONTH FROM MOVBAN.DATA),",
                                   'mes_liquidacao_union_alias': "MES_LIQUIDACAO,", },
@@ -198,6 +220,9 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         'coluna_chave_nota': {'chave_nota_campo_alias_mov_ban': "NULL AS CHAVE_NOTA,",
                               'chave_nota_union_alias': "CHAVE_NOTA,", },
 
+        'coluna_chave_centro_resultado': {'chave_centro_resultado_campo_alias_mov_ban': "MOVBAN_CENTRORESULTADO.CHAVE_CENTRO AS CHAVE_CENTRO_RESULTADO,",
+                                          'chave_centro_resultado_campo_mov_ban': "MOVBAN_CENTRORESULTADO.CHAVE_CENTRO,",
+                                          'chave_centro_resultado_union_alias': "CHAVE_CENTRO_RESULTADO,", },
         'centro_resultado': {'centro_resultado_pesquisa_mov_ban': "MOVBAN_CENTRORESULTADO.CHAVE_CENTRO = :chave_centro_resultado AND", },
         'centro_resultado_coplas': {'centro_resultado_coplas_pesquisa_mov_ban': "MOVBAN_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND", },
     }
@@ -245,6 +270,7 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
     centro_resultado = kwargs.get('centro_resultado')
     condicao = kwargs.get('condicao')
     carteira_cobranca = kwargs.get('carteira_cobranca')
+    cliente = kwargs.get('cliente')
 
     kwargs_sql.update(map_relatorio_financeiro_sql_string_placeholders(fonte, **kwargs))
 
@@ -295,15 +321,21 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
     if carteira_cobranca:
         kwargs_ora.update({'carteira_cobranca': carteira_cobranca})
 
+    if cliente:
+        kwargs_ora.update({'cliente': cliente})
+
     sql_base = """
         SELECT
             {mes_emissao_union_alias}
             {mes_vencimento_union_alias}
+            {ano_liquidacao_union_alias}
             {mes_liquidacao_union_alias}
+            {chave_centro_resultado_union_alias}
             {codigo_plano_conta_union_alias}
             {chave_nota_union_alias}
             {data_vencimento_union_alias}
             {fornecedor_union_alias}
+            {cliente_union_alias}
             {valor_titulo_union_alias}
             {valor_titulo_liquido_desconto_union_alias}
 
@@ -314,11 +346,14 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                 SELECT
                     {mes_emissao_campo_alias}
                     {mes_vencimento_campo_alias}
+                    {ano_liquidacao_campo_alias}
                     {mes_liquidacao_campo_alias}
+                    {chave_centro_resultado_campo_alias}
                     {codigo_plano_conta_campo_alias}
                     {chave_nota_campo_alias}
                     {data_vencimento_campo_alias}
                     {fornecedor_campo_alias}
+                    {cliente_campo_alias}
                     {valor_titulo_campo_alias}
                     {valor_titulo_liquido_desconto_campo_alias}
 
@@ -347,6 +382,7 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     {centro_resultado_pesquisa}
                     {condicao_pesquisa}
                     {carteira_cobranca_pesquisa}
+                    {cliente_pesquisa}
 
                     1 = 1
 
@@ -358,6 +394,9 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     {data_vencimento_campo}
                     {fornecedor_campo}
                     {mes_vencimento_campo}
+                    {ano_liquidacao_campo}
+                    {cliente_campo}
+                    {chave_centro_resultado_campo}
                     1
 
                 UNION ALL
@@ -365,11 +404,14 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                 SELECT
                     {mes_emissao_campo_alias_mov_ban}
                     {mes_vencimento_campo_alias_mov_ban}
+                    {ano_liquidacao_campo_alias_mov_ban}
                     {mes_liquidacao_campo_alias_mov_ban}
+                    {chave_centro_resultado_campo_alias_mov_ban}
                     {codigo_plano_conta_campo_alias}
                     {chave_nota_campo_alias_mov_ban}
                     {data_vencimento_campo_alias_mov_ban}
                     {fornecedor_campo_alias_mov_ban}
+                    {cliente_campo_alias_mov_ban}
                     {valor_titulo_campo_alias_mov_ban}
                     {valor_titulo_liquido_desconto_campo_alias_mov_ban}
 
@@ -416,6 +458,8 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     {codigo_plano_conta_campo}
                     {data_vencimento_campo_mov_ban}
                     {mes_vencimento_campo_mov_ban}
+                    {ano_liquidacao_campo_mov_ban}
+                    {chave_centro_resultado_campo_mov_ban}
                     1
             )
 
@@ -427,15 +471,21 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
             {mes_liquidacao_union_alias}
             {fornecedor_union_alias}
             {mes_vencimento_union_alias}
+            {ano_liquidacao_union_alias}
+            {cliente_union_alias}
+            {chave_centro_resultado_union_alias}
             1
 
         ORDER BY
             {mes_emissao_union_alias}
             {mes_vencimento_union_alias}
+            {ano_liquidacao_union_alias}
             {mes_liquidacao_union_alias}
+            {chave_centro_resultado_union_alias}
             {codigo_plano_conta_union_alias}
             {data_vencimento_union_alias}
             {fornecedor_union_alias}
+            {cliente_union_alias}
             VALOR_EFETIVO DESC
     """
 

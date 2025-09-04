@@ -100,10 +100,8 @@ def contas_marketing_ano_mes_a_mes():
         relatorio = get_relatorios_financeiros('pagar', coluna_mes_liquidacao=True, job=22,
                                                data_liquidacao_inicio=data_ano_inicio,
                                                data_liquidacao_fim=data_ano_fim, plano_conta=chave_plano)
-        relatorio = completar_meses(pd.DataFrame(relatorio), 'MES_LIQUIDACAO')
-        if 'VALOR_EFETIVO' not in relatorio.columns:  # type:ignore
-            relatorio['VALOR_EFETIVO'] = 0  # type:ignore
-        relatorio = relatorio.rename(columns={'VALOR_EFETIVO': descricao_plano})  # type:ignore
+        relatorio = completar_meses(pd.DataFrame(relatorio), 'MES_LIQUIDACAO', ['VALOR_EFETIVO'])
+        relatorio = relatorio.rename(columns={'VALOR_EFETIVO': descricao_plano})
 
         relatorios.append(relatorio)
 
@@ -119,55 +117,38 @@ def contas_marketing_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar para get_relatorios_financeiros
 def i4ref_terceirizacao_ano_mes_a_mes():
     """Totaliza o valor da terceirização do 4REF do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         ano_inicio = site_setup.atualizacoes_ano_inicio
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = datetime.datetime(ano_inicio, 1, 1)
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) AS MES,
-            EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO) AS ANO,
-            PLANO_DE_CONTAS.CONTA,
-            ROUND(SUM(CASE WHEN PAGAR.CODFOR = 19476 THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS O3,
-            ROUND(SUM(CASE WHEN PAGAR.CODFOR NOT IN (19476, 21542) THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS NC4,
-            ROUND(SUM(CASE WHEN PAGAR.CODFOR = 21542 THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS FLUXUS
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-        FROM
-            COPLAS.PAGAR,
-            COPLAS.PAGAR_PLANOCONTA,
-            COPLAS.PAGAR_CENTRORESULTADO,
-            COPLAS.PAGAR_JOB,
-            COPLAS.PLANO_DE_CONTAS
+    terceirizacao_total = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
+                                                     data_liquidacao_fim=data_ano_fim, coluna_mes_liquidacao=True,
+                                                     coluna_ano_liquidacao=True, coluna_codigo_plano_conta=True,
+                                                     job=22, centro_resultado_coplas=True,
+                                                     plano_conta_codigo='2.01.03.%', valor_debito_negativo=True,)
+    terceirizacao_total = pd.DataFrame(terceirizacao_total)
+    terceirizacao_total = terceirizacao_total.rename(columns={'VALOR_EFETIVO': 'TERCEIRIZACAO_TOTAL'})
 
-        WHERE
-            PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
-            PAGAR.CHAVE = PAGAR_PLANOCONTA.CHAVE_PAGAR AND
-            PAGAR.CHAVE = PAGAR_CENTRORESULTADO.CHAVE_PAGAR AND
-            PAGAR.CHAVE = PAGAR_JOB.CHAVE_PAGAR AND
-            PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
-            PAGAR_JOB.CHAVE_JOB = 22 AND
-            PLANO_DE_CONTAS.CONTA LIKE '2.01.03.%' AND
+    o3 = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
+                                    data_liquidacao_fim=data_ano_fim, coluna_mes_liquidacao=True,
+                                    coluna_ano_liquidacao=True, coluna_codigo_plano_conta=True,
+                                    job=22, centro_resultado_coplas=True,
+                                    plano_conta_codigo='2.01.03.%', valor_debito_negativo=True,
+                                    fornecedor='O3',)
+    o3 = pd.DataFrame(o3)
+    o3 = o3.rename(columns={'VALOR_EFETIVO': 'O3'})
 
-            EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO) >= :ano_inicio AND
-            PAGAR.DATALIQUIDACAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+    resultado = pd.merge(terceirizacao_total, o3, how='left',
+                         on=['ANO_LIQUIDACAO', 'MES_LIQUIDACAO', 'CODIGO_PLANO_CONTA']).fillna(0)
+    resultado['NC4'] = resultado['TERCEIRIZACAO_TOTAL'] - resultado['O3']
+    resultado = resultado[['MES_LIQUIDACAO', 'ANO_LIQUIDACAO', 'CODIGO_PLANO_CONTA', 'O3', 'NC4']]
 
-        GROUP BY
-            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO),
-            EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO),
-            PLANO_DE_CONTAS.CONTA
-
-        ORDER BY
-            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO),
-            EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO),
-            PLANO_DE_CONTAS.CONTA
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, ano_inicio=ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -265,98 +246,36 @@ def i4ref_custo_materia_prima_vendido_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar para get_relatorios_financeiros
 def i4ref_ano_mes_a_mes():
     """Totaliza o valor das contas do 4REF do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         ano_inicio = site_setup.atualizacoes_ano_inicio
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = datetime.datetime(ano_inicio, 1, 1)
 
-    sql = """
-        SELECT
-            REF4.MES,
-            REF4.ANO,
-            REF4.CONTA,
-            SUM(REF4.REF4) * (-1) AS REF4
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-        FROM
-            (
-                SELECT
-                    EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) AS MES,
-                    EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO) AS ANO,
-                    PLANO_DE_CONTAS.CONTA,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.02.02.%' AND PAGAR_CENTRORESULTADO.CHAVE_CENTRO = 47 THEN 0 ELSE PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 END), 2) AS REF4
+    pagar_total = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
+                                             data_liquidacao_fim=data_ano_fim, coluna_mes_liquidacao=True,
+                                             coluna_ano_liquidacao=True, coluna_codigo_plano_conta=True,
+                                             job=22, centro_resultado_coplas=True, valor_debito_negativo=True,)
+    pagar_total = pd.DataFrame(pagar_total)
+    pagar_total = pagar_total.rename(columns={'VALOR_EFETIVO': 'PAGAR_TOTAL'})
 
-                FROM
-                    COPLAS.PAGAR,
-                    COPLAS.PAGAR_PLANOCONTA,
-                    COPLAS.PAGAR_CENTRORESULTADO,
-                    COPLAS.PAGAR_JOB,
-                    COPLAS.PLANO_DE_CONTAS
+    o3_embalagem = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
+                                              data_liquidacao_fim=data_ano_fim, coluna_mes_liquidacao=True,
+                                              coluna_ano_liquidacao=True, coluna_codigo_plano_conta=True,
+                                              job=22, centro_resultado=47,
+                                              plano_conta_codigo='2.02.02.%', valor_debito_negativo=True,)
+    o3_embalagem = pd.DataFrame(o3_embalagem)
+    o3_embalagem = o3_embalagem.rename(columns={'VALOR_EFETIVO': 'O3_EMBALAGEM'})
 
-                WHERE
-                    PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
-                    PAGAR.CHAVE = PAGAR_PLANOCONTA.CHAVE_PAGAR AND
-                    PAGAR.CHAVE = PAGAR_CENTRORESULTADO.CHAVE_PAGAR AND
-                    PAGAR.CHAVE = PAGAR_JOB.CHAVE_PAGAR AND
-                    PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
-                    PAGAR_JOB.CHAVE_JOB = 22 AND
+    resultado = pd.merge(pagar_total, o3_embalagem, how='left',
+                         on=['ANO_LIQUIDACAO', 'MES_LIQUIDACAO', 'CODIGO_PLANO_CONTA']).fillna(0)
+    resultado['REF4'] = resultado['PAGAR_TOTAL'] - resultado['O3_EMBALAGEM']
+    resultado = resultado[['MES_LIQUIDACAO', 'ANO_LIQUIDACAO', 'CODIGO_PLANO_CONTA', 'REF4']]
 
-                    EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO) >= :ano_inicio AND
-                    PAGAR.DATALIQUIDACAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-                GROUP BY
-                    EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO),
-                    EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO),
-                    PLANO_DE_CONTAS.CONTA
-
-                UNION ALL
-
-                SELECT
-                    EXTRACT(MONTH FROM MOVBAN.DATA) AS MES,
-                    EXTRACT(YEAR FROM MOVBAN.DATA) AS ANO,
-                    PLANO_DE_CONTAS.CONTA,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.02.02.%' AND MOVBAN_CENTRORESULTADO.CHAVE_CENTRO = 47 THEN 0 ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END * CASE WHEN MOVBAN.TIPO = 'D' THEN 1 ELSE (-1) END), 2) AS REF4
-
-                FROM
-                    COPLAS.MOVBAN,
-                    COPLAS.MOVBAN_PLANOCONTA,
-                    COPLAS.MOVBAN_CENTRORESULTADO,
-                    COPLAS.MOVBAN_JOB,
-                    COPLAS.PLANO_DE_CONTAS
-
-                WHERE
-                    MOVBAN_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
-                    MOVBAN.CHAVE = MOVBAN_PLANOCONTA.CHAVE_MOVBAN AND
-                    MOVBAN.CHAVE = MOVBAN_CENTRORESULTADO.CHAVE_MOVBAN AND
-                    MOVBAN.CHAVE = MOVBAN_JOB.CHAVE_MOVBAN AND
-                    MOVBAN.AUTOMATICO = 'NAO' AND
-                    MOVBAN_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
-                    MOVBAN_JOB.CHAVE_JOB = 22 AND
-
-                    EXTRACT(YEAR FROM MOVBAN.DATA) >= :ano_inicio AND
-                    MOVBAN.DATA <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-                GROUP BY
-                    EXTRACT(MONTH FROM MOVBAN.DATA),
-                    EXTRACT(YEAR FROM MOVBAN.DATA),
-                    PLANO_DE_CONTAS.CONTA
-            ) REF4
-
-        GROUP BY
-            REF4.MES,
-            REF4.ANO,
-            REF4.CONTA
-
-        ORDER BY
-            REF4.MES,
-            REF4.ANO,
-            REF4.CONTA
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, ano_inicio=ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -371,7 +290,8 @@ def exportacoes_ano_mes_a_mes():
 
     resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                       coluna_mes_emissao=True, carteira=738)
-    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', to_dict=True)
+    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', ['VALOR_MERCADORIAS'])
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -386,7 +306,8 @@ def revendas_ano_mes_a_mes():
 
     resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                       coluna_mes_emissao=True, tipo_cliente=7552)
-    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', to_dict=True)
+    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', ['VALOR_MERCADORIAS'])
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -401,7 +322,8 @@ def parede_concreto_ano_mes_a_mes():
 
     resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                       coluna_mes_emissao=True, carteira_parede_de_concreto=True)
-    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', to_dict=True)
+    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', ['VALOR_MERCADORIAS'])
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -416,7 +338,8 @@ def eolicas_ano_mes_a_mes():
 
     resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                       coluna_mes_emissao=True, informacao_estrategica=19)
-    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', to_dict=True)
+    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', ['VALOR_MERCADORIAS'])
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -788,59 +711,30 @@ def horas_improdutivas_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar para get_relatorios_financeiros
 def inadimplencia_detalhe_ano_mes_a_mes():
     """Totaliza a inadimplencia detalhada por cliente do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            INAD.MES,
-            INAD.NOMERED AS CLIENTE,
-            INAD.EM_ABERTO,
-            INAD.EM_ABERTO_MES,
-            ROUND(INAD.EM_ABERTO / INAD.EM_ABERTO_MES * 100, 2) AS EM_ABERTO_PORCENTO_MES
+    em_aberto = get_relatorios_financeiros('receber', data_vencimento_inicio=data_ano_inicio,
+                                           data_vencimento_fim=data_ano_fim, coluna_mes_vencimento=True,
+                                           coluna_valor_titulo_liquido_desconto=True, coluna_cliente=True,
+                                           job=22, condicao='EM ABERTO')
+    em_aberto = pd.DataFrame(em_aberto)
+    em_aberto = em_aberto.rename(columns={'VALOR_LIQUIDO_DESCONTOS': 'EM_ABERTO', })
+    em_aberto = em_aberto.drop(columns='VALOR_EFETIVO')
+    em_aberto = em_aberto.sort_values(by=['MES_VENCIMENTO', 'EM_ABERTO'], ascending=[True, False])
 
-        FROM
-            (
-                SELECT
-                    EXTRACT(MONTH FROM RECEBER.DATAVENCIMENTO) AS MES,
-                    CLIENTES.NOMERED,
-                    SUM(RECEBER.VALORTOTAL - RECEBER.ABATIMENTOS_DEVOLUCOES - RECEBER.ABATIMENTOS_OUTROS - COALESCE(RECEBER.DESCONTOS, 0)) AS EM_ABERTO,
-                    SUM(SUM(RECEBER.VALORTOTAL - RECEBER.ABATIMENTOS_DEVOLUCOES - RECEBER.ABATIMENTOS_OUTROS - COALESCE(RECEBER.DESCONTOS, 0))) OVER (PARTITION BY EXTRACT(MONTH FROM RECEBER.DATAVENCIMENTO)) AS EM_ABERTO_MES
+    total_mes = em_aberto[['MES_VENCIMENTO', 'EM_ABERTO']]
+    total_mes = total_mes.groupby('MES_VENCIMENTO').sum()
+    total_mes = total_mes.rename(columns={'EM_ABERTO': 'EM_ABERTO_MES', })
 
-                FROM
-                    COPLAS.RECEBER,
-                    COPLAS.RECEBER_JOB,
-                    COPLAS.CLIENTES
+    resultado = pd.merge(em_aberto, total_mes, how='inner', on='MES_VENCIMENTO')
+    resultado['EM_ABERTO_PORCENTO_MES'] = resultado['EM_ABERTO'] / resultado['EM_ABERTO_MES'] * 100
 
-                WHERE
-                    RECEBER.CHAVE = RECEBER_JOB.CHAVE_RECEBER AND
-                    RECEBER.CODCLI = CLIENTES.CODCLI AND
-                    RECEBER_JOB.CHAVE_JOB = 22 AND
-                    RECEBER.CONDICAO = 'EM ABERTO' AND
-
-                    RECEBER.DATAVENCIMENTO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-                    RECEBER.DATAVENCIMENTO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-                GROUP BY
-                    EXTRACT(MONTH FROM RECEBER.DATAVENCIMENTO),
-                    CLIENTES.NOMERED
-
-                HAVING
-                    SUM(RECEBER.VALORTOTAL - RECEBER.ABATIMENTOS_DEVOLUCOES - RECEBER.ABATIMENTOS_OUTROS - COALESCE(RECEBER.DESCONTOS, 0)) > 0
-            ) INAD
-
-        ORDER BY
-            INAD.MES,
-            EM_ABERTO_PORCENTO_MES DESC
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -856,47 +750,43 @@ def inadimplencia_ano_mes_a_mes():
                                                data_vencimento_fim=data_ano_fim, coluna_mes_vencimento=True,
                                                coluna_valor_titulo_liquido_desconto=True,
                                                job=22,)
-    receber_total = completar_meses(pd.DataFrame(receber_total), 'MES_VENCIMENTO')
-    if 'VALOR_LIQUIDO_DESCONTOS' not in receber_total.columns:  # type:ignore
-        receber_total['VALOR_LIQUIDO_DESCONTOS'] = 0  # type:ignore
-    receber_total = receber_total.rename(columns={'VALOR_LIQUIDO_DESCONTOS': 'TOTAL_A_RECEBER',  # type:ignore
+    receber_total = completar_meses(pd.DataFrame(receber_total), 'MES_VENCIMENTO', ['VALOR_EFETIVO',
+                                                                                    'VALOR_LIQUIDO_DESCONTOS'])
+    receber_total = receber_total.rename(columns={'VALOR_LIQUIDO_DESCONTOS': 'TOTAL_A_RECEBER',
                                                   'VALOR_EFETIVO': 'LIQUIDADO'})
 
     em_aberto = get_relatorios_financeiros('receber', data_vencimento_inicio=data_ano_inicio,
                                            data_vencimento_fim=data_ano_fim, coluna_mes_vencimento=True,
                                            coluna_valor_titulo_liquido_desconto=True,
                                            job=22, condicao='EM ABERTO')
-    em_aberto = completar_meses(pd.DataFrame(em_aberto), 'MES_VENCIMENTO')
-    if 'VALOR_LIQUIDO_DESCONTOS' not in em_aberto.columns:  # type:ignore
-        em_aberto['VALOR_LIQUIDO_DESCONTOS'] = 0  # type:ignore
-    em_aberto = em_aberto.rename(columns={'VALOR_LIQUIDO_DESCONTOS': 'EM_ABERTO', })  # type:ignore
+    em_aberto = completar_meses(pd.DataFrame(em_aberto), 'MES_VENCIMENTO', ['VALOR_EFETIVO',
+                                                                            'VALOR_LIQUIDO_DESCONTOS'])
+    em_aberto = em_aberto.rename(columns={'VALOR_LIQUIDO_DESCONTOS': 'EM_ABERTO', })
     em_aberto = em_aberto.drop(columns='VALOR_EFETIVO')
 
     em_cobranca = get_relatorios_financeiros('receber', data_vencimento_inicio=data_ano_inicio,
                                              data_vencimento_fim=data_ano_fim, coluna_mes_vencimento=True,
                                              coluna_valor_titulo_liquido_desconto=True,
                                              job=22, condicao='EM ABERTO', carteira_cobranca='COB SIMPLES',)
-    em_cobranca = completar_meses(pd.DataFrame(em_cobranca), 'MES_VENCIMENTO')
-    if 'VALOR_LIQUIDO_DESCONTOS' not in em_cobranca.columns:  # type:ignore
-        em_cobranca['VALOR_LIQUIDO_DESCONTOS'] = 0  # type:ignore
-    em_cobranca = em_cobranca.rename(columns={'VALOR_LIQUIDO_DESCONTOS': 'EM_COBRANCA', })  # type:ignore
+    em_cobranca = completar_meses(pd.DataFrame(em_cobranca), 'MES_VENCIMENTO', ['VALOR_EFETIVO',
+                                                                                'VALOR_LIQUIDO_DESCONTOS'])
+    em_cobranca = em_cobranca.rename(columns={'VALOR_LIQUIDO_DESCONTOS': 'EM_COBRANCA', })
     em_cobranca = em_cobranca.drop(columns='VALOR_EFETIVO')
 
     em_cartorio = get_relatorios_financeiros('receber', data_vencimento_inicio=data_ano_inicio,
                                              data_vencimento_fim=data_ano_fim, coluna_mes_vencimento=True,
                                              coluna_valor_titulo_liquido_desconto=True,
                                              job=22, condicao='EM ABERTO', carteira_cobranca='EM CARTORIO',)
-    em_cartorio = completar_meses(pd.DataFrame(em_cartorio), 'MES_VENCIMENTO')
-    if 'VALOR_LIQUIDO_DESCONTOS' not in em_cartorio.columns:  # type:ignore
-        em_cartorio['VALOR_LIQUIDO_DESCONTOS'] = 0  # type:ignore
-    em_cartorio = em_cartorio.rename(columns={'VALOR_LIQUIDO_DESCONTOS': 'EM_CARTORIO', })  # type:ignore
+    em_cartorio = completar_meses(pd.DataFrame(em_cartorio), 'MES_VENCIMENTO', ['VALOR_EFETIVO',
+                                                                                'VALOR_LIQUIDO_DESCONTOS'])
+    em_cartorio = em_cartorio.rename(columns={'VALOR_LIQUIDO_DESCONTOS': 'EM_CARTORIO', })
     em_cartorio = em_cartorio.drop(columns='VALOR_EFETIVO')
 
     resultado = pd.merge(receber_total, em_aberto, how='inner', on='MES_VENCIMENTO')
     resultado = pd.merge(resultado, em_cobranca, how='inner', on='MES_VENCIMENTO')
     resultado = pd.merge(resultado, em_cartorio, how='inner', on='MES_VENCIMENTO')
 
-    resultado = resultado.to_dict(orient='records')  # type:ignore
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -1272,34 +1162,26 @@ def insvestimento_retiradas_ano_mes_a_mes():
     investimentos_total = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
                                                      data_liquidacao_fim=data_ano_fim, coluna_mes_liquidacao=True,
                                                      job=22, centro_resultado_coplas=True, plano_conta_codigo='4.%',)
-    investimentos_total = completar_meses(pd.DataFrame(investimentos_total), 'MES_LIQUIDACAO')
-    if 'VALOR_EFETIVO' not in investimentos_total.columns:  # type:ignore
-        investimentos_total['VALOR_EFETIVO'] = 0  # type:ignore
-    investimentos_total = investimentos_total.rename(columns={'VALOR_EFETIVO': 'INVESTIMENTOS_TOTAL'})  # type:ignore
+    investimentos_total = completar_meses(pd.DataFrame(investimentos_total), 'MES_LIQUIDACAO', ['VALOR_EFETIVO'])
+    investimentos_total = investimentos_total.rename(columns={'VALOR_EFETIVO': 'INVESTIMENTOS_TOTAL'})
 
     retiradas = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
                                            data_liquidacao_fim=data_ano_fim, coluna_mes_liquidacao=True,
                                            job=22, centro_resultado_coplas=True, plano_conta_codigo='4.02.01.001',)
-    retiradas = completar_meses(pd.DataFrame(retiradas), 'MES_LIQUIDACAO')
-    if 'VALOR_EFETIVO' not in retiradas.columns:  # type:ignore
-        retiradas['VALOR_EFETIVO'] = 0  # type:ignore
-    retiradas = retiradas.rename(columns={'VALOR_EFETIVO': 'RETIRADA_C'})  # type:ignore
+    retiradas = completar_meses(pd.DataFrame(retiradas), 'MES_LIQUIDACAO', ['VALOR_EFETIVO'])
+    retiradas = retiradas.rename(columns={'VALOR_EFETIVO': 'RETIRADA_C'})
 
     investimentos_o3 = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
                                                   data_liquidacao_fim=data_ano_fim, coluna_mes_liquidacao=True,
                                                   job=22, centro_resultado=41,)
-    investimentos_o3 = completar_meses(pd.DataFrame(investimentos_o3), 'MES_LIQUIDACAO')
-    if 'VALOR_EFETIVO' not in investimentos_o3.columns:  # type:ignore
-        investimentos_o3['VALOR_EFETIVO'] = 0  # type:ignore
-    investimentos_o3 = investimentos_o3.rename(columns={'VALOR_EFETIVO': 'INVESTIMENTO_3_O'})  # type:ignore
+    investimentos_o3 = completar_meses(pd.DataFrame(investimentos_o3), 'MES_LIQUIDACAO', ['VALOR_EFETIVO'])
+    investimentos_o3 = investimentos_o3.rename(columns={'VALOR_EFETIVO': 'INVESTIMENTO_3_O'})
 
     investimentos_fluxus = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
                                                       data_liquidacao_fim=data_ano_fim, coluna_mes_liquidacao=True,
                                                       job=22, centro_resultado=48,)
-    investimentos_fluxus = completar_meses(pd.DataFrame(investimentos_fluxus), 'MES_LIQUIDACAO')
-    if 'VALOR_EFETIVO' not in investimentos_fluxus.columns:  # type:ignore
-        investimentos_fluxus['VALOR_EFETIVO'] = 0  # type:ignore
-    investimentos_fluxus = investimentos_fluxus.rename(columns={'VALOR_EFETIVO': 'INVESTIMENTO_FLUXUS'})  # type:ignore
+    investimentos_fluxus = completar_meses(pd.DataFrame(investimentos_fluxus), 'MES_LIQUIDACAO', ['VALOR_EFETIVO'])
+    investimentos_fluxus = investimentos_fluxus.rename(columns={'VALOR_EFETIVO': 'INVESTIMENTO_FLUXUS'})
 
     resultado = pd.merge(investimentos_total, retiradas, how='inner', on='MES_LIQUIDACAO')
     resultado['INVESTIMENTO_1_C'] = resultado['INVESTIMENTOS_TOTAL'] - resultado['RETIRADA_C']
@@ -1307,7 +1189,7 @@ def insvestimento_retiradas_ano_mes_a_mes():
     resultado = pd.merge(resultado, investimentos_o3, how='inner', on='MES_LIQUIDACAO')
     resultado = pd.merge(resultado, investimentos_fluxus, how='inner', on='MES_LIQUIDACAO')
 
-    resultado = resultado.to_dict(orient='records')  # type:ignore
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -1447,150 +1329,97 @@ def faturado_bruto_ano_mes_a_mes(*, mes_atual: bool = False):
     return resultado
 
 
-# TODO: trocar para get_relatorios_financeiros
 def despesa_variavel_ano_mes_a_mes():
     """Totaliza a despesa variavel do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) AS MES,
-            ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.01.03.%' OR PLANO_DE_CONTAS.CONTA LIKE '2.02.02.%' OR PLANO_DE_CONTAS.CONTA LIKE '2.05.03.004' THEN 0 ELSE PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 END), 2) AS RATEAR_PP_PT_PQ,
-            ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.01.03.%' AND PAGAR.CODFOR IN (19786, 19688) OR PLANO_DE_CONTAS.CONTA LIKE '2.05.03.004' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS SOMENTE_PT,
-            ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.01.03.%' AND PAGAR.CODFOR IN (19476) THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS SOMENTE_PQ,
-            ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.02.02.%' AND PAGAR_CENTRORESULTADO.CHAVE_CENTRO != 47 THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS RATEAR_PP_PT
+    variavel_total = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
+                                                data_liquidacao_fim=data_ano_fim, coluna_mes_liquidacao=True,
+                                                coluna_fornecedor=True, coluna_codigo_plano_conta=True,
+                                                coluna_chave_centro_resultado=True,
+                                                job=22, centro_resultado_coplas=True, plano_conta_codigo='2.%',)
+    variavel_total = pd.DataFrame(variavel_total)
+    variavel_total = variavel_total.rename(columns={'VALOR_EFETIVO': 'VARIAVEL_TOTAL'})
+    variavel_total = variavel_total[~variavel_total['CODIGO_PLANO_CONTA'].str.startswith('2.01.01.')]
+    variavel_total = variavel_total[~variavel_total['CODIGO_PLANO_CONTA'].str.startswith('2.01.02.')]
+    variavel_total = variavel_total[~variavel_total['CODIGO_PLANO_CONTA'].str.startswith('2.03.')]
 
-        FROM
-            COPLAS.PAGAR,
-            COPLAS.PAGAR_PLANOCONTA,
-            COPLAS.PAGAR_CENTRORESULTADO,
-            COPLAS.PAGAR_JOB,
-            COPLAS.PLANO_DE_CONTAS
+    ratear_pp_pt_pq = variavel_total.rename(columns={'VARIAVEL_TOTAL': 'RATEAR_PP_PT_PQ'})
+    ratear_pp_pt_pq = ratear_pp_pt_pq[~ratear_pp_pt_pq['CODIGO_PLANO_CONTA'].str.startswith('2.01.03.')]
+    ratear_pp_pt_pq = ratear_pp_pt_pq[~ratear_pp_pt_pq['CODIGO_PLANO_CONTA'].str.startswith('2.02.02.')]
+    ratear_pp_pt_pq = ratear_pp_pt_pq[~ratear_pp_pt_pq['CODIGO_PLANO_CONTA'].str.startswith('2.05.03.004')]
+    ratear_pp_pt_pq = ratear_pp_pt_pq.drop(columns=['CODIGO_PLANO_CONTA', 'FORNECEDOR', 'CHAVE_CENTRO_RESULTADO'])
+    ratear_pp_pt_pq = ratear_pp_pt_pq.groupby('MES_LIQUIDACAO').sum()
+    ratear_pp_pt_pq = completar_meses(ratear_pp_pt_pq, 'MES_LIQUIDACAO', ['RATEAR_PP_PT_PQ'])
 
-        WHERE
-            PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
-            PAGAR.CHAVE = PAGAR_PLANOCONTA.CHAVE_PAGAR AND
-            PAGAR.CHAVE = PAGAR_CENTRORESULTADO.CHAVE_PAGAR AND
-            PAGAR.CHAVE = PAGAR_JOB.CHAVE_PAGAR AND
-            PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
-            PAGAR_JOB.CHAVE_JOB = 22 AND
-            PLANO_DE_CONTAS.CONTA LIKE '2.%' AND
-            PLANO_DE_CONTAS.CONTA NOT LIKE '2.01.01.%' AND
-            PLANO_DE_CONTAS.CONTA NOT LIKE '2.01.02.%' AND
-            PLANO_DE_CONTAS.CONTA NOT LIKE '2.03.%' AND
+    somente_pt = variavel_total.rename(columns={'VARIAVEL_TOTAL': 'SOMENTE_PT'})
+    somente_pt = somente_pt[(somente_pt['CODIGO_PLANO_CONTA'].str.startswith('2.01.03.')) &
+                            (somente_pt['FORNECEDOR'].isin(['NC4', 'JS GOMES'])) |
+                            (somente_pt['CODIGO_PLANO_CONTA'].str.startswith('2.05.03.004'))]
+    somente_pt = somente_pt.drop(columns=['CODIGO_PLANO_CONTA', 'FORNECEDOR', 'CHAVE_CENTRO_RESULTADO'])
+    somente_pt = somente_pt.groupby('MES_LIQUIDACAO').sum()
+    somente_pt = completar_meses(somente_pt, 'MES_LIQUIDACAO', ['SOMENTE_PT'])
 
-            PAGAR.DATALIQUIDACAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-            PAGAR.DATALIQUIDACAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
+    somente_pq = variavel_total.rename(columns={'VARIAVEL_TOTAL': 'SOMENTE_PQ'})
+    somente_pq = somente_pq[(somente_pq['CODIGO_PLANO_CONTA'].str.startswith('2.01.03.')) &
+                            (somente_pq['FORNECEDOR'] == 'O3')]
+    somente_pq = somente_pq.drop(columns=['CODIGO_PLANO_CONTA', 'FORNECEDOR', 'CHAVE_CENTRO_RESULTADO'])
+    somente_pq = somente_pq.groupby('MES_LIQUIDACAO').sum()
+    somente_pq = completar_meses(somente_pq, 'MES_LIQUIDACAO', ['SOMENTE_PQ'])
 
-        GROUP BY
-            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO)
+    ratear_pp_pt = variavel_total.rename(columns={'VARIAVEL_TOTAL': 'RATEAR_PP_PT'})
+    ratear_pp_pt = ratear_pp_pt[(ratear_pp_pt['CODIGO_PLANO_CONTA'].str.startswith('2.02.02.')) &
+                                (ratear_pp_pt['CHAVE_CENTRO_RESULTADO'] != 47)]
+    ratear_pp_pt = ratear_pp_pt.drop(columns=['CODIGO_PLANO_CONTA', 'FORNECEDOR', 'CHAVE_CENTRO_RESULTADO'])
+    ratear_pp_pt = ratear_pp_pt.groupby('MES_LIQUIDACAO').sum()
+    ratear_pp_pt = completar_meses(ratear_pp_pt, 'MES_LIQUIDACAO', ['RATEAR_PP_PT'])
 
-        ORDER BY
-            EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO)
-    """
+    resultado = pd.merge(ratear_pp_pt_pq, somente_pt, how='inner', on='MES_LIQUIDACAO')
+    resultado = pd.merge(resultado, somente_pq, how='inner', on='MES_LIQUIDACAO')
+    resultado = pd.merge(resultado, ratear_pp_pt, how='inner', on='MES_LIQUIDACAO')
 
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
 
-# TODO: trocar para get_relatorios_financeiros
 def despesa_operacional_ano_mes_a_mes():
     """Totaliza a despesa operacional do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            DO.MES,
-            SUM(DO.DO) AS DO
+    fixo_total = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
+                                            data_liquidacao_fim=data_ano_fim, coluna_mes_liquidacao=True,
+                                            job=22, centro_resultado_coplas=True, plano_conta_codigo='3.%',)
+    fixo_total = pd.DataFrame(fixo_total)
+    fixo_total = fixo_total.rename(columns={'VALOR_EFETIVO': 'FIXO_TOTAL'})
+    fixo_total = completar_meses(fixo_total, 'MES_LIQUIDACAO', ['FIXO_TOTAL'])
 
-        FROM
-            (
-                SELECT
-                    EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) AS MES,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.02.02.%' AND PAGAR_CENTRORESULTADO.CHAVE_CENTRO = 47 THEN 0 ELSE PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 END), 2) AS DO
+    variavel_total = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
+                                                data_liquidacao_fim=data_ano_fim, coluna_mes_liquidacao=True,
+                                                coluna_codigo_plano_conta=True, coluna_chave_centro_resultado=True,
+                                                job=22, centro_resultado_coplas=True, plano_conta_codigo='2.%',)
+    variavel_total = pd.DataFrame(variavel_total)
+    variavel_total = variavel_total.rename(columns={'VALOR_EFETIVO': 'VARIAVEL_TOTAL'})
+    variavel_total = variavel_total[~variavel_total['CODIGO_PLANO_CONTA'].str.startswith('2.01.01.')]
+    variavel_total = variavel_total[~variavel_total['CODIGO_PLANO_CONTA'].str.startswith('2.01.02.')]
+    variavel_total = variavel_total[~variavel_total['CODIGO_PLANO_CONTA'].str.startswith('2.03.')]
+    variavel_total = variavel_total[(~variavel_total['CODIGO_PLANO_CONTA'].str.startswith('2.02.02.')) |
+                                    (variavel_total['CHAVE_CENTRO_RESULTADO'] != 47)]
+    variavel_total = variavel_total.drop(columns=['CODIGO_PLANO_CONTA', 'CHAVE_CENTRO_RESULTADO'])
+    variavel_total = variavel_total.groupby('MES_LIQUIDACAO').sum()
+    variavel_total = completar_meses(variavel_total, 'MES_LIQUIDACAO', ['VARIAVEL_TOTAL'])
 
-                FROM
-                    COPLAS.PAGAR,
-                    COPLAS.PAGAR_PLANOCONTA,
-                    COPLAS.PAGAR_CENTRORESULTADO,
-                    COPLAS.PAGAR_JOB,
-                    COPLAS.PLANO_DE_CONTAS
+    resultado = pd.merge(fixo_total, variavel_total, how='inner', on='MES_LIQUIDACAO')
+    resultado['DO'] = resultado['FIXO_TOTAL'] + resultado['VARIAVEL_TOTAL']
+    resultado = resultado[['MES_LIQUIDACAO', 'DO']]
 
-                WHERE
-                    PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
-                    PAGAR.CHAVE = PAGAR_PLANOCONTA.CHAVE_PAGAR AND
-                    PAGAR.CHAVE = PAGAR_CENTRORESULTADO.CHAVE_PAGAR AND
-                    PAGAR.CHAVE = PAGAR_JOB.CHAVE_PAGAR AND
-                    PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
-                    PAGAR_JOB.CHAVE_JOB = 22 AND
-                    PLANO_DE_CONTAS.CONTA NOT LIKE '2.01.01.%' AND
-                    PLANO_DE_CONTAS.CONTA NOT LIKE '2.01.02.%' AND
-                    PLANO_DE_CONTAS.CONTA NOT LIKE '2.03.%' AND
-                    (
-                        PLANO_DE_CONTAS.CONTA LIKE '2.%' OR
-                        PLANO_DE_CONTAS.CONTA LIKE '3.%'
-                    ) AND
-
-                    PAGAR.DATALIQUIDACAO >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-                    PAGAR.DATALIQUIDACAO <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-                GROUP BY
-                    EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO)
-
-                UNION ALL
-
-                SELECT
-                    EXTRACT(MONTH FROM MOVBAN.DATA) AS MES,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.02.02.%' AND MOVBAN_CENTRORESULTADO.CHAVE_CENTRO = 47 THEN 0 ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END), 2) AS DO
-
-                FROM
-                    COPLAS.MOVBAN,
-                    COPLAS.MOVBAN_PLANOCONTA,
-                    COPLAS.MOVBAN_CENTRORESULTADO,
-                    COPLAS.MOVBAN_JOB,
-                    COPLAS.PLANO_DE_CONTAS
-
-                WHERE
-                    MOVBAN_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
-                    MOVBAN.CHAVE = MOVBAN_PLANOCONTA.CHAVE_MOVBAN AND
-                    MOVBAN.CHAVE = MOVBAN_CENTRORESULTADO.CHAVE_MOVBAN AND
-                    MOVBAN.CHAVE = MOVBAN_JOB.CHAVE_MOVBAN AND
-                    MOVBAN.TIPO = 'D' AND
-                    MOVBAN.AUTOMATICO = 'NAO' AND
-                    MOVBAN_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
-                    MOVBAN_JOB.CHAVE_JOB = 22 AND
-                    PLANO_DE_CONTAS.CONTA NOT LIKE '2.01.01.%' AND
-                    PLANO_DE_CONTAS.CONTA NOT LIKE '2.01.02.%' AND
-                    PLANO_DE_CONTAS.CONTA NOT LIKE '2.03.%' AND
-                    (
-                        PLANO_DE_CONTAS.CONTA LIKE '2.%' OR
-                        PLANO_DE_CONTAS.CONTA LIKE '3.%'
-                    ) AND
-
-                    MOVBAN.DATA >= TO_DATE(:data_ano_inicio,'DD-MM-YYYY') AND
-                    MOVBAN.DATA <= TO_DATE(:data_ano_fim,'DD-MM-YYYY')
-
-                GROUP BY
-                    EXTRACT(MONTH FROM MOVBAN.DATA)
-            ) DO
-
-        GROUP BY
-            DO.MES
-
-        ORDER BY
-            DO.MES
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -2368,33 +2197,27 @@ def frete_cif_ano_mes_a_mes(*, mes_atual: bool = False):
     total = get_relatorios_financeiros('pagar', data_emissao_inicio=data_ano_inicio, data_emissao_fim=data_ano_fim,
                                        coluna_mes_emissao=True, coluna_valor_titulo=True, job=22,
                                        centro_resultado_coplas=True, plano_conta_frete_cif=True,)
-    total = completar_meses(pd.DataFrame(total), 'MES_EMISSAO')
-    if 'VALOR_TITULO' not in total.columns:  # type:ignore
-        total['VALOR_TITULO'] = 0  # type:ignore
+    total = completar_meses(pd.DataFrame(total), 'MES_EMISSAO', ['VALOR_TITULO'])
 
     agilli_total = get_relatorios_financeiros('pagar', data_emissao_inicio=data_ano_inicio, data_emissao_fim=data_ano_fim,
                                               coluna_mes_emissao=True, coluna_valor_titulo=True, job=22,
                                               fornecedor='%AGILLI BRASIL%',
                                               centro_resultado_coplas=True, plano_conta_frete_cif=True,)
-    agilli_total = completar_meses(pd.DataFrame(agilli_total), 'MES_EMISSAO')
-    if 'VALOR_TITULO' not in agilli_total.columns:  # type:ignore
-        agilli_total['VALOR_TITULO'] = 0  # type:ignore
+    agilli_total = completar_meses(pd.DataFrame(agilli_total), 'MES_EMISSAO', ['VALOR_TITULO'])
 
     agilli_real = get_relatorios_financeiros('pagar', data_emissao_inicio=data_ano_inicio, data_emissao_fim=data_ano_fim,
                                              coluna_mes_emissao=True, coluna_valor_titulo=True, job=22,
                                              fornecedor='%AGILLI BRASIL%', status_diferente='PREVISAO',
                                              centro_resultado_coplas=True, plano_conta_frete_cif=True,)
-    agilli_real = completar_meses(pd.DataFrame(agilli_real), 'MES_EMISSAO')
-    if 'VALOR_TITULO' not in agilli_real.columns:  # type:ignore
-        agilli_real['VALOR_TITULO'] = 0  # type:ignore
-    agilli_real = agilli_real.rename(columns={'VALOR_TITULO': 'AGILLI'})  # type:ignore
+    agilli_real = completar_meses(pd.DataFrame(agilli_real), 'MES_EMISSAO', ['VALOR_TITULO'])
+    agilli_real = agilli_real.rename(columns={'VALOR_TITULO': 'AGILLI'})
 
-    resultado = pd.merge(total, agilli_total, how='inner', on='MES_EMISSAO')  # type:ignore
+    resultado = pd.merge(total, agilli_total, how='inner', on='MES_EMISSAO')
     resultado['OUTRAS_TRANSPORTADORAS'] = resultado['VALOR_TITULO_x'] - resultado['VALOR_TITULO_y']
     resultado = resultado.drop(columns=['VALOR_TITULO_x', 'VALOR_TITULO_y'])
 
     resultado = pd.merge(agilli_real, resultado, how='inner', on='MES_EMISSAO')
-    resultado = resultado.to_dict(orient='records')  # type:ignore
+    resultado = resultado.to_dict(orient='records')
 
     if mes_atual and resultado:
         resultado = resultado[data_ano_inicio.month - 1]
@@ -2422,19 +2245,15 @@ def financeiro_ano_mes_a_mes():
                                            job=22, centro_resultado_coplas=True,
                                            data_liquidacao_inicio=data_ano_inicio,
                                            data_liquidacao_fim=data_ano_fim, plano_conta_codigo=codigo_plano)
-        pagar = completar_meses(pd.DataFrame(pagar), 'MES_LIQUIDACAO')
-        if 'VALOR_EFETIVO' not in pagar.columns:  # type:ignore
-            pagar['VALOR_EFETIVO'] = 0  # type:ignore
-        pagar = pagar.rename(columns={'VALOR_EFETIVO': descricao_plano})  # type:ignore
+        pagar = completar_meses(pd.DataFrame(pagar), 'MES_LIQUIDACAO', ['VALOR_EFETIVO'])
+        pagar = pagar.rename(columns={'VALOR_EFETIVO': descricao_plano})
 
         receber = get_relatorios_financeiros('receber', coluna_mes_liquidacao=True,
                                              job=22, centro_resultado_coplas=True,
                                              data_liquidacao_inicio=data_ano_inicio,
                                              data_liquidacao_fim=data_ano_fim, plano_conta_codigo=codigo_plano)
-        receber = completar_meses(pd.DataFrame(receber), 'MES_LIQUIDACAO')
-        if 'VALOR_EFETIVO' not in receber.columns:  # type:ignore
-            receber['VALOR_EFETIVO'] = 0  # type:ignore
-        receber = receber.rename(columns={'VALOR_EFETIVO': descricao_plano})  # type:ignore
+        receber = completar_meses(pd.DataFrame(receber), 'MES_LIQUIDACAO', ['VALOR_EFETIVO'])
+        receber = receber.rename(columns={'VALOR_EFETIVO': descricao_plano})
 
         pagar_receber = pd.merge(pagar, receber, how='inner', on='MES_LIQUIDACAO')
         pagar_receber[descricao_plano] = pagar_receber[descricao_plano + '_x'] + pagar_receber[descricao_plano + '_y']
@@ -2473,18 +2292,14 @@ def financeiro_geral_ano_mes_a_mes():
         pagar = get_relatorios_financeiros('pagar', coluna_mes_liquidacao=True, valor_debito_negativo=True,
                                            data_liquidacao_inicio=data_ano_inicio,
                                            data_liquidacao_fim=data_ano_fim, plano_conta_codigo=codigo_plano)
-        pagar = completar_meses(pd.DataFrame(pagar), 'MES_LIQUIDACAO')
-        if 'VALOR_EFETIVO' not in pagar.columns:  # type:ignore
-            pagar['VALOR_EFETIVO'] = 0  # type:ignore
-        pagar = pagar.rename(columns={'VALOR_EFETIVO': descricao_plano})  # type:ignore
+        pagar = completar_meses(pd.DataFrame(pagar), 'MES_LIQUIDACAO', ['VALOR_EFETIVO'])
+        pagar = pagar.rename(columns={'VALOR_EFETIVO': descricao_plano})
 
         receber = get_relatorios_financeiros('receber', coluna_mes_liquidacao=True,
                                              data_liquidacao_inicio=data_ano_inicio,
                                              data_liquidacao_fim=data_ano_fim, plano_conta_codigo=codigo_plano)
-        receber = completar_meses(pd.DataFrame(receber), 'MES_LIQUIDACAO')
-        if 'VALOR_EFETIVO' not in receber.columns:  # type:ignore
-            receber['VALOR_EFETIVO'] = 0  # type:ignore
-        receber = receber.rename(columns={'VALOR_EFETIVO': descricao_plano})  # type:ignore
+        receber = completar_meses(pd.DataFrame(receber), 'MES_LIQUIDACAO', ['VALOR_EFETIVO'])
+        receber = receber.rename(columns={'VALOR_EFETIVO': descricao_plano})
 
         pagar_receber = pd.merge(pagar, receber, how='inner', on='MES_LIQUIDACAO')
         pagar_receber[descricao_plano] = pagar_receber[descricao_plano + '_x'] + pagar_receber[descricao_plano + '_y']
@@ -2793,10 +2608,8 @@ def contas_estrategicas_ano_mes_a_mes():
                                                centro_resultado_coplas=True,
                                                data_liquidacao_inicio=data_ano_inicio,
                                                data_liquidacao_fim=data_ano_fim, plano_conta_codigo=codigo_plano)
-        relatorio = completar_meses(pd.DataFrame(relatorio), 'MES_LIQUIDACAO')
-        if 'VALOR_EFETIVO' not in relatorio.columns:  # type:ignore
-            relatorio['VALOR_EFETIVO'] = 0  # type:ignore
-        relatorio = relatorio.rename(columns={'VALOR_EFETIVO': descricao_plano})  # type:ignore
+        relatorio = completar_meses(pd.DataFrame(relatorio), 'MES_LIQUIDACAO', ['VALOR_EFETIVO'])
+        relatorio = relatorio.rename(columns={'VALOR_EFETIVO': descricao_plano})
 
         relatorios.append(relatorio)
 
