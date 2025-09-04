@@ -37,9 +37,9 @@
                     <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
                 </div>
                 <div class="grid link-conteudo link-conteudo-escuro">
-                    <button class="botao botao-escuro" type="button" onclick="preencherMargem('{{ cores_rentabilidade.verde }}')" style="background-color: var(--verde-rentabilidade);">Margem Verde &gt;= {{ cores_rentabilidade.verde }}</button>
-                    <button class="botao botao-escuro" type="button" onclick="preencherMargem('{{ cores_rentabilidade.amarelo }}')" style="background-color: var(--amarelo-rentabilidade);">Margem Amarela &gt;= {{ cores_rentabilidade.amarelo }}</button>
-                    <button class="botao botao-escuro" type="button" onclick="preencherMargem('{{ cores_rentabilidade.vermelho }}')" style="background-color: var(--vermelho-rentabilidade);">Margem Vermelha &gt;= {{ cores_rentabilidade.vermelho }}</button>
+                    <button class="botao botao-escuro" type="button" onclick="preencherMargem('{{ cores_rentabilidade.verde }}')" style="background-color: var(--verde-rentabilidade);">Margem Verde &gt;= {{ cores_rentabilidade.verde | floatformat:2 }}</button>
+                    <button class="botao botao-escuro" type="button" onclick="preencherMargem('{{ cores_rentabilidade.amarelo }}')" style="background-color: var(--amarelo-rentabilidade);">Margem Amarela &gt;= {{ cores_rentabilidade.amarelo | floatformat:2 }}</button>
+                    <button class="botao botao-escuro" type="button" onclick="preencherMargem('{{ cores_rentabilidade.vermelho }}')" style="background-color: var(--vermelho-rentabilidade);">Margem Vermelha &gt;= {{ cores_rentabilidade.vermelho | floatformat:2 }}</button>
                 </div>
                 <div class="slider-container link-conteudo link-conteudo-escuro" style="position: relative;">
                     <div class="slider-container grid-rentabilidade" style="grid-template-columns: 43.3333% 10% 6.6666% auto; position: absolute; z-index: 1;">
