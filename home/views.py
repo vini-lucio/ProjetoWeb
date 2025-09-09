@@ -11,6 +11,7 @@ from .services import (get_tabela_precos, migrar_cidades, migrar_unidades, migra
                        migrar_faturamentos, sugestoes_modelos)
 from .forms import ConfirmacaoMigrar, ConfirmacaoMigrarDataFimNonRequired, ConfirmacaoMigrarData
 from django.contrib.auth.decorators import user_passes_test
+from datetime import datetime
 
 # TODO: criar testes automatizados
 # TODO: levantar excessões com melhores descrições
@@ -72,10 +73,10 @@ def migracao(request):
             formulario_migrar_comissoes = ConfirmacaoMigrarDataFimNonRequired(
                 request.POST, id_confirma=id_confirma_comissoes)
             if formulario_migrar_comissoes.is_valid() and formulario_migrar_comissoes.cleaned_data['confirma']:
-                inicio = str(formulario_migrar_comissoes.cleaned_data['inicio'])
-                fim = None
+                inicio = formulario_migrar_comissoes.cleaned_data['inicio']
+                fim = datetime.date(datetime(2999, 12, 31))
                 if formulario_migrar_comissoes.cleaned_data['fim']:
-                    fim = str(formulario_migrar_comissoes.cleaned_data['fim'])
+                    fim = formulario_migrar_comissoes.cleaned_data['fim']
 
                 migrar_comissoes(inicio, fim)
 

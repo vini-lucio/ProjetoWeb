@@ -279,13 +279,13 @@ def recebido_a_receber(primeiro_dia_mes, ultimo_dia_mes, carteira) -> tuple[floa
     notas = notas[['CHAVE_DOCUMENTO', 'PROPORCAO_MERCADORIAS']]
 
     receber = get_relatorios_financeiros('receber', data_vencimento_inicio=primeiro_dia_mes,
-                                         data_vencimento_fim=ultimo_dia_mes, coluna_valor_titulo=True,
+                                         data_vencimento_fim=ultimo_dia_mes, coluna_valor_titulo_liquido_desconto=True,
                                          coluna_chave_nota=True, coluna_data_vencimento=True,)
     receber = pd.DataFrame(receber)
-    receber = receber[['CHAVE_NOTA', 'DATA_VENCIMENTO', 'VALOR_TITULO']]
+    receber = receber[['CHAVE_NOTA', 'DATA_VENCIMENTO', 'VALOR_LIQUIDO_DESCONTOS']]
 
     total = pd.merge(notas, receber, how='inner', left_on='CHAVE_DOCUMENTO', right_on='CHAVE_NOTA')
-    total['VALOR_TITULO_MERCADORIAS'] = total['VALOR_TITULO'] * total['PROPORCAO_MERCADORIAS']
+    total['VALOR_TITULO_MERCADORIAS'] = total['VALOR_LIQUIDO_DESCONTOS'] * total['PROPORCAO_MERCADORIAS']
     total = total[['DATA_VENCIMENTO', 'VALOR_TITULO_MERCADORIAS']]
 
     recebido = total[(total['DATA_VENCIMENTO'].dt.date >= primeiro_dia_mes) & (

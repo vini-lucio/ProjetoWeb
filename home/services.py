@@ -2319,219 +2319,90 @@ def financeiro_geral_ano_mes_a_mes():
     return resultado
 
 
-# TODO: trocar para get_relatorios_financeiros
 def receitas_despesas_ano_mes_a_mes_12_meses():
     """Totaliza as receitas e despesas do periodo informado em site setup mes a mes (ultimos 12 meses de cada mes)"""
     site_setup = get_site_setup()
     if site_setup:
-        mes = site_setup.atualizacoes_mes
-        ano = site_setup.atualizacoes_ano
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_inicio = data_ano_inicio - relativedelta(months=11)
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            ADM.MES,
-            ROUND(SUM(ADM.RECEITAS), 2) AS RECEITAS,
-            ROUND(SUM(ADM.SUBTRAIR_S), 2) AS SUBTRAIR_S,
-            ROUND(SUM(ADM.SUBTRAIR_M), 2) AS SUBTRAIR_M,
-            ROUND(SUM(ADM.PIS_COFINS_CSLL_IRPJ), 2) AS PIS_COFINS_CSLL_IRPJ,
-            ROUND(SUM(ADM.ICMS), 2) AS ICMS,
-            ROUND(SUM(ADM.COMISSOES), 2) AS COMISSOES,
-            ROUND(SUM(ADM.ADM), 2) AS ADM,
-            ROUND(SUM(ADM.CP), 2) AS CP,
-            ROUND(SUM(ADM.ADM_CP), 2) AS ADM_CP,
-            ROUND(SUM(ADM.ADMV), 2) AS ADMV,
-            ROUND(SUM(ADM.ADMF), 2) AS ADMF,
-            ROUND(SUM(ADM.TOTAL_VARIAVEL), 2) AS TOTAL_VARIAVEL,
-            ROUND(SUM(ADM.TOTAL_FIXO), 2) AS TOTAL_FIXO
+    receber = get_relatorios_financeiros('receber', data_liquidacao_inicio=data_ano_inicio,
+                                         data_liquidacao_fim=data_ano_fim, coluna_ano_liquidacao=True,
+                                         coluna_mes_liquidacao=True, plano_conta_codigo='1.%', job=22,
+                                         centro_resultado_coplas=True,)
+    receber = pd.DataFrame(receber)
+    receber['RECEITAS'] = receber['VALOR_EFETIVO'].rolling(window=12).sum()
+    receber = receber.dropna(subset=['RECEITAS'])
+    receber = receber[['MES_LIQUIDACAO', 'RECEITAS']]
 
-        FROM
-            (
-                SELECT
-                    PERIODO.MES,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '1.%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS RECEITAS,
-                    0 AS RECEITAS,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS TOTAL_VARIAVEL,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '3.%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS TOTAL_FIXO,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%-SUBTRAIR%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS SUBTRAIR_S,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%*SUBTRAIR%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS SUBTRAIR_M,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKPCIC%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS PIS_COFINS_CSLL_IRPJ,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKICMS%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS ICMS,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKCOM%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS COMISSOES,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) * (-1) AS ADM,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM%' AND PLANO_DE_CONTAS.CONTA LIKE '2.%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) * (-1) AS ADMV,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM%' AND PLANO_DE_CONTAS.CONTA LIKE '3.%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) * (-1) AS ADMF,
-                    (ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%CP%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) - ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%CP-O3%' AND PAGAR_CENTRORESULTADO.CHAVE_CENTRO = 47 THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2)) * (-1) AS CP,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) * (-1) AS ADM_CP
+    pagar = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
+                                       data_liquidacao_fim=data_ano_fim, coluna_ano_liquidacao=True,
+                                       coluna_mes_liquidacao=True, coluna_codigo_plano_conta=True,
+                                       coluna_plano_conta=True, coluna_chave_centro_resultado=True,
+                                       job=22, centro_resultado_coplas=True,
+                                       valor_debito_negativo=True,)
+    pagar = pd.DataFrame(pagar)
+    pagar = pagar[~pagar['CODIGO_PLANO_CONTA'].str.startswith('4.')]
 
-                FROM
-                    COPLAS.PAGAR,
-                    COPLAS.PAGAR_PLANOCONTA,
-                    COPLAS.PAGAR_CENTRORESULTADO,
-                    COPLAS.PAGAR_JOB,
-                    COPLAS.PLANO_DE_CONTAS,
-                    (
-                        SELECT 12 AS MES, :ano + 12 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 11 AS MES, :ano + 11 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 10 AS MES, :ano + 10 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 9 AS MES, :ano + 9 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 8 AS MES, :ano + 8 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 7 AS MES, :ano + 7 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 6 AS MES, :ano + 6 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 5 AS MES, :ano + 5 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 4 AS MES, :ano + 4 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 3 AS MES, :ano + 3 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 2 AS MES, :ano + 2 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 1 AS MES, :ano + 1 / 12.00 AS ANOMES FROM DUAL
-                    ) PERIODO
+    relatorios_pagar = []
+    base_relatorios = []
 
-                WHERE
-                    PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
-                    PAGAR.CHAVE = PAGAR_PLANOCONTA.CHAVE_PAGAR AND
-                    PAGAR.CHAVE = PAGAR_CENTRORESULTADO.CHAVE_PAGAR AND
-                    PAGAR.CHAVE = PAGAR_JOB.CHAVE_PAGAR AND
-                    PAGAR_JOB.CHAVE_JOB = 22 AND
-                    PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
-                    PLANO_DE_CONTAS.CONTA NOT LIKE '4.%' AND
-                    EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO) + EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) / 12 >= PERIODO.ANOMES - 11 / 12 AND
-                    EXTRACT(YEAR FROM PAGAR.DATALIQUIDACAO) + EXTRACT(MONTH FROM PAGAR.DATALIQUIDACAO) / 12 <= PERIODO.ANOMES AND
+    subtratir_s = pagar[pagar['PLANO_CONTA'].str.contains('-SUBTRAIR')].copy()
+    base_relatorios.append([subtratir_s, 'SUBTRAIR_S'])
 
-                    PERIODO.MES <= :mes
+    subtratir_m = pagar[pagar['PLANO_CONTA'].str.contains('*SUBTRAIR', regex=False)].copy()
+    base_relatorios.append([subtratir_m, 'SUTRAIR_M'])
 
-                GROUP BY
-                    PERIODO.MES
+    pis_cofins_csll_irpj = pagar[pagar['PLANO_CONTA'].str.contains('MKPCIC')].copy()
+    base_relatorios.append([pis_cofins_csll_irpj, 'PIS_COFINS_CSLL_IRPJ'])
 
-                UNION ALL
+    icms = pagar[pagar['PLANO_CONTA'].str.contains('MKICMS')].copy()
+    base_relatorios.append([icms, 'ICMS'])
 
-                SELECT
-                    PERIODO.MES,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '1.%' THEN RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS RECEITAS,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.%' THEN RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS TOTAL_VARIAVEL,
-                    0 AS TOTAL_VARIAVEL,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '3.%' THEN RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS TOTAL_FIXO,
-                    0 AS TOTAL_FIXO,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%-SUBTRAIR%' THEN RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS SUBTRAIR_S,
-                    0 AS SUBTRAIR_S,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%*SUBTRAIR%' THEN RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS SUBTRAIR_M,
-                    0 AS SUBTRAIR_M,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKPCIC%' THEN RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS PIS_COFINS_CSLL_IRPJ,
-                    0 AS PIS_COFINS_CSLL_IRPJ,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKICMS%' THEN RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS ICMS,
-                    0 AS ICMS,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKCOM%' THEN RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS COMISSOES,
-                    0 AS COMISSOES,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS ADM,
-                    0 AS ADM,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM%' AND PLANO_DE_CONTAS.CONTA LIKE '2.%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS ADMV,
-                    0 AS ADMV,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM%' AND PLANO_DE_CONTAS.CONTA LIKE '3.%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS ADMF,
-                    0 AS ADMF,
-                    -- (ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%CP%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2)-ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%CP-O3%' AND RECEBER_CENTRORESULTADO.CHAVE_CENTRO=47 THEN RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2)) AS CP,
-                    0 AS CP,
-                    -- ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000 ELSE 0 END), 2) AS ADM_CP
-                    0 AS ADM_CP
+    comissoes = pagar[pagar['PLANO_CONTA'].str.contains('MKCOM')].copy()
+    base_relatorios.append([comissoes, 'COMISSOES'])
 
-                FROM
-                    COPLAS.RECEBER,
-                    COPLAS.RECEBER_PLANOCONTA,
-                    COPLAS.RECEBER_CENTRORESULTADO,
-                    COPLAS.RECEBER_JOB,
-                    COPLAS.PLANO_DE_CONTAS,
-                    (
-                        SELECT 12 AS MES, :ano + 12 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 11 AS MES, :ano + 11 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 10 AS MES, :ano + 10 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 9 AS MES, :ano + 9 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 8 AS MES, :ano + 8 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 7 AS MES, :ano + 7 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 6 AS MES, :ano + 6 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 5 AS MES, :ano + 5 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 4 AS MES, :ano + 4 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 3 AS MES, :ano + 3 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 2 AS MES, :ano + 2 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 1 AS MES, :ano + 1 / 12.00 AS ANOMES FROM DUAL
-                    ) PERIODO
+    adm_total = pagar[pagar['PLANO_CONTA'].str.contains('MKADM')].copy()
+    adm_total = adm_total[~adm_total['PLANO_CONTA'].str.contains('MKADM/CP')]
 
-                WHERE
-                    RECEBER_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
-                    RECEBER.CHAVE = RECEBER_PLANOCONTA.CHAVE_RECEBER AND
-                    RECEBER.CHAVE = RECEBER_CENTRORESULTADO.CHAVE_RECEBER AND
-                    RECEBER.CHAVE = RECEBER_JOB.CHAVE_RECEBER AND
-                    RECEBER_JOB.CHAVE_JOB = 22 AND
-                    RECEBER_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
-                    PLANO_DE_CONTAS.CONTA NOT LIKE '4.%' AND
-                    EXTRACT(YEAR FROM RECEBER.DATALIQUIDACAO) + EXTRACT(MONTH FROM RECEBER.DATALIQUIDACAO) / 12 >= PERIODO.ANOMES - 11 / 12 AND
-                    EXTRACT(YEAR FROM RECEBER.DATALIQUIDACAO) + EXTRACT(MONTH FROM RECEBER.DATALIQUIDACAO) / 12 <= PERIODO.ANOMES AND
+    adm = adm_total.copy()
+    base_relatorios.append([adm, 'ADM'])
 
-                    PERIODO.MES <= :mes
+    cp = pagar[pagar['PLANO_CONTA'].str.contains('CP')].copy()
+    cp = cp[~cp['PLANO_CONTA'].str.contains('MKADM/CP')]
+    cp = cp[~((cp['PLANO_CONTA'].str.contains('CP-O3')) & (cp['CHAVE_CENTRO_RESULTADO'] == 47))]
+    base_relatorios.append([cp, 'CP'])
 
-                GROUP BY
-                    PERIODO.MES
+    adm_cp = pagar[pagar['PLANO_CONTA'].str.contains('MKADM/CP')].copy()
+    base_relatorios.append([adm_cp, 'ADM_CP'])
 
-                UNION ALL
+    admv = adm_total[adm_total['CODIGO_PLANO_CONTA'].str.startswith('2.')].copy()
+    base_relatorios.append([admv, 'ADMV'])
 
-                SELECT
-                    PERIODO.MES,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '1.%' THEN CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS RECEITAS,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '2.%' THEN CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS TOTAL_VARIAVEL,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.CONTA LIKE '3.%' THEN CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS TOTAL_FIXO,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%-SUBTRAIR%' THEN CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS SUBTRAIR_S,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%*SUBTRAIR%' THEN CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS SUBTRAIR_M,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKPCIC%' THEN CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS PIS_COFINS_CSLL_IRPJ,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKICMS%' THEN CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS ICMS,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKCOM%' THEN CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS COMISSOES,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END END ELSE 0 END), 2) AS ADM,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM%' AND PLANO_DE_CONTAS.CONTA LIKE '2.%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END END ELSE 0 END), 2) AS ADMV,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM%' AND PLANO_DE_CONTAS.CONTA LIKE '3.%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END END ELSE 0 END), 2) AS ADMF,
-                    (ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%CP%' THEN CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN 0 ELSE CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END END ELSE 0 END), 2) - ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%CP-O3%' AND MOVBAN_CENTRORESULTADO.CHAVE_CENTRO = 47 THEN CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2)) AS CP,
-                    ROUND(SUM(CASE WHEN PLANO_DE_CONTAS.DESCRICAO LIKE '%MKADM/CP%' THEN CASE WHEN MOVBAN.TIPO = 'D' THEN (MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) * (-1) ELSE MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000 END ELSE 0 END), 2) AS ADM_CP
+    admf = adm_total[adm_total['CODIGO_PLANO_CONTA'].str.startswith('3.')].copy()
+    base_relatorios.append([admf, 'ADMF'])
 
-                FROM
-                    COPLAS.MOVBAN,
-                    COPLAS.MOVBAN_PLANOCONTA,
-                    COPLAS.MOVBAN_CENTRORESULTADO,
-                    COPLAS.MOVBAN_JOB,
-                    COPLAS.PLANO_DE_CONTAS,
-                    (
-                        SELECT 12 AS MES, :ano + 12 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 11 AS MES, :ano + 11 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 10 AS MES, :ano + 10 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 9 AS MES, :ano + 9 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 8 AS MES, :ano + 8 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 7 AS MES, :ano + 7 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 6 AS MES, :ano + 6 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 5 AS MES, :ano + 5 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 4 AS MES, :ano + 4 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 3 AS MES, :ano + 3 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 2 AS MES, :ano + 2 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                        SELECT 1 AS MES, :ano + 1 / 12.00 AS ANOMES FROM DUAL
-                    ) PERIODO
+    total_variavel = pagar[pagar['CODIGO_PLANO_CONTA'].str.startswith('2.')].copy()
+    base_relatorios.append([total_variavel, 'TOTAL_VARIAVEL'])
 
-                WHERE
-                    MOVBAN_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
-                    MOVBAN.CHAVE = MOVBAN_PLANOCONTA.CHAVE_MOVBAN AND
-                    MOVBAN.CHAVE = MOVBAN_CENTRORESULTADO.CHAVE_MOVBAN AND
-                    MOVBAN.CHAVE = MOVBAN_JOB.CHAVE_MOVBAN AND
-                    MOVBAN.AUTOMATICO = 'NAO' AND
-                    MOVBAN_JOB.CHAVE_JOB = 22 AND
-                    MOVBAN_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND
-                    PLANO_DE_CONTAS.CONTA NOT LIKE '4.%' AND
-                    EXTRACT(YEAR FROM MOVBAN.DATA) + EXTRACT(MONTH FROM MOVBAN.DATA) / 12 >= PERIODO.ANOMES - 11 / 12 AND
-                    EXTRACT(YEAR FROM MOVBAN.DATA) + EXTRACT(MONTH FROM MOVBAN.DATA) / 12 <= PERIODO.ANOMES AND
+    total_fixo = pagar[pagar['CODIGO_PLANO_CONTA'].str.startswith('3.')].copy()
+    base_relatorios.append([total_fixo, 'TOTAL_FIXO'])
 
-                    PERIODO.MES <= :mes
+    for relatorio, descricao in base_relatorios:
+        relatorio = relatorio.drop(columns=['CODIGO_PLANO_CONTA', 'PLANO_CONTA', 'CHAVE_CENTRO_RESULTADO'])
+        relatorio = relatorio.groupby(['ANO_LIQUIDACAO', 'MES_LIQUIDACAO']).sum().reset_index()
+        relatorio[descricao] = relatorio['VALOR_EFETIVO'].rolling(window=12).sum()
+        relatorio = relatorio.dropna(subset=[descricao])
+        relatorio = relatorio[['MES_LIQUIDACAO', descricao]]
 
-                GROUP BY
-                    PERIODO.MES
-            ) ADM
+        relatorios_pagar.append(relatorio)
 
-        GROUP BY
-            ADM.MES
+    resultado = receber.copy()
+    for relatorio in relatorios_pagar:
+        resultado = pd.merge(resultado, relatorio, how='inner', on='MES_LIQUIDACAO')
 
-        ORDER BY
-            ADM.MES
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes)
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -3011,133 +2882,67 @@ def migrar_vendedores():
                 instancia.save()
 
 
-# TODO: trocar para get_relatorios_financeiros
 def migrar_comissoes(data_inicio, data_fim):
-    if data_fim:
-        data_para_comissao = """
-            RECEBER.DATAVENCIMENTO >= TO_DATE(:data_inicio,'YYYY-MM-DD') AND
-            RECEBER.DATAVENCIMENTO <= TO_DATE(:data_fim,'YYYY-MM-DD')
-        """
-        data = data_para_comissao
-    else:
-        data_para_rescisao = "RECEBER.DATAVENCIMENTO >= TO_DATE(:data_inicio,'YYYY-MM-DD')"
-        data = data_para_rescisao
+    from dashboards.services import get_relatorios_vendas
 
-    sql = """
-        SELECT
-            RECEBER.DATAVENCIMENTO,
-            RECEBER.DATALIQUIDACAO,
-            NOTAS.NF,
-            CLIENTES.NOMERED AS CLIENTE,
-            ESTADOS.SIGLA AS UF_CLIENTE,
-            COALESCE(UF_ORDEM.UF_ORDEM, NOTAS.CLI_ENT_UF, ESTADOS.SIGLA) AS UF_ENTREGA,
-            COALESCE(UF_ORDEM.CIDADE_ORDEM, NOTAS.CLI_ENT_CIDADE, CLIENTES.CIDADE) AS CIDADE_ENTREGA,
-            NOTAS_ORCAMENTO.LOG_NOME_INCLUSAO AS LOG_INCLUSAO_ORCAMENTO,
-            REPRE_CAD.NOMERED AS REPRESENTANTE_CLIENTE,
-            REPRESENTANTES.NOMERED AS REPRESENTANTE_NOTA,
-            SEGUNDO_REPRE_CAD.NOMERED AS SEGUNDO_REPRE_CLIENTE,
-            SEGUNDO_REPRESENTANTE.NOMERED AS SEGUNDO_REPRE_NOTA,
-            VENDEDORES.NOMERED AS CARTEIRA_CLIENTE,
-            CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END AS ESPECIE,
-            SUM(ROUND(NOTAS_ITENS.VALOR_MERCADORIAS / NOTAS.VALOR_TOTAL * (RECEBER.VALORTOTAL - (RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0))), 2)) - COALESCE(FRETE_NO_ITEM.FRETE_NO_ITEM, 0) AS VALOR_MERCADORIAS_PARCELA,
-            RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0) AS ABATIMENTOS_TOTAIS,
-            COALESCE(FRETE_NO_ITEM.FRETE_NO_ITEM, 0) AS FRETE_NO_ITEM,
-            0 AS DIVISAO,
-            0 AS ERRO,
-            INFRA.CONTEUDO AS INFRA,
-            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END AS PREMOLDADO_POSTE,
-            PC.CONTEUDO AS PC
+    notas = get_relatorios_vendas('faturamentos', data_vencimento_titulo_entre=[data_inicio, data_fim],
+                                  coluna_documento=True, coluna_cliente=True, coluna_estado=True,
+                                  coluna_estado_destino=True, coluna_carteira=True, coluna_cidade_destino=True,
+                                  coluna_log_nome_inclusao_orcamento=True, coluna_representante=True,
+                                  coluna_representante_documento=True, coluna_segundo_representante=True,
+                                  coluna_segundo_representante_documento=True, coluna_especie=True,
+                                  coluna_tipo_cliente=True, coluna_frete_incluso_item=True,
+                                  coluna_informacao_estrategica=True,
+                                  coluna_chave_documento=True, coluna_valor_bruto=True,
+                                  familia_produto=[7766, 7767, 8378, 12441])
+    notas = pd.DataFrame(notas)
+    notas['PROPORCAO_MERCADORIAS'] = notas['VALOR_MERCADORIAS'] / notas['VALOR_BRUTO']
 
-        FROM
-            (
-                SELECT DISTINCT
-                    NOTAS.CHAVE AS CHAVE_NOTA,
-                    NOTAS.NF,
-                    NOTAS.PARCELAS,
-                    NOTAS.VALOR_FRETE_INCL_ITEM,
-                    ROUND(NOTAS.VALOR_FRETE_INCL_ITEM / NOTAS.PARCELAS, 2) AS FRETE_NO_ITEM
+    receber = get_relatorios_financeiros('receber', data_vencimento_inicio=data_inicio,
+                                         data_vencimento_fim=data_fim, coluna_valor_titulo_liquido_desconto=True,
+                                         coluna_chave_nota=True, coluna_data_vencimento=True,
+                                         coluna_data_liquidacao=True, coluna_descontos_totais=True,)
+    receber = pd.DataFrame(receber)
 
-                FROM
-                    COPLAS.NOTAS,
-                    COPLAS.RECEBER
+    infra = get_relatorios_vendas('faturamentos', data_vencimento_titulo_entre=[data_inicio, data_fim],
+                                  coluna_documento=True, informacao_estrategica=8)
+    infra = pd.DataFrame(infra)
+    infra = infra[['DOCUMENTO']]
+    infra['INFRA'] = 'INFRA'
 
-                WHERE
-                    NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND
+    parede_concreto = get_relatorios_vendas('faturamentos', data_vencimento_titulo_entre=[data_inicio, data_fim],
+                                            coluna_documento=True, informacao_estrategica=23)
+    parede_concreto = pd.DataFrame(parede_concreto)
+    parede_concreto = parede_concreto[['DOCUMENTO']]
+    parede_concreto['PC'] = 'PC'
 
-                    {data}
-            ) FRETE_NO_ITEM,
-            (SELECT DISTINCT CHAVE_CLIENTE, 'INFRA' AS CONTEUDO FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CHAVE_INFORMACAO = 8) INFRA,
-            (SELECT DISTINCT CHAVE_CLIENTE, 'PC' AS CONTEUDO FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CHAVE_INFORMACAO = 23) PC,
-            (SELECT DISTINCT NOTAS.CHAVE, ORCAMENTOS.LOG_NOME_INCLUSAO FROM COPLAS.ORCAMENTOS, COPLAS.PEDIDOS, COPLAS.NOTAS_ITENS, COPLAS.NOTAS WHERE NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA(+) AND NOTAS_ITENS.NUMPED = PEDIDOS.CHAVE(+) AND PEDIDOS.CHAVE_ORCAMENTO = ORCAMENTOS.CHAVE(+)) NOTAS_ORCAMENTO,
-            (SELECT NOTAS_ORDEM.CHAVE AS CHAVE_NOTA, ESTADOS_ORDEM.SIGLA AS UF_ORDEM, CLIENTES_ORDEM.CIDADE AS CIDADE_ORDEM FROM COPLAS.ESTADOS ESTADOS_ORDEM, COPLAS.NOTAS NOTAS_ORDEM, COPLAS.CLIENTES CLIENTES_ORDEM WHERE NOTAS_ORDEM.CHAVE_CLIENTE_REMESSA = CLIENTES_ORDEM.CODCLI AND CLIENTES_ORDEM.UF = ESTADOS_ORDEM.CHAVE) UF_ORDEM,
-            COPLAS.ESTADOS,
-            COPLAS.VENDEDORES,
-            COPLAS.VENDEDORES REPRESENTANTES,
-            COPLAS.VENDEDORES REPRE_CAD,
-            COPLAS.VENDEDORES SEGUNDO_REPRESENTANTE,
-            COPLAS.VENDEDORES SEGUNDO_REPRE_CAD,
-            COPLAS.NOTAS,
-            COPLAS.NOTAS_ITENS,
-            COPLAS.CLIENTES,
-            COPLAS.PRODUTOS,
-            COPLAS.RECEBER,
-            COPLAS.CLIENTES_TIPOS
+    origem = pd.merge(notas, receber, how='inner', left_on='CHAVE_DOCUMENTO', right_on='CHAVE_NOTA')
+    origem['VALOR_TITULO_MERCADORIAS'] = origem['VALOR_LIQUIDO_DESCONTOS'] * origem['PROPORCAO_MERCADORIAS']
+    origem['DIVISAO'] = 0
+    origem['ERRO'] = 0
+    origem = pd.merge(origem, infra, how='left', on='DOCUMENTO').fillna('')
+    origem = pd.merge(origem, parede_concreto, how='left', on='DOCUMENTO').fillna('')
+    origem.loc[(origem['TIPO_CLIENTE'] != 'POSTE') & (origem['TIPO_CLIENTE'] != 'PRE-MOLDADO'), 'TIPO_CLIENTE'] = ''
 
-        WHERE
-            NOTAS.CHAVE = FRETE_NO_ITEM.CHAVE_NOTA(+) AND
-            CLIENTES.CHAVE_TIPO = CLIENTES_TIPOS.CHAVE AND
-            CLIENTES.CODCLI = INFRA.CHAVE_CLIENTE(+) AND
-            CLIENTES.CODCLI = PC.CHAVE_CLIENTE(+) AND
-            NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND
-            NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD(+) AND
-            NOTAS.CHAVE_VENDEDOR2 = SEGUNDO_REPRESENTANTE.CODVENDEDOR(+) AND
-            CLIENTES.CHAVE_VENDEDOR2 = SEGUNDO_REPRE_CAD.CODVENDEDOR(+) AND
-            NOTAS.CHAVE = UF_ORDEM.CHAVE_NOTA(+) AND
-            NOTAS.CHAVE_VENDEDOR = REPRESENTANTES.CODVENDEDOR(+) AND
-            CLIENTES.CODVEND = REPRE_CAD.CODVENDEDOR(+) AND
-            NOTAS.CHAVE_CLIENTE = CLIENTES.CODCLI AND
-            CLIENTES.UF = ESTADOS.CHAVE AND
-            CLIENTES.CHAVE_VENDEDOR3 = VENDEDORES.CODVENDEDOR(+) AND
-            NOTAS.CHAVE = NOTAS_ORCAMENTO.CHAVE(+) AND
-            NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA(+) AND
-            NOTAS.VALOR_COMERCIAL = 'SIM' AND
-            (PRODUTOS.CHAVE_FAMILIA IN (7766, 7767, 8378, 12441) OR PRODUTOS.CPROD IS NULL) AND
+    origem = origem.rename(columns={
+        'DATA_VENCIMENTO': 'DATAVENCIMENTO',
+        'DATA_LIQUIDACAO': 'DATALIQUIDACAO',
+        'DOCUMENTO': 'NF',
+        'UF_PRINCIPAL': 'UF_CLIENTE',
+        'UF_DESTINO': 'UF_ENTREGA',
+        'CIDADE_DESTINO': 'CIDADE_ENTREGA',
+        'REPRESENTANTE': 'REPRESENTANTE_CLIENTE',
+        'REPRESENTANTE_DOCUMENTO': 'REPRESENTANTE_NOTA',
+        'SEGUNDO_REPRESENTANTE': 'SEGUNDO_REPRE_CLIENTE',
+        'SEGUNDO_REPRESENTANTE_DOCUMENTO': 'SEGUNDO_REPRE_NOTA',
+        'CARTEIRA': 'CARTEIRA_CLIENTE',
+        'VALOR_TITULO_MERCADORIAS': 'VALOR_MERCADORIAS_PARCELA',
+        'DESCONTOS_TOTAIS': 'ABATIMENTOS_TOTAIS',
+        'FRETE_INCLUSO_ITEM': 'FRETE_NO_ITEM',
+        'TIPO_CLIENTE': 'PREMOLDADO_POSTE',
+    })
 
-            {data}
-
-        GROUP BY
-            RECEBER.DATAVENCIMENTO,
-            RECEBER.DATALIQUIDACAO,
-            NOTAS.NF,
-            CLIENTES.NOMERED,
-            ESTADOS.SIGLA,
-            COALESCE(UF_ORDEM.UF_ORDEM, NOTAS.CLI_ENT_UF, ESTADOS.SIGLA),
-            COALESCE(UF_ORDEM.CIDADE_ORDEM, NOTAS.CLI_ENT_CIDADE, CLIENTES.CIDADE),
-            NOTAS_ORCAMENTO.LOG_NOME_INCLUSAO,
-            VENDEDORES.NOMERED,
-            SEGUNDO_REPRE_CAD.NOMERED,
-            SEGUNDO_REPRE_CAD.NOME,
-            REPRE_CAD.NOMERED,
-            REPRESENTANTES.NOMERED,
-            SEGUNDO_REPRESENTANTE.NOMERED,
-            SEGUNDO_REPRESENTANTE.NOME,
-            CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END,
-            RECEBER.ABATIMENTOS_DEVOLUCOES + RECEBER.ABATIMENTOS_OUTROS + COALESCE(RECEBER.DESCONTOS, 0),
-            FRETE_NO_ITEM.FRETE_NO_ITEM,
-            INFRA.CONTEUDO,
-            CASE WHEN CLIENTES_TIPOS.DESCRICAO IN ('PRE-MOLDADO', 'POSTE') THEN 'PRE-MOLDADO / POSTE' END,
-            PC.CONTEUDO
-
-        ORDER BY
-            NOTAS.NF
-    """
-
-    sql = sql.format(data=data)
-
-    kwargs = {}
-    if data_fim:
-        kwargs.update({'data_fim': data_fim})
-    origem = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, **kwargs)
+    origem = origem.to_dict(orient='records')
 
     if origem:
         Comissoes.objects.all().delete()
@@ -3185,7 +2990,7 @@ def migrar_comissoes(data_inicio, data_fim):
 
             instancia = Comissoes(
                 data_vencimento=objeto_origem['DATAVENCIMENTO'],
-                data_liquidacao=objeto_origem['DATALIQUIDACAO'],
+                data_liquidacao=objeto_origem['DATALIQUIDACAO'] if objeto_origem['DATALIQUIDACAO'] is not pd.NaT else None,
                 nota_fiscal=objeto_origem['NF'],
                 cliente=objeto_origem['CLIENTE'],
                 uf_cliente=fk_uf_cliente,
