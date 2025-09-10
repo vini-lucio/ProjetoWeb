@@ -3,7 +3,7 @@ from collections import Counter
 from decimal import Decimal
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
-from dashboards.services_financeiro import get_relatorios_financeiros
+from dashboards.services_financeiro import get_relatorios_financeiros, get_relatorios_financeiros_faturamentos
 from home.models import (Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores, CanaisVendas, Regioes,
                          ProdutosModelos)
 from rh.models import Comissoes, ComissoesVendedores, Faturamentos, FaturamentosVendedores
@@ -2321,20 +2321,32 @@ def financeiro_geral_ano_mes_a_mes():
 
 def receitas_despesas_ano_mes_a_mes_12_meses():
     """Totaliza as receitas e despesas do periodo informado em site setup mes a mes (ultimos 12 meses de cada mes)"""
+    from dashboards.services import get_relatorios_vendas
+
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
         data_ano_inicio = data_ano_inicio - relativedelta(months=11)
         data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    receber = get_relatorios_financeiros('receber', data_liquidacao_inicio=data_ano_inicio,
+    notas = get_relatorios_vendas('faturamentos', coluna_chave_documento=True, coluna_proporcao_mercadorias=True,
+                                  incluir_sem_valor_comercial=True,
+                                  data_liquidacao_titulo_entre=[data_ano_inicio, data_ano_fim],)
+    notas = pd.DataFrame(notas)
+
+    receber = get_relatorios_financeiros('receber', data_liquidacao_inicio=data_ano_inicio, coluna_chave_nota=True,
                                          data_liquidacao_fim=data_ano_fim, coluna_ano_liquidacao=True,
                                          coluna_mes_liquidacao=True, plano_conta_codigo='1.%', job=22,
                                          centro_resultado_coplas=True,)
     receber = pd.DataFrame(receber)
+
+    receber = get_relatorios_financeiros_faturamentos(notas, receber, coluna_valor_efetivo_titulo_mercadorias=True)
+    receber = receber[['ANO_LIQUIDACAO', 'MES_LIQUIDACAO', 'VALOR_EFETIVO', 'VALOR_EFETIVO_MERCADORIAS']]
+    receber = receber.groupby(['ANO_LIQUIDACAO', 'MES_LIQUIDACAO']).sum().reset_index()
     receber['RECEITAS'] = receber['VALOR_EFETIVO'].rolling(window=12).sum()
+    receber['RECEITAS_MERCADORIAS'] = receber['VALOR_EFETIVO_MERCADORIAS'].rolling(window=12).sum()
     receber = receber.dropna(subset=['RECEITAS'])
-    receber = receber[['MES_LIQUIDACAO', 'RECEITAS']]
+    receber = receber[['MES_LIQUIDACAO', 'RECEITAS', 'RECEITAS_MERCADORIAS']]
 
     pagar = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
                                        data_liquidacao_fim=data_ano_fim, coluna_ano_liquidacao=True,
@@ -2347,12 +2359,6 @@ def receitas_despesas_ano_mes_a_mes_12_meses():
 
     relatorios_pagar = []
     base_relatorios = []
-
-    subtratir_s = pagar[pagar['PLANO_CONTA'].str.contains('-SUBTRAIR')].copy()
-    base_relatorios.append([subtratir_s, 'SUBTRAIR_S'])
-
-    subtratir_m = pagar[pagar['PLANO_CONTA'].str.contains('*SUBTRAIR', regex=False)].copy()
-    base_relatorios.append([subtratir_m, 'SUTRAIR_M'])
 
     pis_cofins_csll_irpj = pagar[pagar['PLANO_CONTA'].str.contains('MKPCIC')].copy()
     base_relatorios.append([pis_cofins_csll_irpj, 'PIS_COFINS_CSLL_IRPJ'])
@@ -2401,6 +2407,91 @@ def receitas_despesas_ano_mes_a_mes_12_meses():
     resultado = receber.copy()
     for relatorio in relatorios_pagar:
         resultado = pd.merge(resultado, relatorio, how='inner', on='MES_LIQUIDACAO')
+
+    resultado = resultado.to_dict(orient='records')
+
+    return resultado
+
+
+def receitas_despesas_fluxus():
+    """Totaliza as receitas e despesas do periodo informado em site setup"""
+    from dashboards.services import get_relatorios_vendas
+
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_inicio = data_ano_inicio - relativedelta(months=11)
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
+
+    notas = get_relatorios_vendas('faturamentos', coluna_chave_documento=True, coluna_proporcao_mercadorias=True,
+                                  incluir_sem_valor_comercial=True, job=25,
+                                  data_liquidacao_titulo_entre=[data_ano_inicio, data_ano_fim],)
+    notas = pd.DataFrame(notas)
+
+    receber = get_relatorios_financeiros('receber', data_liquidacao_inicio=data_ano_inicio, coluna_chave_nota=True,
+                                         data_liquidacao_fim=data_ano_fim, job=25, plano_conta_codigo='1.%',)
+    receber = pd.DataFrame(receber)
+
+    receber = get_relatorios_financeiros_faturamentos(notas, receber, coluna_valor_efetivo_titulo_mercadorias=True)
+    receber = receber[['VALOR_EFETIVO', 'VALOR_EFETIVO_MERCADORIAS']]
+    receber = pd.DataFrame([receber.sum()])
+    receber = receber.rename(columns={'VALOR_EFETIVO': 'RECEITAS',
+                                      'VALOR_EFETIVO_MERCADORIAS': 'RECEITAS_MERCADORIAS'})
+
+    pagar = get_relatorios_financeiros('pagar', data_liquidacao_inicio=data_ano_inicio,
+                                       data_liquidacao_fim=data_ano_fim, coluna_codigo_plano_conta=True,
+                                       coluna_plano_conta=True, job=25, valor_debito_negativo=True,)
+    pagar = pd.DataFrame(pagar)
+    pagar = pagar[~pagar['CODIGO_PLANO_CONTA'].str.startswith('4.')]
+
+    relatorios_pagar = []
+    base_relatorios = []
+
+    pis_cofins_csll_irpj = pagar[pagar['PLANO_CONTA'].str.contains('MKPCIC')].copy()
+    base_relatorios.append([pis_cofins_csll_irpj, 'PIS_COFINS_CSLL_IRPJ'])
+
+    icms = pagar[pagar['PLANO_CONTA'].str.contains('MKICMS')].copy()
+    base_relatorios.append([icms, 'ICMS'])
+
+    comissoes = pagar[pagar['PLANO_CONTA'].str.contains('MKCOM')].copy()
+    base_relatorios.append([comissoes, 'COMISSOES'])
+
+    adm_total = pagar[pagar['PLANO_CONTA'].str.contains('MKADM')].copy()
+    adm_total = adm_total[~adm_total['PLANO_CONTA'].str.contains('MKADM/CP')]
+
+    adm = adm_total.copy()
+    base_relatorios.append([adm, 'ADM'])
+
+    cp = pagar[pagar['PLANO_CONTA'].str.contains('CP')].copy()
+    cp = cp[~cp['PLANO_CONTA'].str.contains('MKADM/CP')]
+    base_relatorios.append([cp, 'CP'])
+
+    adm_cp = pagar[pagar['PLANO_CONTA'].str.contains('MKADM/CP')].copy()
+    base_relatorios.append([adm_cp, 'ADM_CP'])
+
+    admv = adm_total[adm_total['CODIGO_PLANO_CONTA'].str.startswith('2.')].copy()
+    base_relatorios.append([admv, 'ADMV'])
+
+    admf = adm_total[adm_total['CODIGO_PLANO_CONTA'].str.startswith('3.')].copy()
+    base_relatorios.append([admf, 'ADMF'])
+
+    total_variavel = pagar[pagar['CODIGO_PLANO_CONTA'].str.startswith('2.')].copy()
+    base_relatorios.append([total_variavel, 'TOTAL_VARIAVEL'])
+
+    total_fixo = pagar[pagar['CODIGO_PLANO_CONTA'].str.startswith('3.')].copy()
+    base_relatorios.append([total_fixo, 'TOTAL_FIXO'])
+
+    for relatorio, descricao in base_relatorios:
+        relatorio = relatorio.drop(columns=['CODIGO_PLANO_CONTA', 'PLANO_CONTA'])
+        relatorio = relatorio[['VALOR_EFETIVO',]]
+        relatorio = pd.DataFrame([relatorio.sum()])
+        relatorio = relatorio.rename(columns={'VALOR_EFETIVO': descricao})
+
+        relatorios_pagar.append(relatorio)
+
+    resultado = receber.copy()
+    for relatorio in relatorios_pagar:
+        resultado = pd.concat([resultado, relatorio], axis=1)
 
     resultado = resultado.to_dict(orient='records')
 
@@ -2892,11 +2983,10 @@ def migrar_comissoes(data_inicio, data_fim):
                                   coluna_representante_documento=True, coluna_segundo_representante=True,
                                   coluna_segundo_representante_documento=True, coluna_especie=True,
                                   coluna_tipo_cliente=True, coluna_frete_incluso_item=True,
-                                  coluna_informacao_estrategica=True,
+                                  coluna_informacao_estrategica=True, coluna_proporcao_mercadorias=True,
                                   coluna_chave_documento=True, coluna_valor_bruto=True,
                                   familia_produto=[7766, 7767, 8378, 12441])
     notas = pd.DataFrame(notas)
-    notas['PROPORCAO_MERCADORIAS'] = notas['VALOR_MERCADORIAS'] / notas['VALOR_BRUTO']
 
     receber = get_relatorios_financeiros('receber', data_vencimento_inicio=data_inicio,
                                          data_vencimento_fim=data_fim, coluna_valor_titulo_liquido_desconto=True,
@@ -2916,8 +3006,8 @@ def migrar_comissoes(data_inicio, data_fim):
     parede_concreto = parede_concreto[['DOCUMENTO']]
     parede_concreto['PC'] = 'PC'
 
-    origem = pd.merge(notas, receber, how='inner', left_on='CHAVE_DOCUMENTO', right_on='CHAVE_NOTA')
-    origem['VALOR_TITULO_MERCADORIAS'] = origem['VALOR_LIQUIDO_DESCONTOS'] * origem['PROPORCAO_MERCADORIAS']
+    origem = get_relatorios_financeiros_faturamentos(notas, receber,
+                                                     coluna_valor_titulo_mercadorias_liquido_descontos=True)
     origem['DIVISAO'] = 0
     origem['ERRO'] = 0
     origem = pd.merge(origem, infra, how='left', on='DOCUMENTO').fillna('')
@@ -2936,7 +3026,7 @@ def migrar_comissoes(data_inicio, data_fim):
         'SEGUNDO_REPRESENTANTE': 'SEGUNDO_REPRE_CLIENTE',
         'SEGUNDO_REPRESENTANTE_DOCUMENTO': 'SEGUNDO_REPRE_NOTA',
         'CARTEIRA': 'CARTEIRA_CLIENTE',
-        'VALOR_TITULO_MERCADORIAS': 'VALOR_MERCADORIAS_PARCELA',
+        'VALOR_LIQUIDO_DESCONTOS_MERCADORIAS': 'VALOR_MERCADORIAS_PARCELA',
         'DESCONTOS_TOTAIS': 'ABATIMENTOS_TOTAIS',
         'FRETE_INCLUSO_ITEM': 'FRETE_NO_ITEM',
         'TIPO_CLIENTE': 'PREMOLDADO_POSTE',

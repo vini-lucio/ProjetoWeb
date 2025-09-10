@@ -1,6 +1,6 @@
 from typing import Literal
 from analysis.models import STATUS_ORCAMENTOS_ITENS
-from dashboards.services_financeiro import get_relatorios_financeiros
+from dashboards.services_financeiro import get_relatorios_financeiros, get_relatorios_financeiros_faturamentos
 from utils.custom import DefaultDict
 from utils.converter import somente_digitos
 from utils.oracle.conectar import executar_oracle
@@ -269,13 +269,13 @@ def recebido_a_receber(primeiro_dia_mes, ultimo_dia_mes, carteira) -> tuple[floa
 
     parametro_carteira = carteira.carteira_parametros() if carteira else {}
     notas = get_relatorios_vendas('faturamentos', coluna_chave_documento=True, coluna_valor_bruto=True,
+                                  coluna_proporcao_mercadorias=True,
                                   data_vencimento_titulo_entre=[primeiro_dia_mes, ultimo_dia_mes], **parametro_carteira)
     notas = pd.DataFrame(notas)
 
     if notas.empty:
         return float(recebido), float(a_receber)
 
-    notas['PROPORCAO_MERCADORIAS'] = notas['VALOR_MERCADORIAS'] / notas['VALOR_BRUTO']
     notas = notas[['CHAVE_DOCUMENTO', 'PROPORCAO_MERCADORIAS']]
 
     receber = get_relatorios_financeiros('receber', data_vencimento_inicio=primeiro_dia_mes,
@@ -284,17 +284,17 @@ def recebido_a_receber(primeiro_dia_mes, ultimo_dia_mes, carteira) -> tuple[floa
     receber = pd.DataFrame(receber)
     receber = receber[['CHAVE_NOTA', 'DATA_VENCIMENTO', 'VALOR_LIQUIDO_DESCONTOS']]
 
-    total = pd.merge(notas, receber, how='inner', left_on='CHAVE_DOCUMENTO', right_on='CHAVE_NOTA')
-    total['VALOR_TITULO_MERCADORIAS'] = total['VALOR_LIQUIDO_DESCONTOS'] * total['PROPORCAO_MERCADORIAS']
-    total = total[['DATA_VENCIMENTO', 'VALOR_TITULO_MERCADORIAS']]
+    total = get_relatorios_financeiros_faturamentos(notas, receber,
+                                                    coluna_valor_titulo_mercadorias_liquido_descontos=True)
+    total = total[['DATA_VENCIMENTO', 'VALOR_LIQUIDO_DESCONTOS_MERCADORIAS']]
 
     recebido = total[(total['DATA_VENCIMENTO'].dt.date >= primeiro_dia_mes) & (
         total['DATA_VENCIMENTO'].dt.date <= hoje())]
-    recebido = recebido['VALOR_TITULO_MERCADORIAS'].sum()
+    recebido = recebido['VALOR_LIQUIDO_DESCONTOS_MERCADORIAS'].sum()
 
     a_receber = total[(total['DATA_VENCIMENTO'].dt.date > hoje()) & (
         total['DATA_VENCIMENTO'].dt.date <= ultimo_dia_mes)]
-    a_receber = a_receber['VALOR_TITULO_MERCADORIAS'].sum()
+    a_receber = a_receber['VALOR_LIQUIDO_DESCONTOS_MERCADORIAS'].sum()
 
     return float(recebido), float(a_receber)
 
@@ -1025,6 +1025,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_notas = {
+        'data_liquidacao_titulo_entre': {'data_liquidacao_titulo_entre_pesquisa': "EXISTS(SELECT RECEBER.CHAVE FROM COPLAS.RECEBER WHERE NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND RECEBER.DATALIQUIDACAO BETWEEN :data_liquidacao_titulo_inicio AND :data_liquidacao_titulo_fim) AND", },
+
         'data_vencimento_titulo_entre': {'data_vencimento_titulo_entre_pesquisa': "EXISTS(SELECT RECEBER.CHAVE FROM COPLAS.RECEBER WHERE NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND RECEBER.DATAVENCIMENTO BETWEEN :data_vencimento_titulo_inicio AND :data_vencimento_titulo_fim) AND", },
 
         'coluna_parcelas': {'parcelas_campo_alias': "NOTAS.PARCELAS,",
@@ -1517,6 +1519,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_pedidos = {
+        'data_liquidacao_titulo_entre': {'data_liquidacao_titulo_entre_pesquisa': "", },
+
         'data_vencimento_titulo_entre': {'data_vencimento_titulo_entre_pesquisa': "", },
 
         'coluna_parcelas': {'parcelas_campo_alias': "",
@@ -1989,6 +1993,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     }
 
     map_sql_orcamentos = {
+        'data_liquidacao_titulo_entre': {'data_liquidacao_titulo_entre_pesquisa': "", },
+
         'data_vencimento_titulo_entre': {'data_vencimento_titulo_entre_pesquisa': "", },
 
         'coluna_parcelas': {'parcelas_campo_alias': "",
@@ -2469,12 +2475,18 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     data_despacho_menor_igual = kwargs.get('data_despacho_menor_igual')
     estoque_abc = kwargs.get('estoque_abc')
     data_vencimento_titulo_entre = kwargs.get('data_vencimento_titulo_entre')
+    data_liquidacao_titulo_entre = kwargs.get('data_liquidacao_titulo_entre')
     representante = kwargs.get('representante')
     representante_documento = kwargs.get('representante_documento')
     segundo_representante = kwargs.get('segundo_representante')
     segundo_representante_documento = kwargs.get('segundo_representante_documento')
+    coluna_valor_bruto = kwargs.get('coluna_valor_bruto')
 
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
+    coluna_proporcao_mercadorias = kwargs.pop('coluna_proporcao_mercadorias', False)
+
+    if coluna_proporcao_mercadorias and not coluna_valor_bruto:
+        kwargs.update({'coluna_valor_bruto': True})
 
     if not data_inicio:
         data_inicio = datetime.date(datetime(2010, 1, 1))
@@ -2574,6 +2586,11 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         data_vencimento_titulo_inicio, data_vencimento_titulo_fim = data_vencimento_titulo_entre
         kwargs_ora.update({'data_vencimento_titulo_inicio': data_vencimento_titulo_inicio})
         kwargs_ora.update({'data_vencimento_titulo_fim': data_vencimento_titulo_fim})
+
+    if data_liquidacao_titulo_entre:
+        data_liquidacao_titulo_inicio, data_liquidacao_titulo_fim = data_liquidacao_titulo_entre
+        kwargs_ora.update({'data_liquidacao_titulo_inicio': data_liquidacao_titulo_inicio})
+        kwargs_ora.update({'data_liquidacao_titulo_fim': data_liquidacao_titulo_fim})
 
     if representante:
         chave_representante = representante if isinstance(representante, int) else representante.chave_analysis
@@ -2754,6 +2771,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {cfop_baixa_estoque_pesquisa}
             {produto_marca_pesquisa}
             {data_vencimento_titulo_entre_pesquisa}
+            {data_liquidacao_titulo_entre_pesquisa}
             {representante_pesquisa}
             {representante_documento_pesquisa}
             {segundo_representante_pesquisa}
@@ -2889,6 +2907,12 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         else:
             dt_resultado_final = dt_resultado_final.sum()
             resultado = [dt_resultado_final.to_dict()]
+
+    if coluna_proporcao_mercadorias:
+        df_resultado = pd.DataFrame(resultado)
+        if not df_resultado.empty:
+            df_resultado['PROPORCAO_MERCADORIAS'] = df_resultado['VALOR_MERCADORIAS'] / df_resultado['VALOR_BRUTO']
+            resultado = df_resultado.to_dict(orient='records')
 
     return resultado
 

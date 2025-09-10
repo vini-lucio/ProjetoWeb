@@ -1,6 +1,7 @@
 from typing import Literal
 from utils.custom import DefaultDict
 from utils.oracle.conectar import executar_oracle
+import pandas as pd
 
 
 def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 'receber',], **kwargs_formulario):
@@ -530,5 +531,23 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
 
     sql = sql_base.format_map(DefaultDict(kwargs_sql))
     resultado = executar_oracle(sql, exportar_cabecalho=True, **kwargs_ora)
+
+    return resultado
+
+
+def get_relatorios_financeiros_faturamentos(relatorio_vendas_faturamento: pd.DataFrame,
+                                            relatorio_financeiro_receber: pd.DataFrame, *,
+                                            coluna_valor_titulo_mercadorias_liquido_descontos=False,
+                                            coluna_valor_efetivo_titulo_mercadorias=False):
+    """Relatorio faturamento precisa ter a coluna CHAVE_DOCUMENTO e relatorio receber precisa ter a coluna CHAVE_NOTA"""
+    resultado = pd.merge(relatorio_vendas_faturamento, relatorio_financeiro_receber, how='inner',
+                         left_on='CHAVE_DOCUMENTO', right_on='CHAVE_NOTA')
+
+    if coluna_valor_titulo_mercadorias_liquido_descontos:
+        resultado['VALOR_LIQUIDO_DESCONTOS_MERCADORIAS'] = resultado['VALOR_LIQUIDO_DESCONTOS'] * \
+            resultado['PROPORCAO_MERCADORIAS']
+
+    if coluna_valor_efetivo_titulo_mercadorias:
+        resultado['VALOR_EFETIVO_MERCADORIAS'] = resultado['VALOR_EFETIVO'] * resultado['PROPORCAO_MERCADORIAS']
 
     return resultado
