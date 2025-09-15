@@ -149,6 +149,7 @@ def relatorios(request):
                     notas = get_dados_notas(data_inicio, data_fim)
 
                     for nota in notas:
+                        nota.update({'VALOR_CALCULO_FRETE': 0})
                         if nota.get('ORCAMENTO', None):
                             valor_calculo_frete, *_ = calcular_frete(nota['ORCAMENTO'],
                                                                      transportadora_regiao_valor_especifico=agili)

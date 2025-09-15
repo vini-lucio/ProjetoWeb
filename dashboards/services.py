@@ -832,6 +832,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         mes_a_mes_fim = pd.date_range(kwargs_formulario['inicio'], kwargs_formulario['fim'], freq='ME')
         mes_a_mes = list(zip(mes_a_mes_inicio.date, mes_a_mes_fim.date))
 
+    coluna_ano_a_ano = kwargs_formulario.get('coluna_ano_a_ano', False)
+    if coluna_ano_a_ano:
+        ano_a_ano_inicio = pd.date_range(kwargs_formulario['inicio'], kwargs_formulario['fim'], freq='YS')
+        ano_a_ano_fim = pd.date_range(kwargs_formulario['inicio'], kwargs_formulario['fim'], freq='YE')
+        ano_a_ano = list(zip(ano_a_ano_inicio.date, ano_a_ano_fim.date))
+
     familia_produto = kwargs_formulario.get('familia_produto', False)
     chave_familia_produto = '= :chave_familia_produto'
     if isinstance(familia_produto, list):
@@ -987,6 +993,11 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         for i, f in mes_a_mes:
             notas_valor_mercadorias_mes_a_mes += f", SUM(CASE WHEN NOTAS.DATA_EMISSAO >= TO_DATE('{i}', 'YYYY-MM-DD') AND NOTAS.DATA_EMISSAO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {notas_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}_{i.month:02d}"
 
+    notas_valor_mercadorias_ano_a_ano = ""
+    if fonte == 'faturamentos' and coluna_ano_a_ano:
+        for i, f in ano_a_ano:
+            notas_valor_mercadorias_ano_a_ano += f", SUM(CASE WHEN NOTAS.DATA_EMISSAO >= TO_DATE('{i}', 'YYYY-MM-DD') AND NOTAS.DATA_EMISSAO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {notas_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}"
+
     map_sql_notas_base = {
         'valor_mercadorias': f"SUM({notas_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
@@ -1033,7 +1044,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                             'parcelas_campo': "NOTAS.PARCELAS,", },
 
         # coluna_custo_materia_prima_notas Não funciona com a fluxus, conferir se mudar a forma de beneficiamento
-        'coluna_custo_materia_prima_notas': {'custo_materia_prima_notas_campo_alias': "SUM(COALESCE(CASE WHEN PRODUTOS.CHAVE_MARCA IN (178, 177) THEN NOTAS_ITENS.CUSTO_MP_MED * NOTAS_ITENS.QUANTIDADE ELSE NULL END, CASE WHEN PRODUTOS.CHAVE_MARCA NOT IN (178, 177) THEN NOTAS_ITENS.ANALISE_CUSTO_MEDIO - NOTAS_ITENS.CUSTO_MP_MED * NOTAS_ITENS.QUANTIDADE ELSE NULL END, 0)) AS CUSTO_MP,"},
+        'coluna_custo_materia_prima_notas': {'custo_materia_prima_notas_campo_alias': "SUM(COALESCE(CASE WHEN PRODUTOS.CHAVE_MARCA IN (178, 177) THEN NOTAS_ITENS.CUSTO_MP_MED * NOTAS_ITENS.QUANTIDADE ELSE NULL END, CASE WHEN PRODUTOS.CHAVE_MARCA NOT IN (178, 177, 183) THEN NOTAS_ITENS.ANALISE_CUSTO_MEDIO - NOTAS_ITENS.CUSTO_MP_MED * NOTAS_ITENS.QUANTIDADE ELSE NULL END, 0)) AS CUSTO_MP,"},
 
         'cfop_baixa_estoque': {'cfop_baixa_estoque_pesquisa': "NOTAS_ITENS.CHAVE_NATUREZA IN (SELECT CHAVE FROM COPLAS.NATUREZA WHERE BAIXA_ESTOQUE = 'SIM' AND CHAVE NOT IN (8791, 10077)) AND", },
 
@@ -1050,6 +1061,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                       'inscricao_estadual_campo': "CLIENTES.INSCRICAO,", },
 
         'coluna_mes_a_mes': {'mes_a_mes_campo_alias': notas_valor_mercadorias_mes_a_mes},
+
+        'coluna_ano_a_ano': {'ano_a_ano_campo_alias': notas_valor_mercadorias_ano_a_ano},
 
         'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "NOTAS.PESO_BRUTO AS PESO_BRUTO_NOTA,",
                                    'peso_bruto_nota_campo': "NOTAS.PESO_BRUTO,", },
@@ -1218,6 +1231,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                     ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO'
             ) AND
         """, },
+
+        'nunca_compraram': {'nunca_compraram_pesquisa': "", },
 
         'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "", },
 
@@ -1494,6 +1509,11 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         for i, f in mes_a_mes:
             pedidos_valor_mercadorias_mes_a_mes += f", SUM(CASE WHEN PEDIDOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND PEDIDOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {pedidos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}_{i.month:02d}"
 
+    pedidos_valor_mercadorias_ano_a_ano = ""
+    if fonte == 'pedidos' and coluna_ano_a_ano:
+        for i, f in ano_a_ano:
+            pedidos_valor_mercadorias_ano_a_ano += f", SUM(CASE WHEN PEDIDOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND PEDIDOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {pedidos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}"
+
     map_sql_pedidos_base = {
         'valor_mercadorias': f"SUM({pedidos_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
@@ -1544,6 +1564,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                       'inscricao_estadual_campo': "CLIENTES.INSCRICAO,", },
 
         'coluna_mes_a_mes': {'mes_a_mes_campo_alias': pedidos_valor_mercadorias_mes_a_mes},
+
+        'coluna_ano_a_ano': {'ano_a_ano_campo_alias': pedidos_valor_mercadorias_ano_a_ano},
 
         'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "",
                                    'peso_bruto_nota_campo': "", },
@@ -1683,6 +1705,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                   'destino_join': pedidos_destino_join, },
 
         'nao_compraram_depois': {'nao_compraram_depois_pesquisa': "", },
+
+        'nunca_compraram': {'nunca_compraram_pesquisa': "", },
 
         'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "", },
 
@@ -1963,6 +1987,11 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         for i, f in mes_a_mes:
             orcamentos_valor_mercadorias_mes_a_mes += f", SUM(CASE WHEN ORCAMENTOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND ORCAMENTOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {orcamentos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}_{i.month:02d}"
 
+    orcamentos_valor_mercadorias_ano_a_ano = ""
+    if fonte == 'orcamentos' and coluna_ano_a_ano:
+        for i, f in ano_a_ano:
+            orcamentos_valor_mercadorias_ano_a_ano += f", SUM(CASE WHEN ORCAMENTOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND ORCAMENTOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {orcamentos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}"
+
     map_sql_orcamentos_base = {
         'valor_mercadorias': f"SUM({orcamentos_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
@@ -2018,6 +2047,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                       'inscricao_estadual_campo': "CLIENTES.INSCRICAO,", },
 
         'coluna_mes_a_mes': {'mes_a_mes_campo_alias': orcamentos_valor_mercadorias_mes_a_mes},
+
+        'coluna_ano_a_ano': {'ano_a_ano_campo_alias': orcamentos_valor_mercadorias_ano_a_ano},
 
         'coluna_peso_bruto_nota': {'peso_bruto_nota_campo_alias': "",
                                    'peso_bruto_nota_campo': "", },
@@ -2157,6 +2188,22 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                   'destino_join': orcamentos_destino_join, },
 
         'nao_compraram_depois': {'nao_compraram_depois_pesquisa': "", },
+
+        'nunca_compraram': {'nunca_compraram_pesquisa': """
+            NOT EXISTS(
+                SELECT DISTINCT
+                    CLIENTES.CHAVE_GRUPOECONOMICO
+
+                FROM
+                    COPLAS.CLIENTES,
+                    COPLAS.NOTAS
+
+                WHERE
+                    CLIENTES.CHAVE_GRUPOECONOMICO = GRUPO_ECONOMICO.CHAVE AND
+                    CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
+                    NOTAS.VALOR_COMERCIAL = 'SIM'
+            ) AND
+        """, },
 
         'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "{} AND".format(justificativas(False)), },
 
@@ -2312,6 +2359,11 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         for i, f in mes_a_mes:
             orcamentos_itens_excluidos_valor_mercadorias_mes_a_mes += f", SUM(CASE WHEN ORCAMENTOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND ORCAMENTOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {orcamentos_itens_excluidos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}_{i.month:02d}"
 
+    orcamentos_itens_excluidos_valor_mercadorias_ano_a_ano = ""
+    if fonte == 'orcamentos' and trocar_para_itens_excluidos and coluna_ano_a_ano:
+        for i, f in ano_a_ano:
+            orcamentos_itens_excluidos_valor_mercadorias_ano_a_ano += f", SUM(CASE WHEN ORCAMENTOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND ORCAMENTOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {orcamentos_itens_excluidos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}"
+
     map_sql_orcamentos_base_itens_excluidos = {
         'valor_mercadorias': f"SUM({orcamentos_itens_excluidos_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
@@ -2334,6 +2386,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_dias_decorridos': {'dias_decorridos_campo_alias': "0 AS DIAS_DECORRIDOS,"},
 
         'coluna_mes_a_mes': {'mes_a_mes_campo_alias': orcamentos_itens_excluidos_valor_mercadorias_mes_a_mes},
+
+        'coluna_ano_a_ano': {'ano_a_ano_campo_alias': orcamentos_itens_excluidos_valor_mercadorias_ano_a_ano},
 
         'coluna_custo_total_item': {'custo_total_item_campo_alias': "0 AS CUSTO_TOTAL_ITEM,"},
 
@@ -2445,6 +2499,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
 
 def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], **kwargs):
+    # TODO: incluir colunas na view/html mes a mes e ano a ano
+    # TODO: incluir colunas na view/html de forma dinamica (levar em consideração a formatação/titulo da coluna)
     kwargs_sql = {}
     kwargs_sql_itens_excluidos = {}
     kwargs_ora = {}
@@ -2694,6 +2750,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {lfrete_coluna_cor}
             {mc_cor_ajuste_campo_alias}
 
+            {ano_a_ano_campo_alias}
             {mes_a_mes_campo_alias}
 
         FROM
@@ -2776,6 +2833,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {representante_documento_pesquisa}
             {segundo_representante_pesquisa}
             {segundo_representante_documento_pesquisa}
+            {nunca_compraram_pesquisa}
 
             {fonte_where_data}
 

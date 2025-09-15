@@ -352,6 +352,7 @@ class AfastamentosAdmin(BaseModelAdminRedRequiredLog):
 class DependentesAdmin(BaseModelAdminRedRequiredLog):
     list_display = 'id', 'funcionario', 'nome', 'dependente_tipo',
     list_display_links = list_display
+    list_filter = 'funcionario__job', 'funcionario__data_saida',
     ordering = 'funcionario', 'nome',
     search_fields = 'funcionario__nome', 'nome',
     readonly_fields = 'chave_migracao', 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',

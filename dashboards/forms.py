@@ -59,7 +59,7 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
         self.fields['inicio'].initial = hoje_as_yyyymmdd()
         self.fields['fim'].initial = hoje_as_yyyymmdd()
 
-    carteiras = VENDEDORES.objects.filter(CHAVE_CANAL=9).all().order_by('NOMERED')
+    carteiras = VENDEDORES.objects.all().order_by('NOMERED')
     representantes = VENDEDORES.objects.all().order_by('NOMERED')
     clientes_tipos = CLIENTES_TIPOS.objects.all().order_by('DESCRICAO')
     cidades = FAIXAS_CEP.objects.all().order_by('CIDADE')
