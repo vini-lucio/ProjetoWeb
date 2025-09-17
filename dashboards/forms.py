@@ -68,14 +68,33 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     informacoes_estrategicas = INFORMACOES_CLI.objects.all().order_by('DESCRICAO')
     jobs = JOBS.objects.all().order_by('DESCRICAO')
 
-    coluna_job = forms.BooleanField(label="Coluna Job", initial=True, required=False)
+    # Campos Sobre Cliente
     coluna_grupo_economico = forms.BooleanField(label="Coluna Grupo Economico", initial=True, required=False)
+    grupo_economico = forms.CharField(label="Grupo Economico", max_length=300, required=False)
+    cnpj_cpf = forms.CharField(label="CNPJ / CPF", max_length=18, required=False)
     coluna_carteira = forms.BooleanField(label="Coluna Carteira", initial=True, required=False)
+    carteira = forms.ModelChoiceField(carteiras, label="Carteira", required=False)
+    carteira_parede_de_concreto = forms.BooleanField(label="Carteira Parede de Concreto",
+                                                     initial=False, required=False)
+    carteira_premoldado_poste = forms.BooleanField(label="Carteira Pré Moldado / Poste",
+                                                   initial=False, required=False)
     coluna_tipo_cliente = forms.BooleanField(label="Coluna Tipo", initial=False, required=False)
+    tipo_cliente = forms.ModelChoiceField(clientes_tipos, label="Tipo", required=False)
     coluna_cidade = forms.BooleanField(label="Coluna Cidade Principal", initial=False, required=False)
+    cidade = forms.CharField(label="Cidade Principal", max_length=300, required=False)
     coluna_estado = forms.BooleanField(label="Coluna Estado Principal", initial=False, required=False)
+    estado = forms.ModelChoiceField(estados, label="Estado Principal", required=False)
+    coluna_segundo_representante = forms.BooleanField(label="Coluna Segundo Representante", initial=False,
+                                                      required=False)
+    segundo_representante = forms.ModelChoiceField(representantes, label="Segundo Representante", required=False)
+    informacao_estrategica = forms.ModelChoiceField(informacoes_estrategicas, label="Informação Estrategica",
+                                                    required=False)
+
+    # Campos Sobre Produto
     coluna_familia_produto = forms.BooleanField(label="Coluna Familia", initial=False, required=False)
+    familia_produto = forms.ModelChoiceField(familias_produtos, label="Familia", required=False)
     coluna_produto = forms.BooleanField(label="Coluna Produto", initial=False, required=False)
+    produto = forms.CharField(label="Produto", max_length=300, required=False)
     coluna_unidade = forms.BooleanField(label="Coluna Unidade", initial=False, required=False)
     coluna_preco_tabela_inclusao = forms.BooleanField(label="Coluna Preço de Tabela R$",
                                                       help_text="na inclusão, maior (exceto excluidos)",
@@ -83,73 +102,62 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_preco_venda_medio = forms.BooleanField(label="Coluna Preço Medio R$", help_text="exceto excluidos",
                                                   initial=False, required=False)
     coluna_quantidade = forms.BooleanField(label="Coluna Quantidade", initial=False, required=False)
+    coluna_estoque_abc = forms.BooleanField(label="Coluna Estoque ABC", initial=False, required=False)
+
+    # Campos Gerais
+    coluna_job = forms.BooleanField(label="Coluna Job", initial=True, required=False)
+    job = forms.ModelChoiceField(jobs, label="Job", required=False)
     coluna_rentabilidade = forms.BooleanField(label="Coluna % MC", help_text="exceto excluidos", initial=False,
                                               required=False)
     coluna_rentabilidade_valor = forms.BooleanField(label="Coluna R$ MC", help_text="exceto excluidos", initial=False,
                                                     required=False)
-    coluna_proporcao = forms.BooleanField(label="Coluna % Proporção", initial=True, required=False)
     coluna_quantidade_documentos = forms.BooleanField(label="Coluna Quantidade de Documentos", initial=False,
                                                       required=False)
     coluna_ano_emissao = forms.BooleanField(label="Coluna Ano Emissão", initial=False, required=False)
     coluna_mes_emissao = forms.BooleanField(label="Coluna Mês Emissão", initial=False, required=False)
     coluna_dia_emissao = forms.BooleanField(label="Coluna Dia Emissão", initial=False, required=False)
+    coluna_ano_a_ano = forms.BooleanField(label="Colunas Valor Mercadorias Ano a Ano", initial=False, required=False,
+                                          help_text="Inicio precisa ser 01/01 e fim 31/12")
+    coluna_mes_a_mes = forms.BooleanField(label="Colunas Valor Mercadorias Mês a Mês", initial=False, required=False,
+                                          help_text="Inicio precisa ser dia 1 e fim o ultimo dia do mês")
     coluna_media_dia = forms.BooleanField(label="Coluna R$ Médio por Dia", help_text="de venda (exceto excluidos)",
                                           initial=False, required=False)
     coluna_documento = forms.BooleanField(label="Coluna Documento", initial=False, required=False)
     coluna_representante_documento = forms.BooleanField(label="Coluna Representante Documento", initial=False,
                                                         required=False)
-    coluna_segundo_representante = forms.BooleanField(label="Coluna Segundo Representante", initial=False,
-                                                      required=False)
-
-    job = forms.ModelChoiceField(jobs, label="Job", required=False)
-    grupo_economico = forms.CharField(label="Grupo Economico", max_length=300, required=False)
-    carteira = forms.ModelChoiceField(carteiras, label="Carteira", required=False)
-    carteira_parede_de_concreto = forms.BooleanField(label="Carteira Parede de Concreto",
-                                                     initial=False, required=False)
-    carteira_premoldado_poste = forms.BooleanField(label="Carteira Pré Moldado / Poste",
-                                                   initial=False, required=False)
-    tipo_cliente = forms.ModelChoiceField(clientes_tipos, label="Tipo", required=False)
-    cidade = forms.CharField(label="Cidade Principal", max_length=300, required=False)
-    estado = forms.ModelChoiceField(estados, label="Estado Principal", required=False)
-    familia_produto = forms.ModelChoiceField(familias_produtos, label="Familia", required=False)
-    produto = forms.CharField(label="Produto", max_length=300, required=False)
-    informacao_estrategica = forms.ModelChoiceField(informacoes_estrategicas, label="Informação Estrategica",
-                                                    required=False)
     representante_documento = forms.ModelChoiceField(representantes, label="Representante Documento", required=False)
-    segundo_representante = forms.ModelChoiceField(representantes, label="Segundo Representante", required=False)
 
     def get_agrupamentos_campos(self):
         agrupamentos = {
             'Data de Emissao': ['inicio', 'fim',],
 
-            'Visualizações sobre Cliente': ['coluna_grupo_economico', 'coluna_carteira', 'coluna_tipo_cliente',
-                                            'coluna_cidade', 'coluna_estado', 'coluna_segundo_representante',],
-            'Visualizações sobre Produto': ['coluna_familia_produto', 'coluna_produto', 'coluna_unidade',
-                                            'coluna_preco_tabela_inclusao', 'coluna_preco_venda_medio',
-                                            'coluna_quantidade',],
-            'Visualizações Gerais': ['coluna_job', 'coluna_rentabilidade', 'coluna_rentabilidade_valor',
-                                     'coluna_proporcao', 'coluna_quantidade_documentos', 'coluna_ano_emissao',
-                                     'coluna_mes_emissao', 'coluna_dia_emissao', 'coluna_media_dia',
-                                     'coluna_documento', 'coluna_representante_documento',],
+            'Sobre Cliente': ['coluna_grupo_economico', 'coluna_carteira', 'coluna_tipo_cliente', 'coluna_cidade',
+                              'coluna_estado', 'coluna_segundo_representante', 'grupo_economico', 'carteira',
+                              'carteira_parede_de_concreto', 'carteira_premoldado_poste', 'tipo_cliente', 'cidade',
+                              'estado', 'informacao_estrategica', 'segundo_representante', 'cnpj_cpf',],
 
-            'Filtros sobre Cliente': ['grupo_economico', 'carteira', 'carteira_parede_de_concreto',
-                                      'carteira_premoldado_poste', 'tipo_cliente', 'cidade', 'estado',
-                                      'informacao_estrategica', 'segundo_representante',],
-            'Filtros sobre Produto': ['familia_produto', 'produto',],
-            'Filtros Gerais': ['job', 'representante_documento',],
+            'Sobre Produto': ['coluna_familia_produto', 'coluna_produto', 'coluna_unidade',
+                              'coluna_preco_tabela_inclusao', 'coluna_preco_venda_medio', 'coluna_quantidade',
+                              'coluna_estoque_abc', 'familia_produto', 'produto',],
+
+            'Geral': ['coluna_job', 'coluna_rentabilidade', 'coluna_rentabilidade_valor',
+                      'coluna_quantidade_documentos', 'coluna_ano_emissao', 'coluna_mes_emissao', 'coluna_dia_emissao',
+                      'coluna_media_dia', 'coluna_documento', 'coluna_representante_documento', 'coluna_ano_a_ano',
+                      'coluna_mes_a_mes', 'job', 'representante_documento',],
         }
 
         return agrupamentos
 
 
 class RelatoriosSupervisaoFaturamentosForm(RelatoriosSupervisaoBaseForm):
+    # Campos Sobre Cliente
     nao_compraram_depois = forms.BooleanField(label="Não Compraram Depois do Periodo",
                                               help_text="e sem orçamentos em aberto", initial=False, required=False)
 
     def get_agrupamentos_campos(self):
         super_agrupamento = super().get_agrupamentos_campos()
 
-        super_agrupamento['Filtros sobre Cliente'].append('nao_compraram_depois')
+        super_agrupamento['Sobre Cliente'].append('nao_compraram_depois')
 
         return super_agrupamento
 
@@ -162,17 +170,16 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
     status_orcamentos_itens_tipos.insert(0, ('', '---------'))
     status_orcamentos_itens_tipos.insert(1, ('PERDIDO_CANCELADO', 'PERDIDO OU CANCELADO'))
 
+    # Campos Sobre Produto
     coluna_status_produto_orcamento = forms.BooleanField(label="Coluna Status", initial=False, required=False)
+    status_produto_orcamento = forms.ModelChoiceField(status_orcamentos_itens, label="Status", required=False)
     coluna_status_produto_orcamento_tipo = forms.BooleanField(label="Coluna Status Tipo", initial=False,
                                                               required=False)
-
-    status_produto_orcamento = forms.ModelChoiceField(status_orcamentos_itens, label="Status", required=False)
     status_produto_orcamento_tipo = forms.ChoiceField(label="Status Tipo", choices=status_orcamentos_itens_tipos,
                                                       initial=False, required=False)
     desconsiderar_justificativas = forms.BooleanField(label="Desconsiderar Justificativas Invalidas",
                                                       help_text="de orçamentos não fechados",
                                                       initial=True, required=False)
-
     considerar_itens_excluidos = forms.BooleanField(label="Considerar Itens Excluidos",
                                                     help_text="com justificativas validas",
                                                     initial=True, required=False)
@@ -180,13 +187,12 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
     def get_agrupamentos_campos(self):
         super_agrupamento = super().get_agrupamentos_campos()
 
-        super_agrupamento['Visualizações sobre Produto'].append('coluna_status_produto_orcamento')
-        super_agrupamento['Visualizações sobre Produto'].append('coluna_status_produto_orcamento_tipo')
-
-        super_agrupamento['Filtros sobre Produto'].append('status_produto_orcamento')
-        super_agrupamento['Filtros sobre Produto'].append('status_produto_orcamento_tipo')
-        super_agrupamento['Filtros sobre Produto'].append('desconsiderar_justificativas')
-        super_agrupamento['Filtros sobre Produto'].append('considerar_itens_excluidos')
+        super_agrupamento['Sobre Produto'].append('coluna_status_produto_orcamento')
+        super_agrupamento['Sobre Produto'].append('coluna_status_produto_orcamento_tipo')
+        super_agrupamento['Sobre Produto'].append('status_produto_orcamento')
+        super_agrupamento['Sobre Produto'].append('status_produto_orcamento_tipo')
+        super_agrupamento['Sobre Produto'].append('desconsiderar_justificativas')
+        super_agrupamento['Sobre Produto'].append('considerar_itens_excluidos')
 
         return super_agrupamento
 

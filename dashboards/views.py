@@ -451,12 +451,25 @@ def relatorios_supervisao(request, fonte: str):
                 if mc_valor_total and valor_mercadorias_total:
                     mc_total = mc_valor_total / valor_mercadorias_total * 100
 
+                totais = {
+                    'VALOR MERCADORIAS': round(valor_mercadorias_total, 2),
+                    'MC': round(mc_total, 2),
+                    'MC VALOR': round(mc_valor_total, 2),
+                    'QUANTIDADE DOCUMENTOS': round(quantidade_documentos_total, 0),
+                }
+
+                cabecalho = []
+                if dados:
+                    cabecalho = [chave.replace('_', ' ') for chave in dados[0].keys()]  # type:ignore
+
                 contexto.update({
                     'dados': dados,
+                    'cabecalho': cabecalho,
                     'valor_mercadorias_total': valor_mercadorias_total,
                     'mc_total': mc_total,
                     'mc_valor_total': mc_valor_total,
                     'quantidade_documentos_total': quantidade_documentos_total,
+                    'totais': totais,
                 })
 
             if 'exportar-submit' in request.GET:

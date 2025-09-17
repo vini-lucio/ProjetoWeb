@@ -1236,8 +1236,6 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "", },
 
-        'coluna_proporcao': {'proporcao_campo': "VALOR_MERCADORIAS DESC,", },
-
         'ordenar_valor_descrescente_prioritario': {'ordenar_valor_descrescente_prioritario': "VALOR_MERCADORIAS DESC,", },
 
         'ordenar_sequencia_prioritario': {'sequencia_campo': "NOTAS_ITENS.CHAVE,",
@@ -1316,6 +1314,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
+
+        'cnpj_cpf': {'cnpj_cpf_pesquisa': "CLIENTES.CGC = :cnpj_cpf AND", },
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "",
                                       'data_entrega_itens_campo': "", },
@@ -1710,8 +1710,6 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "", },
 
-        'coluna_proporcao': {'proporcao_campo': "VALOR_MERCADORIAS DESC,", },
-
         'ordenar_valor_descrescente_prioritario': {'ordenar_valor_descrescente_prioritario': "VALOR_MERCADORIAS DESC,", },
 
         'ordenar_sequencia_prioritario': {'sequencia_campo': "PEDIDOS_ITENS.CHAVE,",
@@ -1790,6 +1788,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
+
+        'cnpj_cpf': {'cnpj_cpf_pesquisa': "CLIENTES.CGC = :cnpj_cpf AND", },
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "PEDIDOS_ITENS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "PEDIDOS_ITENS.DATA_ENTREGA,", },
@@ -2207,8 +2207,6 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "{} AND".format(justificativas(False)), },
 
-        'coluna_proporcao': {'proporcao_campo': "VALOR_MERCADORIAS DESC,", },
-
         'ordenar_valor_descrescente_prioritario': {'ordenar_valor_descrescente_prioritario': "VALOR_MERCADORIAS DESC,", },
 
         'ordenar_sequencia_prioritario': {'sequencia_campo': "ORCAMENTOS_ITENS.ORDEM,",
@@ -2287,6 +2285,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
+
+        'cnpj_cpf': {'cnpj_cpf_pesquisa': "CLIENTES.CGC = :cnpj_cpf AND", },
 
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS_ITENS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "ORCAMENTOS_ITENS.DATA_ENTREGA,", },
@@ -2499,8 +2499,6 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
 
 def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], **kwargs):
-    # TODO: incluir colunas na view/html mes a mes e ano a ano
-    # TODO: incluir colunas na view/html de forma dinamica (levar em consideração a formatação/titulo da coluna)
     kwargs_sql = {}
     kwargs_sql_itens_excluidos = {}
     kwargs_ora = {}
@@ -2537,6 +2535,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     segundo_representante = kwargs.get('segundo_representante')
     segundo_representante_documento = kwargs.get('segundo_representante_documento')
     coluna_valor_bruto = kwargs.get('coluna_valor_bruto')
+    cnpj_cpf = kwargs.get('cnpj_cpf')
 
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
     coluna_proporcao_mercadorias = kwargs.pop('coluna_proporcao_mercadorias', False)
@@ -2666,6 +2665,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         chave_segundo_representante_documento = segundo_representante_documento if isinstance(
             segundo_representante_documento, int) else segundo_representante_documento.chave_analysis
         kwargs_ora.update({'chave_segundo_representante_documento': chave_segundo_representante_documento, })
+
+    if cnpj_cpf:
+        kwargs_ora.update({'cnpj_cpf': cnpj_cpf, })
 
     sql_base = """
         SELECT
@@ -2834,6 +2836,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {segundo_representante_pesquisa}
             {segundo_representante_documento_pesquisa}
             {nunca_compraram_pesquisa}
+            {cnpj_cpf_pesquisa}
 
             {fonte_where_data}
 
@@ -2912,7 +2915,6 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {carteira_campo}
             {tipo_cliente_campo}
             {familia_produto_campo}
-            {proporcao_campo}
             {estoque_abc_campo}
             {produto_campo}
             {status_produto_orcamento_campo}
