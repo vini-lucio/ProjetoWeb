@@ -8,7 +8,7 @@
 
         <div class="link-conteudo">
             <div class="titulo">
-                <h1>{{  titulo_pagina_2  }}</h1>
+                <h1>{{  titulo_pagina  }}</h1>
             </div>
 
             <form method="get" action="#resultado">
@@ -40,16 +40,13 @@
 
                 <div class="grid-simples">
                     <button class="botao" name="listar-submit" type="submit">Listar</button>
-                    <a href="{% url "dashboards:relatorios-supervisao" fonte_relatorio %}">
+                    <a href="{% url "dashboards:relatorios-financeiros" %}">
                         <div class="botao-div">
                             Limpar Pesquisa
                         </div>
                     </a>
-                    {% if dados %}
+                    {% if dados_dados %}
                         <button class="botao" name="exportar-submit" type="submit">Exportar .xlsx</button>
-                        {% if formulario.coluna_grupo_economico.value and direito_exportar_emails %}
-                            <button class="botao" name="exportar-emails-submit" type="submit">Exportar e-mails .xlsx</button>
-                        {% endif %}
                     {% endif %}
                 </div>
             </form>
@@ -63,25 +60,20 @@
                 <p>{{ erros }}</p>
             {% endif %}
 
-            {% if dados %}
+            {% for descricao, dados in dados_dados %}
                 <div id="resultado" class="tabela-simples">
-                    <table>
+                    <h3>{{ descricao }}</h3>
+                    <table class="ultima-linha-negrito">
                         <tr>
                             {% for coluna in cabecalho %}
-                                {% if coluna == 'CHAVE GRUPO ECONOMICO' %}
-                                    <th></th>
-                                {% else %}
-                                    <th>{{ coluna }}</th>
-                                {% endif %}
+                                <th>{{ coluna }}</th>
                             {% endfor %}
                         </tr>
                         {% for valor in dados %}
                             <tr class="{% cycle 'principal-azul-claro' '' %}">
                                 {% for chave, valor in valor.items %}
                                     <td>
-                                        {% if chave == 'CHAVE_GRUPO_ECONOMICO' %}
-                                            <a target="_blank" href="{% url "analysis:grupo-economico" valor|stringformat:"d" %}">𓃑</a>
-                                        {% elif chave == 'DOCUMENTO' %}
+                                        {% if chave == 'DOCUMENTO' %}
                                             {{ valor | stringformat:"d" }}
                                         {% elif 'VALOR' in chave %}
                                             {{ valor | floatformat:2 }}
@@ -92,20 +84,9 @@
                                 {% endfor %}
                             </tr>
                         {% endfor %}
-                        <tr>
-                            {% for coluna in cabecalho %}
-                                <td class="azul-negrito">
-                                    {% for chave, total in totais.items %}
-                                        {% if chave == coluna %}
-                                            {{ total | floatformat:2 }}
-                                        {% endif %}
-                                    {% endfor %}
-                                </td>
-                            {% endfor %}
-                        </tr>
                     </table>
                 </div>
-            {% endif %}
+            {% endfor %}
 
         </div>
 

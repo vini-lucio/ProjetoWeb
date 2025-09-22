@@ -452,6 +452,7 @@ textarea:focus {
     color: var(--vermelho-escuro);
 }
 
+.ultima-linha-negrito tr:last-child td,
 .azul-negrito {
     font-weight: bolder;
     color: var(--azul-escuro);

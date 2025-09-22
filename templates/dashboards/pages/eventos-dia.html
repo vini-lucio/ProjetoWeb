@@ -53,7 +53,7 @@
                         {% for dado in dados %}
                             <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
                                 <td>{{ dado.NOMERED }}</td>
-                                <td>{% if dado.CHAVE_GRUPOECONOMICO %}<a target="_blank" href="{% url "analysis:grupo-economico" dado.CHAVE_GRUPOECONOMICO %}">𓃑</a>{% endif %}</td>
+                                <td>{% if dado.CHAVE_GRUPOECONOMICO %}<a target="_blank" href="{% url "analysis:grupo-economico" dado.CHAVE_GRUPOECONOMICO|stringformat:"d" %}">𓃑</a>{% endif %}</td>
                                 <td>{{ dado.USUARIO }}</td>
                                 <td>{{ dado.DATA | date:"d/m/Y" }}</td>
                                 <td>{{ dado.TIPO }}</td>

@@ -4,10 +4,10 @@ from django.http import HttpResponse
 from .models import IndicadoresValores, MetasCarteiras
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
                        DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
-                       confere_inscricoes_estaduais)
+                       confere_inscricoes_estaduais, get_relatorios_financeiros)
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
                     FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormEventosDesconsiderar,
-                    FormIndicadores)
+                    FormIndicadores, RelatoriosFinanceirosForm)
 import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
@@ -495,6 +495,67 @@ def relatorios_supervisao(request, fonte: str):
     contexto.update({'formulario': formulario, })
 
     return render(request, 'dashboards/pages/relatorios-supervisao.html', contexto)
+
+
+def relatorios_financeiros(request):
+    titulo_pagina = 'Relatorios Financeiros'
+
+    contexto: Dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = RelatoriosFinanceirosForm()
+
+    if request.method == 'GET' and request.GET:
+        formulario = RelatoriosFinanceirosForm(request.GET)
+        if formulario.is_valid():
+            if request.GET:
+                dados_dados = []
+                cabecalho = []
+
+                dados_receber = get_relatorios_financeiros('receber', **formulario.cleaned_data)
+                df_dados_receber = pd.DataFrame(dados_receber)
+                if dados_receber:
+                    cabecalho_receber = [chave.replace('_', ' ') for chave in dados_receber[0].keys()]  # type:ignore
+                    cabecalho = cabecalho_receber
+
+                    dados_receber_totais = pd.DataFrame([df_dados_receber.sum(numeric_only=True)])
+                    dados_receber_totais = pd.concat([df_dados_receber, dados_receber_totais],
+                                                     ignore_index=True).fillna('')
+                    dados_dados.append(('Receber', dados_receber_totais.to_dict(orient='records')))
+
+                dados_pagar = get_relatorios_financeiros('pagar', valor_debito_negativo=True,
+                                                         **formulario.cleaned_data)
+                df_dados_pagar = pd.DataFrame(dados_pagar)
+                if dados_pagar:
+                    cabecalho_pagar = [chave.replace('_', ' ') for chave in dados_pagar[0].keys()]  # type:ignore
+                    cabecalho = cabecalho_pagar
+
+                    dados_pagar_totais = pd.DataFrame([df_dados_pagar.sum(numeric_only=True)])
+                    dados_pagar_totais = pd.concat([df_dados_pagar, dados_pagar_totais], ignore_index=True).fillna('')
+                    dados_dados.append(('Pagar', dados_pagar_totais.to_dict(orient='records')))
+
+                if not df_dados_receber.empty and not df_dados_pagar.empty:
+                    saldo = pd.concat([dados_receber_totais.tail(1), dados_pagar_totais.tail(1)], ignore_index=False)
+                    saldo = pd.DataFrame([saldo.sum()])
+                    dados_dados.append(('Saldo', saldo.to_dict(orient='records')))
+
+                contexto.update({
+                    'dados_dados': dados_dados,
+                    'cabecalho': cabecalho,
+                })
+
+            if 'exportar-submit' in request.GET:
+                dados = pd.concat([df_dados_receber, df_dados_pagar])
+                dados = dados.to_dict(orient='records')
+
+                excel = arquivo_excel(dados, cabecalho_negrito=True, ajustar_largura_colunas=True)
+                arquivo = salvar_excel_temporario(excel)
+                nome_arquivo = 'relatorio_financeiros'
+                response = arquivo_excel_response(arquivo, nome_arquivo)
+                return response
+
+    contexto.update({'formulario': formulario, })
+
+    return render(request, 'dashboards/pages/relatorios-financeiros.html', contexto)
 
 
 def indicadores(request):

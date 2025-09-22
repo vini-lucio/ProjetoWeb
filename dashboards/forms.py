@@ -1,4 +1,5 @@
 from django import forms
+from django.forms.widgets import DateInput
 from .models import Indicadores
 from utils.base_forms import FormPeriodoInicioFimMixIn, FormVendedoresMixIn, FormPesquisarIntegerMixIn
 from analysis.models import (VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS, STATUS_ORCAMENTOS_ITENS,
@@ -231,3 +232,65 @@ class FormIndicadores(FormPeriodoInicioFimMixIn, forms.Form):
                                 initial='proporcional', required=True)
     frequencia = forms.ChoiceField(label="Frequencia Valores", choices=frequencias,  # type: ignore
                                    initial='mensal', required=True)
+
+
+class RelatoriosFinanceirosForm(forms.Form):
+    jobs = JOBS.objects.all().order_by('DESCRICAO')
+    condicoes = [('', '---------'), ('EM ABERTO', 'Em Aberto'), ('LIQUIDADO', 'Liquidado')]
+
+    # Campos Datas
+    data_vencimento_inicio = forms.DateField(label="Vencimento Inicio", required=False,
+                                             widget=DateInput(attrs={'type': 'date'}))
+    data_vencimento_fim = forms.DateField(label="Vencimento Fim", required=False,
+                                          widget=DateInput(attrs={'type': 'date'}))
+    data_emissao_inicio = forms.DateField(label="Emissão Inicio", required=False,
+                                          widget=DateInput(attrs={'type': 'date'}))
+    data_emissao_fim = forms.DateField(label="Emissão Fim", required=False, widget=DateInput(attrs={'type': 'date'}))
+    data_liquidacao_inicio = forms.DateField(label="Liquidação Inicio", required=False,
+                                             widget=DateInput(attrs={'type': 'date'}))
+    data_liquidacao_fim = forms.DateField(label="Liquidação Fim", required=False,
+                                          widget=DateInput(attrs={'type': 'date'}))
+
+    # Campos Sobre Receber
+    coluna_cliente = forms.BooleanField(label="Coluna Cliente", initial=False, required=False)
+    cliente = forms.CharField(label="Cliente", help_text="nome reduzido", max_length=300, required=False)
+
+    # Campos Sobre Receber
+    coluna_fornecedor = forms.BooleanField(label="Coluna Fornecedor", initial=False, required=False)
+    fornecedor = forms.CharField(label="Fornecedor", help_text="nome reduzido", max_length=300, required=False)
+
+    # Campos Gerais
+    coluna_job = forms.BooleanField(label="Coluna Job", initial=False, required=False)
+    job = forms.ModelChoiceField(jobs, label="Job", required=False)
+    coluna_valor_titulo = forms.BooleanField(label="Coluna Valor Titulo", initial=True, required=False)
+    coluna_valor_titulo_liquido_desconto = forms.BooleanField(label="Coluna Valor Titulo Liquido de Descontos",
+                                                              initial=True, required=False)
+    coluna_mes_emissao = forms.BooleanField(label="Coluna Mês Emissão", initial=False, required=False)
+    coluna_mes_vencimento = forms.BooleanField(label="Coluna Mês Vencimento", initial=False, required=False)
+    coluna_mes_liquidacao = forms.BooleanField(label="Coluna Mês Liquidação", initial=False, required=False)
+    coluna_codigo_plano_conta = forms.BooleanField(label="Coluna Codigo Plano de Contas", initial=False,
+                                                   required=False)
+    coluna_plano_conta = forms.BooleanField(label="Coluna Plano de Contas", initial=False, required=False)
+    plano_conta_descricao = forms.CharField(label="Plano de Contas", help_text="codigo ou descrição",
+                                            max_length=300, required=False)
+    desconsiderar_plano_conta_investimentos = forms.BooleanField(label="Desconsiderar Plano de Contas de Investimentos",
+                                                                 initial=True, required=False)
+    coluna_condicao = forms.BooleanField(label="Coluna Condição", initial=False, required=False)
+    condicao = forms.ChoiceField(label='Condição', choices=condicoes, required=False)
+
+    def get_agrupamentos_campos(self):
+        agrupamentos = {
+            'Datas': ['data_vencimento_inicio', 'data_vencimento_fim', 'data_emissao_inicio', 'data_emissao_fim',
+                      'data_liquidacao_inicio', 'data_liquidacao_fim',],
+
+            'Sobre Receber': ['coluna_cliente', 'cliente',],
+
+            'Sobre Pagar': ['coluna_fornecedor', 'fornecedor',],
+
+            'Geral': ['condicao', 'coluna_valor_titulo', 'coluna_job', 'job', 'coluna_mes_emissao',
+                      'coluna_mes_vencimento', 'coluna_mes_liquidacao', 'coluna_codigo_plano_conta',
+                      'coluna_plano_conta', 'plano_conta_descricao', 'coluna_valor_titulo_liquido_desconto',
+                      'desconsiderar_plano_conta_investimentos', 'coluna_condicao',],
+        }
+
+        return agrupamentos
