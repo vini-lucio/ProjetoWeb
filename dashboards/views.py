@@ -358,16 +358,19 @@ def listagens(request, listagem: str):
                                                  **parametros_comuns, **carteira_parametros)
 
                 dt_fechados = pd.DataFrame(fechados)
-                dt_fechados.drop(columns=['QUANTIDADE_MESES', 'MEDIA_DIA'], inplace=True)
-                dt_fechados.rename(columns={'VALOR_MERCADORIAS': 'VALOR_FECHADOS'}, inplace=True)
+                if not dt_fechados.empty:
+                    dt_fechados.drop(columns=['QUANTIDADE_MESES', 'MEDIA_DIA'], inplace=True)
+                    dt_fechados.rename(columns={'VALOR_MERCADORIAS': 'VALOR_FECHADOS'}, inplace=True)
 
-                dt_perdidos = pd.DataFrame(perdidos)
+                    dt_perdidos = pd.DataFrame(perdidos)
 
-                dt_dados = pd.merge(dt_fechados, dt_perdidos, how='outer', on=['CHAVE_GRUPO_ECONOMICO', 'GRUPO',
-                                                                               'CARTEIRA', 'TIPO_CLIENTE']).fillna(0)
-                dt_dados = dt_dados.loc[dt_dados['VALOR_MERCADORIAS'] > dt_dados['VALOR_FECHADOS']]
-                dt_dados = dt_dados.loc[dt_dados['VALOR_MERCADORIAS'] >= 10000]
-                dt_dados = dt_dados.sort_values('VALOR_MERCADORIAS', ascending=False)
+                    dt_dados = pd.merge(dt_fechados, dt_perdidos, how='outer', on=['CHAVE_GRUPO_ECONOMICO', 'GRUPO',
+                                                                                   'CARTEIRA', 'TIPO_CLIENTE']).fillna(0)
+                    dt_dados = dt_dados.loc[dt_dados['VALOR_MERCADORIAS'] > dt_dados['VALOR_FECHADOS']]
+                    dt_dados = dt_dados.loc[dt_dados['VALOR_MERCADORIAS'] >= 10000]
+                    dt_dados = dt_dados.sort_values('VALOR_MERCADORIAS', ascending=False)
+                else:
+                    dt_dados = dt_fechados
 
                 dados = dt_dados.to_dict(orient='records')
 

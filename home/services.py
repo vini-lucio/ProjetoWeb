@@ -1241,6 +1241,7 @@ def imposto_faturado_ano_mes_a_mes():
 
 def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
     """Totaliza o faturamento do valor das mercadorias do periodo informado em site setup mes a mes"""
+    # TODO: tratar quando não tem venda na familia
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -1284,6 +1285,7 @@ def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
 
 def faturado_bruto_ano_mes_a_mes(*, mes_atual: bool = False):
     """Totaliza o faturamento bruto do periodo informado em site setup mes a mes"""
+    # TODO: tratar quando não tem venda na familia
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:

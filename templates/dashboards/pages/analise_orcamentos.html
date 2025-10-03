@@ -124,7 +124,7 @@
             let campoDesconto = document.getElementById("id_desconto");
             campoDesconto.value = "margem";
             let campoValor = document.getElementById("id_valor");
-            campoValor.value = margem;
+            campoValor.value = Number(margem).toFixed(2);
             slider.value = margem * 100
         }
     </script>

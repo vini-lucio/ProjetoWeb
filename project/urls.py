@@ -26,6 +26,7 @@ urlpatterns = [
     path('dashboards/', include('dashboards.urls')),
     path('rh/', include('rh.urls')),
     path('analysis/', include('analysis.urls')),
+    path('marketing/', include('marketing.urls')),
     path('admin/', admin.site.urls),
     path('summernote/', include('django_summernote.urls')),
 ]

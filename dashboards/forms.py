@@ -127,6 +127,8 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_representante_documento = forms.BooleanField(label="Coluna Representante Documento", initial=False,
                                                         required=False)
     representante_documento = forms.ModelChoiceField(representantes, label="Representante Documento", required=False)
+    coluna_log_nome_inclusao_documento = forms.BooleanField(label="Coluna Log Inclusão do Documento", initial=False,
+                                                            required=False)
 
     def get_agrupamentos_campos(self):
         agrupamentos = {
@@ -144,7 +146,7 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
             'Geral': ['coluna_job', 'coluna_rentabilidade', 'coluna_rentabilidade_valor',
                       'coluna_quantidade_documentos', 'coluna_ano_emissao', 'coluna_mes_emissao', 'coluna_dia_emissao',
                       'coluna_media_dia', 'coluna_documento', 'coluna_representante_documento', 'coluna_ano_a_ano',
-                      'coluna_mes_a_mes', 'job', 'representante_documento',],
+                      'coluna_mes_a_mes', 'job', 'representante_documento', 'coluna_log_nome_inclusao_documento',],
         }
 
         return agrupamentos

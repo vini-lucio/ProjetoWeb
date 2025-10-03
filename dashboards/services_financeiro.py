@@ -35,6 +35,8 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
             PAGAR.CHAVE = PAGAR_JOB.CHAVE_PAGAR AND
             PAGAR_JOB.CHAVE_JOB = JOBS.CODIGO AND
         """,
+
+        "fonte_where": "PAGAR.DATAEMISSAO >= TO_DATE('01/01/2010', 'DD-MM-YYYY') AND"
     }
 
     map_sql_pagar = {
@@ -121,6 +123,8 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
             RECEBER.CHAVE = RECEBER_JOB.CHAVE_RECEBER AND
             RECEBER_JOB.CHAVE_JOB = JOBS.CODIGO AND
         """,
+
+        "fonte_where": "RECEBER.DATAEMISSAO >= TO_DATE('01/01/2010', 'DD-MM-YYYY') AND"
     }
 
     map_sql_receber = {
@@ -289,6 +293,7 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
 
 
 def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
+    # TODO: incluir carteira do cliente (coluna e filtro) (inclusive premoldado/poste, parede de concreto e infra)
     kwargs_sql = {}
     kwargs_ora = {}
 
@@ -417,6 +422,8 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
 
                 WHERE
                     {fonte_joins}
+                    PLANO_DE_CONTAS.CD_PLANOCONTA != 1551 AND
+                    {fonte_where}
 
                     {data_liquidacao_inicio_pesquisa}
                     {data_liquidacao_fim_pesquisa}
@@ -497,6 +504,8 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     MOVBAN.CHAVE = MOVBAN_JOB.CHAVE_MOVBAN AND
                     MOVBAN_JOB.CHAVE_JOB = JOBS.CODIGO AND
                     MOVBAN.AUTOMATICO = 'NAO' AND
+                    MOVBAN.DATA >= TO_DATE('01/01/2010', 'DD-MM-YYYY') AND
+                    PLANO_DE_CONTAS.CD_PLANOCONTA != 1551 AND
                     {fonte_where_mov_ban}
 
                     {data_liquidacao_inicio_pesquisa_mov_ban}
