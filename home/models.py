@@ -1018,3 +1018,26 @@ class InscricoesEstaduais(models.Model):
 
     def __str__(self) -> str:
         return f'{self.cnpj} / {self.estado}'
+
+
+class Responsaveis(models.Model):
+    class Meta:
+        verbose_name = 'Responsavel'
+        verbose_name_plural = 'Responsaveis'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['nome',],
+                name='responsaveis_unique_nome',
+                violation_error_message="Nome é unico em Responsaveis"
+            ),
+        ]
+
+    status_responsaveis = status_ativo_inativo
+
+    funcionario = models.OneToOneField("rh.Funcionarios", verbose_name="Funcionario", on_delete=models.PROTECT,
+                                       related_name="%(class)s")
+    nome = models.CharField("Nome", max_length=50)
+    status = models.CharField("Status", max_length=30, choices=status_responsaveis, default='ativo')  # type:ignore
+
+    def __str__(self) -> str:
+        return f'{self.nome} - {self.status}'

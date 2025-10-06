@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
+from home.models import Responsaveis
 from datetime import datetime
-from rh.models import Funcionarios
 from utils.converter import converter_data_django_para_str_ddmmyyyy
 
 
@@ -42,7 +42,7 @@ class LeadsRdStation(models.Model):
     mensagem = models.TextField("Mensagem", blank=True, null=True)
     lead_valido = models.BooleanField("Lead Valido", default=True)
     observacoes = models.CharField("Observações", max_length=100, blank=True, null=True)
-    responsavel = models.ForeignKey(Funcionarios, verbose_name="Responsavel", on_delete=models.PROTECT,
+    responsavel = models.ForeignKey(Responsaveis, verbose_name="Responsavel", on_delete=models.PROTECT,
                                     related_name="%(class)s", null=True, blank=True)
 
     map_nomes_alternativos_campos = {

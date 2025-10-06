@@ -6,7 +6,8 @@ from django.http import HttpRequest, HttpResponse
 from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesTecnicos, AssistentesTecnicosAgenda,
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
                          ProdutosModelosTags, Unidades, Produtos, EstadosIcms, Vendedores, CanaisVendas, Regioes,
-                         VendedoresRegioes, VendedoresEstados, ControleInscricoesEstaduais, InscricoesEstaduais)
+                         VendedoresRegioes, VendedoresEstados, ControleInscricoesEstaduais, InscricoesEstaduais,
+                         Responsaveis)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn, ExportarXlsxMixIn)
@@ -404,6 +405,14 @@ class InscricoesEstaduaisAdmin(BaseModelAdminRedRequired):
     list_display_links = list_display
     search_fields = 'cnpj', 'inscricao_estadual',
 
+
+@admin.register(Responsaveis)
+class ResponsaveisAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'nome', 'status',
+    list_display_links = list_display
+    ordering = 'nome',
+    search_fields = 'nome',
+    autocomplete_fields = 'funcionario',
 
 # @admin.register(VendedoresRegioes)
 # class VendedoresRegioesAdmin(BaseModelAdminRedRequired):
