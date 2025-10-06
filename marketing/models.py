@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 from datetime import datetime
+from rh.models import Funcionarios
+from utils.converter import converter_data_django_para_str_ddmmyyyy
 
 
 class LeadsRdStation(models.Model):
@@ -40,6 +42,8 @@ class LeadsRdStation(models.Model):
     mensagem = models.TextField("Mensagem", blank=True, null=True)
     lead_valido = models.BooleanField("Lead Valido", default=True)
     observacoes = models.CharField("Observações", max_length=100, blank=True, null=True)
+    responsavel = models.ForeignKey(Funcionarios, verbose_name="Responsavel", on_delete=models.PROTECT,
+                                    related_name="%(class)s", null=True, blank=True)
 
     map_nomes_alternativos_campos = {
         'post_id': 'asset_id',
@@ -52,6 +56,18 @@ class LeadsRdStation(models.Model):
         'form_fields_field_0864fd3': 'cnpj',
         'form_url': 'conversion_url',
     }
+
+    @property
+    def criado_em_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.criado_em.date()) if self.criado_em else ''
+
+    criado_em_as_ddmmyyyy.fget.short_description = 'Criado Em'  # type:ignore
+
+    @property
+    def responsavel_nome(self):
+        return self.responsavel.nome if self.responsavel else ''
+
+    responsavel_nome.fget.short_description = 'Responsavel'  # type:ignore
 
     def __str__(self) -> str:
         return str(self.pk) if self.pk else ''

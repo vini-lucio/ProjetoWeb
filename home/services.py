@@ -346,6 +346,7 @@ def eolicas_ano_mes_a_mes():
 
 def ticket_medio_ano_mes_a_mes():
     """Totaliza o ticket medio das notas no periodo informado em site setup mes a mes"""
+    # TODO: filtrar somente as notas acima do faturamento minimo
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
