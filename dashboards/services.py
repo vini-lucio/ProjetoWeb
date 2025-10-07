@@ -71,6 +71,11 @@ class DashBoardVendas():
         else:
             pedidos_mes_entrega_mes_dias = dados_pedidos_mes_entrega_mes_dias
 
+        if pedidos_mes_entrega_mes_dias.empty:
+            pedidos_mes_entrega_mes_dias = pd.DataFrame({'DATA_EMISSAO': [datetime.now(),], 'PESO_PP': [0,],
+                                                         'MC_VALOR_COR': [0,], 'CARTEIRA': ['',],
+                                                         'VALOR_MERCADORIAS': [0,]})
+
         if dados_pedidos_fora_mes_entrega_mes is None:
             pedidos_fora_mes_entrega_mes = get_relatorios_vendas('pedidos',
                                                                  data_emissao_menor_que=self.site_setup.primeiro_dia_mes,  # type:ignore
@@ -83,6 +88,10 @@ class DashBoardVendas():
             pedidos_fora_mes_entrega_mes = pd.DataFrame(pedidos_fora_mes_entrega_mes)
         else:
             pedidos_fora_mes_entrega_mes = dados_pedidos_fora_mes_entrega_mes
+
+        if pedidos_fora_mes_entrega_mes.empty:
+            pedidos_fora_mes_entrega_mes = pd.DataFrame({'CARTEIRA': ['',], 'MC_VALOR_COR': [0,],
+                                                         'VALOR_MERCADORIAS': [0,]})
 
         if dados_desvolucoes_mes is None:
             desvolucoes_mes = get_relatorios_vendas('faturamentos',

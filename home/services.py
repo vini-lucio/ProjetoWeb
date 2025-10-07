@@ -345,8 +345,7 @@ def eolicas_ano_mes_a_mes():
 
 
 def ticket_medio_ano_mes_a_mes():
-    """Totaliza o ticket medio das notas no periodo informado em site setup mes a mes"""
-    # TODO: filtrar somente as notas acima do faturamento minimo
+    """Totaliza o ticket medio das notas acima do faturamento minimo no periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -354,9 +353,11 @@ def ticket_medio_ano_mes_a_mes():
         data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
     resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
-                                      coluna_mes_emissao=True, coluna_documento=True,)
+                                      coluna_mes_emissao=True, coluna_documento=True,
+                                      valor_mercadorias_maior_igual=500)
 
     resultado = pd.DataFrame(resultado)
+
     resultado = resultado.groupby('MES_EMISSAO').agg(VALOR_MERCADORIAS=('VALOR_MERCADORIAS', 'sum'),
                                                      MEDIANA_PEDIDO=('VALOR_MERCADORIAS', 'median'),).reset_index()
     resultado = resultado.to_dict(orient='records')
@@ -1242,7 +1243,6 @@ def imposto_faturado_ano_mes_a_mes():
 
 def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
     """Totaliza o faturamento do valor das mercadorias do periodo informado em site setup mes a mes"""
-    # TODO: tratar quando não tem venda na familia
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -1253,24 +1253,30 @@ def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
             data_ano_inicio = site_setup.primeiro_dia_mes
             data_ano_fim = site_setup.ultimo_dia_mes
 
+    padrao = pd.DataFrame({'MES_EMISSAO': [data_ano_inicio.month,], 'VALOR_MERCADORIAS': [0,]})
+
     pp = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                coluna_mes_emissao=True, familia_produto=7766,)
     pp = pd.DataFrame(pp)
+    pp = pp if not pp.empty else padrao
     pp = pp.rename(columns={'VALOR_MERCADORIAS': 'PP'})
 
     pt = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                coluna_mes_emissao=True, familia_produto=[7767, 12441,],)
     pt = pd.DataFrame(pt)
+    pt = pt if not pt.empty else padrao
     pt = pt.rename(columns={'VALOR_MERCADORIAS': 'PT'})
 
     pq = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                coluna_mes_emissao=True, familia_produto=8378,)
     pq = pd.DataFrame(pq)
+    pq = pq if not pq.empty else padrao
     pq = pq.rename(columns={'VALOR_MERCADORIAS': 'PQ'})
 
     total = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                   coluna_mes_emissao=True,)
     total = pd.DataFrame(total)
+    total = total if not total.empty else padrao
     total = total.rename(columns={'VALOR_MERCADORIAS': 'TOTAL'})
 
     resultado = pd.merge(pp, pt, how='outer', on='MES_EMISSAO')
@@ -1286,7 +1292,6 @@ def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
 
 def faturado_bruto_ano_mes_a_mes(*, mes_atual: bool = False):
     """Totaliza o faturamento bruto do periodo informado em site setup mes a mes"""
-    # TODO: tratar quando não tem venda na familia
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -1297,28 +1302,30 @@ def faturado_bruto_ano_mes_a_mes(*, mes_atual: bool = False):
             data_ano_inicio = site_setup.primeiro_dia_mes
             data_ano_fim = site_setup.ultimo_dia_mes
 
+    padrao = pd.DataFrame({'MES_EMISSAO': [data_ano_inicio.month,], 'VALOR_BRUTO': [0,]})
+
     pp = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                coluna_mes_emissao=True, coluna_valor_bruto=True, familia_produto=7766, job=22,)
     pp = pd.DataFrame(pp)
-    pp = pp[['MES_EMISSAO', 'VALOR_BRUTO']]
+    pp = pp[['MES_EMISSAO', 'VALOR_BRUTO']] if not pp.empty else padrao
     pp = pp.rename(columns={'VALOR_BRUTO': 'FATURADO_PP'})
 
     pt = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                coluna_mes_emissao=True, coluna_valor_bruto=True, familia_produto=7767, job=22,)
     pt = pd.DataFrame(pt)
-    pt = pt[['MES_EMISSAO', 'VALOR_BRUTO']]
+    pt = pt[['MES_EMISSAO', 'VALOR_BRUTO']] if not pt.empty else padrao
     pt = pt.rename(columns={'VALOR_BRUTO': 'FATURADO_PT'})
 
     pq = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                coluna_mes_emissao=True, coluna_valor_bruto=True, familia_produto=8378, job=22,)
     pq = pd.DataFrame(pq)
-    pq = pq[['MES_EMISSAO', 'VALOR_BRUTO']]
+    pq = pq[['MES_EMISSAO', 'VALOR_BRUTO']] if not pq.empty else padrao
     pq = pq.rename(columns={'VALOR_BRUTO': 'FATURADO_PQ'})
 
     total = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                   coluna_mes_emissao=True, coluna_valor_bruto=True, job=22,)
     total = pd.DataFrame(total)
-    total = total[['MES_EMISSAO', 'VALOR_BRUTO']]
+    total = total[['MES_EMISSAO', 'VALOR_BRUTO']] if not total.empty else padrao
     total = total.rename(columns={'VALOR_BRUTO': 'FATURADO_TOTAL'})
 
     resultado = pd.merge(pp, pt, how='outer', on='MES_EMISSAO')
