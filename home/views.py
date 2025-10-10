@@ -22,7 +22,7 @@ from datetime import datetime
 # TODO: conferencia de campos não obrigatorios para serem preenchidos (exemplo: cadastros de produtos campos de calculo de frete e modelo, modelos sem tags)
 # TODO: Paginas personalizadas com informassões consolidades de clientes, produtos, vendas, produção, financeiro, etc???????
 # TODO: rest
-# TODO: documentar
+# TODO: documentar (google docstring, sphinx)
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')

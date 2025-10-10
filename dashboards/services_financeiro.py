@@ -40,6 +40,11 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
     }
 
     map_sql_pagar = {
+        'coluna_carteira': {'carteira_campo_alias': "'N/A' AS CARTEIRA,", },
+        'carteira_parede_de_concreto': {'sem_filtro': "1 = 0 AND", },
+        'carteira_premoldado_poste': {'sem_filtro': "1 = 0 AND", },
+        'carteira_infra': {'sem_filtro': "1 = 0 AND", },
+
         'carteira_cobranca': {'carteira_cobranca_pesquisa': "PAGAR.CARTEIRACOBRANCA = :carteira_cobranca AND", },
 
         'coluna_condicao': {'condicao_campo_alias': "PAGAR.CONDICAO,",
@@ -128,6 +133,14 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
     }
 
     map_sql_receber = {
+        'coluna_carteira': {'carteira_campo_alias': "VENDEDORES.NOMERED AS CARTEIRA,",
+                            'carteira_campo': "VENDEDORES.NOMERED,",
+                            'carteira_from': "COPLAS.VENDEDORES,",
+                            'carteira_join': "CLIENTES.CHAVE_VENDEDOR3 = VENDEDORES.CODVENDEDOR(+) AND", },
+        'carteira_parede_de_concreto': {'carteira_parede_de_concreto_pesquisa': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=23) AND", },
+        'carteira_premoldado_poste': {'carteira_premoldado_poste_pesquisa': "CLIENTES.CHAVE_TIPO IN (7908, 7904) AND", },
+        'carteira_infra': {'carteira_infra_pesquisa': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=8) AND", },
+
         'carteira_cobranca': {'carteira_cobranca_pesquisa': "RECEBER.CARTEIRACOBRANCA = :carteira_cobranca AND", },
 
         'coluna_condicao': {'condicao_campo_alias': "RECEBER.CONDICAO,",
@@ -201,7 +214,13 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
     }
 
     map_sql_movimentacao_bancaria = {
-        'carteira_cobranca': {'sem_filtro': "1 = 0 AND", },
+        'coluna_carteira': {'carteira_campo_alias_mov_ban': "'N/A' AS CARTEIRA,",
+                            'carteira_union_alias': "CARTEIRA,", },
+        'carteira_parede_de_concreto': {'sem_filtro_mov_ban': "1 = 0 AND", },
+        'carteira_premoldado_poste': {'sem_filtro_mov_ban': "1 = 0 AND", },
+        'carteira_infra': {'sem_filtro_mov_ban': "1 = 0 AND", },
+
+        'carteira_cobranca': {'sem_filtro_mov_ban': "1 = 0 AND", },
 
         'coluna_condicao': {'condicao_campo_alias_mov_ban': "'LIQUIDADO' AS CONDICAO,",
                             'condicao_union_alias': "CONDICAO,", },
@@ -211,11 +230,11 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
 
         'coluna_cliente': {'cliente_campo_alias_mov_ban': "'N/A' AS CLIENTE,",
                            'cliente_union_alias': "CLIENTE,", },
-        'cliente': {'sem_filtro': "1 = 0 AND", },
+        'cliente': {'sem_filtro_mov_ban': "1 = 0 AND", },
 
         'coluna_fornecedor': {'fornecedor_campo_alias_mov_ban': "'N/A' AS FORNECEDOR,",
                               'fornecedor_union_alias': "FORNECEDOR,", },
-        'fornecedor': {'sem_filtro': "1 = 0 AND", },
+        'fornecedor': {'sem_filtro_mov_ban': "1 = 0 AND", },
 
         'coluna_job': {'job_union_alias': "JOB,", },
 
@@ -293,10 +312,10 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
 
 
 def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
-    # TODO: incluir carteira do cliente (coluna e filtro) (inclusive premoldado/poste, parede de concreto e infra)
     kwargs_sql = {}
     kwargs_ora = {}
 
+    codigo_sql = kwargs.get('codigo_sql')
     data_liquidacao_inicio = kwargs.get('data_liquidacao_inicio')
     data_liquidacao_fim = kwargs.get('data_liquidacao_fim')
     data_vencimento_inicio = kwargs.get('data_vencimento_inicio')
@@ -317,6 +336,9 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
     kwargs_sql.update(map_relatorio_financeiro_sql_string_placeholders(fonte, **kwargs))
 
     # kwargs_ora precisa conter os placeholders corretamente
+
+    if codigo_sql:
+        kwargs_ora.update({'codigo_sql': codigo_sql, })
 
     if data_liquidacao_inicio:
         kwargs_ora.update({'data_liquidacao_inicio': data_liquidacao_inicio})
@@ -383,6 +405,7 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
             {data_vencimento_union_alias}
             {data_liquidacao_union_alias}
             {fornecedor_union_alias}
+            {carteira_union_alias}
             {cliente_union_alias}
             {condicao_union_alias}
             {valor_titulo_union_alias}
@@ -407,6 +430,7 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     {data_vencimento_campo_alias}
                     {data_liquidacao_campo_alias}
                     {fornecedor_campo_alias}
+                    {carteira_campo_alias}
                     {cliente_campo_alias}
                     {condicao_campo_alias}
                     {valor_titulo_campo_alias}
@@ -418,10 +442,13 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
 
                 FROM
                     {fonte}
+                    {carteira_from}
                     COPLAS.PLANO_DE_CONTAS
 
                 WHERE
+                    {sem_filtro}
                     {fonte_joins}
+                    {carteira_join}
                     PLANO_DE_CONTAS.CD_PLANOCONTA != 1551 AND
                     {fonte_where}
 
@@ -444,6 +471,9 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     {cliente_pesquisa}
                     {plano_conta_descricao_pesquisa}
                     {desconsiderar_plano_conta_investimentos_pesquisa}
+                    {carteira_parede_de_concreto_pesquisa}
+                    {carteira_premoldado_poste_pesquisa}
+                    {carteira_infra_pesquisa}
 
                     1 = 1
 
@@ -462,6 +492,7 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     {data_liquidacao_campo}
                     {job_campo}
                     {condicao_campo}
+                    {carteira_campo}
                     1
 
                 UNION ALL
@@ -479,6 +510,7 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     {data_vencimento_campo_alias_mov_ban}
                     {data_liquidacao_campo_alias_mov_ban}
                     {fornecedor_campo_alias_mov_ban}
+                    {carteira_campo_alias_mov_ban}
                     {cliente_campo_alias_mov_ban}
                     {condicao_campo_alias_mov_ban}
                     {valor_titulo_campo_alias_mov_ban}
@@ -497,7 +529,7 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
                     COPLAS.PLANO_DE_CONTAS
 
                 WHERE
-                    {sem_filtro}
+                    {sem_filtro_mov_ban}
                     MOVBAN_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
                     MOVBAN.CHAVE = MOVBAN_PLANOCONTA.CHAVE_MOVBAN AND
                     MOVBAN.CHAVE = MOVBAN_CENTRORESULTADO.CHAVE_MOVBAN AND
@@ -556,6 +588,7 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
             {data_liquidacao_union_alias}
             {job_union_alias}
             {condicao_union_alias}
+            {carteira_union_alias}
             1
 
         ORDER BY
@@ -570,6 +603,7 @@ def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
             {data_vencimento_union_alias}
             {data_liquidacao_union_alias}
             {fornecedor_union_alias}
+            {carteira_union_alias}
             {cliente_union_alias}
             {condicao_union_alias}
             VALOR_EFETIVO DESC

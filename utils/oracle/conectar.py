@@ -28,7 +28,14 @@ def conectar() -> oracledb.Connection:
 
 def executar_oracle(sql: str, exportar_cabecalho: bool = False, **kwargs) -> list:
     """Conecta e executa um SQL no banco de dados Oracle. Passar placeholders do SQL em kwargs placeholder: valor"""
-    # TODO: parametro (usar pop) para retornar o codigo sql (manter retorno em dict) ao inves de executar
+    codigo_sql = kwargs.pop('codigo_sql', False)
+
+    if codigo_sql:
+        if exportar_cabecalho:
+            return [{'CODIGO_SQL': sql, },]
+
+        return [sql,]
+
     connection = conectar()
     with connection.cursor() as cursor:
         cursor.execute(sql, kwargs)

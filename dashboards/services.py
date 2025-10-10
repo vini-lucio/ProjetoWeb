@@ -1169,6 +1169,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
         'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE {chave_familia_produto} AND".format(chave_familia_produto=chave_familia_produto), },
 
+        'coluna_grupo_produto': {'grupo_produto_campo_alias': "GRUPO_PRODUTOS.GRUPO AS GRUPO_PRODUTO,",
+                                 'grupo_produto_campo': "GRUPO_PRODUTOS.GRUPO,",
+                                 'grupo_produto_from': "COPLAS.GRUPO_PRODUTOS,",
+                                 'grupo_produto_join': "PRODUTOS.CHAVE_GRUPO = GRUPO_PRODUTOS.CHAVE AND", },
+        'grupo_produto': {'grupo_produto_pesquisa': "GRUPO_PRODUTOS.CHAVE = :chave_grupo_produto AND",
+                          'grupo_produto_from': "COPLAS.GRUPO_PRODUTOS,",
+                          'grupo_produto_join': "PRODUTOS.CHAVE_GRUPO = GRUPO_PRODUTOS.CHAVE AND", },
+
         'coluna_chave_produto': {'chave_produto_campo_alias': "PRODUTOS.CPROD AS CHAVE_PRODUTO,",
                                  'chave_produto_campo': "PRODUTOS.CPROD,", },
         'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
@@ -1672,6 +1680,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
         'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE {chave_familia_produto} AND".format(chave_familia_produto=chave_familia_produto), },
 
+        'coluna_grupo_produto': {'grupo_produto_campo_alias': "GRUPO_PRODUTOS.GRUPO AS GRUPO_PRODUTO,",
+                                 'grupo_produto_campo': "GRUPO_PRODUTOS.GRUPO,",
+                                 'grupo_produto_from': "COPLAS.GRUPO_PRODUTOS,",
+                                 'grupo_produto_join': "PRODUTOS.CHAVE_GRUPO = GRUPO_PRODUTOS.CHAVE AND", },
+        'grupo_produto': {'grupo_produto_pesquisa': "GRUPO_PRODUTOS.CHAVE = :chave_grupo_produto AND",
+                          'grupo_produto_from': "COPLAS.GRUPO_PRODUTOS,",
+                          'grupo_produto_join': "PRODUTOS.CHAVE_GRUPO = GRUPO_PRODUTOS.CHAVE AND", },
+
         'coluna_chave_produto': {'chave_produto_campo_alias': "PRODUTOS.CPROD AS CHAVE_PRODUTO,",
                                  'chave_produto_campo': "PRODUTOS.CPROD,", },
         'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
@@ -2155,6 +2171,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'familia_produto_campo': "FAMILIA_PRODUTOS.FAMILIA,", },
         'familia_produto': {'familia_produto_pesquisa': "FAMILIA_PRODUTOS.CHAVE {chave_familia_produto} AND".format(chave_familia_produto=chave_familia_produto), },
 
+        'coluna_grupo_produto': {'grupo_produto_campo_alias': "GRUPO_PRODUTOS.GRUPO AS GRUPO_PRODUTO,",
+                                 'grupo_produto_campo': "GRUPO_PRODUTOS.GRUPO,",
+                                 'grupo_produto_from': "COPLAS.GRUPO_PRODUTOS,",
+                                 'grupo_produto_join': "PRODUTOS.CHAVE_GRUPO = GRUPO_PRODUTOS.CHAVE AND", },
+        'grupo_produto': {'grupo_produto_pesquisa': "GRUPO_PRODUTOS.CHAVE = :chave_grupo_produto AND",
+                          'grupo_produto_from': "COPLAS.GRUPO_PRODUTOS,",
+                          'grupo_produto_join': "PRODUTOS.CHAVE_GRUPO = GRUPO_PRODUTOS.CHAVE AND", },
+
         'coluna_chave_produto': {'chave_produto_campo_alias': "PRODUTOS.CPROD AS CHAVE_PRODUTO,",
                                  'chave_produto_campo': "PRODUTOS.CPROD,", },
         'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
@@ -2508,18 +2532,18 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
 
 def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], **kwargs):
-    # TODO: incluir filtro marca
-    # TODO: incluir coluna linha e grupo (com filtro?)
     kwargs_sql = {}
     kwargs_sql_itens_excluidos = {}
     kwargs_ora = {}
 
+    codigo_sql = kwargs.get('codigo_sql')
     data_inicio = kwargs.get('inicio')
     data_fim = kwargs.get('fim')
     grupo_economico = kwargs.get('grupo_economico')
     carteira = kwargs.get('carteira')
     tipo_cliente = kwargs.get('tipo_cliente')
     familia_produto = kwargs.get('familia_produto')
+    grupo_produto = kwargs.get('grupo_produto')
     produto = kwargs.get('produto')
     produto_marca = kwargs.get('produto_marca')
     cidade = kwargs.get('cidade')
@@ -2567,6 +2591,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
 
     # kwargs_ora precisa conter os placeholders corretamente
 
+    if codigo_sql:
+        kwargs_ora.update({'codigo_sql': codigo_sql, })
+
     if grupo_economico:
         kwargs_ora.update({'grupo_economico': grupo_economico, })
 
@@ -2581,6 +2608,10 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     if familia_produto and not isinstance(familia_produto, list):
         chave_familia_produto = familia_produto if isinstance(familia_produto, int) else familia_produto.pk
         kwargs_ora.update({'chave_familia_produto': chave_familia_produto, })
+
+    if grupo_produto:
+        chave_grupo_produto = grupo_produto if isinstance(grupo_produto, int) else grupo_produto.pk
+        kwargs_ora.update({'chave_grupo_produto': chave_grupo_produto, })
 
     if produto:
         kwargs_ora.update({'produto': produto, })
@@ -2728,6 +2759,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {transportadora_campo_alias}
             {cobranca_frete_campo_alias}
             {familia_produto_campo_alias}
+            {grupo_produto_campo_alias}
             {estoque_abc_campo_alias}
             {chave_produto_campo_alias}
             {produto_campo_alias}
@@ -2778,6 +2810,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {representantes_documento_from}
             {segundo_representantes_from}
             {segundo_representantes_documento_from}
+            {grupo_produto_from}
             COPLAS.VENDEDORES,
             {fonte_itens}
             {fonte}
@@ -2801,6 +2834,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {representantes_documento_join}
             {segundo_representantes_join}
             {segundo_representantes_documento_join}
+            {grupo_produto_join}
             PRODUTOS.CHAVE_UNIDADE = UNIDADES.CHAVE AND
             FAMILIA_PRODUTOS.CHAVE = PRODUTOS.CHAVE_FAMILIA AND
             CLIENTES.UF = ESTADOS.CHAVE AND
@@ -2848,6 +2882,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {segundo_representante_documento_pesquisa}
             {nunca_compraram_pesquisa}
             {cnpj_cpf_pesquisa}
+            {grupo_produto_pesquisa}
 
             {fonte_where_data}
 
@@ -2906,6 +2941,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {segundo_representante_campo}
             {segundo_representante_documento_campo}
             {especie_campo}
+            {grupo_produto_campo}
             1
 
         {having}
@@ -2926,6 +2962,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {carteira_campo}
             {tipo_cliente_campo}
             {familia_produto_campo}
+            {grupo_produto_campo}
             {estoque_abc_campo}
             {produto_campo}
             {status_produto_orcamento_campo}
@@ -2940,6 +2977,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
         sql_itens_excluidos = sql_base.format_map(DefaultDict(kwargs_sql_itens_excluidos))
         resultado_itens_excluidos = executar_oracle(sql_itens_excluidos, exportar_cabecalho=True,
                                                     data_inicio=data_inicio, data_fim=data_fim, **kwargs_ora)
+
+        if codigo_sql:
+            return resultado + resultado_itens_excluidos
 
         dt_resultado = pd.DataFrame(resultado)
         dt_resultado_itens_excluidos = pd.DataFrame(resultado_itens_excluidos)
@@ -2960,7 +3000,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
                                      'PROXIMO_EVENTO_GRUPO', 'CGC', 'INSCRICAO_ESTADUAL', 'ESTOQUE_ABC', 'PARCELAS',
                                      'LOG_INCLUSAO_ORCAMENTO', 'REPRESENTANTE', 'REPRESENTANTE_DOCUMENTO',
                                      'SEGUNDO_REPRESENTANTE', 'SEGUNDO_REPRESENTANTE_DOCUMENTO', 'ESPECIE',
-                                     'CHAVE_DOCUMENTO',]
+                                     'CHAVE_DOCUMENTO', 'GRUPO_PRODUTO',]
         # Em caso de não ser só soma para juntar os dataframes com sum(), usar em caso the agg()
         # alias_para_header_agg = {'VALOR_MERCADORIAS': 'sum', 'MC': 'sum', 'MC_VALOR': 'sum', 'MEDIA_DIA': 'sum',
         #                          'PRECO_TABELA_INCLUSAO': 'sum', 'PRECO_VENDA_MEDIO': 'sum', 'QUANTIDADE': 'sum',

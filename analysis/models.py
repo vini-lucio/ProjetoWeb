@@ -130,6 +130,52 @@ class FAMILIA_PRODUTOS(ReadOnlyMixin, models.Model):
         return self.FAMILIA
 
 
+class LINHA_PRODUTOS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."LINHA_PRODUTOS"'
+        verbose_name = 'Linha Produtos'
+        verbose_name_plural = 'Linhas Produtos'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    LINHA = models.CharField("Linha", max_length=50, null=True, blank=True)
+    CHAVE_FAMILIA = models.ForeignKey(FAMILIA_PRODUTOS, db_column="CHAVE_FAMILIA", verbose_name="Familia",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+
+    def __str__(self):
+        return self.LINHA
+
+
+class GRUPO_PRODUTOS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."GRUPO_PRODUTOS"'
+        verbose_name = 'Grupo Produtos'
+        verbose_name_plural = 'Grupos Produtos'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    GRUPO = models.CharField("Grupo", max_length=50, null=True, blank=True)
+    CHAVE_LINHA = models.ForeignKey(LINHA_PRODUTOS, db_column="CHAVE_LINHA", verbose_name="Linha",
+                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+
+    def __str__(self):
+        return self.GRUPO
+
+
+class MARCAS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."MARCAS"'
+        verbose_name = 'Marca'
+        verbose_name_plural = 'Marcas'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    MARCA = models.CharField("Marca", max_length=50, null=True, blank=True)
+
+    def __str__(self):
+        return self.MARCA
+
+
 class PRODUTOS(ReadOnlyMixin, models.Model):
     class Meta:
         managed = False
@@ -141,6 +187,10 @@ class PRODUTOS(ReadOnlyMixin, models.Model):
     CODIGO = models.CharField("Codigo", max_length=60, null=True, blank=True)
     CHAVE_FAMILIA = models.ForeignKey(FAMILIA_PRODUTOS, db_column="CHAVE_FAMILIA", verbose_name="Familia",
                                       on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_LINHA = models.ForeignKey(LINHA_PRODUTOS, db_column="CHAVE_LINHA", verbose_name="Linha",
+                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_GRUPO = models.ForeignKey(GRUPO_PRODUTOS, db_column="CHAVE_GRUPO", verbose_name="Grupo",
+                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
     CHAVE_UNIDADE = models.ForeignKey(UNIDADES, db_column="CHAVE_UNIDADE", verbose_name="Unidade",
                                       on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
     DESCRICAO = models.CharField("Descrição", max_length=120, null=True, blank=True)
@@ -149,6 +199,8 @@ class PRODUTOS(ReadOnlyMixin, models.Model):
     FORA_DE_LINHA = models.CharField("Fora de Linha", max_length=3, null=True, blank=True)
     CODIGO_BARRA = models.CharField("Codigo de Barras (EAN13)", max_length=13, null=True, blank=True)
     CARACTERISTICA2 = models.CharField("Caracteristica 2", max_length=4000, null=True, blank=True)
+    CHAVE_MARCA = models.ForeignKey(MARCAS, db_column="CHAVE_MARCA", verbose_name="Marca",
+                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
 
     def __str__(self):
         return self.CODIGO

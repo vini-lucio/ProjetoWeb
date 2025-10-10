@@ -3,7 +3,7 @@ from django.forms.widgets import DateInput
 from .models import Indicadores
 from utils.base_forms import FormPeriodoInicioFimMixIn, FormVendedoresMixIn, FormPesquisarIntegerMixIn
 from analysis.models import (VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS, STATUS_ORCAMENTOS_ITENS,
-                             INFORMACOES_CLI, JOBS)
+                             INFORMACOES_CLI, JOBS, MARCAS, GRUPO_PRODUTOS)
 from utils.data_hora_atual import hoje_as_yyyymmdd
 from datetime import date, timedelta
 
@@ -66,8 +66,10 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     cidades = FAIXAS_CEP.objects.all().order_by('CIDADE')
     estados = ESTADOS.objects.all().order_by('ESTADO')
     familias_produtos = FAMILIA_PRODUTOS.objects.all().order_by('FAMILIA')
+    grupos_produtos = GRUPO_PRODUTOS.objects.all().order_by('GRUPO')
     informacoes_estrategicas = INFORMACOES_CLI.objects.all().order_by('DESCRICAO')
     jobs = JOBS.objects.all().order_by('DESCRICAO')
+    marcas = MARCAS.objects.all().order_by('MARCA')
 
     # Campos Sobre Cliente
     coluna_grupo_economico = forms.BooleanField(label="Coluna Grupo Economico", initial=True, required=False)
@@ -94,6 +96,8 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     # Campos Sobre Produto
     coluna_familia_produto = forms.BooleanField(label="Coluna Familia", initial=False, required=False)
     familia_produto = forms.ModelChoiceField(familias_produtos, label="Familia", required=False)
+    coluna_grupo_produto = forms.BooleanField(label="Coluna Grupo", initial=False, required=False)
+    grupo_produto = forms.ModelChoiceField(grupos_produtos, label="Grupo", required=False)
     coluna_produto = forms.BooleanField(label="Coluna Produto", initial=False, required=False)
     produto = forms.CharField(label="Produto", max_length=300, required=False)
     coluna_unidade = forms.BooleanField(label="Coluna Unidade", initial=False, required=False)
@@ -104,8 +108,10 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
                                                   initial=False, required=False)
     coluna_quantidade = forms.BooleanField(label="Coluna Quantidade", initial=False, required=False)
     coluna_estoque_abc = forms.BooleanField(label="Coluna Estoque ABC", initial=False, required=False)
+    produto_marca = forms.ModelChoiceField(marcas, label="Marca", required=False)
 
     # Campos Gerais
+    codigo_sql = forms.BooleanField(label="Codigo SQL", initial=False, required=False)
     coluna_job = forms.BooleanField(label="Coluna Job", initial=True, required=False)
     job = forms.ModelChoiceField(jobs, label="Job", required=False)
     coluna_rentabilidade = forms.BooleanField(label="Coluna % MC", help_text="exceto excluidos", initial=False,
@@ -141,12 +147,14 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
 
             'Sobre Produto': ['coluna_familia_produto', 'coluna_produto', 'coluna_unidade',
                               'coluna_preco_tabela_inclusao', 'coluna_preco_venda_medio', 'coluna_quantidade',
-                              'coluna_estoque_abc', 'familia_produto', 'produto',],
+                              'coluna_estoque_abc', 'familia_produto', 'produto', 'produto_marca',
+                              'coluna_grupo_produto', 'grupo_produto',],
 
             'Geral': ['coluna_job', 'coluna_rentabilidade', 'coluna_rentabilidade_valor',
                       'coluna_quantidade_documentos', 'coluna_ano_emissao', 'coluna_mes_emissao', 'coluna_dia_emissao',
                       'coluna_media_dia', 'coluna_documento', 'coluna_representante_documento', 'coluna_ano_a_ano',
-                      'coluna_mes_a_mes', 'job', 'representante_documento', 'coluna_log_nome_inclusao_documento',],
+                      'coluna_mes_a_mes', 'job', 'representante_documento', 'coluna_log_nome_inclusao_documento',
+                      'codigo_sql',],
         }
 
         return agrupamentos
@@ -256,12 +264,18 @@ class RelatoriosFinanceirosForm(forms.Form):
     # Campos Sobre Receber
     coluna_cliente = forms.BooleanField(label="Coluna Cliente", initial=False, required=False)
     cliente = forms.CharField(label="Cliente", help_text="nome reduzido", max_length=300, required=False)
+    coluna_carteira = forms.BooleanField(label="Coluna Carteira", initial=False, required=False)
+    carteira_parede_de_concreto = forms.BooleanField(label="Carteira Parede de Concreto", initial=False,
+                                                     required=False)
+    carteira_premoldado_poste = forms.BooleanField(label="Carteira Pré Moldado / Poste", initial=False, required=False)
+    carteira_infra = forms.BooleanField(label="Carteira Infra", initial=False, required=False)
 
     # Campos Sobre Receber
     coluna_fornecedor = forms.BooleanField(label="Coluna Fornecedor", initial=False, required=False)
     fornecedor = forms.CharField(label="Fornecedor", help_text="nome reduzido", max_length=300, required=False)
 
     # Campos Gerais
+    codigo_sql = forms.BooleanField(label="Codigo SQL", initial=False, required=False)
     coluna_job = forms.BooleanField(label="Coluna Job", initial=False, required=False)
     job = forms.ModelChoiceField(jobs, label="Job", required=False)
     coluna_valor_titulo = forms.BooleanField(label="Coluna Valor Titulo", initial=True, required=False)
@@ -285,14 +299,15 @@ class RelatoriosFinanceirosForm(forms.Form):
             'Datas': ['data_vencimento_inicio', 'data_vencimento_fim', 'data_emissao_inicio', 'data_emissao_fim',
                       'data_liquidacao_inicio', 'data_liquidacao_fim',],
 
-            'Sobre Receber': ['coluna_cliente', 'cliente',],
+            'Sobre Receber': ['coluna_cliente', 'cliente', 'coluna_carteira', 'carteira_parede_de_concreto',
+                              'carteira_premoldado_poste', 'carteira_infra',],
 
             'Sobre Pagar': ['coluna_fornecedor', 'fornecedor',],
 
             'Geral': ['condicao', 'coluna_valor_titulo', 'coluna_job', 'job', 'coluna_mes_emissao',
                       'coluna_mes_vencimento', 'coluna_mes_liquidacao', 'coluna_codigo_plano_conta',
                       'coluna_plano_conta', 'plano_conta_descricao', 'coluna_valor_titulo_liquido_desconto',
-                      'desconsiderar_plano_conta_investimentos', 'coluna_condicao',],
+                      'desconsiderar_plano_conta_investimentos', 'coluna_condicao', 'codigo_sql',],
         }
 
         return agrupamentos
