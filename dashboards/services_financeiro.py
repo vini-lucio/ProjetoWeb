@@ -3,6 +3,8 @@ from utils.custom import DefaultDict
 from utils.oracle.conectar import executar_oracle
 import pandas as pd
 
+# TODO: Documentar
+
 
 def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 'receber',], **kwargs_formulario):
     """

@@ -908,7 +908,11 @@ class Vendedores(models.Model):
         return cls.objects.filter(status='ativo')
 
     def carteira_parametros(self):
-        """Retorna os parametros para relatorios de vendas de carteiras que não são carteiras"""
+        """Retorna os parametros para relatorios de vendas de carteiras e carteiras que não são carteiras.
+
+        Retorno:
+        --------
+        :dict: com os parametros a serem usados nos relatorios de vendas em kwargs"""
         if self.nome == 'PAREDE DE CONCRETO':
             return {'carteira_parede_de_concreto': True}
         if self.nome == 'PREMOLDADO / POSTE':
@@ -917,7 +921,11 @@ class Vendedores(models.Model):
 
     @property
     def carteira_parametros_formulario(self):
-        """Retorna os parametros para relatorios de vendas de carteiras que não são carteiras"""
+        """Retorna os parametros para relatorios de vendas de carteiras e carteiras que não são carteiras.
+
+        Retorno:
+        --------
+        :str: com os parametros a serem usados nos relatorios de vendas em formularios na url"""
         if self.nome == 'PAREDE DE CONCRETO':
             return 'carteira_parede_de_concreto=on'
         if self.nome == 'PREMOLDADO / POSTE':

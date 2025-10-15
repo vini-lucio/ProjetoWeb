@@ -9,13 +9,16 @@ from datetime import date, timedelta
 
 
 class FormAnaliseOrcamentos(FormPesquisarIntegerMixIn, forms.Form):
-    def __init__(self, *args, usuario, **kwargs):
+    # forçar estar logado para aparecer todas as opções de desconto (customização desfeita)
+    # def __init__(self, *args, usuario, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['pesquisar'].label = 'n° Orçamento'
 
-        if not usuario or (not usuario.is_superuser and not usuario.groups.filter(name='Supervisão').exists()):
-            escolhas = self.fields['desconto'].choices
-            self.fields['desconto'].choices = [escolha for escolha in escolhas if escolha[0] != 'desconto_preco_atual']
+        # forçar estar logado para aparecer todas as opções de desconto (customização desfeita)
+        # if not usuario or (not usuario.is_superuser and not usuario.groups.filter(name='Supervisão').exists()):
+        #     escolhas = self.fields['desconto'].choices
+        #     self.fields['desconto'].choices = [escolha for escolha in escolhas if escolha[0] != 'desconto_preco_atual']
 
     descontos = {
         'desconto_preco_tabela': '% Sobre Preço de Tabela',
@@ -136,7 +139,14 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_log_nome_inclusao_documento = forms.BooleanField(label="Coluna Log Inclusão do Documento", initial=False,
                                                             required=False)
 
-    def get_agrupamentos_campos(self):
+    def get_agrupamentos_campos(self) -> dict[str, list[str]]:
+        """Configura os campos que serão agrupados na visualização da pagina.
+
+        Incluir nome do campo do formulario dentro da lista correspondente na chave do agrupamento.
+
+        Retorno:
+        --------
+        :dict: com a chave representando o agrupamento e o valor como a lista de campos do formulario agrupados"""
         agrupamentos = {
             'Data de Emissao': ['inicio', 'fim',],
 
@@ -165,7 +175,7 @@ class RelatoriosSupervisaoFaturamentosForm(RelatoriosSupervisaoBaseForm):
     nao_compraram_depois = forms.BooleanField(label="Não Compraram Depois do Periodo",
                                               help_text="e sem orçamentos em aberto", initial=False, required=False)
 
-    def get_agrupamentos_campos(self):
+    def get_agrupamentos_campos(self) -> dict[str, list[str]]:
         super_agrupamento = super().get_agrupamentos_campos()
 
         super_agrupamento['Sobre Cliente'].append('nao_compraram_depois')
@@ -195,7 +205,7 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
                                                     help_text="com justificativas validas",
                                                     initial=True, required=False)
 
-    def get_agrupamentos_campos(self):
+    def get_agrupamentos_campos(self) -> dict[str, list[str]]:
         super_agrupamento = super().get_agrupamentos_campos()
 
         super_agrupamento['Sobre Produto'].append('coluna_status_produto_orcamento')
@@ -212,7 +222,10 @@ class FormEventos(FormVendedoresMixIn, forms.Form):
     incluir_futuros = forms.BooleanField(label="Incluir Eventos Futuros", initial=False, required=False)
 
 
-class FormEventosDesconsiderar(FormVendedoresMixIn, forms.Form):
+class FormListagensVendas(FormVendedoresMixIn, forms.Form):
+    clientes_tipos = CLIENTES_TIPOS.objects.all().order_by('DESCRICAO')
+
+    tipo_cliente = forms.ModelChoiceField(clientes_tipos, label="Tipo", required=False)
     desconsiderar_futuros = forms.BooleanField(label="Desconsiderar grupos com eventos futuros", initial=False,
                                                required=False)
 
@@ -294,7 +307,14 @@ class RelatoriosFinanceirosForm(forms.Form):
     coluna_condicao = forms.BooleanField(label="Coluna Condição", initial=False, required=False)
     condicao = forms.ChoiceField(label='Condição', choices=condicoes, required=False)
 
-    def get_agrupamentos_campos(self):
+    def get_agrupamentos_campos(self) -> dict[str, list[str]]:
+        """Configura os campos que serão agrupados na visualização da pagina.
+
+        Incluir nome do campo do formulario dentro da lista correspondente na chave do agrupamento.
+
+        Retorno:
+        --------
+        :dict: com a chave representando o agrupamento e o valor como a lista de campos do formulario agrupados"""
         agrupamentos = {
             'Datas': ['data_vencimento_inicio', 'data_vencimento_fim', 'data_emissao_inicio', 'data_emissao_fim',
                       'data_liquidacao_inicio', 'data_liquidacao_fim',],

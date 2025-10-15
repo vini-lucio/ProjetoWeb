@@ -121,6 +121,7 @@
 
         function preencherMargem(margem) {
             margem = margem.replace(",", ".")
+            margem = margem * 1 + 1 // soma 1 de margem para não ficar em cima da cor. Multiplicação para transformar em numero
             let campoDesconto = document.getElementById("id_desconto");
             campoDesconto.value = "margem";
             let campoValor = document.getElementById("id_valor");

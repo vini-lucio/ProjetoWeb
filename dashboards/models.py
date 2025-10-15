@@ -1,3 +1,4 @@
+from typing import Self
 from dashboards.services import get_relatorios_vendas
 from decimal import Decimal
 from django.core.exceptions import ValidationError
@@ -57,6 +58,8 @@ class IndicadoresPeriodos(models.Model):
         return f'{self.ano_referencia} / {self.mes_referencia:02d}'
 
     def save(self, *args, **kwargs):
+        """Ao incluir um novo Indicador Periodo, são adicionados em Indicadores Valores todos os Indicadores com
+        o novo Indicador Periodo"""
         novo = True if not self.pk else False
         super().save(*args, **kwargs)
 
@@ -68,7 +71,14 @@ class IndicadoresPeriodos(models.Model):
                 instancia.save()
 
     @classmethod
-    def get_indicador_periodo_create(cls):
+    def get_indicador_periodo_create(cls) -> Self | None:
+        """Busca Indicador Periodo do periodo definido em Site Setup. Se não houver ele é criado com o definido em
+        Site Setup.
+
+        Retorno:
+        --------
+        :IndicadoresPeriodo: do periodo em Site Setup
+        :None: caso não exista Site Setup"""
         site_setup = get_site_setup()
         if site_setup:
             primeiro_dia_mes = site_setup.primeiro_dia_mes
@@ -114,6 +124,8 @@ class IndicadoresValores(models.Model):
     valor_real = models.DecimalField("Valor Real", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
 
     def save(self, *args, **kwargs):
+        """Ao incluir um novo Indicador Valor, são adicionados em Metas Carteiras todos os Vendedores ativos com
+        o novo Indicador Valor"""
         novo = True if not self.pk else False
         super().save(*args, **kwargs)
 
@@ -127,7 +139,16 @@ class IndicadoresValores(models.Model):
                     instancia.full_clean()
                     instancia.save()
 
-    def valor_meta_total(self, classe_somar):
+    def valor_meta_total(self, classe_somar) -> Decimal:
+        """Retorna soma de valores de metas de classe filho (que estão marcadas para considerar no total).
+
+        Parametros:
+        -----------
+        :classe_somar (class): classe filho com valor meta
+
+        Retorno:
+        --------
+        :Decimal: valor total da soma de meta"""
         metas = classe_somar.objects.filter(indicador_valor=self.pk, considerar_total=True)
         metas = metas.aggregate(valor_meta_total=Sum('valor_meta'))
 
@@ -135,7 +156,16 @@ class IndicadoresValores(models.Model):
 
         return valor_meta_total if valor_meta_total else Decimal(0)
 
-    def valor_real_total(self, classe_somar):
+    def valor_real_total(self, classe_somar) -> Decimal:
+        """Retorna soma de valores reais de metas de classe filho (que estão marcadas para considerar no total).
+
+        Parametros:
+        -----------
+        :classe_somar (class): classe filho com valor real da meta
+
+        Retorno:
+        --------
+        :Decimal: valor total da soma real da meta"""
         metas = classe_somar.objects.filter(indicador_valor=self.pk, considerar_total=True)
         metas = metas.aggregate(valor_real_total=Sum('valor_real'))
 
@@ -186,16 +216,19 @@ class MetasCarteiras(models.Model):
     considerar_total = models.BooleanField("Considerar Valores no Total", default=False)
 
     def clean(self):
+        """Garante que indicador seja 'Meta Carteiras'"""
         super().clean()
         if self.indicador_valor_id and self.indicador_valor.indicador.descricao != 'Meta Carteiras':  # type:ignore
             raise ValidationError({'indicador_valor': 'Indicador precisa ser "Meta Carteiras"'})
 
     def save(self, *args, **kwargs):
+        """Ao salvar, atualiza automaticamente valores reais e de meta em Indicador Valores"""
         super().save(*args, **kwargs)
 
         self.indicador_valor.atualizar_valores(self.__class__)
 
     def delete(self, *args, **kwargs):
+        """Ao excluir, atualiza automaticamente valores reais e de meta em Indicador Valores"""
         super_delete = super().delete(*args, **kwargs)
 
         self.indicador_valor.atualizar_valores(self.__class__)
@@ -207,6 +240,12 @@ class MetasCarteiras(models.Model):
 
     @classmethod
     def atualizar_metas_carteiras_valores(cls, carteira: Vendedores | None = None):
+        """Atualiza valores de meta por carteira definido em Vendedores e atualiza valores de vendas reais no periodo
+        definido em Site Setup de todas as carteiras ou na carteira especifica.
+
+        Parametros:
+        -----------
+        :carteira (Vendedor, opcional): se não for definido uma carteira especifica será atualizado todas as carteiras"""
         indicador_periodo = IndicadoresPeriodos.get_indicador_periodo_create()
         inicio = indicador_periodo.data_inicio if indicador_periodo else None
         fim = indicador_periodo.data_fim if indicador_periodo else None

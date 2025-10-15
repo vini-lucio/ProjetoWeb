@@ -6,7 +6,7 @@ from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relator
                        DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
                        confere_inscricoes_estaduais, get_relatorios_financeiros)
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
-                    FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormEventosDesconsiderar,
+                    FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormListagensVendas,
                     FormIndicadores, RelatoriosFinanceirosForm)
 import plotly.express as px
 import plotly.io as pio
@@ -133,10 +133,14 @@ def analise_orcamentos(request):
 
     contexto: dict = {'titulo_pagina': titulo_pagina, 'cores_rentabilidade': cores_rentabilidade, }
 
-    formulario = FormAnaliseOrcamentos(usuario=request.user)
+    # forçar estar logado para aparecer todas as opções de desconto (customização desfeita)
+    # formulario = FormAnaliseOrcamentos(usuario=request.user)
+    formulario = FormAnaliseOrcamentos()
 
     if request.method == 'GET' and request.GET:
-        formulario = FormAnaliseOrcamentos(request.GET, usuario=request.user)
+        # forçar estar logado para aparecer todas as opções de desconto (customização desfeita)
+        # formulario = FormAnaliseOrcamentos(request.GET, usuario=request.user)
+        formulario = FormAnaliseOrcamentos(request.GET)
         if formulario.is_valid():
             orcamento = formulario.cleaned_data.get('pesquisar')
             contexto['titulo_pagina'] += f' {orcamento}'
@@ -296,10 +300,10 @@ def listagens(request, listagem: str):
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
 
-    formulario = FormEventosDesconsiderar()
+    formulario = FormListagensVendas()
 
     if request.method == 'GET' and request.GET:
-        formulario = FormEventosDesconsiderar(request.GET)
+        formulario = FormListagensVendas(request.GET)
         if formulario.is_valid():
             desconsiderar_futuros = formulario.cleaned_data.get('desconsiderar_futuros')
             carteira = formulario.cleaned_data.get('carteira')
@@ -317,12 +321,17 @@ def listagens(request, listagem: str):
                                  'status_cliente_ativo': True, 'ordenar_valor_descrescente_prioritario': True,
                                  'nao_compraram_depois': True, 'desconsiderar_justificativas': True,
                                  'considerar_itens_excluidos': True, }
+
+            tipo_cliente = formulario.cleaned_data.get('tipo_cliente')
+            if tipo_cliente:
+                parametros_comuns.update({'tipo_cliente': tipo_cliente})
+
             if desconsiderar_futuros:
                 parametros_comuns.update({'desconsiderar_grupo_economico_com_evento_futuro': True})
 
             descricao_listagem = ''
             if listagem == 'sumidos':
-                descricao_listagem = 'Grupos que compravam com frequencia (em 1 ano) e não compram a 6 meses'
+                descricao_listagem = 'Grupos que compravam com frequencia (em 1 ano) e não compram a 6 meses (sem orçamento em aberto)'
                 inicio = data_x_dias(180 + 365, passado=True)
                 fim = data_x_dias(180, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
@@ -330,7 +339,7 @@ def listagens(request, listagem: str):
                                               **parametros_comuns, **carteira_parametros)
 
             if listagem == 'presentes':
-                descricao_listagem = 'Grupos que compram quase todo mês (em 6 meses) e não compram a 2 meses'
+                descricao_listagem = 'Grupos que compram quase todo mês (em 6 meses) e não compram a 2 meses (sem orçamento em aberto)'
                 inicio = data_x_dias(60 + 180, passado=True)
                 fim = data_x_dias(60, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
@@ -338,7 +347,7 @@ def listagens(request, listagem: str):
                                               **parametros_comuns, **carteira_parametros)
 
             if listagem == 'nuncamais':
-                descricao_listagem = 'Grupos que compravam com frequencia (desde sempre) e não compram a 2 anos'
+                descricao_listagem = 'Grupos que compravam com frequencia (desde sempre) e não compram a 2 anos (sem orçamento em aberto)'
                 inicio = None
                 fim = data_x_dias(730, passado=True)
                 dados = get_relatorios_vendas(fonte='faturamentos', inicio=inicio, fim=fim,
@@ -346,7 +355,7 @@ def listagens(request, listagem: str):
                                               **parametros_comuns, **carteira_parametros)
 
             if listagem == 'potenciais':
-                descricao_listagem = 'Grupos que perdem mais que compram nos ultimos 2 anos'
+                descricao_listagem = 'Grupos que perdem mais que compram nos ultimos 2 anos (sem orçamento em aberto)'
                 inicio = data_x_dias(1 + 730, passado=True)
                 fim = data_x_dias(1, passado=True)
 
