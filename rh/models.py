@@ -12,6 +12,8 @@ from utils.choices import certidao_tipos, meses as meses_choices
 from utils.data_hora_atual import hoje
 from .services import get_funcionarios_salarios_atuais
 
+# TODO: Documentar
+
 
 class Cbo(models.Model):
     class Meta:

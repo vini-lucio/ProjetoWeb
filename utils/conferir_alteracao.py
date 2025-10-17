@@ -1,3 +1,5 @@
+# TODO: Documentar
+
 def campo_django_mudou(model, instancia, **kwargs) -> bool:
     """Retorna True ou False se algum campo passado em kwargs mudou.
     A chave do kwargs precisa ser o mesmo nome do campo"""

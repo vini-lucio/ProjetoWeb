@@ -15,6 +15,8 @@ from dateutil.relativedelta import relativedelta
 import datetime
 import pandas as pd
 
+# TODO: Documentar
+
 
 def status_orcamentos_ano_mes_a_mes():
     """Totaliza o valor dos orçamentos por status no periodo informado em site setup mes a mes"""

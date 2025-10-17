@@ -1,5 +1,7 @@
 from utils.site_setup import get_cores_rentabilidade
 
+# TODO: Documentar
+
 sugestao_rentabilidade_a_menos = -1.99
 sugestao_rentabilidade_a_mais = 3.0
 

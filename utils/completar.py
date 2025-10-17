@@ -1,5 +1,7 @@
 import pandas as pd
 
+# TODO: Documentar
+
 
 def completar_meses(dataframe: pd.DataFrame, nome_coluna_mes: str, colunas_padrao: list[str]):
     """Enviar dataframe com o conteudo de somente 1 ano"""

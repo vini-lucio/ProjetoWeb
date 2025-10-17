@@ -18,6 +18,8 @@ from pandas import offsets
 from decimal import Decimal
 from math import ceil
 
+# TODO: Documentar
+
 
 def calculo_frete(request):
     titulo_pagina = 'Frete - Calculo de Frete'

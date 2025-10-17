@@ -1,5 +1,7 @@
 from django.db.models import Max
 
+# TODO: Documentar
+
 
 def get_funcionarios_ativos(funcionarios):
     return funcionarios.filter(data_saida__isnull=True).all()

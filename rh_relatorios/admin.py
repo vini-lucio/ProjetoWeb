@@ -4,6 +4,8 @@ from rh_relatorios.models import (Admissoes, Aniversariantes, Dependentes, Funci
                                   FuncionariosQuadroHorarios)
 from utils.base_models import BaseViewAdmin, ExportarXlsxMixIn
 
+# TODO: Documentar
+
 
 @admin.register(Admissoes)
 class AdmissõesAdmin(BaseViewAdmin, ExportarXlsxMixIn):

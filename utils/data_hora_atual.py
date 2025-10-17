@@ -1,6 +1,8 @@
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
+# TODO: Documentar
+
 
 def data_hora_atual() -> str:
     """Retorna data e hora atual no formato DD/MM/YYYY HH24:MI:SS"""

@@ -1,3 +1,5 @@
+# TODO: Documentar
+
 pedidos = """
     SELECT
         EXTRACT(MONTH FROM PEDIDOS.DATA_PEDIDO) AS MES,

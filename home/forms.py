@@ -2,6 +2,8 @@ from django import forms
 from django.forms.widgets import CheckboxInput
 from utils.base_forms import FormPesquisarMixIn, FormPeriodoInicioFimMixIn
 
+# TODO: Documentar
+
 
 class ConfirmacaoMigrar(forms.Form):
     confirma = forms.BooleanField(label="Confirmar?")

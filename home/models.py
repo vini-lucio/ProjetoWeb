@@ -10,6 +10,8 @@ from utils.converter import (converter_data_django_para_str_ddmmyyyy, converter_
 from utils.choices import status_ativo_inativo
 from utils.conferir_alteracao import campo_django_mudou
 
+# TODO: Documentar
+
 
 class PostAttachment(AbstractAttachment):
     def save(self, *args, **kwargs):

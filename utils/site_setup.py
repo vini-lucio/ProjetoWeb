@@ -6,6 +6,8 @@ from frete.models import (Transportadoras, TransportadorasOrigemDestino, Transpo
                           TransportadorasRegioesCidades)
 from utils.data_hora_atual import hoje
 
+# TODO: Documentar
+
 
 def get_site_setup():
     return SiteSetup.objects.order_by('-id').first()

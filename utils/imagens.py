@@ -2,6 +2,8 @@ from pathlib import Path
 from django.conf import settings
 from PIL import Image
 
+# TODO: Documentar
+
 
 def redimensionar_imagem(imagem_django, largura_px: int | None = None, altura_px: int | None = None,
                          otimizar=True, qualidade=100, obrigar_largura=True):

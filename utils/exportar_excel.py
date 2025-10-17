@@ -3,6 +3,8 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill
 from io import BytesIO
 
+# TODO: Documentar
+
 
 def arquivo_excel(conteudo: list[list] | list[dict], cabecalho: list = [], titulo: str = '',
                   nova_aba: openpyxl.Workbook | None = None, cabecalho_negrito: bool = False,

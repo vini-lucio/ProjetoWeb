@@ -2,6 +2,8 @@ from django.db import models
 from utils.converter import converter_data_django_para_str_ddmmyyyy
 from rh.models import Funcionarios
 
+# TODO: Documentar
+
 
 class Admissoes(models.Model):
     class Meta:

@@ -1,5 +1,7 @@
 from django.db import connection
 
+# TODO: Documentar
+
 
 def executar_django(sql: str, exportar_cabecalho: bool = False, **kwargs) -> list:
     """Conecta e executa um SQL no banco de dados default do Django. Passar placeholders do SQL em kwargs placeholder: valor"""

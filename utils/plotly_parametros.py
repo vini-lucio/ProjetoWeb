@@ -1,3 +1,5 @@
+# TODO: Documentar
+
 update_layout_kwargs = dict(
     title=dict(font_size=30, font_color='rgb(189, 198, 56)', x=0.5,),
     font=dict(color='rgb(0, 50, 105)', family='Arial',),

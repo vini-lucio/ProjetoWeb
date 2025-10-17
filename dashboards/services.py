@@ -19,6 +19,8 @@ from django.db.models.functions import Cast
 from datetime import datetime
 import pandas as pd
 
+# TODO: Documentar
+
 
 class DashBoardVendas():
     def __init__(self, carteira='%%', executar_completo: bool = True,

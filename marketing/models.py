@@ -4,6 +4,8 @@ from home.models import Responsaveis
 from datetime import datetime
 from utils.converter import converter_data_django_para_str_ddmmyyyy
 
+# TODO: Documentar
+
 
 class LeadsRdStation(models.Model):
     class Meta:

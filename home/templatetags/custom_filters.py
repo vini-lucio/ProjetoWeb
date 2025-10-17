@@ -1,6 +1,8 @@
 from django import template
 from utils.cor_rentabilidade import cor_rentabilidade_css as cor_css
 
+# TODO: Documentar
+
 register = template.Library()
 
 

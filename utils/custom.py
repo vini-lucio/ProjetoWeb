@@ -1,3 +1,5 @@
+# TODO: Documentar
+
 class DefaultDict(dict):
     """Dict que retorna string em branco quando a chave não existe"""
 

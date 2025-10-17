@@ -3,6 +3,8 @@ from django.db.models import Q
 from django.forms.widgets import DateInput
 from home.models import Jobs, Vendedores
 
+# TODO: Documentar
+
 
 class BaseFormRelatoriosRh(forms.Form):
     jobs = Jobs.objects.all()

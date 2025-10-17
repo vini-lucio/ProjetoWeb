@@ -16,6 +16,7 @@ import os
 import oracledb
 import platform
 
+# TODO: Documentar
 
 sistema_operacional = platform.system()
 

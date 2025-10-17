@@ -7,8 +7,19 @@ from django.core.exceptions import ObjectDoesNotExist
 
 
 def get_dados_orcamento(orcamento: int):
-    """Retorna os dados de entrega para calculo de frete"""
+    """Retorna os dados de entrega de um orçamento para calculo de frete.
 
+    Parametros:
+    -----------
+    :orcamento (int): numero do orçamento
+
+    Retorno:
+    --------
+    :dict: com dados do orçamento
+
+    Raise:
+    ------
+    :ObjectDoesNotExist: se orçamento não existir"""
     from dashboards.services import get_relatorios_vendas
     resultado = get_relatorios_vendas('orcamentos', documento=orcamento, coluna_documento=True, coluna_cliente=True,
                                       coluna_estado=True, coluna_chave_transportadora=True, coluna_valor_bruto=True,
@@ -28,8 +39,19 @@ def get_dados_orcamento(orcamento: int):
 
 
 def get_dados_pedidos_em_aberto(parametro_carteira: dict = {}):
-    """Retorna os dados de entrega para conferencia de atendimento das transportadoras nos pedidos em aberto"""
+    """Retorna os dados de entrega para conferencia de atendimento das transportadoras nos pedidos em aberto.
 
+    Parametros:
+    -----------
+    parametro_carteira (dict, opcional): dict com filtro para relatorio de vendas.
+
+    Ex: onde x é um objeto de Vendedor
+
+    >>> get_dados_pedidos_em_aberto(x.carteira_parametros())
+
+    Retorno:
+    --------
+    :list[dict]: com os dados dos pedidos"""
     from dashboards.services import get_relatorios_vendas
     resultado = get_relatorios_vendas('pedidos', coluna_carteira=True, coluna_documento=True,
                                       coluna_chave_transportadora=True, coluna_estado_origem=True, coluna_estado=True,
@@ -46,8 +68,19 @@ def get_dados_pedidos_em_aberto(parametro_carteira: dict = {}):
 
 
 def get_dados_itens_orcamento(orcamento: int):
-    """Retorna os dados dos itens do orcamento para calculo de frete"""
+    """Retorna os dados dos itens do orcamento para calculo de frete.
 
+    Parametros:
+    -----------
+    :orcamento (int): numero do orçamento
+
+    Retorno:
+    --------
+    :list[dict]: com dados dos itens do orçamento
+
+    Raise:
+    ------
+    :ObjectDoesNotExist: se orçamento não existir ou não possuir itens"""
     from dashboards.services import get_relatorios_vendas
     resultado = get_relatorios_vendas('orcamentos', documento=orcamento, coluna_produto=True, coluna_quantidade=True,
                                       coluna_pis=True, coluna_cofins=True, coluna_icms=True, coluna_chave_produto=True,
@@ -64,8 +97,16 @@ def get_dados_itens_orcamento(orcamento: int):
 
 
 def get_dados_notas(data_inicio, data_fim):
-    """Retorna os dados dos itens do orcamento para calculo de frete"""
+    """Retorna dados de notas fiscais para relatorio de frete.
 
+    Parametros:
+    -----------
+    :data_inicio (_Date): data inicio de emissão
+    :data_fim (_Date): data fim de emissão
+
+    Retorno:
+    --------
+    :list[dict]: com dados das notas fiscais"""
     from dashboards.services import get_relatorios_vendas
     resultado = get_relatorios_vendas('faturamentos', inicio=data_inicio, fim=data_fim, coluna_data_saida=True,
                                       coluna_carteira=True, coluna_documento=True, coluna_cliente=True,
@@ -96,8 +137,16 @@ def get_dados_notas(data_inicio, data_fim):
 
 
 def get_dados_notas_monitoramento(data_inicio, data_fim):
-    """Retorna os dados dos itens do orcamento para calculo de frete"""
+    """Retorna dados de notas fiscais para relatorio de monitoramento de frete cif.
 
+    Parametros:
+    -----------
+    :data_inicio (_Date): data inicio de despacho
+    :data_fim (_Date): data fim de despacho
+
+    Retorno:
+    --------
+    :list[dict]: com dados das notas fiscais"""
     from dashboards.services import get_relatorios_vendas
     resultado = get_relatorios_vendas('faturamentos',
                                       data_despacho_maior_igual=data_inicio, data_despacho_menor_igual=data_fim,
@@ -124,8 +173,31 @@ def get_dados_notas_monitoramento(data_inicio, data_fim):
     return resultado
 
 
-def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamento_pedido=[], zona_rural: bool = False, transportadora_orcamento_pedido: bool = False) -> list[TransportadorasRegioesValores]:
-    """Passar somente um dos parametros de orçamento. Retorna os dados dos valores das transportadoras que atendem o destino do orçamento informado"""
+def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamento_pedido={}, zona_rural: bool = False,
+                                            transportadora_orcamento_pedido: bool = False) -> list[TransportadorasRegioesValores]:
+    """Retorna os dados dos valores das transportadoras que atendem o destino do orçamento / pedido informado.
+
+    Parametros:
+    -----------
+
+    :orcamento (int, opcional): numero do orçamento
+    :dados_orcamento_pedido (dict, opcional): retorno das funções 'get_dados_orcamento', '*get_dados_pedidos_em_aberto' ou
+    um dict com as chaves UF_FATURAMENTO, UF_ORIGEM, UF_DESTINO, CIDADE_DESTINO
+
+    Passar somente um dos parametros de orçamento.
+
+    :zona_rural (bool, default False): boolean se destino é ou não zona rural
+    :transportadora_orcamento_pedido (bool, default False): boolean para forçar utilizar somente a transportadora do orçamento / pedido
+
+    Retorno:
+    --------
+
+    :list[TransportadorasRegioesValores]: que atendem o destino do orçamento / pedido
+
+    Raise:
+    ------
+
+    :ObjectDoesNotExist: se cidade destino não existir ou nenhuma transportadora atender o destino do orçamento / pedido"""
     if orcamento != 0:
         dados_orcamento_pedido = get_dados_orcamento(orcamento)
 
@@ -136,6 +208,7 @@ def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamen
 
     faturamento_diferente_destino = uf_faturamento != uf_destino
 
+    # Filtro das transportadoras ativas que atendem o UF origem e destino
     if not transportadora_orcamento_pedido:
         ativos_origem_destino = TransportadorasRegioesValores.filter_ativos().filter(
             transportadora_origem_destino__estado_origem_destino__uf_origem__sigla=uf_origem,
@@ -149,10 +222,13 @@ def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamen
             transportadora_origem_destino__transportadora__chave_analysis=transportadora,
         )
 
+    # Filtro se transportadoras atendem UF de faturamento diferente do destino
     if faturamento_diferente_destino:
         ativos_origem_destino = ativos_origem_destino.filter(
             transportadora_origem_destino__transportadora__entrega_uf_diferente_faturamento=True
         )
+
+    # Filtro se transportadoras atendem zona rural
     if zona_rural:
         ativos_origem_destino = ativos_origem_destino.filter(
             atendimento_zona_rural=True
@@ -162,6 +238,7 @@ def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamen
     if not confere_cidade_destino:
         raise ObjectDoesNotExist('Cidade não existe')
 
+    # Filtro se transportadoras atendem a cidade especificamente. Prioridade sobre não especificos (todo o UF)
     transportadoras_regioes_cidades = get_transportadoras_regioes_cidades().filter(
         transportadora_regiao_valor__in=ativos_origem_destino,
         transportadora_regiao_valor__atendimento_cidades_especificas=True,
@@ -171,6 +248,7 @@ def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamen
     valores = []
     transportadoras_cidades_id = []
 
+    # Adiciona a lista final de valores os valores de cidade especifica
     if transportadoras_regioes_cidades:
         valores = [cidade.transportadora_regiao_valor for cidade in transportadoras_regioes_cidades]
         transportadoras_cidades_id = transportadoras_regioes_cidades.values_list(
@@ -178,14 +256,18 @@ def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamen
             flat=True,
         )
 
+    # Filtro se as transportadoras não atendem por cidade especifica (todo o UF)
     transportadoras_regioes_todas_cidades = ativos_origem_destino.filter(
         atendimento_cidades_especificas=False
     )
+
+    # Valores são desconsiderados se a transportadora já está na lista do filtro de cidade especifica
     if transportadoras_cidades_id:
         transportadoras_regioes_todas_cidades = transportadoras_regioes_todas_cidades.exclude(
             transportadora_origem_destino__transportadora__id__in=transportadoras_cidades_id
         )
 
+    # Adiciona a lista final de valores os valores restantes de cidades não especificas
     if transportadoras_regioes_todas_cidades:
         for valor in transportadoras_regioes_todas_cidades:
             valores.append(valor)
@@ -196,8 +278,21 @@ def get_transportadoras_valores_atendimento(*, orcamento: int = 0, dados_orcamen
     return valores
 
 
-def get_cidades_prazo_taxas(transportadora_regiao_valor: TransportadorasRegioesValores, cidade_destino: str, uf_cidade_destino: str):
-    """Retorna prazos de entrega e taxas das cidades por transportadoras"""
+def get_cidades_prazo_taxas(transportadora_regiao_valor: TransportadorasRegioesValores, cidade_destino: str,
+                            uf_cidade_destino: str):
+    """Retorna prazos de entrega e taxa da cidade de uma transportadora região valores
+
+    Parametros:
+    -----------
+    :transportadora_regiao_valor (TransportadorasRegioesValores): que será consultado a cidade
+    :cidade_destino (str): com o nome exato da cidade destino
+    :uf_cidade_destino (str): com a sigla do UF
+
+    Retorno:
+    --------
+    :dict: com os dados de prazo da transportadora região valor para a cidade e uf destino"""
+
+    # Dados padrão da transportadora região valor
     taxa_cidade = 0
     prazo_tipo = transportadora_regiao_valor.prazo_tipo
     prazo = transportadora_regiao_valor.prazo_padrao
@@ -205,13 +300,13 @@ def get_cidades_prazo_taxas(transportadora_regiao_valor: TransportadorasRegioesV
     observacoes_prazo = transportadora_regiao_valor.observacoes_prazo_padrao
     cif = False
 
+    # Troca dados padrão se houver cidade especifica
     transportadora_regiao_cidade = get_transportadoras_regioes_cidades().filter(
         transportadora_regiao_valor=transportadora_regiao_valor,
         transportadora_regiao_valor__atendimento_cidades_especificas=True,
         cidade__nome=cidade_destino,
         cidade__estado__sigla=uf_cidade_destino,
     ).first()
-
     if transportadora_regiao_cidade:
         cidade_taxa_cidade = transportadora_regiao_cidade.taxa
         cidade_prazo_tipo = transportadora_regiao_cidade.prazo_tipo
@@ -234,7 +329,17 @@ def get_cidades_prazo_taxas(transportadora_regiao_valor: TransportadorasRegioesV
 
 
 def get_prazos(uf_origem: str, uf_destino: str, cidade_destino: str) -> list[dict]:
-    """Retorna os prazos por transportadora de uma origem e cidade destino especifica"""
+    """Retorna os prazos de todas as transportadoras de uma origem e destino especifica.
+
+    Parametros:
+    -----------
+    :uf_origem (str): sigla do UF de origem
+    :uf_destino (str): sigla do UF de destino
+    :cidade_destino (str): com o nome exato da cidade destino
+
+    Retorno:
+    --------
+    list[dict]: com os prazos de todas as transportadoras da origem e destino"""
     dados = {
         'UF_ORIGEM': uf_origem,
         'UF_DESTINO': uf_destino,
@@ -253,8 +358,22 @@ def get_prazos(uf_origem: str, uf_destino: str, cidade_destino: str) -> list[dic
     return prazos
 
 
-def get_dados_itens_frete(dados_itens_orcamento, exportacao: bool = False):
-    """Retorna uma tupla com os dados de volume dos produtos, pis/cofins e icms"""
+def get_dados_itens_frete(dados_itens_orcamento, exportacao: bool = False) -> tuple[list[dict], Decimal, Decimal]:
+    """Retorna dados de volume e peso por item de um oçamento para calculo de frete e impostos.
+
+    Parametros:
+    -----------
+    :dados_itens_orcamento (list[dict]): retorno da função 'get_dados_itens_orcamento' ou lista de dict com as chaves CHAVE_PRODUTO, QUANTIDADE, PIS_COFINS, ICMS
+    :exportacao (bool, default False): boolean se é uma exportação
+
+    Retorno:
+    --------
+    :tuple[list[dict], Decimal, Decimal]: com uma lista de dict com os dados de volume dos produtos, pis/cofins e icms
+
+    Raise:
+    ------
+    :ObjectDoesNotExist: se produto não existir
+    :ZeroDivisionError: se quantidade por volume do produto for 0"""
     dados_itens = []
     produtos = get_produtos()
     pis_cofins_orc = Decimal(0)
@@ -283,6 +402,8 @@ def get_dados_itens_frete(dados_itens_orcamento, exportacao: bool = False):
         except ZeroDivisionError:
             raise ZeroDivisionError(f'Divisão por 0: {produto} {quantidade_volume=}')
         m3 = volumes * m3_volume
+
+        # Casos onde não podem ter produtos diferentes dentro de um mesmo volume
         if produto.tipo_embalagem != 'PLASTICO' or exportacao:
             volumes = ceil(volumes)
 
@@ -292,8 +413,28 @@ def get_dados_itens_frete(dados_itens_orcamento, exportacao: bool = False):
     return dados_itens, pis_cofins_orc, icms_orc
 
 
-def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_orcamento_pedido: bool = False, transportadora_regiao_valor_especifico: TransportadorasRegioesValores | None = None, dados_orcamento_manual=None, dados_itens_orcamento_manual=None):
-    """Retorna uma tupla com os valores do frete por transportadora, dados do orçamento, dados dos itens do orcamento e dados dos volumes dos itens. Se transportadora região valor especifico for informado, será calculado independente do destino do orçamento. Em caso de calculo manual enviar orçamento 0 (zero) e enviar parametros manuais"""
+def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_orcamento_pedido: bool = False,
+                   transportadora_regiao_valor_especifico: TransportadorasRegioesValores | None = None,
+                   dados_orcamento_manual=None, dados_itens_orcamento_manual=None):
+    """Retorna os valores de frete de todas as transportadoras que atendem o destino de um orçamento,
+    ou uma transportadora região valor especifico independente do destino (para teste ou redespacho),
+    ou somente a transportadora do orçamento / pedido
+    ou de produtos manualmente.
+
+    Parametros:
+    -----------
+    :orcamento (int): numero do orcamento (informar 0 se for calculo manual de itens)
+    :zona_rural (bool, default False): boolean se destino é ou não zona rural
+    :transportadora_orcamento_pedido (bool, default False): boolean para forçar utilizar somente a transportadora do orçamento / pedido
+    :transportadora_regiao_valor_especifico (TransportadorasRegioesValores, default None): para forçar transportadora região valor especifico independente do destino (para teste ou redespacho)
+    :dados_orcamento_manual (dict, default None): para calculo sem orçamento. Retorno da função 'get_dados_orcamento' ou um dict com as chaves VALOR_TOTAL, DESTINO_MERCADORIAS, UF_ORIGEM, UF_DESTINO, CIDADE_DESTINO
+    :dados_itens_orcamento_manual (list[dict], default None): para calculo sem orçamento. Retorno da função 'get_dados_itens_orcamento' ou lista de dict com as chaves CHAVE_PRODUTO, QUANTIDADE, PIS_COFINS, ICMS
+
+    Retorno:
+    --------
+    :tuple[list[dict], dict, list[dict], dict]: com uma lista de dict com os valores do frete por transportadora,
+    um dict com os dados do orçamento, uma lista de dict com os dados dos itens do orcamento e um dict com os
+    dados dos volumes dos itens"""
     if orcamento:
         dados_orcamento = get_dados_orcamento(orcamento)
         dados_itens_orcamento = get_dados_itens_orcamento(orcamento)
@@ -313,6 +454,8 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_o
 
     dados_volume = {}
     valores = []
+
+    # Filtro de transportadoras regiões valores que atendem o destino ou somente a que foi passado nos parametros
     if not transportadora_regiao_valor_especifico:
         valores = get_transportadoras_valores_atendimento(dados_orcamento_pedido=dados_orcamento,
                                                           zona_rural=zona_rural,
@@ -346,6 +489,7 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_o
             dados_volume = {'total_volumes': total_volumes, 'total_m3': round(total_m3, 4),
                             'total_peso_real': round(total_peso_real, 2)}
 
+            # Calculo de frete peso
             margens = valor.transportadorasregioesmargens.all().order_by('-ate_kg')  # type:ignore
             maior_margem_kg = 0
             maior_margem_valor = 0

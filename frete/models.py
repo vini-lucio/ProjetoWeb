@@ -66,6 +66,11 @@ class TransportadorasOrigemDestino(BaseLogModel):
 
 
 def get_help_text_migrar_cidades():
+    """Texto com link clicavel para help text do campo arquivo migrar cidades em Transportadoras Regiões Valores
+
+    Retorno:
+    --------
+    :SafeText: com link para pagina de tutorial de migração de cidades"""
     url = reverse("frete:tutorial-importar-cidades-prazos")
     return mark_safe(
         f'<a href="{url}" target="_blank">Passo a passo.</a> A migração será feita ao salvar e excluirá o arquivo automaticamente'
@@ -160,6 +165,11 @@ class TransportadorasRegioesValores(BaseLogModel):
                                           help_text=help_text_zona_rural, default=0)  # type:ignore
 
     def clean(self) -> None:
+        """Valida quando o atendimento não é por cidade especifica se somente há até 1 transportadora com mesma origem
+        e destino.
+
+        Validações de prazo padrão, prazo tipo, atedimento zona rutal e taxa zona rural e estão preenchidos
+        ou não preenchidos corretamente."""
         super_clean = super().clean()
 
         try:
@@ -191,6 +201,9 @@ class TransportadorasRegioesValores(BaseLogModel):
         return super_clean
 
     def save(self, *args, **kwargs):
+        """Quando um arquivo .xlsx é salvo em arquivo migrar cidades e o tutorial no help text for seguido. Será
+        apagado todas as cidades da transportadora região valor para então incluir as cidades do arquivo. Ao
+        finalizar, o campo é salvo em branco."""
         super_save = super().save(*args, **kwargs)
         if self.arquivo_migrar_cidades:
             dados_json = converter_excel_para_json_temporario(self.arquivo_migrar_cidades.name)  # type: ignore
@@ -304,6 +317,11 @@ class TransportadorasRegioesCidades(BaseLogModel):
     transportadora_regiao_valor_nome.fget.short_description = 'Transportadora Região Valor'  # type:ignore
 
     def clean(self) -> None:
+        """Valida de transportadora região valor está marcado atendimento cidades especificas.
+
+        Valida se UF da cidade e UF destino da transportadora região valor são iguais.
+
+        Validações de prazo e prazo tipo estão preenchidos ou não preenchidos corretamente."""
         super_clean = super().clean()
 
         try:

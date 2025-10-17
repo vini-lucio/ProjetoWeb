@@ -59,8 +59,9 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
         dados_orcamentos = dados_orcamentos.rename(columns={
             'ANO_MES_EMISSAO': 'Ano | Mês', 'ANO_EMISSAO': 'Ano Emissão', 'PRODUTO': 'Produto',
             'DATA_EMISSAO': 'Data Emissão', 'STATUS': 'Status', 'VALOR_MERCADORIAS': 'Valor', })  # type:ignore
-        dados_orcamentos_nao_fechados = dados_orcamentos[dados_orcamentos['Status'] != 'FECHADO']
-        dados_orcamentos_fechados = dados_orcamentos[dados_orcamentos['Status'] == 'FECHADO']
+        if not dados_orcamentos.empty:
+            dados_orcamentos_nao_fechados = dados_orcamentos[dados_orcamentos['Status'] != 'FECHADO']
+            dados_orcamentos_fechados = dados_orcamentos[dados_orcamentos['Status'] == 'FECHADO']
 
         # Dados Grafico Valor Anual
 

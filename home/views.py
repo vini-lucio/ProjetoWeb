@@ -24,6 +24,8 @@ from datetime import datetime
 # TODO: rest
 # TODO: documentar (google docstring, sphinx)
 
+# TODO: Documentar
+
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
 def migracao(request):

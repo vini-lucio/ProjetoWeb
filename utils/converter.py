@@ -4,6 +4,8 @@ from django.conf import settings
 from pathlib import Path
 import re
 
+# TODO: Documentar
+
 
 def somente_digitos(string: str):
     return re.sub(r'\D', '', string)

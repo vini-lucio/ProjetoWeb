@@ -13,6 +13,7 @@ import json
 import datetime
 import time
 
+# TODO: Documentar
 
 hoje = timezone.localtime().date()
 agora = timezone.now()

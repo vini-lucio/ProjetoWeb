@@ -2,6 +2,8 @@ import oracledb
 import platform
 from django.conf import settings
 
+# TODO: Documentar
+
 
 def conectar() -> oracledb.Connection:
     """Conectar ao banco de dados Oracle com as configurações do settings do Django"""

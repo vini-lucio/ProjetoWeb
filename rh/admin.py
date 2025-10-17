@@ -13,6 +13,8 @@ from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedReq
 from utils.base_forms import criar_form_campo_grande
 from utils.exportar_excel import arquivo_excel, gerar_conteudo_excel, gerar_cabecalho, somar_coluna_formatada
 
+# TODO: Documentar
+
 
 @admin.register(Cbo)
 class CboAdmin(BaseModelAdminRedRequired):

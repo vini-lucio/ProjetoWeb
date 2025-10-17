@@ -1,3 +1,5 @@
+# TODO: Documentar
+
 def justificativas(excluidos: bool, considerar_invalidas: bool = False):
     tabela_campo_status = "ORCAMENTOS_ITENS.STATUS"
     tabela_campo_justificativa = "ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA"

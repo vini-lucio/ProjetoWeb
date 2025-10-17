@@ -6,6 +6,8 @@ from django.http import HttpRequest, HttpResponse
 from utils.exportar_excel import arquivo_excel
 from django.core.exceptions import PermissionDenied
 
+# TODO: Documentar
+
 User = get_user_model()
 
 
