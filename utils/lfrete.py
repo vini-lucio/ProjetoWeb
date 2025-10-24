@@ -1,4 +1,4 @@
-# TODO: Documentar
+"""Codigo SQL que recalcula impostos, despesas e margem de contribuição sem considerar o valor de frete"""
 
 pedidos = """
     SELECT

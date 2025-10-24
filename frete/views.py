@@ -18,8 +18,6 @@ from pandas import offsets
 from decimal import Decimal
 from math import ceil
 
-# TODO: Documentar
-
 
 def calculo_frete(request):
     """Retorna dados de frete para pagina de calculo de frete, baseado nos filtros do formulario
@@ -354,6 +352,26 @@ def volumes_manual(request):
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
 def reajustes(request):
+    """Retorna dados da um atributo de transportadora região valores / margens para reajuste em massa,
+    para fazer conferencia e/ou efetuar o reajuste, baseado nos filtros do formulario.
+    É necessario ser super usuario.
+
+    Metodos:
+    --------
+    :GET: exibe uma previa dos reajustes de acordo com o formulario
+    :POST: processa os reajustes de acordo com o formulario
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :formulario (ReajustesForm): com o formulario
+
+    Se o formulario estiver valido:
+
+    :transportadora_valores (TransportadorasRegioesValores | TransportadorasRegioesMargens): com filtro de transportadoras regioes valores ou margens de acordo com o formulario
+    :campo (str): com o nome do campo de transportadoras regioes valores ou margens de acordo com o formulario
+    :reajuste (Decimal): com o valor de reajuste de acordo com o formulario
+    :post (bool): com booleano se vai habilitar o botão com metodo POST"""
     titulo_pagina = 'Frete - Reajustes'
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, }
@@ -398,7 +416,17 @@ def reajustes(request):
     return render(request, 'frete/pages/reajustes.html', contexto)
 
 
-def dados_reajuste(formulario):
+def dados_reajuste(formulario: ReajustesForm):
+    """Retorna os dados do formulario e dados de transportadoras regioes valores ou margens, baseado nos filtros do formulario.
+
+    Parametros:
+    -----------
+    :formulario (ReajustesForm): com o formulario
+
+    Retorno:
+    --------
+    :tuple[str, Decimal, TransportadorasRegioesValores | TransportadorasRegioesMargens]: com o nome do campo de transportadoras regioes valores ou margens,
+    com o valor de reajuste e o filtro de transportadoras regioes valores ou margens"""
     transportadora = formulario.cleaned_data.get('transportadora')
     campo = formulario.cleaned_data.get('campo')
     reajuste = formulario.cleaned_data.get('reajuste')
@@ -418,6 +446,7 @@ def dados_reajuste(formulario):
 
 
 def tutorial_importar_cidades_prazos(request):
+    """Retorna pagina de tutorial para importar cidades e prazos em transportadoras regiões cidades a partir de transportadoras regiões valores"""
     titulo_pagina = 'Frete - Importar Cidades Prazos'
 
     contexto = {'titulo_pagina': titulo_pagina, }

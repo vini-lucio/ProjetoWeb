@@ -17,8 +17,6 @@ import zipfile
 import tempfile
 import importlib
 
-# TODO: Documentar
-
 
 class HomeLinksDocumentosInLine(admin.TabularInline):
     model = HomeLinksDocumentos
@@ -39,7 +37,6 @@ class HomeLinksAdmin(AdminRedRequiredMixIn, SummernoteModelAdmin):
     search_fields = 'tamanho_botao', 'titulo',
     inlines = HomeLinksDocumentosInLine,
 
-    # override do get_inlines para não mostrar na inclusão
     def get_inlines(self, request, obj):
         if obj:
             return super().get_inlines(request, obj)
@@ -173,6 +170,7 @@ class EstadosIcmsAdmin(BaseModelAdminRedRequired):
     search_fields = 'uf_origem__sigla', 'uf_destino__sigla', 'origem_destino',
 
     def get_queryset(self, request: HttpRequest) -> QuerySet:
+        """Permite que seja feita pesquisa em campo customizavel, juntando campos. Exemplo de busca: 'SP-RJ'"""
         queryset = super().get_queryset(request)
         queryset = queryset.annotate(origem_destino=Concat('uf_origem__sigla', Value('-'), 'uf_destino__sigla'))
         return queryset
@@ -211,8 +209,8 @@ class AtualizacoesAdmin(BaseModelAdminRedRequired):
 
     @admin.action(description="Exportar .XLSX Selecionados .ZIP")
     def exportar_atualizacoes(self, request, queryset):
-        # campos_exportar = [field for field in self.campos_exportar]
-
+        """Ação para executar funções e salvar o retorno em arquivo excel .xlsx das atualizações selecionadas e
+        compacta-las todas juntas em um arquivo .zip para download. Todos os arquivos são temporarios."""
         with tempfile.TemporaryDirectory() as pasta_temporaria:
             caminhos_arquivos_compactar = []
 
@@ -249,6 +247,7 @@ class AtualizacoesAdmin(BaseModelAdminRedRequired):
 
     @admin.action(description="Executar funções selecionadas")
     def executar_funcoes(self, request, queryset):
+        """Ação para executar funções das atualizações selecionadas."""
         for obj in queryset:
             modulo = importlib.import_module(f'{obj.app}.{obj.arquivo}')
             funcao = getattr(modulo, obj.nome_funcao)

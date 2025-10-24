@@ -2,7 +2,7 @@ from django.db import models
 from utils.converter import converter_data_django_para_str_ddmmyyyy
 from rh.models import Funcionarios
 
-# TODO: Documentar
+"""Todas as classes de model são a partir de views criadas manualmente em migrações"""
 
 
 class Admissoes(models.Model):

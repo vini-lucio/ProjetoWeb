@@ -2,8 +2,6 @@ from django.contrib import admin
 from .models import LeadsRdStation
 from utils.base_models import BaseModelAdminRedRequired, ExportarXlsxMixIn
 
-# TODO: Documentar
-
 
 @admin.register(LeadsRdStation)
 class LeadsRdStationAdmin(ExportarXlsxMixIn, BaseModelAdminRedRequired):

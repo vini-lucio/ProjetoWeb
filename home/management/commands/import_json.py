@@ -16,8 +16,6 @@ indicador_valor = IndicadoresValores.objects
 funcionarios = Funcionarios.objects
 vendedores = Vendedores.objects
 
-# TODO: Documentar
-
 
 class Command(BaseCommand):
     help = "Importar JSON para Model"

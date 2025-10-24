@@ -1,8 +1,6 @@
 import oracledb
 import platform
 
-# TODO: Documentar
-
 
 def teste(oracle_user, oracle_password, oracle_dsn):
     sistema_operacional = platform.system()

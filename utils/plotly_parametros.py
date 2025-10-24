@@ -1,4 +1,4 @@
-# TODO: Documentar
+"""Parametros padrão de visualizações dos graficos do plotly"""
 
 update_layout_kwargs = dict(
     title=dict(font_size=30, font_color='rgb(189, 198, 56)', x=0.5,),
