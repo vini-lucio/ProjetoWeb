@@ -22,6 +22,23 @@ from math import ceil
 
 
 def calculo_frete(request):
+    """Retorna dados de frete para pagina de calculo de frete, baseado nos filtros do formulario
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :formulario (PesquisarOrcamentoFreteForm): com o formulario
+    :usuario_logistica (bool): booleano se o usuario possui o direito de visualizar transportadoras regiões valores para visualizar as funcionalidade do departamento de logistica
+    :super_user (bool): booleano se o usuario é super usuario para visualizar as funcionalidade da administração de sistema
+
+    Se o formulario estiver valido:
+
+    :dados_orcamento (dict): dict com os dados do orçamento de acordo com o formulario
+    :dados_volumes (dict): dict com os dados dos volumes dos itens de acordo com o formulario
+    :dados_itens_orcamento (list[dict]): lista de dict com os dados dos itens do orcamento de acordo com o formulario
+    :fretes (list[dict]): lista de dict com os valores do frete por transportadora de acordo com o formulario
+    :erros (ObjectDoesNotExist ou ZeroDivisionError): caso ocorra erro no calculo de frete, para ser exibido ao usuario
+    :frete_redespacho (dict): dict com o valor do frete para redespacho / teste de acordo com o formulario"""
     titulo_pagina = 'Frete - Calculo de Frete'
 
     usuario_logistica = request.user.has_perm('frete.view_transportadorasregioesvalores')
@@ -41,6 +58,8 @@ def calculo_frete(request):
                 contexto.update({'dados_volumes': dados_volumes})
                 contexto.update({'dados_itens_orcamento': dados_itens_orcamento})
                 contexto.update({'fretes': fretes})
+
+                # Calculo de redespacho / teste
 
                 if usuario_logistica:
                     transportadora_valor_redespacho = formulario.cleaned_data.get('transportadora_valor')
@@ -66,6 +85,7 @@ def calculo_frete(request):
 
 
 def prazos(request):
+    """Retorna dados de prazo para pagina de prazos, baseado nos filtros do formulario"""
     titulo_pagina = 'Frete - Prazos'
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, }
@@ -90,6 +110,7 @@ def prazos(request):
 
 
 class MedidasProdutos(ListView):
+    """Retorna dados das medidas e volumetria de produtos para pagina de mediddas de produtos, baseado nos filtros do formulario"""
     model = Produtos
     template_name = 'frete/pages/medidas-produtos.html'
     context_object_name = 'medidas_produtos'
@@ -127,6 +148,11 @@ class MedidasProdutos(ListView):
 
 @user_passes_test(lambda usuario: usuario.has_perm('frete.view_transportadorasregioesvalores'), login_url='/admin/login/')
 def relatorios(request):
+    """Retorna pagina com relatorios de frete. É necessario direito de visualização de transportadoras regiões valores.
+
+    Retorno:
+    --------
+    :HttpResponse: com pagina renderizada ou download de arquivo excel"""
     titulo_pagina = 'Frete - Relatorios'
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, }
@@ -140,8 +166,8 @@ def relatorios(request):
             data_fim = formulario.cleaned_data.get('fim')
 
             try:
+                # Calcula frete para todas as notas do periodo com a transportadora agilli
                 if 'agili-submit' in request.GET:
-
                     agili = get_transportadoras_regioes_valores().filter(
                         transportadora_origem_destino__transportadora__nome__iexact='agili',
                         transportadora_origem_destino__estado_origem_destino__uf_origem__sigla='SP',
@@ -161,8 +187,8 @@ def relatorios(request):
                     arquivo = salvar_excel_temporario(excel)
                     nome_arquivo = 'relatorio_agili'
 
+                # Calcula prazo de entrega somado ao despacho de todas as notas de frete cif do periodo
                 if 'rastreamento-submit' in request.GET:
-
                     notas = get_dados_notas_monitoramento(data_inicio, data_fim)
 
                     for nota in notas:
@@ -195,10 +221,25 @@ def relatorios(request):
 
 
 def volumes_manual(request):
+    """Retorna dados de frete e/ou volumes para pagina de calculo de frete de volumes manual, baseado nos filtros do formulario.
+    Os produtos selecionados ficam salvos em cache.
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :formulario (VolumesManualForm): com o formulario
+
+    Se o formulario estiver valido:
+
+    :frete_manual (dict): dict com o valor do frete manual de acordo com o formulario
+    :itens (list[dict]): com todos os produtos selecionados de acordo com o formulario
+    :dados_volumes (dict): dict com os dados dos volumes dos itens de acordo com o formulario
+    :erros (str): caso produto já existir em itens"""
     titulo_pagina = 'Frete - Volumes Manual'
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, }
 
+    # Dados do cache
     if not request.session.session_key:
         request.session.create()
 
@@ -229,6 +270,7 @@ def volumes_manual(request):
                 total_m3 = dados_volumes['total_m3']
                 total_peso_real = dados_volumes['total_peso_real']
 
+                # Adiciona produto do formulario ao total
                 dados_itens_orcamento = [{
                     'CHAVE_PRODUTO': produto.chave_analysis,  # type:ignore
                     'QUANTIDADE': quantidade,
@@ -238,10 +280,8 @@ def volumes_manual(request):
                 dados_itens, *_ = get_dados_itens_frete(dados_itens_orcamento)
                 dados_itens = dados_itens[0]
                 dados_itens.update({'quantidade': dados_itens_orcamento[0]['QUANTIDADE']})
-
                 if dados_itens['produto'] not in [item['produto'] for item in itens]:
                     itens.append(dados_itens)
-
                     total_volumes += dados_itens['volumes_item']
                     total_m3 += dados_itens['m3_item']
                     total_peso_real += dados_itens['peso_item']
@@ -253,6 +293,7 @@ def volumes_manual(request):
                 else:
                     contexto.update({'erros': 'Produto já está na lista', })
 
+                # Calcula valor de frete do selecionado no formulario
                 transportadora_valor = formulario.cleaned_data.get('transportadora_valor')
                 if transportadora_valor:
                     valor_total = formulario.cleaned_data.get('valor_total')
@@ -301,6 +342,7 @@ def volumes_manual(request):
     else:
         formulario = VolumesManualForm()
 
+    # Atualiza dados do cache
     cache_lista.append(itens)
     cache_lista.append(dados_volumes)
     cache.set(cache_key, cache_lista)

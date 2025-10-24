@@ -18,14 +18,31 @@ from home.services import sugestoes_modelos
 
 
 class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
+    """Retorna dados para pagina de relatorio por grupo economico"""
     model = GRUPO_ECONOMICO
     template_name = 'analysis/pages/grupo-economico.html'
     context_object_name = 'grupo_economico'
 
-    def get_queryset(self):
-        return super().get_queryset()
-
     def get_context_data(self, **kwargs):
+        """
+        Contexto:
+        ---------
+        :titulo_pagina (str): com o titulo da pagina
+        :tags_contagem (list[tuple]): com as tags e quantidade de repetições dos top 30 produtos do grupo economico dos utlimos 12 meses
+        :sugestoes_contagem (list[tuple]): com os produtos e quantidade de repetições não presentes no top 30 produtos do grupo economico dos ultimos 12 meses que possuem tags semelhantes aos presentes
+        :quantidade_clientes (int): com a quantidade de clientes ativos do grupo economico
+        :quantidade_tipos (list[dict]): com a quantidade de clientes ativos por tipo de cliente do grupo economico
+        :quantidade_carteiras (list[dict]): com a quantidade de clientes ativos por carteira do grupo economico
+        :quantidade_eventos_em_aberto (int): com a quantidade de eventos em aberto do grupo economico
+        :quantidade_eventos_em_atraso (int): com a quantidade de eventos em atraso do grupo economico
+        :grafico_historico_html (str): com o html do grafico de historico anual dos ultimos 5 anos que o grupo economico fechou e não fechou
+        :grafico_produtos_html (str): com o html do grafico do top 30 produtos dos ultimos 12 meses que o grupo economico fechou e não fechou
+        :ultimo_orcamento_aberto (_Date): com a data do ultimo orçamento do grupo economico
+        :ultimo_pedido (_Date): com a data do ultimo pedido do grupo economico
+        :grafico_historico_orcamentos_html (str): com o html do grafico de historico mensal dos ultimos 2 anos que o grupo economico fechou e não fechou com previsão de fechamento para o mes atual
+        :media_dias_orcamento_para_pedido (int): com a media de dias para um orçamento virar pedido do grupo economico
+        :previsao (dict): com previsão de menor erro dos algoritmos preditivos para fechamento do mes atual do grupo economico
+        """
         context = super().get_context_data(**kwargs)
         objeto = self.get_object()
 
@@ -141,6 +158,8 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
             grafico_produtos.update_layout(update_layout_kwargs, barmode='stack')
             grafico_produtos_html = pio.to_html(grafico_produtos, full_html=False)
 
+            # Sugestão de produtos
+
             produtos = list(dados_grafico_produto['Produto'])
             produtos = Produtos.objects.filter(nome__in=produtos, modelo__isnull=False)
             modelos = {produto.modelo for produto in produtos}
@@ -186,7 +205,7 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
                                                           historico_orcamentos_fechados,
                                                           'outer', 'Ano | Mês').fillna(0)
 
-            # Regressão polinomial e media movel
+            # Dados previsão de faturamento
 
             dados_grafico_historico_orcamentos['Mês Indice'] = range(1, len(dados_grafico_historico_orcamentos) + 1)
 
@@ -195,6 +214,8 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
 
             x = historico_orcamentos_tratado[['Mês Indice']]
             y = historico_orcamentos_tratado['Fechados']
+
+            # Previsão por Regressão polinomial
 
             poly = PolynomialFeatures(degree=3, include_bias=False)
             poly_features = poly.fit_transform(x)
@@ -210,6 +231,8 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
             mes_seguinte_poly = poly.fit_transform(mes_seguinte_poly)
             mes_seguinte_poly = poly_reg_model.predict(mes_seguinte_poly)
 
+            # Previsão por Media movel
+
             historico_orcamentos_tratado['Media Movel'] = historico_orcamentos_tratado['Fechados'].rolling(
                 window=3
             ).mean()
@@ -219,6 +242,8 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
             media_movel_r_squared = r2_score(historico_orcamentos_tratado['Fechados'],
                                              historico_orcamentos_tratado['Media Movel'])
             mes_seguinte_media_movel = historico_orcamentos_tratado['Media Movel'].iloc[-1]
+
+            # Melhor previsão
 
             if poly_r_squared >= media_movel_r_squared:
                 previsao['metodo'] = 'Regressão Polinomial'
@@ -230,6 +255,8 @@ class GruposEconomicosDetailView(LoginRequiredMixin, DetailView):
                 previsao['mes_seguinte'] = float(mes_seguinte_media_movel)
                 previsao['r_squared'] = media_movel_r_squared * 100
                 previsao['rmse'] = float(media_movel_rmse)
+
+            # Dados Grafico Status de Orçamentos, continuação com previsão
 
             dados_grafico_historico_orcamentos['Previsão Fechamento'] = 0
             linha_previsao = {'Ano | Mês': 'Previsão Mês Atual', 'Previsão Fechamento': previsao['mes_seguinte'], }

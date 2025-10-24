@@ -1,4 +1,5 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from frete.models import (Transportadoras, TransportadorasOrigemDestino, TransportadorasRegioesValores,
                           TransportadorasRegioesMargens, TransportadorasRegioesCidades)
 from utils.base_models import BaseModelAdminRedRequiredLog, ExportarXlsxMixIn
@@ -145,3 +146,27 @@ class TransportadorasRegioesCidadesAdmin(ExportarXlsxMixIn, BaseModelAdminRedReq
     actions = 'exportar_excel',
     campos_exportar = ['transportadora_regiao_valor_nome', 'cidade_nome', 'prazo_tipo', 'prazo', 'frequencia',
                        'observacoes', 'taxa', 'cif',]
+
+    actions = 'somar_prazos', 'subtrair_prazos',
+
+    def atualizar_prazos(self, obj, dias: int, request):
+        prazo_atual = obj.prazo
+        if prazo_atual:
+            obj.prazo = prazo_atual + dias
+            try:
+                obj.clean()
+                obj.save()
+            except ValidationError as e:
+                self.message_user(request, f"Erro {e}", messages.ERROR)
+
+    def somar_prazos(self, request, queryset):
+        for obj in queryset:
+            self.atualizar_prazos(obj, 1, request)
+
+    somar_prazos.short_description = "Somar 1 dia aos prazos selecionados"
+
+    def subtrair_prazos(self, request, queryset):
+        for obj in queryset:
+            self.atualizar_prazos(obj, -1, request)
+
+    subtrair_prazos.short_description = "Subtrair 1 dia aos prazos selecionados"

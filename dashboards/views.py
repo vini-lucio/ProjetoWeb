@@ -22,6 +22,27 @@ import numpy as np
 
 
 def vendas_carteira(request):
+    """Retorna dados para pagina de dashboard de vendas por carteira, baseado nos filtros do formulario.
+
+    Retorno:
+    --------
+    :HttpResponse: com pagina renderizada ou download de arquivo excel
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :formulario (FormDashboardVendasCarteiras): com o formulario
+
+    Se o formulario estiver valido:
+
+    :dados (DashboardVendasCarteira): com os dados de venda de acordo com o formulario
+    :valores_periodo (list[dict]): com a lista de documentos de acordo com o formulario
+    :valor_total (float): somatoria de valor mercadorias em valores_periodo
+    :valor_liquidados (float): somatoria de valor mercadorias em valores_periodo de orçamentos / pedidos liquidados
+    :valor_em_abertos (float): somatoria de valor mercadorias em valores_periodo de orçamentos / pedidos não oportunidade em aberto ou bloqueados
+    :valor_perdidos (float): somatoria de valor mercadorias em valores_periodo de orçamentos perdidos
+    :valor_oportunidades_em_aberto (float): somatoria de valor mercadorias em valores_periodo de orçamentos oportunidade em aberto ou bloqueados
+    :valor_devolucoes (float): somatoria de valor mercadorias em valores_periodo de faturamentos de devoluções"""
     titulo_pagina = 'Dashboard Vendas'
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
@@ -35,11 +56,7 @@ def vendas_carteira(request):
             carteira_nome = carteira.nome if carteira else '%%'
             contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Total'
 
-            carteira_parametros = {'carteira': carteira}
-            if carteira_nome == 'PAREDE DE CONCRETO':
-                carteira_parametros = {'carteira_parede_de_concreto': True}
-            if carteira_nome == 'PREMOLDADO / POSTE':
-                carteira_parametros = {'carteira_premoldado_poste': True}
+            carteira_parametros = carteira.carteira_parametros() if carteira else {}
 
             if 'atualizar-submit' in request.GET:
                 dados = DashboardVendasCarteira(carteira=carteira_nome)
@@ -91,7 +108,7 @@ def vendas_carteira(request):
                             valor_devolucoes += valor.get('VALOR_MERCADORIAS')  # type:ignore
 
                 contexto.update({'dados': dados,
-                                'valores_periodo': valores_periodo,
+                                 'valores_periodo': valores_periodo,
                                  'valor_total': valor_total,
                                  'valor_liquidados': valor_liquidados,
                                  'valor_em_abertos': valor_em_abertos,
@@ -124,6 +141,20 @@ def vendas_carteira(request):
 
 
 def analise_orcamentos(request):
+    """Retorna dados de rentabilidade e desconto reais e sugeridos dos itens de um orçamento para pagina de
+    analise de orçamentos em dashboard de vendas por carteira.
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :formulario (FormAnaliseOrcamentos): com o formulario
+    :cores_rentabilidade (dict): com a porcentagem da margem de contribuição (lucro + despesa fixa) por cor
+
+    Se o formulario estiver valido:
+
+    :dados (list[dict]): com os dados de rentabilidade e descontos dos itens do orçamento do formulario
+    :confere_orcamento (list[dict]): com a lista de erros do orçamento do formulario
+    :confere_inscricoes_estaduais (list[dict]): com a lista de erros de inscrição estadual do orçamento do formulario"""
     titulo_pagina = 'Analise Orçamento'
 
     cores_rentabilidade = get_cores_rentabilidade()
@@ -203,6 +234,17 @@ def analise_orcamentos(request):
 
 
 def detalhes_dia(request):
+    """Retorna dados de detalhes de vendas por familia de produto por carteira para pagina de detalhes em
+    dasboard de vendas por carteira (do mes definido em site setup).
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :formulario (FormVendedoresMixIn): com o formulario
+
+    Se o formulario estiver valido:
+
+    :dados (list[dict]): com os dados de vendas por familia de produto por carteira do formulario"""
     titulo_pagina = 'Detalhes'
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
@@ -235,6 +277,20 @@ def detalhes_dia(request):
 
 
 def eventos_dia(request):
+    """Retorna dados para pagina de eventos de vendas por carteira, baseado nos filtros do formulario.
+
+    Retorno:
+    --------
+    :HttpResponse: com pagina renderizada ou download de arquivo excel
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :formulario (FormEventos): com o formulario
+
+    Se o formulario estiver valido:
+
+    :dados (list[dict]): com os dados de eventos por carteira de acordo com o formulario"""
     titulo_pagina = 'Eventos do Dia'
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
@@ -269,6 +325,17 @@ def eventos_dia(request):
 
 
 def eventos_por_dia(request):
+    """Retorna dados para pagina de eventos por dia por carteira com a quantidade de eventos em aberto por dia,
+    baseado nos filtros do formulario.
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :formulario (FormVendedoresMixIn): com o formulario
+
+    Se o formulario estiver valido:
+
+    :dados (list[dict]): com a quantidade de eventos em aberto por dia por carteira de acordo com o formulario"""
     titulo_pagina = 'Eventos Por Dia'
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
@@ -293,6 +360,25 @@ def eventos_por_dia(request):
 
 # TODO: usuario poder mudar parametro para aumentar lista?
 def listagens(request, listagem: str):
+    """Retorna dados para pagina de listagens de vendas por carteira, baseado nos filtros do formulario.
+
+    Parametros:
+    -----------
+    :listagem (str): com qual relatorio será exibido, podendo ser 'sumidos', 'nuncamais', 'presentes' ou 'potenciais'
+
+    Retorno:
+    --------
+    :HttpResponse: com pagina renderizada ou download de arquivo excel
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :formulario (FormListagensVendas): com o formulario
+
+    Se o formulario estiver valido:
+
+    :dados (list[dict]): com os dados de venda de acordo com o parametro de listagem e formulario
+    :descricao_listagem (str): com uma breve descrição da listagem selecionada"""
     if listagem not in ('sumidos', 'nuncamais', 'presentes', 'potenciais',):
         return HttpResponse("Pagina invalida", status=404)
 
@@ -310,11 +396,7 @@ def listagens(request, listagem: str):
             carteira_nome = carteira.nome if carteira else '%%'
             contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Todos'
 
-            carteira_parametros = {'carteira': carteira}
-            if carteira_nome == 'PAREDE DE CONCRETO':
-                carteira_parametros = {'carteira_parede_de_concreto': True}
-            if carteira_nome == 'PREMOLDADO / POSTE':
-                carteira_parametros = {'carteira_premoldado_poste': True}
+            carteira_parametros = carteira.carteira_parametros() if carteira else {}
 
             parametros_comuns = {'coluna_media_dia': True, 'coluna_grupo_economico': True, 'coluna_carteira': True,
                                  'coluna_tipo_cliente': True, 'coluna_quantidade_meses': True,
@@ -401,6 +483,7 @@ def listagens(request, listagem: str):
 
 
 def vendas_tv(request):
+    """Retorna dados para pagina de dashboard de vendas tv"""
     titulo_pagina = 'Dashboard Vendas - TV'
 
     dados = DashboardVendasTv()
@@ -411,6 +494,7 @@ def vendas_tv(request):
 
 
 def vendas_supervisao(request):
+    """Retorna dados para pagina de dashboard de vendas supervisão"""
     titulo_pagina = 'Dashboard Vendas - Supervisão'
 
     dados = DashboardVendasSupervisao()
@@ -421,6 +505,33 @@ def vendas_supervisao(request):
 
 
 def relatorios_supervisao(request, fonte: str):
+    """Retorna dados para pagina de relatorios de supervisão de vendas, baseado nos filtros do formulario.
+
+    Parametros:
+    -----------
+    :fonte (str): com qual relatorio será exibido, podendo ser 'faturamentos', 'orcamentos' ou 'pedidos'
+
+    Retorno:
+    --------
+    :HttpResponse: com pagina renderizada ou download de arquivo excel
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :titulo_pagina_2 (str): com segundo titulo baseado no parametro fonte
+    :fonte_relatorio (str): com o mesmo do parametro fonte
+    :direito_exportar_emails (bool): com o booleano se o usuario possui o direiro de exportar os emails dos contatos do relatorio
+    :formulario (RelatoriosSupervisaoFaturamentosForm ou RelatoriosSupervisaoOrcamentosForm): com o formulario baseado no parametro fonte
+
+    Se o formulario estiver valido:
+
+    :dados (list[dict]): com os dados de venda de acordo com o formulario
+    :cabecalho (list[str]): com as chaves de dados, trocando '_' por espaços
+    :valor_mercadorias_total (float): somatoria de valor mercadorias em dados
+    :mc_valor_total (float): somatoria de valor de margem de contribuição em dados
+    :mc_total (float): proporção entre mc_valor_total e valor_mercadorias_total
+    :quantidade_documentos_total (float): somatoria de quantidade de documento em dados
+    :totais (dict): com os numeros arredondados de valor_mercadorias_total, mc_valor_total, mc_total e quantidade_documentos_total"""
     fonte_relatorio = fonte
     if fonte_relatorio not in ('faturamentos', 'orcamentos', 'pedidos'):
         return HttpResponse("Pagina invalida", status=404)
@@ -492,6 +603,7 @@ def relatorios_supervisao(request, fonte: str):
                 return response
 
             if 'exportar-emails-submit' in request.GET:
+                # Para burlar o limite de 1000 na lista da clausula IN do oracle, fazer comparação composta (1, campo) IN ((1, busca), ...)
                 chave_grupos = [f'(1, {dado['CHAVE_GRUPO_ECONOMICO']})' for dado in dados]
                 chave_grupos = ', '.join(chave_grupos)
                 condicao = '(1, CLIENTES.CHAVE_GRUPOECONOMICO) IN ({})'
@@ -510,6 +622,24 @@ def relatorios_supervisao(request, fonte: str):
 
 
 def relatorios_financeiros(request):
+    """Retorna dados para pagina de relatorios financeiros, baseado nos filtros do formulario.
+
+    Retorno:
+    --------
+    :HttpResponse: com pagina renderizada ou download de arquivo excel
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :formulario (RelatoriosFinanceirosForm): com o formulario
+
+    Se o formulario estiver valido:
+
+    :dados_dados (list[tuple[str, list[dict]]]): com os dados financeiros de acordo com o formulario. Onde o primeiro
+    elemento da tupla é a fonte dos dados pagar, receber ou saldo (resto dos dois anteriores), o segundo elemento
+    é a lista de dict dos dados financeiros.
+
+    :cabecalho (list[str]): com as chaves da lista de dict da tupla em dados_dados, trocando '_' por espaços"""
     titulo_pagina = 'Relatorios Financeiros'
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, }
@@ -571,6 +701,17 @@ def relatorios_financeiros(request):
 
 
 def indicadores(request):
+    """Retorna dados para pagina de indicadores, baseado nos filtros do formulario.
+
+    Contexto:
+    ---------
+    :titulo_pagina (str): com o titulo da pagina
+    :formulario (FormIndicadores): com o formulario
+
+    Se o formulario estiver valido:
+
+    :grafico_dados_html (str): com o html do grafico do total do indicador de acordo com o formulario
+    :grafico_dados_carteiras_html (str): com o html do grafico do indicador por carteira de acordo com o formulario"""
     titulo_pagina = 'Indicadores'
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
@@ -613,6 +754,8 @@ def indicadores(request):
             dados_grafico['Real %'] = dados_grafico['Real'] / dados_grafico['Meta'] * 100
             dados_grafico['Real %'] = dados_grafico['Real %'].fillna(0)
             dados_grafico['Real %'] = np.floor(dados_grafico['Real %']).astype(float)
+
+            # Grafico Total
 
             grafico_dados_html = ""
             if not dados_grafico.empty:
@@ -663,6 +806,8 @@ def indicadores(request):
 
                 carteiras = list(dados_carteiras_grafico['Carteira'].unique())
                 carteiras = sorted(carteiras)
+
+                # Grafico por Carteira
 
                 y_carteira = ['Real %'] if valores == 'proporcional' else ['Real']
                 for carteira in carteiras:
