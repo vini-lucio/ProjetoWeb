@@ -143,11 +143,10 @@ class TransportadorasRegioesCidadesAdmin(ExportarXlsxMixIn, BaseModelAdminRedReq
                      'cidade__nome')
     readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
     autocomplete_fields = 'transportadora_regiao_valor', 'cidade',
-    actions = 'exportar_excel',
+
+    actions = 'exportar_excel', 'somar_prazos', 'subtrair_prazos',
     campos_exportar = ['transportadora_regiao_valor_nome', 'cidade_nome', 'prazo_tipo', 'prazo', 'frequencia',
                        'observacoes', 'taxa', 'cif',]
-
-    actions = 'somar_prazos', 'subtrair_prazos',
 
     def atualizar_prazos(self, obj, dias: int, request):
         prazo_atual = obj.prazo
