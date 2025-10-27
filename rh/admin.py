@@ -269,7 +269,7 @@ class SalariosInLine(admin.TabularInline):
 
 @admin.register(Funcionarios)
 class FuncionariosAdmin(BaseModelAdminRedRequiredLog):
-    list_display = 'id', 'job', 'registro', 'nome', 'status',
+    list_display = 'id', 'job', 'registro', 'nome', 'funcao_atual', 'status',
     list_display_links = list_display
     ordering = 'nome',
     list_filter = 'job', 'data_saida',

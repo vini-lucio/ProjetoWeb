@@ -456,6 +456,15 @@ class Funcionarios(BaseLogModel):
 
         return total
 
+    @property
+    def funcao_atual(self):
+        salario_funcao_atual = self.funcionariossalariofuncaoatual.first()  # type:ignore
+        if salario_funcao_atual:
+            return salario_funcao_atual.funcao
+        return ''
+
+    funcao_atual.fget.short_description = 'Função Atual'  # type:ignore
+
     def image_tag(self):
         if self.foto:
             return mark_safe(f'<img src="{self.foto.url}"/>')
