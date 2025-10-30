@@ -195,7 +195,9 @@ class DashBoardVendas():
         self.confere_inscricoes_estaduais = []
         if executar_completo:
             self.confere_pedidos = confere_pedidos(self.carteira, parametro_carteira)
-            self.confere_inscricoes_estaduais = confere_inscricoes_estaduais('pedidos', parametro_carteira)
+
+            # Atualização no dfe obrigando login no gov para algumas consultas em 10/10/2025 para impedir acessos automaticos
+            # self.confere_inscricoes_estaduais = confere_inscricoes_estaduais('pedidos', parametro_carteira)
 
 
 class DashboardVendasCarteira(DashBoardVendas):

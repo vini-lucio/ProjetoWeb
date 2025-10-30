@@ -12,8 +12,6 @@ from utils.choices import certidao_tipos, meses as meses_choices
 from utils.data_hora_atual import hoje
 from .services import get_funcionarios_salarios_atuais
 
-# TODO: Documentar
-
 
 class Cbo(models.Model):
     class Meta:
@@ -81,6 +79,8 @@ class Dissidios(BaseLogModel):
     dissidio_total.fget.short_description = 'Dissidio Total %'  # type:ignore
 
     def save(self, *args, **kwargs) -> None:
+        """Ao aplicar dissidio, será incluso um novo Salario com o ultimo salario somado a porcentagem total para
+        todos os funcionarios ativos de mesmo job."""
         aplicar_dissidio = campo_django_mudou(Dissidios, self, aplicado=self.aplicado)
 
         super_save = super().save(*args, **kwargs)
@@ -466,6 +466,7 @@ class Funcionarios(BaseLogModel):
     funcao_atual.fget.short_description = 'Função Atual'  # type:ignore
 
     def image_tag(self):
+        """Se existir foto, retorna codigo html com a tag de imagem para ser injetado na pagina do funcionario."""
         if self.foto:
             return mark_safe(f'<img src="{self.foto.url}"/>')
         return "Sem foto"
@@ -473,6 +474,7 @@ class Funcionarios(BaseLogModel):
     image_tag.short_description = 'Visualização Foto'
 
     def save(self, *args, **kwargs) -> None:
+        """Redimensiona foto para largura maxima de 500px."""
         foto_anteior = self.foto.name
         super_save = super().save(*args, **kwargs)
 
@@ -532,6 +534,11 @@ class Afastamentos(BaseLogModel):
     data_retorno_as_ddmmyyyy.fget.short_description = 'Data Retorno'  # type:ignore
 
     def clean(self) -> None:
+        """Valida se funcionario possui até 1 afastamento sem data de retorno.
+
+        Raise:
+        ------
+        :ValidationError: se existir mais de 1 afastamento sem data de retorno para o funcionario ou se funcionario não estiver preenchido."""
         super_clean = super().clean()
 
         try:
@@ -632,6 +639,11 @@ class HorariosFuncionarios(BaseLogModel):
     data_fim_as_ddmmyyyy.fget.short_description = 'Data Fim'  # type:ignore
 
     def clean(self) -> None:
+        """Valida se funcionario possui até 1 horario sem data fim.
+
+        Raise:
+        ------
+        :ValidationError: se existir mais de 1 horario sem data fim para o funcionario ou se funcionario não estiver preenchido."""
         super_clean = super().clean()
 
         try:
@@ -745,6 +757,7 @@ class ValeTransportes(BaseLogModel):
     valor_total.fget.short_description = 'Valor Total R$'  # type:ignore
 
     def save(self, *args, **kwargs) -> None:
+        """Atualiza quantidade por dia e dias de todos os vale transportes funcionarios."""
         mudou = campo_django_mudou(ValeTransportes, self, quantidade_por_dia=self.quantidade_por_dia, dias=self.dias)
 
         super_save = super().save(*args, **kwargs)
@@ -807,6 +820,7 @@ class ValeTransportesFuncionarios(BaseLogModel):
     valor_total.fget.short_description = 'Valor Total R$'  # type:ignore
 
     def save(self, *args, **kwargs) -> None:
+        """Quando quantidade por dia e dias for 0, é salvo automaticamente o valor do campo correspondente de vale transporte."""
         if self.quantidade_por_dia == 0:
             self.quantidade_por_dia = self.vale_transporte.quantidade_por_dia
         if self.dias == 0:
@@ -859,6 +873,8 @@ class Ferias(BaseLogModel):
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     def link_solicitacao_ferias(self):
+        """Retorna codigo html com a tag de link para a pagina de solicitação de ferias para ser injetado na
+        pagina de ferias."""
         return mark_safe(f'<a href="/rh/solicitacao-ferias/{self.pk}" target="_blank">Visualizar</a>')
 
     link_solicitacao_ferias.short_description = 'Formulario de solicitação de ferias'
@@ -923,6 +939,11 @@ class Ferias(BaseLogModel):
     ultimo_prazo_as_ddmmyyyy.fget.short_description = 'Ultimo Prazo'  # type:ignore
 
     def clean(self) -> None:
+        """Valida se funcionario possui até 1 ferias sem data de inicio.
+
+        Raise:
+        ------
+        :ValidationError: se existir mais de 1 ferias sem data de inicio para o funcionario ou se funcionario não estiver preenchido."""
         super_clean = super().clean()
 
         try:
@@ -1063,6 +1084,15 @@ class Salarios(BaseLogModel):
 
     @classmethod
     def filter_atual(cls, funcionario: Funcionarios):
+        """Retorna Salario atual de um funcionario.
+
+        Parametros:
+        -----------
+        :funcionario (Funcionario): com o funcionario
+
+        Retorno:
+        --------
+        :Salarios: com filtro do salario atual do funcionario"""
         func = Funcionarios.objects.filter(pk=funcionario.pk)
         # ################ essa função funciona, mas usar model de FuncionariosSalarioFuncaoAtual
         salario_atual = get_funcionarios_salarios_atuais(func, somente_ativos=False)

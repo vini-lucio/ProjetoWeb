@@ -4,8 +4,6 @@ from home.models import Responsaveis
 from datetime import datetime
 from utils.converter import converter_data_django_para_str_ddmmyyyy
 
-# TODO: Documentar
-
 
 class LeadsRdStation(models.Model):
     class Meta:
@@ -47,6 +45,7 @@ class LeadsRdStation(models.Model):
     responsavel = models.ForeignKey(Responsaveis, verbose_name="Responsavel", on_delete=models.PROTECT,
                                     related_name="%(class)s", null=True, blank=True)
 
+    # Chave é o nome do campo retornado no email do RD Station e o valor é o campo relacionado do model
     map_nomes_alternativos_campos = {
         'post_id': 'asset_id',
         'form_fields_field_1984dff': 'nome',
@@ -75,6 +74,8 @@ class LeadsRdStation(models.Model):
         return str(self.pk) if self.pk else ''
 
     def clean(self) -> None:
+        """Novos cadastros usam o que está em dados bruto para preencher os campos automaticamente atravez do texto
+        do email enviado pelo RD Station. Onde cada linha de dados bruto é um campo com seu valor separados por ':'"""
         if not self.pk and self.dados_bruto:
             map_nomes_alternativos_campos = LeadsRdStation.map_nomes_alternativos_campos
             bruto = self.dados_bruto

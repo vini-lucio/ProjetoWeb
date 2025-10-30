@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from .models import IndicadoresValores, MetasCarteiras
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
                        DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
-                       confere_inscricoes_estaduais, get_relatorios_financeiros)
+                       get_relatorios_financeiros)
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
                     FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormListagensVendas,
                     FormIndicadores, RelatoriosFinanceirosForm)
@@ -224,7 +224,11 @@ def analise_orcamentos(request):
                 dados = dt_dados.to_dict(orient='records')
 
                 confere = confere_orcamento(orcamento)  # type:ignore
-                confere_ie = confere_inscricoes_estaduais('orcamentos', {'documento': orcamento})  # type:ignore
+
+                # Atualização no dfe obrigando login no gov para algumas consultas em 10/10/2025 para impedir acessos automaticos
+                # confere_ie = confere_inscricoes_estaduais('orcamentos', {'documento': orcamento})  # type:ignore
+                confere_ie = []
+
                 contexto.update({'dados': dados, 'confere_orcamento': confere,
                                  'confere_inscricoes_estaduais': confere_ie})
 

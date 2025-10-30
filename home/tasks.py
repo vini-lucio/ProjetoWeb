@@ -3,7 +3,7 @@ from background_task.models import Task, CompletedTask
 from analysis.models import ORCAMENTOS
 from dashboards.models import MetasCarteiras
 from home.models import ControleInscricoesEstaduais, InscricoesEstaduais, Estados
-from django.conf import settings
+# from django.conf import settings
 from django.utils import timezone
 from django.db.models import Max
 from utils.converter import somente_digitos
@@ -13,14 +13,13 @@ import json
 import datetime
 import time
 
-# TODO: Documentar
-
 hoje = timezone.localtime().date()
 agora = timezone.now()
 
 
 @background(remove_existing_tasks=True)
-def atualiza_metas_carteiras_valores():
+def atualiza_metas_carteiras_valores() -> None:
+    """Background task que executa a função MetasCarteiras.atualizar_metas_carteiras_valores() uma vez ao dia"""
     MetasCarteiras.atualizar_metas_carteiras_valores()
 
 
@@ -32,7 +31,24 @@ atualiza_metas_carteiras_valores(schedule=atualiza_metas_carteiras_valores_agend
 
 
 @background(remove_existing_tasks=True)
-def confere_inscricoes_api():
+def confere_inscricoes_api() -> None:
+    """Backgroup task que busca e guarda inscrições estaduais por CNPJ na API publica cnpja a cada 10 minutos.
+
+    A API publica é limitada a 5 consultas por minuto por IP, por precaução as consultas são feitas a cada 15 segundos
+    (4 por minuto).
+
+    Os CNPJs a serem consultados são a partir de orçamentos abertos, o controle é registrado em
+    Controle Inscrições Estaduais onde está o ultimo orçamento consultado e a data e hora da consulta. Os CNPJs
+    dos orçamentos entre o orçamento no controle e o ultimo orçamento no momento da execução dessa função entram na
+    lista a serem consultados pela API. Se a execução dessa função for em menos de 7 minutos do que está no controle,
+    essa função não faz nada até esse tempo passar.
+
+    A lista de CNPJs é filtrado somente pessoas juridicas, e se a ultima consulta registrada em Inscrições Estaduais
+    para o CNPJ for menor que 30 dias esse CNPJ não será consultado. Caso contrario, todas as inscrições estaduais
+    retornadas são registradas / atualizadas / excluidas em Inscrições Estaduais, inclusive em branco se não houver.
+
+    Em caso de erro HTTP no momento da consulta ou não encontrar a chave JSON registrations, o CNPJ é pulado para o
+    proximo da lista"""
     somente_digitos_ = somente_digitos
     conferencia = timezone.now()
 
@@ -53,12 +69,11 @@ def confere_inscricoes_api():
     controle_inscricao_estadual.full_clean()
     controle_inscricao_estadual.save()
 
-    documentos_conferir_pessoas_jurudicas = documentos_conferir.filter(CHAVE_CLIENTE__TIPO='PESSOA JURIDICA')
-    if not documentos_conferir_pessoas_jurudicas.exists():
+    documentos_conferir_pessoas_juridicas = documentos_conferir.filter(CHAVE_CLIENTE__TIPO='PESSOA JURIDICA')
+    if not documentos_conferir_pessoas_juridicas.exists():
         return
 
-    cnpjs = documentos_conferir_pessoas_jurudicas.values_list('CHAVE_CLIENTE__CGC', flat=True)
-    # TODO: fazer um append com cnpjs dos canteiros (pedidos?)
+    cnpjs = documentos_conferir_pessoas_juridicas.values_list('CHAVE_CLIENTE__CGC', flat=True)
 
     for cnpj in cnpjs:
         cnpj_numeros = somente_digitos_(cnpj)
@@ -125,13 +140,15 @@ def confere_inscricoes_api():
             inscricoes_inexistentes.delete()
 
 
-if not settings.DEBUG:
-    confere_inscricoes_api_agenda = agora + datetime.timedelta(minutes=10)
-    confere_inscricoes_api(schedule=confere_inscricoes_api_agenda, repeat=600)  # type:ignore
+# Atualização no dfe obrigando login no gov para algumas consultas em 10/10/2025 para impedir acessos automaticos
+# if not settings.DEBUG:
+#     confere_inscricoes_api_agenda = agora + datetime.timedelta(minutes=10)
+#     confere_inscricoes_api(schedule=confere_inscricoes_api_agenda, repeat=600)  # type:ignore
 
 
 @background(remove_existing_tasks=True)
-def limpar_completed_tasks():
+def limpar_completed_tasks() -> None:
+    """Backgroup task que exclui o historico de Completed Task de mais de um dia uma vez ao dia."""
     dia_anterior = timezone.now() - datetime.timedelta(days=1)
     completed_tasks = CompletedTask.objects.filter(run_at__lt=dia_anterior)
     completed_tasks.delete()

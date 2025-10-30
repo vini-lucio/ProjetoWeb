@@ -16,11 +16,10 @@ import os
 import oracledb
 import platform
 
-# TODO: Documentar
 
 sistema_operacional = platform.system()
 
-# a linha abaixo é para forçar o modo thick do oracle por causa da senha no padrao antigo do oracle
+# Forçar o modo thick do oracle por causa da senha no padrao antigo do oracle
 if sistema_operacional == 'Windows':
     oracledb.init_oracle_client(lib_dir=r"C:\instantclient_19_24")
 else:

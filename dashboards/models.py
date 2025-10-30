@@ -245,7 +245,7 @@ class MetasCarteiras(models.Model):
 
         Parametros:
         -----------
-        :carteira (Vendedor, opcional): se não for definido uma carteira especifica será atualizado todas as carteiras"""
+        :carteira (Vendedor, opcional): com carteira especifica ou se não for definido será atualizado todas as carteiras"""
         indicador_periodo = IndicadoresPeriodos.get_indicador_periodo_create()
         inicio = indicador_periodo.data_inicio if indicador_periodo else None
         fim = indicador_periodo.data_fim if indicador_periodo else None

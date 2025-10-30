@@ -10,11 +10,10 @@ from utils.converter import (converter_data_django_para_str_ddmmyyyy, converter_
 from utils.choices import status_ativo_inativo
 from utils.conferir_alteracao import campo_django_mudou
 
-# TODO: Documentar
-
 
 class PostAttachment(AbstractAttachment):
     def save(self, *args, **kwargs):
+        """Ao salvar uma imagem em algum campo com summernote ela será automaticamente redimensionada"""
         if not self.name:
             self.name = self.file.name
 
@@ -27,6 +26,7 @@ class PostAttachment(AbstractAttachment):
         return super_save
 
 
+"""Ajuste no tamanho da imagem para não distorcer quando o css ampliar com o hover"""
 FATOR_AMPLIACAO_HOVER_CSS = 1.05
 
 LARGURA_IMAGEM_PADRAO_PEQUENO = round(70 * FATOR_AMPLIACAO_HOVER_CSS)
@@ -97,11 +97,15 @@ class HomeLinks(models.Model):
                                 default=1000.00, blank=False, null=False, help_text=help_text_ordem)  # type:ignore
 
     def clean(self):
+        """Garante que url externo fique em branco se não for link externo."""
         if not self.link_externo:
             self.url_externo = ''
         return super().clean()
 
     def save(self, *args, **kwargs) -> None:
+        """Transforma titulo em slug valido para campo slug.
+
+        Redimensiona imagens de acordo com tamanho do botão."""
         if not self.slug == slugify(self.titulo):
             self.slug = slugify(self.titulo)
 
@@ -291,6 +295,7 @@ class SiteSetup(models.Model):
         return float(self.aliquota_icms_simples)
 
     def clean(self) -> None:
+        """Calcula valor de meta diaria corretamente"""
         if self.dias_uteis_mes == 0:
             self.meta_diaria = 0
         else:
@@ -298,6 +303,9 @@ class SiteSetup(models.Model):
         return super().clean()
 
     def save(self, *args, **kwargs) -> None:
+        """Redimensiona imagens de acordo com o campo.
+
+        Se alguma medida de volume padrão for alterado, todos produtos de tamanho padrão são alterados."""
         favicon_anterior = self.favicon.name
         logo_cabecalho_anterior = self.logo_cabecalho.name
 
@@ -615,6 +623,7 @@ class ProdutosModelosTags(models.Model):
     slug = models.SlugField("Slug", blank=True, null=True)
 
     def save(self, *args, **kwargs) -> None:
+        """Transforma descrição em slug valido para campo slug."""
         if not self.slug == slugify(self.descricao):
             self.slug = slugify(self.descricao)
 
@@ -647,6 +656,9 @@ class ProdutosModelos(BaseLogModel):
     url_site = models.CharField("URL do Site", max_length=2048, blank=True, null=True)
 
     def save(self, *args, **kwargs) -> None:
+        """Transforma descrição em slug valido para campo slug.
+
+        Redimensiona imagem com largura maxima correta."""
         if not self.slug == slugify(self.descricao):
             self.slug = slugify(self.descricao)
 
@@ -678,6 +690,7 @@ class ProdutosModelosTopicos(BaseLogModel):
     ordem = models.IntegerField("Ordem", default=10)
 
     def save(self, *args, **kwargs) -> None:
+        """Novos produto modelo topico sempre serão salvos com a maior ordem do modelo + 10"""
         if not self.pk:
             modelo = ProdutosModelosTopicos.objects.filter(modelo=self.modelo)
             ultima_ordem = modelo.aggregate(Max('ordem'))['ordem__max']
@@ -836,6 +849,9 @@ class Produtos(BaseLogModel):
         return cls.objects.filter(status='ativo')
 
     def save(self, *args, **kwargs) -> None:
+        """Produtos com medida volume padrão terão medidas preenchias automaticamente de acordo com Site Setup.
+
+        m³ do volume é calculado com a multiplicação das medidas x, y e z do volume."""
         if self.medida_volume_padrao:
             site_setup = SiteSetup.objects.first()
             if site_setup:
@@ -910,7 +926,7 @@ class Vendedores(models.Model):
         return cls.objects.filter(status='ativo')
 
     def carteira_parametros(self):
-        """Retorna os parametros para relatorios de vendas de carteiras e carteiras que não são carteiras.
+        """Retorna os parametros de carteiras e carteiras que não são carteiras para relatorios de vendas.
 
         Retorno:
         --------
@@ -923,7 +939,7 @@ class Vendedores(models.Model):
 
     @property
     def carteira_parametros_formulario(self):
-        """Retorna os parametros para relatorios de vendas de carteiras e carteiras que não são carteiras.
+        """Retorna os parametros de carteiras e carteiras que não são carteiras para relatorios de vendas.
 
         Retorno:
         --------
@@ -935,6 +951,9 @@ class Vendedores(models.Model):
         return f'carteira={self.chave_analysis}'
 
     def save(self, *args, **kwargs) -> None:
+        """Vendedores inativos terão regiões removidas.
+
+        Atualiza valores do mes atual de meta e real do indicador de metas carteiras do vendedor."""
         if self.pk and self.status == 'inativo':
             regioes = self.vendedoresregioes.all()  # type:ignore
             if regioes:

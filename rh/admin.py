@@ -13,8 +13,6 @@ from utils.base_models import BaseModelAdminRedRequiredLog, BaseModelAdminRedReq
 from utils.base_forms import criar_form_campo_grande
 from utils.exportar_excel import arquivo_excel, gerar_conteudo_excel, gerar_cabecalho, somar_coluna_formatada
 
-# TODO: Documentar
-
 
 @admin.register(Cbo)
 class CboAdmin(BaseModelAdminRedRequired):
@@ -53,6 +51,7 @@ class DissidiosAdmin(BaseModelAdminRedRequiredLog):
     )
 
     def get_readonly_fields(self, request, obj):
+        """Campo aplicado quando verdadeiro não é mais editavel."""
         campos = super().get_readonly_fields(request, obj)
 
         if not obj or obj.aplicado:
@@ -507,6 +506,11 @@ class ComissoesAdmin(BaseModelAdminRedRequired):
         return []
 
     def exportar_excel(self, request, queryset):
+        """Retorna arquivo excel .xlsx para download com dados de comissões formatados. Informar campos a serem
+        exportados no atribute de classe campos_exportar (campos de chave estrangeira precisam ser property retornado
+        o texto a ser exportado).
+
+        Arquivo separa uma aba TOTAL sem filtros, e cada aba seguinte filtrado por carteira de vendas."""
         meta = self.model._meta
 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -597,6 +601,12 @@ class FaturamentosAdmin(BaseModelAdminRedRequired):
         return []
 
     def exportar_excel(self, request, queryset):
+        """Retorna arquivo excel .xlsx para download com dados de faturamento formatados. Informar campos a serem
+        exportados no atribute de classe campos_exportar (campos de chave estrangeira precisam ser property retornado
+        o texto a ser exportado).
+
+        Arquivo separa uma aba TOTAL sem filtros, e cada aba seguinte filtrado por representante seguido por
+        carteira de vendas."""
         meta = self.model._meta
 
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

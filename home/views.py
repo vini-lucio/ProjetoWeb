@@ -24,11 +24,12 @@ from datetime import datetime
 # TODO: rest
 # TODO: documentar (google docstring, sphinx)
 
-# TODO: Documentar
-
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
 def migracao(request):
+    """Pagina para migração de dados so sistema Analysis para DBCoplas. É necessario ser super usuario.
+
+    Cada migração tem seu formulario onde precisa estar valido para efetuar o procedimento atraves do metodo POST."""
     titulo_pagina = 'Migração'
     id_confirma_cidades = 'confirma-migrar-cidades'
     id_confirma_unidades = 'confirma-migrar-unidades'
@@ -95,6 +96,7 @@ def migracao(request):
                 mensagem = "Migração de faturamentos concluída!"
                 extra_tags = 'faturamentos'
 
+        # Extra tags para identificar qual formulario efetuou o submit e posicionar mensagem no local correto da pagina
         messages.success(request, mensagem, extra_tags=extra_tags)
         return redirect(reverse('home:migracao'))
 
@@ -119,6 +121,7 @@ def migracao(request):
 
 
 class IndexListView(ListView):
+    """Retorna dados de home links marcados como visiveis para pagina principal."""
     model = HomeLinks
     template_name = 'home/pages/index.html'
     context_object_name = 'home_links'
@@ -132,6 +135,7 @@ class IndexListView(ListView):
 
 
 class HomeLinkDetailView(DetailView):
+    """Retorna dados da pagina especifica de home link marcado como visivel."""
     model = HomeLinks
     template_name = 'home/pages/pagina.html'
     context_object_name = 'home_link'
@@ -147,6 +151,7 @@ class HomeLinkDetailView(DetailView):
 
 
 class ConsultoriaVendasListView(ListView):
+    """Retorna dados da pagina especifica de home link marcado como visivel e como consultoria."""
     model = HomeLinks
     template_name = 'home/pages/consultoria-vendas.html'
     context_object_name = 'home_links'
@@ -161,21 +166,25 @@ class ConsultoriaVendasListView(ListView):
 
 
 def calculo_piso_elevado(request):
+    """Retorna pagina para calculo de quantificação de peças de piso elevado"""
     titulo_pagina = 'Calculo Piso Elevado'
     return render(request, 'home/pages/calculo-piso-elevado.html', {'titulo_pagina': titulo_pagina})
 
 
 def calculo_quimicos(request):
+    """Retorna pagina para calculo de quantificação de produtos quimicos"""
     titulo_pagina = 'Calculo Quimicos'
     return render(request, 'home/pages/calculo-quimicos.html', {'titulo_pagina': titulo_pagina})
 
 
 def calculo_niveladores(request):
+    """Retorna pagina para calculo de quantificação de peças de niveladores de piso"""
     titulo_pagina = 'Calculo Niveladores de Piso'
     return render(request, 'home/pages/calculo-niveladores.html', {'titulo_pagina': titulo_pagina})
 
 
 def tabela_precos(request):
+    """Retorna dados para pagina de tabela de preços de produtos para venda"""
     titulo_pagina = 'Tabela de Preços'
 
     tabela = get_tabela_precos()
@@ -186,12 +195,15 @@ def tabela_precos(request):
 
 
 class ProdutosModelosListView(ListView):
+    """Retorna dados de produtos modelos e produtos modelos tags de acordo com forumlario"""
     model = ProdutosModelos
     template_name = 'home/pages/produtos_modelos.html'
     context_object_name = 'produtos_modelos'
     ordering = 'id',
 
     def get_queryset(self):
+        """Filtro para produtos modelos de acordo com o formulario para o campo slug do produto modelo ou
+        produto modelo tag"""
         queryset = super().get_queryset().order_by('descricao')
         resultado = queryset
 
@@ -214,6 +226,7 @@ class ProdutosModelosListView(ListView):
         return resultado
 
     def get_context_data(self, **kwargs):
+        """Filtro para produtos modelos tags de acordo com o formulario para o campo slug"""
         context = super().get_context_data(**kwargs)
         context.update({'titulo_pagina': 'Produtos Modelos'})
 
@@ -238,11 +251,13 @@ class ProdutosModelosListView(ListView):
 
 
 class ProdutosModelosDetailView(DetailView):
+    """Retorna dados para a pagina do produto modelo especifico."""
     model = ProdutosModelos
     template_name = 'home/pages/produtos_modelo.html'
     context_object_name = 'produtos_modelo'
 
     def get_context_data(self, **kwargs):
+        """Retorna dados de sugestão de modelos para o produto modelo especifico."""
         context = super().get_context_data(**kwargs)
         titulo_pagina = f'{self.get_object().descricao}'  # type: ignore
 

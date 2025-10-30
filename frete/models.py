@@ -168,7 +168,7 @@ class TransportadorasRegioesValores(BaseLogModel):
         """Valida quando o atendimento não é por cidade especifica se somente há até 1 transportadora com mesma origem
         e destino.
 
-        Validações de prazo padrão, prazo tipo, atedimento zona rutal e taxa zona rural e estão preenchidos
+        Validações de prazo padrão, prazo tipo, atedimento zona rutal e taxa zona rural se estão preenchidos
         ou não preenchidos corretamente."""
         super_clean = super().clean()
 
