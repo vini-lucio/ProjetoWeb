@@ -3,11 +3,11 @@ from background_task.models import Task, CompletedTask
 from analysis.models import ORCAMENTOS
 from dashboards.models import MetasCarteiras
 from home.models import ControleInscricoesEstaduais, InscricoesEstaduais, Estados
-# from django.conf import settings
+from django.conf import settings
 from django.utils import timezone
 from django.db.models import Max
 from utils.converter import somente_digitos
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 from urllib.error import HTTPError
 import json
 import datetime
@@ -32,10 +32,10 @@ atualiza_metas_carteiras_valores(schedule=atualiza_metas_carteiras_valores_agend
 
 @background(remove_existing_tasks=True)
 def confere_inscricoes_api() -> None:
-    """Backgroup task que busca e guarda inscrições estaduais por CNPJ na API publica cnpja a cada 10 minutos.
+    """Backgroup task que busca e guarda inscrições estaduais por CNPJ na API cnpja a cada 10 minutos.
 
-    A API publica é limitada a 5 consultas por minuto por IP, por precaução as consultas são feitas a cada 15 segundos
-    (4 por minuto).
+    A API constratada (basic 1000 creditos) é limitada a 30 consultas por minuto por IP,
+    por precaução as consultas são feitas a cada 2.4 segundos (25 por minuto).
 
     Os CNPJs a serem consultados são a partir de orçamentos abertos, o controle é registrado em
     Controle Inscrições Estaduais onde está o ultimo orçamento consultado e a data e hora da consulta. Os CNPJs
@@ -44,11 +44,11 @@ def confere_inscricoes_api() -> None:
     essa função não faz nada até esse tempo passar.
 
     A lista de CNPJs é filtrado somente pessoas juridicas, e se a ultima consulta registrada em Inscrições Estaduais
-    para o CNPJ for menor que 30 dias esse CNPJ não será consultado. Caso contrario, todas as inscrições estaduais
+    para o CNPJ for menor que 15 dias esse CNPJ não será consultado. Caso contrario, todas as inscrições estaduais
     retornadas são registradas / atualizadas / excluidas em Inscrições Estaduais, inclusive em branco se não houver.
 
     Em caso de erro HTTP no momento da consulta ou não encontrar a chave JSON registrations, o CNPJ é pulado para o
-    proximo da lista"""
+    proximo da lista."""
     somente_digitos_ = somente_digitos
     conferencia = timezone.now()
 
@@ -73,6 +73,7 @@ def confere_inscricoes_api() -> None:
     if not documentos_conferir_pessoas_juridicas.exists():
         return
 
+    # TODO: incluir cnpjs de canteiros
     cnpjs = documentos_conferir_pessoas_juridicas.values_list('CHAVE_CLIENTE__CGC', flat=True)
 
     for cnpj in cnpjs:
@@ -82,13 +83,19 @@ def confere_inscricoes_api() -> None:
         inscricoes_existe = inscricoes.first()
 
         if inscricoes_existe:
-            if conferencia < inscricoes_existe.ultima_conferencia + datetime.timedelta(days=30):
+            if conferencia < inscricoes_existe.ultima_conferencia + datetime.timedelta(days=15):
                 continue
 
-        url_api = f'https://open.cnpja.com/office/{cnpj_numeros}'
-        time.sleep(15)
+        # url chave publica
+        # url_api = f'https://open.cnpja.com/office/{cnpj_numeros}'
+
+        url_api = f'https://api.cnpja.com/ccc?taxId={cnpj_numeros}&states=SP,MG,AC'
+        chave_api = settings.CHAVE_API_CNPJA
+        request = Request(url_api, headers={'Authorization': chave_api})
+
+        time.sleep(2.4)
         try:
-            with urlopen(url_api) as response_api:
+            with urlopen(request) as response_api:
                 api_data = json.load(response_api)
         except HTTPError:
             continue
@@ -141,9 +148,9 @@ def confere_inscricoes_api() -> None:
 
 
 # Atualização no dfe obrigando login no gov para algumas consultas em 10/10/2025 para impedir acessos automaticos
-# if not settings.DEBUG:
-#     confere_inscricoes_api_agenda = agora + datetime.timedelta(minutes=10)
-#     confere_inscricoes_api(schedule=confere_inscricoes_api_agenda, repeat=600)  # type:ignore
+if not settings.DEBUG:
+    confere_inscricoes_api_agenda = agora + datetime.timedelta(minutes=10)
+    confere_inscricoes_api(schedule=confere_inscricoes_api_agenda, repeat=600)  # type:ignore
 
 
 @background(remove_existing_tasks=True)

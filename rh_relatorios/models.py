@@ -6,6 +6,11 @@ from rh.models import Funcionarios
 
 
 class Admissoes(models.Model):
+    """View para relatorio de admissões dos funcionarios ativos.
+
+    Condições:
+    ----------
+    - Funcionarios ativos (sem data de saida)"""
     class Meta:
         managed = False
         db_table = 'rh_admissao_view'
@@ -31,6 +36,11 @@ class Admissoes(models.Model):
 
 
 class Aniversariantes(models.Model):
+    """View para relatorio de aniversariantes dos funcionarios ativos.
+
+    Condições:
+    ----------
+    - Funcionarios ativos (sem data de saida)"""
     class Meta:
         managed = False
         db_table = 'rh_aniversariantes_view'
@@ -54,6 +64,12 @@ class Aniversariantes(models.Model):
 
 
 class Dependentes(models.Model):
+    """View para relatorio de dependentes dos funcionarios ativos.
+
+    Condições:
+    ----------
+    - Funcionarios ativos (sem data de saida)
+    - Dependentes tipo filho ou enteado"""
     class Meta:
         managed = False
         db_table = 'rh_dependentes_view'
@@ -80,6 +96,11 @@ class Dependentes(models.Model):
 
 
 class FuncionariosListagem(models.Model):
+    """View para relatorio de listagem dos funcionarios ativos.
+
+    Condições:
+    ----------
+    - Funcionarios ativos (sem data de saida)"""
     class Meta:
         managed = False
         db_table = 'rh_listagem_funcionarios_view'
@@ -106,6 +127,12 @@ class FuncionariosListagem(models.Model):
 
 
 class FuncionariosSalarioFuncaoAtual(models.Model):
+    """View para relatorio de salario e função atual dos funcionarios ativos.
+
+    Condições:
+    ----------
+    - Funcionarios ativos (sem data de saida)
+    - Ultimo salario (com maior data)"""
     class Meta:
         managed = False
         db_table = 'rh_salario_funcao_atual_view'
@@ -137,6 +164,11 @@ class FuncionariosSalarioFuncaoAtual(models.Model):
 
 
 class FuncionariosHistoricoSalarios(models.Model):
+    """View para relatorio de historico de salarios dos funcionarios ativos.
+
+    Condições:
+    ----------
+    - Funcionarios ativos (sem data de saida)"""
     class Meta:
         managed = False
         db_table = 'rh_historico_salarios_view'
@@ -176,6 +208,12 @@ class FuncionariosHistoricoSalarios(models.Model):
 
 
 class FuncionariosQuadroHorarios(models.Model):
+    """View para relatorio de quadro de horarios atual dos funcionarios ativos.
+
+    Condições:
+    ----------
+    - Horarios atuais (sem data fim)
+    - Funcionarios ativos (sem data de saida)"""
     class Meta:
         managed = False
         db_table = 'rh_quadro_horarios_view'

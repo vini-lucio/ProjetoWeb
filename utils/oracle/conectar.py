@@ -2,11 +2,9 @@ import oracledb
 import platform
 from django.conf import settings
 
-# TODO: Documentar
-
 
 def conectar() -> oracledb.Connection:
-    """Conectar ao banco de dados Oracle com as configurações do settings do Django"""
+    """Retonar conecção ao banco de dados Oracle com as configurações do settings do Django"""
     oracle_user = settings.ORACLE_USER
     oracle_password = settings.ORACLE_PASSWORD
     oracle_dsn = settings.ORACLE_DSN
@@ -29,7 +27,22 @@ def conectar() -> oracledb.Connection:
 
 
 def executar_oracle(sql: str, exportar_cabecalho: bool = False, **kwargs) -> list:
-    """Conecta e executa um SQL no banco de dados Oracle. Passar placeholders do SQL em kwargs placeholder: valor"""
+    """Conecta e executa um SQL no banco de dados Oracle.
+
+    Parametros:
+    -----------
+    :sql (str): com codigo sql
+    :exportar_cabecalho (bool, Default Faslse): booleano se é para exportar o cabeçalho da consulta
+    :kwargs (dict): com os placeholders definicos no sql {'placeholder': valor, ...}. kwargs pode conter {'codigo_sql': True}, onde o sql não será executado e sim retornado
+
+    Retorno:
+    --------
+    :list: se exportar_cabecalho = False, com o resultado do sql ou com o codigo sql sem executar
+
+    ou
+
+    :list[dict]: se exportar_cabecalho = True, com o restultado do sql onde as chaves são os cabeçalhos da consulta ou
+    com o codigo sql sem executar no dict na chave 'CODIGO_SQL'"""
     codigo_sql = kwargs.pop('codigo_sql', False)
 
     if codigo_sql:

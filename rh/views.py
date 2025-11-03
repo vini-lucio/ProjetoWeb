@@ -6,17 +6,20 @@ from rh.models import Funcionarios, Ferias, Dependentes
 from rh.forms import ReciboValeTransporteForm, FeriasEmAbertoForm, DependentesIrForm
 from rh_relatorios.models import FuncionariosSalarioFuncaoAtual
 
-# TODO: Documentar
-
 
 @user_passes_test(lambda usuario: usuario.has_perm('rh.view_funcionarios'), login_url='/admin/login/')
 def index(request):
+    """Retorna pagina principal do app de RH.
+    É necessario ter o direito de visualizar funcionarios."""
     titulo_pagina = 'RH'
     return render(request, 'rh/pages/index.html', {'titulo_pagina': titulo_pagina})
 
 
 @method_decorator(user_passes_test(lambda usuario: usuario.has_perm('rh.view_valetransportesfuncionarios'), login_url='/admin/login/'), name='dispatch')
 class ReciboValeTransporteListView(ListView):
+    """Retorna dados de vale transporte por funcionario para pagina de relatorio de recibo de vale transporte
+    de acordo com o formulario.
+    É necessario ter o direito de visualizar vale transportes funcionarios"""
     model = Funcionarios
     template_name = 'rh/pages/recibo-vale-transporte.html'
     context_object_name = 'recibos_vale_transporte'
@@ -58,6 +61,8 @@ class ReciboValeTransporteListView(ListView):
 
 @method_decorator(user_passes_test(lambda usuario: usuario.has_perm('rh.view_ferias'), login_url='/admin/login/'), name='dispatch')
 class FeriasEmAbertoListView(ListView):
+    """Retorna dados para pagina de relatorio de ferias em aberto de acordo com o formulario.
+    É necessario ter o direito de visualizar ferias"""
     model = Ferias
     template_name = 'rh/pages/ferias-em-aberto.html'
     context_object_name = 'ferias_em_aberto'
@@ -97,6 +102,8 @@ class FeriasEmAbertoListView(ListView):
 
 @method_decorator(user_passes_test(lambda usuario: usuario.has_perm('rh.view_ferias'), login_url='/admin/login/'), name='dispatch')
 class SolicitacaoFeriasDetailView(DetailView):
+    """Retorna dados de uma ferias para pagina de relatorio de solicitção de ferias.
+    É necessario ter o direito de visualizar ferias."""
     model = Ferias
     template_name = 'rh/pages/solicitacao-ferias.html'
     context_object_name = 'solicitacao_ferias'
@@ -110,6 +117,8 @@ class SolicitacaoFeriasDetailView(DetailView):
 
 @method_decorator(user_passes_test(lambda usuario: usuario.has_perm('rh.view_dependentes'), login_url='/admin/login/'), name='dispatch')
 class DependentesIrListView(ListView):
+    """Retorna dados de dependentes por funcionario para pagina de relatorio de dependentes IR de acordo com o formulario.
+    É necessario ter o direito de visualizar dependentes."""
     model = Funcionarios
     template_name = 'rh/pages/dependentes-ir.html'
     context_object_name = 'dependentes_ir'

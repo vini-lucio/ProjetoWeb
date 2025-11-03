@@ -35,6 +35,8 @@ ORACLE_PASSWORD = os.getenv('ORACLE_PASSWORD')
 ORACLE_DSN = os.getenv('ORACLE_DSN')
 LD_LIBRARY_PATH = os.getenv('LD_LIBRARY_PATH')
 
+CHAVE_API_CNPJA = os.getenv('CHAVE_API_CNPJA')
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
