@@ -89,7 +89,7 @@ def confere_inscricoes_api() -> None:
         # url chave publica
         # url_api = f'https://open.cnpja.com/office/{cnpj_numeros}'
 
-        url_api = f'https://api.cnpja.com/ccc?taxId={cnpj_numeros}&states=SP,MG,AC'
+        url_api = f'https://api.cnpja.com/ccc?taxId={cnpj_numeros}&states=AC,AL,AM,AP,BA,CE,DF,ES,GO,MA,MG,MS,MT,PA,PB,PE,PI,PR,RJ,RN,RO,RR,RS,SC,SP,SE,TO'
         chave_api = settings.CHAVE_API_CNPJA
         request = Request(url_api, headers={'Authorization': chave_api})
 
