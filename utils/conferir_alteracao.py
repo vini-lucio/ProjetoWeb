@@ -1,8 +1,15 @@
-# TODO: Documentar
-
 def campo_django_mudou(model, instancia, **kwargs) -> bool:
-    """Retorna True ou False se algum campo passado em kwargs mudou.
-    A chave do kwargs precisa ser o mesmo nome do campo"""
+    """Verifica se uma instancia de um model sofreu alterações. Usar quando sobreescrever save ou clean de um model.
+
+    Parametros:
+    -----------
+    :model [Model]: com o model a ser verificado.
+    :instancia [model]: com a instancia do model a ser verificada.
+    :kwargs [dict]: com os campos a serem verificados, onde a chave é o nome do campo e o valor é o seu conteudo.
+
+    Retorno:
+    --------
+    :bool: booleado se houve alteração."""
     anterior = model.objects.filter(pk=instancia.pk).first()
     if anterior:
         for chave_novo, valor_novo in kwargs.items():
@@ -12,6 +19,24 @@ def campo_django_mudou(model, instancia, **kwargs) -> bool:
 
 
 def campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem) -> bool:
+    """Verifica se objetos de origem e destino possuem os campos informados diferentes.
+
+    Parametros:
+    -----------
+    :objeto_destino [model]: com o objeto de destino da comparação.
+    :objeto_origem [model]: com o objeto de origem da comparação.
+    :mapeamento_destino_origem [dict[str, str | tuple[str, tuple[str, str]]]]: com a relação de campos. Quando campo
+    não for chave estrangeira a chave é o campo_destino e valor é o campo_origem, ex: 'nome': 'CIDADE'. Se o campo for
+    chave estrangeira a chave é o campo_destino e o valor é uma tupla com o campo_destino e outra tupla com o campo da chave estrangeira do destino e campo da chave estrangeira da origem, ex: 'estado': ('UF', ('sigla', 'SIGLA')).
+
+    >>> mapeamento_destino_origem = {
+        'estado': ('UF', ('sigla', 'SIGLA')),
+        'nome': 'CIDADE',
+    }
+
+    Retorno:
+    --------
+    :bool: boolano se algum dos campos informados são diferentes entre os objetos."""
     if not objeto_destino:
         return True
 

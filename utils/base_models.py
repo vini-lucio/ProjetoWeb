@@ -6,8 +6,6 @@ from django.http import HttpRequest, HttpResponse
 from utils.exportar_excel import arquivo_excel
 from django.core.exceptions import PermissionDenied
 
-# TODO: Documentar
-
 User = get_user_model()
 
 
@@ -26,6 +24,7 @@ class ReadOnlyMixin:
 
 
 class BaseLogModel(models.Model):
+    """Model que adiciona campos de log."""
     class Meta:
         abstract = True
 
@@ -38,6 +37,7 @@ class BaseLogModel(models.Model):
 
 
 class BaseModelAdminRedRequired(admin.ModelAdmin):
+    """Admin Model que perssonaliza estilo css do formulario em admin."""
     class Meta:
         abstract = True
 
@@ -46,11 +46,13 @@ class BaseModelAdminRedRequired(admin.ModelAdmin):
 
 
 class AdminRedRequiredMixIn:
+    """Mix In para Admin Model que perssonaliza estilo css do formulario em admin."""
     class Media:
         css = {'all': ('admin/css/style.css',)}
 
 
 class BaseModelAdminRedRequiredLog(BaseModelAdminRedRequired):
+    """Admin Model que perssonaliza estilo css do formulario e salva logs em admin."""
     class Meta:
         abstract = True
 
@@ -65,6 +67,8 @@ class BaseModelAdminRedRequiredLog(BaseModelAdminRedRequired):
 
 
 class AdminLogMixIn:
+    """Mix In para Admin Model que salva dados de log do formulario em admin."""
+
     def save_model(self, request, obj, form, change) -> None:
         if not obj.pk:
             obj.criado_por = request.user
@@ -76,6 +80,7 @@ class AdminLogMixIn:
 
 
 class BaseViewAdmin(admin.ModelAdmin):
+    """Admin model para views. Somente leitura do model."""
     class Meta:
         abstract = True
 
@@ -93,7 +98,12 @@ class BaseViewAdmin(admin.ModelAdmin):
 
 
 class ExportarXlsxMixIn:
-    """Não usar chave estrangeira em campos_exportar criar uma property no model filho"""
+    """Mix In que adiciona ação exportar_excel em admin de exportar para excel a seleção com os campos informados.
+    Se não for informado campos_exportar, será considerado para exportação o definido em list_display do admin model.
+
+    Atributos:
+    ----------
+    :campos_exportar [list]: com o nome dos campos a serem exportados para excel. Não usar chave estrangeira, criar uma property."""
     campos_exportar = []
 
     def exportar_excel(self, request, queryset):

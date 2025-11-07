@@ -1,13 +1,20 @@
 from utils.site_setup import get_cores_rentabilidade
 
-# TODO: Documentar
-
 sugestao_rentabilidade_a_menos = -1.99
 sugestao_rentabilidade_a_mais = 3.0
 
 
 def cor_rentabilidade_css(rentabilidade: float, subtrair_despesa_adm: bool = False) -> str:
-    """Retorna o nome da variavel do css referente a cor da rentabilidade"""
+    """Retorna o nome da variavel do css referente a cor da rentabilidade atual.
+
+    Parametros:
+    -----------
+    :rentabilidade [float]: com a rentabilidade para saber a cor.
+    :subtrair_despesa_adm [bool]: boolano se é necessario subtrair a despesa administrativa fixa atual da rentabilidade.
+
+    Retorno:
+    --------
+    :str: com o nome da variavel do estilo css da cor da rentabilidade."""
     cores = get_cores_rentabilidade()
     verde = cores['verde']
     amarelo = cores['amarelo']
@@ -27,7 +34,19 @@ def cor_rentabilidade_css(rentabilidade: float, subtrair_despesa_adm: bool = Fal
 
 
 def falta_mudar_cor_mes(mc_mes: float, total_mes: float, rentabilidade_mes: float, subtrair_despesa_adm: bool = True) -> tuple[float, float, float, str]:
-    """Retorna quanto precisa vender [0] em uma determinada rentabilidade [1] para mudar de cor, a porcentagem de quanto falta [2] e a cor que vai mudar [3]"""
+    """Retorna quanto precisa vender [0] em uma determinada rentabilidade [1] para mudar de cor,
+    a porcentagem de quanto falta [2] e a cor que vai mudar [3] no mes.
+
+    Parametros:
+    -----------
+    :mc_mes [float]: com o valor de margem de contribuição do mes atual.
+    :total_mes [float]: com o valor total vendido no mes.
+    :rentabilidade_mes [float]: com o valor percentual de margem de contribuição do mes atual.
+    :subtrair_despesa_adm [bool]: boolano se é necessario subtrair a despesa administrativa fixa atual da rentabilidade.
+
+    Retorno:
+    --------
+    :tuple[float, float, float, str]: com quanto precisa vender [0] em uma determinada rentabilidade [1] para mudar de cor, a porcentagem de quanto falta [2] e a cor que vai mudar [3] no mes"""
     cores = get_cores_rentabilidade()
     verde = cores['verde']
     amarelo = cores['amarelo']

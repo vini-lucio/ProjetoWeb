@@ -2,16 +2,23 @@ from pathlib import Path
 from django.conf import settings
 from PIL import Image
 
-# TODO: Documentar
-
 
 def redimensionar_imagem(imagem_django, largura_px: int | None = None, altura_px: int | None = None,
                          otimizar=True, qualidade=100, obrigar_largura=True):
-    """
-    Se somente a largura for enviada a altura será redimensionada proporcionalmente e vice versa.
-    Quando largura e altura for None, será redimensionado proporcionalmente para ter no maximo 1200px de largura.
-    Obrigar largura False não redimensiona se a largura original for menor que a enviada.
-    """
+    """Redimensiona o tamanho de imagens Django.
+
+    Parametros:
+    -----------
+    :imagem_django [FieldFile | ImageFieldFile]: com o campo de imagem a ser redimensionada.
+    :largura_px [int | None, Default None]: com a nova largura em pixel. Se for None a nova largura será proporcional ao enviado em altura_px, se altura também for None, a largura será no maximo 1200px.
+    :altura_px [int | None, Default None]: com a nova altura em pixel. Se for None a nova altura será proporcional ao enviado em largura_px.
+    :otimizar [bool, Default True]: booleano se o tamanho de armazenamento será otimizado.
+    :qualidade [int, Default 100]: com o percentual de qualidade da nova imagem.
+    :obrigar_largura [bool, Default True]: booleano quando False não redimensiona se a largura original for menor que a enviada.
+
+    Retorno:
+    --------
+    :Image: com a imagem redimensionada."""
     caminho_imagem = Path(settings.MEDIA_ROOT / imagem_django.name).resolve()
     imagem_pillow = Image.open(caminho_imagem)
 

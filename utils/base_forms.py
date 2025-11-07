@@ -33,10 +33,12 @@ class FormVendedoresMixIn(forms.Form):
     carteira = forms.ModelChoiceField(carteiras, label="Carteira")
 
 
-# TODO: Documentar
-
-
 class FormCampoGrandeMixIn(forms.ModelForm):
+    """Mixin para aumentar campos em formularios.
+
+    Atributos:
+    ----------
+    :campos_redimensionar [list]: com os nomes dos campos a serem aumentados."""
     campos_redimensionar = []
 
     class Meta:
@@ -51,6 +53,16 @@ class FormCampoGrandeMixIn(forms.ModelForm):
 
 
 def criar_form_campo_grande(model_, campos_redimensionar_: list):
+    """Função para criar fomularios com campos maiores dinamicamente sobreescrevendo form em admin.
+
+    Parametros:
+    -----------
+    :model [Model]: com o model que a classe admin está utilizando no register.
+    :campos_redimensionar [list]: com o nome dos campos do model que serão renderizados com caixa de texto maior.
+
+    Retorno:
+    --------
+    :FormCampoGrandeDinamico: com a classe nova persoalizada."""
     class FormCampoGrandeDinamico(FormCampoGrandeMixIn):
         class Meta:
             model = model_

@@ -44,7 +44,7 @@ def confere_inscricoes_api() -> None:
     essa função não faz nada até esse tempo passar.
 
     A lista de CNPJs é filtrado somente pessoas juridicas, e se a ultima consulta registrada em Inscrições Estaduais
-    para o CNPJ for menor que 15 dias esse CNPJ não será consultado. Caso contrario, todas as inscrições estaduais
+    para o CNPJ for menor que 30 dias esse CNPJ não será consultado. Caso contrario, todas as inscrições estaduais
     retornadas são registradas / atualizadas / excluidas em Inscrições Estaduais, inclusive em branco se não houver.
 
     Em caso de erro HTTP no momento da consulta ou não encontrar a chave JSON registrations, o CNPJ é pulado para o
@@ -83,7 +83,7 @@ def confere_inscricoes_api() -> None:
         inscricoes_existe = inscricoes.first()
 
         if inscricoes_existe:
-            if conferencia < inscricoes_existe.ultima_conferencia + datetime.timedelta(days=15):
+            if conferencia < inscricoes_existe.ultima_conferencia + datetime.timedelta(days=30):
                 continue
 
         # url chave publica

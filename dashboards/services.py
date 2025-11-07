@@ -1331,6 +1331,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_log_nome_inclusao_documento': {'log_nome_inclusao_documento_campo_alias': "NOTAS.LOG_NOME_FATURAMENTO AS LOG_NOME_INCLUSAO_DOCUMENTO,",
                                                'log_nome_inclusao_documento_campo': "NOTAS.LOG_NOME_FATURAMENTO,", },
+        'log_nome_inclusao_documento': {'log_nome_inclusao_documento_pesquisa': "NOTAS.LOG_NOME_FATURAMENTO LIKE UPPER(:log_nome_inclusao_documento) AND", },
 
         'coluna_orcamento': {'orcamento_campo_alias': "DOCUMENTOS.ORCAMENTO,",
                              'orcamento_campo': "DOCUMENTOS.ORCAMENTO,",
@@ -1813,6 +1814,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_log_nome_inclusao_documento': {'log_nome_inclusao_documento_campo_alias': "PEDIDOS.LOG_NOME AS LOG_NOME_INCLUSAO_DOCUMENTO,",
                                                'log_nome_inclusao_documento_campo': "PEDIDOS.LOG_NOME,", },
+        'log_nome_inclusao_documento': {'log_nome_inclusao_documento_pesquisa': "PEDIDOS.LOG_NOME LIKE UPPER(:log_nome_inclusao_documento) AND", },
 
         'coluna_orcamento': {'orcamento_campo_alias': "DOCUMENTOS.ORCAMENTO,",
                              'orcamento_campo': "DOCUMENTOS.ORCAMENTO,",
@@ -2318,6 +2320,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_log_nome_inclusao_documento': {'log_nome_inclusao_documento_campo_alias': "ORCAMENTOS.LOG_NOME_INCLUSAO AS LOG_NOME_INCLUSAO_DOCUMENTO,",
                                                'log_nome_inclusao_documento_campo': "ORCAMENTOS.LOG_NOME_INCLUSAO,", },
+        'log_nome_inclusao_documento': {'log_nome_inclusao_documento_pesquisa': "ORCAMENTOS.LOG_NOME_INCLUSAO LIKE UPPER(:log_nome_inclusao_documento) AND", },
 
         'coluna_orcamento': {'orcamento_campo_alias': "",
                              'orcamento_campo': "",
@@ -2591,6 +2594,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     segundo_representante_documento = kwargs.get('segundo_representante_documento')
     coluna_valor_bruto = kwargs.get('coluna_valor_bruto')
     cnpj_cpf = kwargs.get('cnpj_cpf')
+    log_nome_inclusao_documento = kwargs.get('log_nome_inclusao_documento')
 
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
     coluna_proporcao_mercadorias = kwargs.pop('coluna_proporcao_mercadorias', False)
@@ -2730,6 +2734,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
 
     if cnpj_cpf:
         kwargs_ora.update({'cnpj_cpf': cnpj_cpf, })
+
+    if log_nome_inclusao_documento:
+        kwargs_ora.update({'log_nome_inclusao_documento': log_nome_inclusao_documento, })
 
     sql_base = """
         SELECT
@@ -2903,6 +2910,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {nunca_compraram_pesquisa}
             {cnpj_cpf_pesquisa}
             {grupo_produto_pesquisa}
+            {log_nome_inclusao_documento_pesquisa}
 
             {fonte_where_data}
 

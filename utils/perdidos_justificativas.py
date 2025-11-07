@@ -1,6 +1,15 @@
-# TODO: Documentar
-
 def justificativas(excluidos: bool, considerar_invalidas: bool = False):
+    """Retorna filtros SQL de justificativas em itens de orçamentos que não são realmente perdidos (invalidas),
+    ex: erros de medida, troca de CNPJ, troca de modelo, etc.
+
+    Parametros:
+    -----------
+    :excluidos [bool]: boolano se será justificativas da tabela de itens de orçamentos excluidos ou a tabela normal de itens de orçamentos.
+    :considerar_invalidas [bool, Dafault False]: boolano se o filtro é para considerar ou desconsiderar as justificativas invalidas.
+
+    Retorno:
+    --------
+    :str: com o codigo SQL com os filtros."""
     tabela_campo_status = "ORCAMENTOS_ITENS.STATUS"
     tabela_campo_justificativa = "ORCAMENTOS_ITENS.PERDA_JUSTIFICATIVA"
     if excluidos:
