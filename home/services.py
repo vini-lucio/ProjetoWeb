@@ -15,11 +15,9 @@ from dateutil.relativedelta import relativedelta
 import datetime
 import pandas as pd
 
-# TODO: Documentar
-
 
 def status_orcamentos_ano_mes_a_mes():
-    """Totaliza o valor dos orçamentos por status no periodo informado em site setup mes a mes"""
+    """Retorna o valor dos orçamentos por status no periodo informado em site setup mes a mes e o total do ano anterior."""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -50,7 +48,7 @@ def status_orcamentos_ano_mes_a_mes():
 
 
 def tipo_clientes_ano_mes_a_mes():
-    """Totaliza o valor por tipo de cliente no periodo informado em site setup mes a mes"""
+    """Retorna o valor por tipo de cliente no periodo informado em site setup mes a mes e o total do ano anterior."""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -79,7 +77,7 @@ def tipo_clientes_ano_mes_a_mes():
 
 
 def contas_marketing_ano_mes_a_mes():
-    """Totaliza o valor das contas de marketing no periodo informado em site setup mes a mes"""
+    """Retorna o valor das contas de marketing com liquidação no periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
@@ -120,7 +118,7 @@ def contas_marketing_ano_mes_a_mes():
 
 
 def i4ref_terceirizacao_ano_mes_a_mes():
-    """Totaliza o valor da terceirização do 4REF do periodo informado em site setup mes a mes"""
+    """Retorna o valor da terceirização do 4REF com liquidação no periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         ano_inicio = site_setup.atualizacoes_ano_inicio
@@ -156,7 +154,7 @@ def i4ref_terceirizacao_ano_mes_a_mes():
 
 
 def i4ref_imposto_vendido_ano_mes_a_mes():
-    """Totaliza o valor do imposto vendido do 4REF do periodo informado em site setup mes a mes"""
+    """Retorna o valor do imposto faturado do 4REF do periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -179,7 +177,7 @@ def i4ref_imposto_vendido_ano_mes_a_mes():
 
 
 def i4ref_faturado_bruto_ano_mes_a_mes():
-    """Totaliza o valor do faturamento bruto do 4REF do periodo informado em site setup mes a mes"""
+    """Retorna o valor do faturamento bruto do 4REF do periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -199,7 +197,8 @@ def i4ref_faturado_bruto_ano_mes_a_mes():
 
 
 def i4ref_custo_materia_prima_vendido_ano_mes_a_mes():
-    """Totaliza o valor do custo das materias primas vendidas do 4REF do periodo informado em site setup mes a mes"""
+    """Retorna o valor do custo das materias primas vendidas por familia de produto do 4REF do periodo informado em
+    site setup mes a mes"""
 
     # Não funciona com a fluxus
 
@@ -249,7 +248,7 @@ def i4ref_custo_materia_prima_vendido_ano_mes_a_mes():
 
 
 def i4ref_ano_mes_a_mes():
-    """Totaliza o valor das contas do 4REF do periodo informado em site setup mes a mes"""
+    """Retorna o valor das contas a pagar do 4REF do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         ano_inicio = site_setup.atualizacoes_ano_inicio
@@ -283,7 +282,7 @@ def i4ref_ano_mes_a_mes():
 
 
 def exportacoes_ano_mes_a_mes():
-    """Totaliza o valor de exportações no periodo informado em site setup mes a mes"""
+    """Retorna o valor da carteira de exportação no periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -299,7 +298,7 @@ def exportacoes_ano_mes_a_mes():
 
 
 def revendas_ano_mes_a_mes():
-    """Totaliza o valor de revendas no periodo informado em site setup mes a mes"""
+    """Retorna o valor de clientes tipo revenda no periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -315,7 +314,8 @@ def revendas_ano_mes_a_mes():
 
 
 def parede_concreto_ano_mes_a_mes():
-    """Totaliza o valor de parede de concreto no periodo informado em site setup mes a mes"""
+    """Retorna o valor de clientes com informação estrategica parede de concreto no periodo informado em site setup
+    mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -331,7 +331,7 @@ def parede_concreto_ano_mes_a_mes():
 
 
 def eolicas_ano_mes_a_mes():
-    """Totaliza o valor das eolicas no periodo informado em site setup mes a mes"""
+    """Retorna o valor de clientes com informação estrategica eolica no periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -347,7 +347,7 @@ def eolicas_ano_mes_a_mes():
 
 
 def ticket_medio_ano_mes_a_mes():
-    """Totaliza o ticket medio das notas acima do faturamento minimo no periodo informado em site setup mes a mes"""
+    """Retorna o valor mediano das notas acima do faturamento minimo no periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -369,8 +369,8 @@ def ticket_medio_ano_mes_a_mes():
 
 # Não trocado para get_relatorios_vendas, muito especifico
 def vec_antes_depois_visita_ano_mes_a_mes():
-    """Totaliza o valor dos orçamentos de clientes visitados antes e depois do periodo informado em site setup mes a
-    mes"""
+    """Retorna o valor dos orçamentos de clientes de SP com eventos de visita antes e depois do periodo informado em
+    site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         mes = site_setup.atualizacoes_mes
@@ -453,7 +453,7 @@ def vec_antes_depois_visita_ano_mes_a_mes():
 
 
 def quantidade_notas_ano_mes_a_mes():
-    """Totaliza a quantidede de notas de saida emitidas do periodo informado em site setup mes a mes"""
+    """Retorna a quantidede de notas de saida emitidas do periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -471,7 +471,7 @@ def quantidade_notas_ano_mes_a_mes():
 
 
 def produtividade_ano_mes_a_mes():
-    """Totaliza a produtividade do periodo informado em site setup mes a mes"""
+    """Retorna a produtividade do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
@@ -516,7 +516,7 @@ def produtividade_ano_mes_a_mes():
 
 
 def peso_faturado_abc_ano_mes_a_mes():
-    """Totaliza o peso faturado por classe ABC (todas as notas com CFOP de baixa de estoque) do periodo informado em
+    """Retorna o peso faturado por classe ABC (todas as notas com CFOP de baixa de estoque) do periodo informado em
     site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
@@ -561,7 +561,7 @@ def peso_faturado_abc_ano_mes_a_mes():
 
 
 def peso_estoque_abc_ano_mes_a_mes():
-    """Totaliza o peso do estoque por classe ABC do periodo informado em site setup mes a mes"""
+    """Retorna o peso do estoque por classe ABC do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         mes = site_setup.atualizacoes_mes
@@ -636,7 +636,7 @@ def peso_estoque_abc_ano_mes_a_mes():
 
 
 def setups_dia_ano_mes_a_mes():
-    """Totaliza a media de setups por dia do periodo informado em site setup mes a mes"""
+    """Retorna a media de setups por dia do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
@@ -673,7 +673,7 @@ def setups_dia_ano_mes_a_mes():
 
 
 def horas_improdutivas_ano_mes_a_mes():
-    """Totaliza as horas improdutivas do periodo informado em site setup mes a mes"""
+    """Retorna as horas improdutivas por motivo do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
@@ -716,7 +716,7 @@ def horas_improdutivas_ano_mes_a_mes():
 
 
 def inadimplencia_detalhe_ano_mes_a_mes():
-    """Totaliza a inadimplencia detalhada por cliente do periodo informado em site setup mes a mes"""
+    """Retorna a inadimplencia por cliente do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
@@ -744,7 +744,7 @@ def inadimplencia_detalhe_ano_mes_a_mes():
 
 
 def inadimplencia_ano_mes_a_mes():
-    """Totaliza a inadimplencia do periodo informado em site setup mes a mes"""
+    """Retorna a inadimplencia do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
@@ -796,7 +796,7 @@ def inadimplencia_ano_mes_a_mes():
 
 
 def lucro_ano_mes_a_mes():
-    """Totaliza o lucro do periodo informado em site setup mes a mes"""
+    """Retorna a margem de contribuição por familia de produto do periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -839,7 +839,7 @@ def lucro_ano_mes_a_mes():
 
 
 def peso_embalado_produto_proprio_ano_mes_a_mes():
-    """Totaliza o peso embalado de produto proprio do periodo informado em site setup mes a mes"""
+    """Retorna o peso embalado de produto proprio do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
@@ -884,7 +884,7 @@ def peso_embalado_produto_proprio_ano_mes_a_mes():
 
 
 def peso_materia_prima_produto_proprio_detalhe_ano_mes_a_mes():
-    """Totaliza o peso da materia prima de produto proprio detalhado do periodo informado em site setup mes a mes"""
+    """Retorna o peso da materia prima de produto proprio detalhado do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         mes = site_setup.atualizacoes_mes
@@ -977,7 +977,7 @@ def peso_materia_prima_produto_proprio_detalhe_ano_mes_a_mes():
 
 
 def peso_materia_prima_produto_proprio_ano_mes_a_mes():
-    """Totaliza o peso da materia prima de produto proprio do periodo informado em site setup mes a mes"""
+    """Retorna o peso da materia prima de produto proprio do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         mes = site_setup.atualizacoes_mes
@@ -1065,7 +1065,7 @@ def peso_materia_prima_produto_proprio_ano_mes_a_mes():
 
 
 def peso_faturado_produto_proprio_ano_mes_a_mes():
-    """Totaliza o peso faturado de produto proprio (todas as notas com CFOP de baixa de estoque) do periodo informado
+    """Retorna o peso faturado de produto proprio (todas as notas com CFOP de baixa de estoque) do periodo informado
     em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
@@ -1084,7 +1084,7 @@ def peso_faturado_produto_proprio_ano_mes_a_mes():
 
 
 def peso_estoque_produto_proprio_ano_mes_a_mes():
-    """Totaliza o peso do estoque de produto proprio do periodo informado em site setup mes a mes"""
+    """Retorna o peso do estoque de produto proprio do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         mes = site_setup.atualizacoes_mes
@@ -1157,7 +1157,7 @@ def peso_estoque_produto_proprio_ano_mes_a_mes():
 
 
 def insvestimento_retiradas_ano_mes_a_mes():
-    """Totaliza os investimentos e retiradas do periodo informado em site setup mes a mes"""
+    """Retorna os investimentos e retiradas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
@@ -1199,7 +1199,7 @@ def insvestimento_retiradas_ano_mes_a_mes():
 
 
 def imposto_faturado_ano_mes_a_mes():
-    """Totaliza os impostos do faturamento do periodo informado em site setup mes a mes"""
+    """Retorna os impostos do faturamento por familia de produto do periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -1244,7 +1244,7 @@ def imposto_faturado_ano_mes_a_mes():
 
 
 def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
-    """Totaliza o faturamento do valor das mercadorias do periodo informado em site setup mes a mes"""
+    """Retorna o faturamento do valor das mercadorias por familia de produto do periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -1293,7 +1293,7 @@ def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
 
 
 def faturado_bruto_ano_mes_a_mes(*, mes_atual: bool = False):
-    """Totaliza o faturamento bruto do periodo informado em site setup mes a mes"""
+    """Retorna o faturamento bruto por familia de produto do periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
@@ -1342,7 +1342,7 @@ def faturado_bruto_ano_mes_a_mes(*, mes_atual: bool = False):
 
 
 def despesa_variavel_ano_mes_a_mes():
-    """Totaliza a despesa variavel do periodo informado em site setup mes a mes"""
+    """Retorna a despesa variavel do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
@@ -1399,7 +1399,7 @@ def despesa_variavel_ano_mes_a_mes():
 
 
 def despesa_operacional_ano_mes_a_mes():
-    """Totaliza a despesa operacional do periodo informado em site setup mes a mes"""
+    """Retorna a despesa operacional do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
@@ -1437,7 +1437,7 @@ def despesa_operacional_ano_mes_a_mes():
 
 
 def custo_materia_prima_faturada_ano_mes_a_mes():
-    """Totaliza o custo das materias primas dos produtos faturados do periodo informado em site setup mes a mes"""
+    """Retorna o custo das materias primas dos produtos faturados do periodo informado em site setup mes a mes"""
 
     # Não funciona com a fluxus
 
@@ -1485,7 +1485,7 @@ def custo_materia_prima_faturada_ano_mes_a_mes():
 
 
 def custo_materia_prima_estoque_acabado_ano_mes_a_mes():
-    """Totaliza o custo de materia prime dos produtos acabados no estoque do periodo informado em site setup mes a mes"""
+    """Retorna o custo de materia prima dos produtos acabados no estoque do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         mes = site_setup.atualizacoes_mes
@@ -1676,7 +1676,7 @@ def custo_materia_prima_estoque_acabado_ano_mes_a_mes():
 
 
 def ativo_operacional_produto_acabado_ano_mes_a_mes():
-    """Totaliza o ativo operacional dos produtos acabados do periodo informado em site setup mes a mes"""
+    """Retorna o ativo operacional dos produtos acabados do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         mes = site_setup.atualizacoes_mes
@@ -1796,7 +1796,7 @@ def ativo_operacional_produto_acabado_ano_mes_a_mes():
 
 
 def ativo_operacional_materia_prima_ano_mes_a_mes():
-    """Totaliza o ativo operacional das materias primas do periodo informado em site setup mes a mes"""
+    """Retorna o ativo operacional das materias primas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         mes = site_setup.atualizacoes_mes
@@ -2157,7 +2157,7 @@ def ativo_operacional_materia_prima_ano_mes_a_mes():
 
 
 def horas_produtivas_ano_mes_a_mes():
-    """Totaliza a quantidade de horas produtivas do periodo informado em site setup mes a mes"""
+    """Retorna a quantidade de horas produtivas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
@@ -2196,7 +2196,8 @@ def horas_produtivas_ano_mes_a_mes():
 
 
 def frete_cif_ano_mes_a_mes(*, mes_atual: bool = False):
-    """Totaliza o valor dos fretes CIF do periodo informado em site setup mes a mes. Parametro para sobreescrever a data das atualizações"""
+    """Retorna o valor dos fretes CIF do periodo informado em site setup mes a mes. Parametro para considerar
+    somente o mes atual."""
     site_setup = get_site_setup()
     if site_setup:
         if not mes_atual:
@@ -2238,7 +2239,7 @@ def frete_cif_ano_mes_a_mes(*, mes_atual: bool = False):
 
 
 def financeiro_ano_mes_a_mes():
-    """Totaliza o valor das grandes contas do periodo informado em site setup mes a mes"""
+    """Retorna o valor das grandes contas job Coplas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
@@ -2286,7 +2287,7 @@ def financeiro_ano_mes_a_mes():
 
 
 def financeiro_geral_ano_mes_a_mes():
-    """Totaliza o valor geral das grandes contas do periodo informado em site setup mes a mes"""
+    """Retorna o valor geral das grandes contas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
@@ -2332,7 +2333,7 @@ def financeiro_geral_ano_mes_a_mes():
 
 
 def receitas_despesas_ano_mes_a_mes_12_meses():
-    """Totaliza as receitas e despesas do periodo informado em site setup mes a mes (ultimos 12 meses de cada mes)"""
+    """Retorna as receitas e despesas do periodo informado em site setup mes a mes (ultimos 12 meses de cada mes)"""
     from dashboards.services import get_relatorios_vendas
 
     site_setup = get_site_setup()
@@ -2426,7 +2427,7 @@ def receitas_despesas_ano_mes_a_mes_12_meses():
 
 
 def receitas_despesas_fluxus():
-    """Totaliza as receitas e despesas do periodo informado em site setup"""
+    """Retorna as receitas e despesas do periodo informado em site setup"""
     from dashboards.services import get_relatorios_vendas
 
     site_setup = get_site_setup()
@@ -2511,7 +2512,7 @@ def receitas_despesas_fluxus():
 
 
 def minutos_produtivos_ano_mes_a_mes_12_meses():
-    """Totaliza os minutos produtivos do periodo informado em site setup mes a mes (ultimos 12 meses de cada mes)"""
+    """Retorna os minutos produtivos do periodo informado em site setup mes a mes (ultimos 12 meses de cada mes)"""
     site_setup = get_site_setup()
     if site_setup:
         mes = site_setup.atualizacoes_mes
@@ -2562,7 +2563,7 @@ def minutos_produtivos_ano_mes_a_mes_12_meses():
 
 
 def contas_estrategicas_ano_mes_a_mes():
-    """Totaliza o valor das contas estrategicas do periodo informado em site setup mes a mes"""
+    """Retorna o valor das contas estrategicas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
@@ -2600,7 +2601,7 @@ def contas_estrategicas_ano_mes_a_mes():
 
 
 def totalizar_funcionarios_ano_mes_a_mes():
-    """Totaliza a quantidade de funcionarios ativos do periodo informado em site setup mes a mes"""
+    """Retorna a quantidade de funcionarios ativos do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
         mes = site_setup.atualizacoes_mes
@@ -2651,7 +2652,7 @@ def totalizar_funcionarios_ano_mes_a_mes():
 
 
 def rateio_salario_adm_cp_ano_mes_a_mes():
-    """Totaliza a proporção dos salarios de custo de produção com o resto, dos funcionarios ativos do periodo informado
+    """Retorna a proporção dos salarios de custo de produção com o resto, funcionarios ativos do periodo informado
     em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
@@ -2668,7 +2669,7 @@ def rateio_salario_adm_cp_ano_mes_a_mes():
 
 
 def get_tabela_precos() -> list | None:
-    """Retorna tabela de preços atualizada"""
+    """Retorna tabela de preços dos produtos para vendas"""
     sql = """
         SELECT
             CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END AS C,
@@ -3197,6 +3198,7 @@ def migrar_comissoes(data_inicio, data_fim):
             instancia.full_clean()
             instancia.save()
 
+            # Divisões por carteira
             for vendedor in vendedores_divisao:
                 instancia_divisao = ComissoesVendedores(
                     comissao=instancia,
@@ -3405,6 +3407,7 @@ def migrar_faturamentos(data_inicio, data_fim):
             instancia.full_clean()
             instancia.save()
 
+            # Divisões por representante
             for vendedor in vendedores_divisao:
                 instancia_divisao = FaturamentosVendedores(
                     faturamento=instancia,
@@ -3441,7 +3444,8 @@ def migrar_faturamentos(data_inicio, data_fim):
 
 
 def sugestoes_modelos(modelos: Iterable, tags: Iterable):
-    """Retorna uma lista de tuplas com o modelo e a quantidade de insidencias do modelo, basedo nos iteraveis de modelos e tags"""
+    """Retorna uma lista de tuplas com o modelo e a quantidade de insidencias do modelo, basedo nos iteraveis de
+    modelos e tags"""
     sugestoes = []
     for tag in tags:
         modelos_com_tag = ProdutosModelos.objects.filter(

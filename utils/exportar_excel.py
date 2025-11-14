@@ -3,17 +3,28 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill
 from io import BytesIO
 
-# TODO: Documentar
-
 
 def arquivo_excel(conteudo: list[list] | list[dict], cabecalho: list = [], titulo: str = '',
                   nova_aba: openpyxl.Workbook | None = None, cabecalho_negrito: bool = False,
                   formatar_numero: tuple[list[str], int] | None = None,
                   formatar_data: list[str] | None = None,
                   ajustar_largura_colunas: bool = False):
-    """Gera arquivo excel sem salvar. Quando o conteudo for uma lista de dicionarios o cabeçalho sempre será as chaves do primeiro item do dicionario.
-    Passar workbook em noba_aba para adicionar nova aba apos executar uma vez sem.
-    Para formatar numeros enviar colunas_numero como uma tupla, onde o primeiro elemento é uma lista com a letra das colunas que serão formatadas e o segundo elemento da tupla é a quantidade casas decimais"""
+    """Gera arquivo excel sem salvar.
+
+    Parametros:
+    -----------
+    :conteudo [list[list] | list[dict]]: com o conteudo para planilha. Quando o conteudo for uma lista de dicionarios o cabeçalho sempre será as chaves do primeiro item do dicionario.
+    :cabecalho [list, Default []]: com o cabecalho no caso do conteudo ser uma lista de listas.
+    :titulo [str, Default '']: com o nome da aba.
+    :nova_aba [Workbook | None, Default None]: acrescenta o conteudo em uma nova aba no Workbook informado.
+    :cabecalho_negrito [bool, Default False]: boolano se o cabeçalho será criado em negrito.
+    :formatar_numero [tuple[list[str], int], Default None]: uma tupla onde o primeiro elemento é uma lista com a letra das colunas que serão formatadas como numero (pontuação de milhar) e o segundo elemento é o numero de casas decimais.
+    :formatar_data [list[str], Default None]: com uma lista com a letra das colunas que serão formatadas como data (DD/MM/YYYY).
+    :ajustar_largura_colunas[bool, Default False]: booleano se a largura das colunas são ajustadas automaticamente (o ajuste nem sempre tem o tamanho ideal).
+
+    Retorno:
+    --------
+    :Workbook: com o arquivo excel do conteudo."""
     if not nova_aba:
         workbook = openpyxl.Workbook()
         worksheet = workbook.active
@@ -69,7 +80,15 @@ def arquivo_excel(conteudo: list[list] | list[dict], cabecalho: list = [], titul
 
 
 def salvar_excel_temporario(workbook: openpyxl.Workbook) -> BytesIO:
-    """Retorna o byte stream na posição inicial com o objeto salvo"""
+    """Retorna o byte stream na posição inicial com o objeto salvo.
+
+    Parametros:
+    -----------
+    :workbook [Workbook]: com o arquivo excel.
+
+    Retorno:
+    --------
+    :BytesIO: com o arquivo salvo em memoria."""
     byte_stream = BytesIO()
     workbook.save(byte_stream)
     byte_stream.seek(0)
@@ -92,7 +111,15 @@ def gerar_conteudo_excel(queryset, cabecalho):
 
 
 def somar_coluna_formatada(conteudo, titulo_aba, workbook, letra_coluna_soma, cabecalho_soma):
-    """Soma a coluna informada com a cor verde"""
+    """Soma a coluna informada e destaca o resultado com a cor verde.
+
+    Parametros:
+    -----------
+    :conteudo [list[list]]: com o conteudo do arquivo (resultado da função gerar_conteudo_excel).
+    :titulo_aba [str]: com o nome da aba que terá soma.
+    :workbook [Workbook]: com o arquivo excel.
+    :letra_coluna_soma [str]: com a letra da coluna que será somada (somente um coluna por vez).
+    :cabecalho_soma [str]: com o cabelho para a celula com a soma."""
     total_linhas = len(conteudo)
 
     worksheet = workbook[titulo_aba]
@@ -113,6 +140,16 @@ def somar_coluna_formatada(conteudo, titulo_aba, workbook, letra_coluna_soma, ca
 
 
 def arquivo_excel_response(arquivo_salvo_excel, nome_arquivo):
+    """Gera o HTTP Response com o arquivo excel para download.
+
+    Parametros:
+    -----------
+    :arquivo_salvo_excel [Workbook | BytesIO]: com o arquivo excel.
+    :nome_aquivo [str]: com o nome do arquivo para download.
+
+    Retorno:
+    --------
+    :HttpResponse: com o arquivo para download."""
     response = HttpResponse(
         arquivo_salvo_excel,
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

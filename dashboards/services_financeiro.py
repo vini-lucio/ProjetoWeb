@@ -3,23 +3,33 @@ from utils.custom import DefaultDict
 from utils.oracle.conectar import executar_oracle
 import pandas as pd
 
-# TODO: Documentar
-
 
 def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 'receber',], **kwargs_formulario):
-    """
-        SQLs estão em um dict onde a chave é o nome do campo do formulario e o valor é um dict com o placeholder como
-        chave e o codigo sql como valor
-    """
+    """Retorna codigos SQL para placeholders da função get_relatorios_financeiros.
 
+    Parametros:
+    -----------
+    :fonte Literal['pagar', 'receber']: com a fonte dos dados. As movimentações bancarias são consideradas em qualquer fonte.
+    :kwargs_formulario [dict]: com os campos para serem exibidos (sempre começam com 'coluna') ou filtrados. Exemplos:
+
+    >>> {'coluna_campo_x': True, 'campo_x': '%%teste%%'}
+
+    Retorno:
+    --------
+    :dict: com placeholders do SQL na chave e o valor com o codigo SQL (dentro do SQL pode haver placeholders do banco de dados)."""
+
+    # Campos do formulario que possuem tratativas diferentes (não são necessariamente um comando SQL), são removidos com pop.
     valor_debito_negativo = kwargs_formulario.pop('valor_debito_negativo', False)
     negativo = ""
     if fonte == 'pagar' and valor_debito_negativo:
         negativo = " * (-1)"
 
+    # Contas a Pagar codigo padrão
     map_sql_pagar_base = {
+        # Colunas padrão
         'valor_efetivo': "COALESCE(SUM(PAGAR.VALORPAGO * PAGAR_PLANOCONTA.PERCENTUAL * PAGAR_CENTRORESULTADO.PERCENTUAL * PAGAR_JOB.PERCENTUAL / 1000000), 0) {negativo} AS VALOR_EFETIVO".format(negativo=negativo),
 
+        # From padrão
         'fonte': """
             COPLAS.FORNECEDORES,
             COPLAS.PAGAR,
@@ -29,6 +39,7 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
             COPLAS.JOBS,
         """,
 
+        # Joins no where padrão
         'fonte_joins': """
             PAGAR.CODFOR = FORNECEDORES.CODFOR AND
             PAGAR_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
@@ -38,9 +49,29 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
             PAGAR_JOB.CHAVE_JOB = JOBS.CODIGO AND
         """,
 
+        # Where padrão
         "fonte_where": "PAGAR.DATAEMISSAO >= TO_DATE('01/01/2010', 'DD-MM-YYYY') AND"
     }
 
+    # Contas a Pagar colunas e filtros
+    """
+        Exemplo nomenclatura colunas:
+        'coluna_x': {
+            'x_campo_alias': "TESTE AS TESTE,", # campo do select (obrigatorio)
+            'x_campo': "X,",                    # campo do group by (opcional se for campo agregado)
+            'x_from': "TABELA,",                # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",      # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+        }
+
+        Exemplo nomenclatura filtros:
+        'x': {
+            'x_pesquisa': "TESTE = TESTE AND", # condição do where (obrigatorio)
+            'x_from': "TABELA,",               # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",     # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+
+            'sem_filtro': "1 = 0 AND",         # Exceção. Unica chave no dict quando filtro não existe na tabela. Ex: coluna cliente em contas a pagar.
+        }
+    """
     map_sql_pagar = {
         'coluna_carteira': {'carteira_campo_alias': "'N/A' AS CARTEIRA,", },
         'carteira_parede_de_concreto': {'sem_filtro': "1 = 0 AND", },
@@ -110,9 +141,12 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         'centro_resultado_coplas': {'centro_resultado_coplas_pesquisa': "PAGAR_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND", },
     }
 
+    # Contas a Receber codigo padrão
     map_sql_receber_base = {
+        # Colunas padrão
         'valor_efetivo': "COALESCE(SUM(RECEBER.VALORRECEBIDO * RECEBER_PLANOCONTA.PERCENTUAL * RECEBER_CENTRORESULTADO.PERCENTUAL * RECEBER_JOB.PERCENTUAL / 1000000), 0) {negativo} AS VALOR_EFETIVO".format(negativo=negativo),
 
+        # From padrão
         'fonte': """
             COPLAS.CLIENTES,
             COPLAS.RECEBER,
@@ -122,6 +156,7 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
             COPLAS.JOBS,
         """,
 
+        # Joins no where padrão
         'fonte_joins': """
             RECEBER.CODCLI = CLIENTES.CODCLI AND
             RECEBER_PLANOCONTA.CHAVE_PLANOCONTAS = PLANO_DE_CONTAS.CD_PLANOCONTA AND
@@ -131,9 +166,29 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
             RECEBER_JOB.CHAVE_JOB = JOBS.CODIGO AND
         """,
 
+        # Where padrão
         "fonte_where": "RECEBER.DATAEMISSAO >= TO_DATE('01/01/2010', 'DD-MM-YYYY') AND"
     }
 
+    # Contas a Receber colunas e filtros
+    """
+        Exemplo nomenclatura colunas:
+        'coluna_x': {
+            'x_campo_alias': "TESTE AS TESTE,", # campo do select (obrigatorio)
+            'x_campo': "X,",                    # campo do group by (opcional se for campo agregado)
+            'x_from': "TABELA,",                # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",      # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+        }
+
+        Exemplo nomenclatura filtros:
+        'x': {
+            'x_pesquisa': "TESTE = TESTE AND", # condição do where (obrigatorio)
+            'x_from': "TABELA,",               # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",     # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+
+            'sem_filtro': "1 = 0 AND",         # Exceção. Unica chave no dict quando filtro não existe na tabela. Ex: coluna fornecedor em contas a receber.
+        }
+    """
     map_sql_receber = {
         'coluna_carteira': {'carteira_campo_alias': "VENDEDORES.NOMERED AS CARTEIRA,",
                             'carteira_campo': "VENDEDORES.NOMERED,",
@@ -207,14 +262,39 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
         'centro_resultado_coplas': {'centro_resultado_coplas_pesquisa': "RECEBER_CENTRORESULTADO.CHAVE_CENTRO IN (38, 44, 45, 47) AND", },
     }
 
+    # Movimentação Bancaria codigo padrão
     tipo_movimentacao_bancaria = 'C' if fonte == 'receber' else 'D'
     map_sql_movimentacao_bancaria_base = {
+        # Colunas padrão
         'valor_efetivo_mov_ban': "SUM(MOVBAN.VALOR * MOVBAN_PLANOCONTA.PERCENTUAL * MOVBAN_CENTRORESULTADO.PERCENTUAL * MOVBAN_JOB.PERCENTUAL / 1000000) {negativo} AS VALOR_EFETIVO".format(negativo=negativo),
+
+        # Colunas padrão no union
         'valor_efetivo_union_alias': "SUM(VALOR_EFETIVO) AS VALOR_EFETIVO",
 
+        # Where padrão
         'fonte_where_mov_ban': "MOVBAN.TIPO = '{}' AND".format(tipo_movimentacao_bancaria),
     }
 
+    # Movimentação Bancaria colunas e filtros
+    """
+        Exemplo nomenclatura colunas:
+        'coluna_x': {
+            'x_campo_alias_mov_ban': "TESTE AS TESTE,", # campo do select (obrigatorio)
+            'x_campo_mov_ban': "X,",                    # campo do group by (opcional se for campo agregado)
+            'x_union_alias': "X,",                      # alias do select e group by (se não agregado) do union (obrigatorio) ou order by
+            'x_from_mov_ban': "TABELA,",                # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join_mov_ban': "TESTE = TESTE AND",      # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+        }
+
+        Exemplo nomenclatura filtros:
+        'x': {
+            'x_pesquisa_mov_ban': "TESTE = TESTE AND", # condição do where (obrigatorio)
+            'x_from_mov_ban': "TABELA,",               # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join_mov_ban': "TESTE = TESTE AND",     # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+
+            'sem_filtro_mov_ban': "1 = 0 AND",         # Exceção. Unica chave no dict quando filtro não existe na tabela. Ex: coluna fornecedor em movimentação bancaria.
+        }
+    """
     map_sql_movimentacao_bancaria = {
         'coluna_carteira': {'carteira_campo_alias_mov_ban': "'N/A' AS CARTEIRA,",
                             'carteira_union_alias': "CARTEIRA,", },
@@ -314,9 +394,23 @@ def map_relatorio_financeiro_sql_string_placeholders(fonte: Literal['pagar', 're
 
 
 def get_relatorios_financeiros(fonte: Literal['pagar', 'receber',], **kwargs):
+    """Retorna relatorio financeiro personalizavel (também funciona com formularios).
+
+    Parametros:
+    -----------
+    :fonte: Literal['pagar', 'receber']: com a fonte dos dados. As movimentações bancarias são consideradas em qualquer fonte.
+    :kwargs [dict]: com os campos para serem exibidos (sempre começam com 'coluna') ou filtrados. Exemplos:
+
+    >>> {'coluna_campo_x': True, 'campo_x': '%%teste%%'}
+
+    Retorno:
+    --------
+    :list[dict]: com o relatorio."""
+
     kwargs_sql = {}
     kwargs_ora = {}
 
+    # Campos com filtro
     codigo_sql = kwargs.get('codigo_sql')
     data_liquidacao_inicio = kwargs.get('data_liquidacao_inicio')
     data_liquidacao_fim = kwargs.get('data_liquidacao_fim')
@@ -621,7 +715,18 @@ def get_relatorios_financeiros_faturamentos(relatorio_vendas_faturamento: pd.Dat
                                             relatorio_financeiro_receber: pd.DataFrame, *,
                                             coluna_valor_titulo_mercadorias_liquido_descontos=False,
                                             coluna_valor_efetivo_titulo_mercadorias=False):
-    """Relatorio faturamento precisa ter a coluna CHAVE_DOCUMENTO e relatorio receber precisa ter a coluna CHAVE_NOTA"""
+    """Retorna relatorio combinado de faturamentos (get_relatorios_vendas) e recebimentos (get_relatorios_financeiros).
+
+    Parametros:
+    -----------
+    :relatorio_vendas_faturamento [DataFrame]: com o relatorio de faturamentos da função get_relatorios_vendas, é necessario ter a coluna CHAVE_DOCUMENTO.
+    :relatorio_financeiro_receber [DataFrame]: com o relatorio de recebimentos da função get_relatorios_financeiros, é necessario ter a coluna CHAVE_NOTA.
+    :coluna_valor_titulo_mercadorias_liquido_descontos [bool, Default False]: booleano se vai adicionar a coluna do valor de mercadorias do titulo liquido de descontos.
+    :coluna_valor_efetivo_titulo_mercadorias [bool, Default False]: booleano se vai adicionar a coluna do valor efetivo de mercadorias do titulo.
+
+    Retorno:
+    --------
+    :DataFrame: com o relatorio combinado."""
     resultado = pd.merge(relatorio_vendas_faturamento, relatorio_financeiro_receber, how='inner',
                          left_on='CHAVE_DOCUMENTO', right_on='CHAVE_NOTA')
 

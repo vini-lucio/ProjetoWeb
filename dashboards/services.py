@@ -19,15 +19,24 @@ from django.db.models.functions import Cast
 from datetime import datetime
 import pandas as pd
 
-# TODO: Documentar
-
 
 class DashBoardVendas():
+    """Gera dashboards de vendas base."""
+
     def __init__(self, carteira='%%', executar_completo: bool = True,
                  dados_pedidos_mes_entrega_mes_dias: pd.DataFrame | None = None,
                  dados_pedidos_fora_mes_entrega_mes: pd.DataFrame | None = None,
                  dados_desvolucoes_mes: pd.DataFrame | None = None,
                  ) -> None:
+        """
+        Parametros:
+        -----------
+        :carteira [str, Default '%%']: com o nome da carteira especifica ou usar default para todas as carteiras.
+        :executar_completo [bool, Default True]: booleano se vai executar todas as funções em todos os atributos. False melhora a performance na classe filho DashboardVendasSupervisao.
+        :dados_pedidos_mes_entrega_mes_dias [DataFrame | None, Default None]: se for None será executado a função que busca os dados, para melhorar a performance na classe filho DashboardVendasSupervisao enviar os dados de pedidos no mes com entrega no mes por dia.
+        :dados_pedidos_fora_mes_entrega_mes [DataFrame | None, Default None]: se for None será executado a função que busca os dados, para melhorar a performance na classe filho DashboardVendasSupervisao enviar os dados de pedidos fora do mes com entrega no mes total.
+        :dados_desvolucoes_mes [DataFrame | None, Default None]: se for None será executado a função que busca os dados, para melhorar a performance na classe filho DashboardVendasSupervisao enviar os dados de notas de devoluções no mes total.
+        """
         self.carteira = carteira
         self.vendedor = None
         self.site_setup = get_site_setup()
@@ -46,11 +55,7 @@ class DashBoardVendas():
                 self.meta_mes = self.site_setup.meta_mes_as_float
             else:
                 self.vendedor = Vendedores.objects.get(nome=self.carteira)
-                parametro_carteira = {'carteira': self.vendedor}
-                if self.vendedor.nome == 'PAREDE DE CONCRETO':
-                    parametro_carteira = {'carteira_parede_de_concreto': True}
-                if self.vendedor.nome == 'PREMOLDADO / POSTE':
-                    parametro_carteira = {'carteira_premoldado_poste': True}
+                parametro_carteira = self.vendedor.carteira_parametros()
                 self.meta_mes = float(self.vendedor.meta_mes)
                 self.meta_diaria = self.meta_mes / self.dias_meta if self.dias_meta else 0.0
                 self.meta_diaria_real = self.meta_mes / self.dias_meta_reais if self.dias_meta_reais else 0.0
@@ -201,6 +206,8 @@ class DashBoardVendas():
 
 
 class DashboardVendasCarteira(DashBoardVendas):
+    """Gera dashboards de vendas por carteira."""
+
     def __init__(self, carteira='%%', executar_completo: bool = True,
                  dados_pedidos_mes_entrega_mes_dias: pd.DataFrame | None = None,
                  dados_pedidos_fora_mes_entrega_mes: pd.DataFrame | None = None,
@@ -216,6 +223,8 @@ class DashboardVendasCarteira(DashBoardVendas):
 
 
 class DashboardVendasTv(DashBoardVendas):
+    """Gera dashboards de vendas para TV."""
+
     def __init__(self) -> None:
         super().__init__()
         self.assistentes_tecnicos = get_assistentes_tecnicos()
@@ -223,6 +232,8 @@ class DashboardVendasTv(DashBoardVendas):
 
 
 class DashboardVendasSupervisao(DashBoardVendas):
+    """Gera dashboards de vendas para supervisão."""
+
     def __init__(self) -> None:
         super().__init__()
         faturado_bruto = faturado_bruto_ano_mes_a_mes(mes_atual=True)
@@ -256,6 +267,15 @@ class DashboardVendasSupervisao(DashBoardVendas):
 
 
 def carteira_mapping(carteira):
+    """Retorna a carteira e o filtro SQL das carteiras que não são carteiras.
+
+    Parametros:
+    -----------
+    :carteira [str]: com o nome da carteira.
+
+    Retorno:
+    --------
+    :tuple[str, str]: com a carteira e o filtro SQL se a carteira não for uma carteira."""
     carteira_actions_mapping = {
         'PREMOLDADO / POSTE': {
             'carteira': "%%",
@@ -276,7 +296,17 @@ def carteira_mapping(carteira):
 
 
 def recebido_a_receber(primeiro_dia_mes, ultimo_dia_mes, carteira) -> tuple[float, float]:
-    """Valor recebido e a receber dos titulos com valor comercial no mes"""
+    """Retorna o valor recebido e a receber dos titulos com valor comercial no mes total ou da carteira.
+
+    Parametros:
+    -----------
+    :primeiro_dia_mes [Date]: com a data inicial.
+    :ultimo_dia_mes [Date]: com a data final.
+    :carteira [Vendedores | None]: com a carteira ou None para todos.
+
+    Retorno:
+    --------
+    :tuple[float, float]: com o valor recebido e a receber."""
     recebido = 0.0
     a_receber = 0.0
 
@@ -313,7 +343,16 @@ def recebido_a_receber(primeiro_dia_mes, ultimo_dia_mes, carteira) -> tuple[floa
 
 
 def dias_decorridos(primeiro_dia_mes, ultimo_dia_mes) -> float:
-    """Quantidade de dias com orçamentos no mes"""
+    """Retorna a quantidade de dias com pedidos.
+
+    Parametros:
+    -----------
+    :primeiro_dia_mes [Date]: com a data inicial.
+    :ultimo_dia_mes [Date]: com a data final.
+
+    Retorno:
+    --------
+    :float: com a quantidade de dias com pedidos no periodo."""
     resultado = get_relatorios_vendas('pedidos', inicio=primeiro_dia_mes, fim=ultimo_dia_mes,
                                       coluna_dias_decorridos=True)
     resultado = resultado[0].get('DIAS_DECORRIDOS', 0.00) if resultado else 0.00
@@ -322,7 +361,16 @@ def dias_decorridos(primeiro_dia_mes, ultimo_dia_mes) -> float:
 
 
 def conversao_de_orcamentos(parametro_carteira: dict):
-    """Taxa de conversão de orçamentos com valor comercial dos ultimos 90 dias, ignorando orçamentos oportunidade e palavras chave de erros internos"""
+    """Retorna a taxa de conversão de orçamentos com valor comercial dos ultimos 90 dias, ignorando orçamentos
+    oportunidade e produtos com justificativas com palavras chave de erros internos.
+
+    Parametros:
+    -----------
+    parametro_carteira [dict]: com o retorno do metodo carteira_parametros de Vendedores da carteira especifica.
+
+    Retorno:
+    --------
+    :float: com a taxa de conversão de orçamentos."""
     inicio = data_x_dias(90, passado=True)
     fim = data_x_dias(0, passado=True)
 
@@ -344,6 +392,20 @@ def conversao_de_orcamentos(parametro_carteira: dict):
 
 
 def confere_inscricoes_estaduais(fonte, parametro_carteira: dict = {}, parametro_documento: dict = {}):
+    """Confere as incrições estaduais dos cadastros com documentos em aberto baseado nos parametros enviados com o
+    armazenado pela API CNPJa no model InscricoesEstaduais, retornando o que estão com divergencias.
+
+    Parametros:
+    -----------
+    :fonte [str]: com a fonte dos dados dos documentos ('orcamentos' ou 'pedidos').
+
+    parametro_carteira [dict, Default {}]: com o retorno do metodo carteira_parametros de Vendedores da carteira especifica. Não enviar para considerar todos.
+
+    parametro_documento [dict, Default {}]: com o documento especifico {'documento': 123}. Não enviar para considerar todos.
+
+    Retorno:
+    --------
+    :list[dict]: com os documentos onde o cliente pode estar com a inscrição estadual incorreta."""
     inscricoes = get_relatorios_vendas(fonte, coluna_estado=True, coluna_cgc=True, coluna_inscricao_estadual=True,
                                        coluna_carteira=True, coluna_documento=True,
                                        status_documento_em_aberto=True,
@@ -405,7 +467,15 @@ def confere_inscricoes_estaduais(fonte, parametro_carteira: dict = {}, parametro
 
 
 def confere_orcamento(orcamento: int = 0) -> list | None:
-    """Confere possiveis erros de um orçamento em aberto"""
+    """Retorna possiveis erros de um orçamento em aberto.
+
+    Parametros:
+    -----------
+    :orcamento [int, Default 0]: com o numero de um orçamento em aberto.
+
+    Retorno:
+    --------
+    :list[dict] | None: com os possiveis erros do orçamento."""
     sql = """
         SELECT
             *
@@ -523,7 +593,17 @@ def confere_orcamento(orcamento: int = 0) -> list | None:
 
 
 def confere_pedidos(carteira: str = '%%', parametro_carteira: dict = {}) -> list | None:
-    """Confere possiveis erros dos pedidos em aberto"""
+    """Retorna possiveis erros dos pedidos em aberto.
+
+    Parametros:
+    -----------
+    :carteira [str, Default '%%']: com o nome da carteira especifica. Não enviar para considerar todos.
+
+    parametro_carteira [dict, Default {}]: com o retorno do metodo carteira_parametros de Vendedores da carteira especifica. Não enviar para considerar todos.
+
+    Retorno:
+    --------
+    :list[dict] | None: com os possiveis erros dos pedidos."""
     sql = """
         SELECT
             *
@@ -650,6 +730,15 @@ def confere_pedidos(carteira: str = '%%', parametro_carteira: dict = {}) -> list
 
 
 def confere_pedidos_atendimento_transportadoras(parametro_carteira: dict = {}) -> list | None:
+    """Retorna possiveis erros de atendimento das transportadoras dos pedidos em aberto.
+
+    Parametros:
+    -----------
+    parametro_carteira [dict, Default {}]: com o retorno do metodo carteira_parametros de Vendedores da carteira especifica. Não enviar para considerar todos.
+
+    Retorno:
+    --------
+    :list[dict] | None: com os possiveis erros dos pedidos."""
     dados_pedidos = get_dados_pedidos_em_aberto(parametro_carteira)
     transportadoras = get_transportadoras()
     erros = []
@@ -673,7 +762,16 @@ def confere_pedidos_atendimento_transportadoras(parametro_carteira: dict = {}) -
 
 
 def eventos_dia_atrasos(carteira: str = '%%', incluir_futuros: bool = False) -> list | None:
-    """Retorna eventos do dia e em atraso"""
+    """Retorna eventos do dia e em atraso.
+
+    Parametros:
+    -----------
+    :carteira [str, Default '%%']: com o nome da carteira especifica. Não enviar para considerar todos.
+    :incluir_futuros [bool, Default False]: booleano se vai incluir os eventos futuros.
+
+    Retorno:
+    --------
+    :list[dict]: com os eventos."""
     carteira, filtro_nao_carteira = carteira_mapping(carteira)
 
     periodo = "CLIENTES_HISTORICO.DATA <= TRUNC(SYSDATE) AND"
@@ -804,7 +902,15 @@ def eventos_dia_atrasos(carteira: str = '%%', incluir_futuros: bool = False) -> 
 
 
 def eventos_em_aberto_por_dia(carteira: str = '%%') -> list | None:
-    """Retorna eventos do dia e em atraso"""
+    """Retorna a quantidade de eventos em aberto por dia.
+
+    Parametros:
+    -----------
+    :carteira [str, Default '%%']: com o nome da carteira especifica. Não enviar para considerar todos.
+
+    Retorno:
+    --------
+    :list[dict]: com as quantidade de eventos em aberto por dia."""
     carteira, filtro_nao_carteira = carteira_mapping(carteira)
 
     sql = """
@@ -850,11 +956,23 @@ def eventos_em_aberto_por_dia(carteira: str = '%%') -> list | None:
     return resultado
 
 
-def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], trocar_para_itens_excluidos: bool = False, **kwargs_formulario):
-    """
-        SQLs estão em um dict onde a chave é o nome do campo do formulario e o valor é um dict com o placeholder como
-        chave e o codigo sql como valor
-    """
+def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'],
+                                                 trocar_para_itens_excluidos: bool = False, **kwargs_formulario):
+    """Retorna codigos SQL para placeholders da função get_relatorios_vendas.
+
+    Parametros:
+    -----------
+    :fonte Literal['orcamentos', 'pedidos', 'faturamentos']: com a fonte dos dados.
+    :trocar_para_itens_excluidos [bool, Default False]: booleano se é para incluir criterios de itens de orcamentos excluidos.
+    :kwargs_formulario [dict]: com os campos para serem exibidos (sempre começam com 'coluna') ou filtrados. Exemplos:
+
+    >>> {'coluna_campo_x': True, 'campo_x': '%%teste%%'}
+
+    Retorno:
+    --------
+    :dict: com placeholders do SQL na chave e o valor com o codigo SQL (dentro do SQL pode haver placeholders do banco de dados)."""
+
+    # Campos com quantidade de colunas variaveis
     coluna_mes_a_mes = kwargs_formulario.get('coluna_mes_a_mes', False)
     if coluna_mes_a_mes:
         mes_a_mes_inicio = pd.date_range(kwargs_formulario['inicio'], kwargs_formulario['fim'], freq='MS')
@@ -867,12 +985,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         ano_a_ano_fim = pd.date_range(kwargs_formulario['inicio'], kwargs_formulario['fim'], freq='YE')
         ano_a_ano = list(zip(ano_a_ano_inicio.date, ano_a_ano_fim.date))
 
+    # Campos com filtros que aceitam mais de um valor
     familia_produto = kwargs_formulario.get('familia_produto', False)
     chave_familia_produto = '= :chave_familia_produto'
     if isinstance(familia_produto, list):
         chave_familia_produto = ', '.join(f'{f}' for f in familia_produto)
         chave_familia_produto = f'IN ({chave_familia_produto})'
 
+    # Campos do formulario que possuem tratativas diferentes (não são necessariamente um comando SQL), são removidos com pop.
     incluir_orcamentos_oportunidade = kwargs_formulario.pop('incluir_orcamentos_oportunidade', False)
     incluir_orcamentos_oportunidade = "" if incluir_orcamentos_oportunidade else "ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND"
 
@@ -894,6 +1014,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
     if nao_converter_moeda:
         conversao_moeda = ""
 
+    # Notas codigo reutilizavel
     notas_proximo_evento_grupo_economico_from = """
         (
             SELECT CLIENTES.CHAVE_GRUPOECONOMICO,
@@ -1027,9 +1148,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         for i, f in ano_a_ano:
             notas_valor_mercadorias_ano_a_ano += f", SUM(CASE WHEN NOTAS.DATA_EMISSAO >= TO_DATE('{i}', 'YYYY-MM-DD') AND NOTAS.DATA_EMISSAO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {notas_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}"
 
+    # Notas codigo padrão
     map_sql_notas_base = {
+        # Colunas padrão
         'valor_mercadorias': f"SUM({notas_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
+        # From padrão
         'notas_peso_liquido_from': """
             (
                 SELECT
@@ -1048,6 +1172,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'fonte': "COPLAS.NOTAS,",
 
+        # Joins no where padrão
         'fonte_joins': """
             PRODUTOS.CPROD = NOTAS_ITENS.CHAVE_PRODUTO AND
             CLIENTES.CODCLI = NOTAS.CHAVE_CLIENTE AND
@@ -1056,6 +1181,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
             NOTAS.CHAVE_JOB = JOBS.CODIGO AND
         """,
 
+        # Where padrão
         'fonte_where': "{incluir_sem_valor_comercial}".format(incluir_sem_valor_comercial=incluir_sem_valor_comercial),
 
         'fonte_where_data': """
@@ -1064,6 +1190,23 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         """,
     }
 
+    # Notas colunas e filtros
+    """
+        Exemplo nomenclatura colunas:
+        'coluna_x': {
+            'x_campo_alias': "TESTE AS TESTE,", # campo do select (obrigatorio)
+            'x_campo': "X,",                    # campo do group by (opcional se for campo agregado) ou order by (opcional)
+            'x_from': "TABELA,",                # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",      # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+        }
+
+        Exemplo nomenclatura filtros:
+        'x': {
+            'x_pesquisa': "TESTE = TESTE AND", # condição do where (obrigatorio)
+            'x_from': "TABELA,",               # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",     # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+        }
+    """
     map_sql_notas = {
         'data_liquidacao_titulo_entre': {'data_liquidacao_titulo_entre_pesquisa': "EXISTS(SELECT RECEBER.CHAVE FROM COPLAS.RECEBER WHERE NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND RECEBER.DATALIQUIDACAO BETWEEN :data_liquidacao_titulo_inicio AND :data_liquidacao_titulo_fim) AND", },
 
@@ -1406,6 +1549,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'zona_franca_alc_campo': "CASE WHEN NOTAS.ZONA_FRANCA = 'SIM' OR NOTAS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END,", },
     }
 
+    # Pedidos codigo reutilizavel
     pedidos_proximo_evento_grupo_economico_from = """
         (
             SELECT CLIENTES.CHAVE_GRUPOECONOMICO,
@@ -1552,15 +1696,19 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         for i, f in ano_a_ano:
             pedidos_valor_mercadorias_ano_a_ano += f", SUM(CASE WHEN PEDIDOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND PEDIDOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {pedidos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}"
 
+    # Pedidos codigo padrão
     map_sql_pedidos_base = {
+        # Colunas padrão
         'valor_mercadorias': f"SUM({pedidos_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
+        # From padrão
         'notas_peso_liquido_from': "",
 
         'fonte_itens': "COPLAS.PEDIDOS_ITENS,",
 
         'fonte': "COPLAS.PEDIDOS,",
 
+        # Joins no where padrão
         'fonte_joins': """
             PRODUTOS.CPROD = PEDIDOS_ITENS.CHAVE_PRODUTO AND
             CLIENTES.CODCLI = PEDIDOS.CHAVE_CLIENTE AND
@@ -1568,6 +1716,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
             PEDIDOS.CHAVE_JOB = JOBS.CODIGO AND
         """,
 
+        # Where padrão
         'fonte_where': "{incluir_sem_valor_comercial}".format(incluir_sem_valor_comercial=incluir_sem_valor_comercial),
 
         'fonte_where_data': """
@@ -1576,6 +1725,23 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         """,
     }
 
+    # Pedidos colunas e filtros
+    """
+        Exemplo nomenclatura colunas:
+        'coluna_x': {
+            'x_campo_alias': "TESTE AS TESTE,", # campo do select (obrigatorio)
+            'x_campo': "X,",                    # campo do group by (opcional se for campo agregado) ou order by (opcional)
+            'x_from': "TABELA,",                # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",      # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+        }
+
+        Exemplo nomenclatura filtros:
+        'x': {
+            'x_pesquisa': "TESTE = TESTE AND", # condição do where (obrigatorio)
+            'x_from': "TABELA,",               # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",     # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+        }
+    """
     map_sql_pedidos = {
         'data_liquidacao_titulo_entre': {'data_liquidacao_titulo_entre_pesquisa': "", },
 
@@ -1889,6 +2055,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'zona_franca_alc_campo': "CASE WHEN PEDIDOS.ZONA_FRANCA = 'SIM' OR PEDIDOS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END,", },
     }
 
+    # Orçamentos codigo reutilizavel
     orcamentos_proximo_evento_grupo_economico_from = """
         (
             SELECT CLIENTES.CHAVE_GRUPOECONOMICO,
@@ -2039,15 +2206,19 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         for i, f in ano_a_ano:
             orcamentos_valor_mercadorias_ano_a_ano += f", SUM(CASE WHEN ORCAMENTOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND ORCAMENTOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {orcamentos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}"
 
+    # Orçamento codigo padrão
     map_sql_orcamentos_base = {
+        # Colunas padrão
         'valor_mercadorias': f"SUM({orcamentos_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
+        # From padrão
         'notas_peso_liquido_from': "",
 
         'fonte_itens': "COPLAS.ORCAMENTOS_ITENS,",
 
         'fonte': "COPLAS.ORCAMENTOS,",
 
+        # Joins no where padrão
         'fonte_joins': """
             PRODUTOS.CPROD = ORCAMENTOS_ITENS.CHAVE_PRODUTO AND
             CLIENTES.CODCLI = ORCAMENTOS.CHAVE_CLIENTE AND
@@ -2055,6 +2226,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
             ORCAMENTOS.CHAVE_JOB = JOBS.CODIGO AND
         """,
 
+        # Where padrão
         'fonte_where': """
             {incluir_sem_valor_comercial}
             {incluir_orcamentos_oportunidade}
@@ -2068,6 +2240,23 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         """,
     }
 
+    # Orçamentos colunas e filtros
+    """
+        Exemplo nomenclatura colunas:
+        'coluna_x': {
+            'x_campo_alias': "TESTE AS TESTE,", # campo do select (obrigatorio)
+            'x_campo': "X,",                    # campo do group by (opcional se for campo agregado) ou order by (opcional)
+            'x_from': "TABELA,",                # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",      # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+        }
+
+        Exemplo nomenclatura filtros:
+        'x': {
+            'x_pesquisa': "TESTE = TESTE AND", # condição do where (obrigatorio)
+            'x_from': "TABELA,",               # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",     # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+        }
+    """
     map_sql_orcamentos = {
         'data_liquidacao_titulo_entre': {'data_liquidacao_titulo_entre_pesquisa': "", },
 
@@ -2395,8 +2584,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                    'zona_franca_alc_campo': "CASE WHEN ORCAMENTOS.ZONA_FRANCA = 'SIM' OR ORCAMENTOS.LIVRE_COMERCIO = 'SIM' THEN 'SIM' ELSE 'NAO' END,", },
     }
 
-    # Itens de orçamento excluidos somente o que difere de orçamento
-
+    # Itens de orçamentos excluidos codigo reutilizavel (somente o que difere de orçamento)
     orcamentos_itens_excluidos_status_produto_orcamento_tipo_from = orcamentos_status_produto_orcamento_tipo_from
     orcamentos_itens_excluidos_status_produto_orcamento_tipo_join = "STATUS_ORCAMENTOS_ITENS.DESCRICAO = ORCAMENTOS_ITENS_EXCLUIDOS.STATUS AND"
 
@@ -2420,11 +2608,15 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         for i, f in ano_a_ano:
             orcamentos_itens_excluidos_valor_mercadorias_ano_a_ano += f", SUM(CASE WHEN ORCAMENTOS.DATA_PEDIDO >= TO_DATE('{i}', 'YYYY-MM-DD') AND ORCAMENTOS.DATA_PEDIDO <= TO_DATE('{f}', 'YYYY-MM-DD') THEN {orcamentos_itens_excluidos_valor_mercadorias} ELSE 0 END) AS VALOR_{i.year}"
 
+    # Itens de orçamentos excluidos codigo padrão (somente o que difere de orçamento)
     map_sql_orcamentos_base_itens_excluidos = {
+        # Colunas padrão
         'valor_mercadorias': f"SUM({orcamentos_itens_excluidos_valor_mercadorias}) AS VALOR_MERCADORIAS",
 
+        # From padrão
         'fonte_itens': "COPLAS.ORCAMENTOS_ITENS_EXCLUIDOS,",
 
+        # Joins no where padrão
         'fonte_joins': """
             PRODUTOS.CPROD = ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE_PRODUTO AND
             CLIENTES.CODCLI = ORCAMENTOS.CHAVE_CLIENTE AND
@@ -2433,6 +2625,23 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         """,
     }
 
+    # Itens de orçamentos excluidos colunas e filtros (somente o que difere de orçamento)
+    """
+        Exemplo nomenclatura colunas:
+        'coluna_x': {
+            'x_campo_alias': "TESTE AS TESTE,", # campo do select (obrigatorio)
+            'x_campo': "X,",                    # campo do group by (opcional se for campo agregado) ou order by (opcional)
+            'x_from': "TABELA,",                # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",      # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+        }
+
+        Exemplo nomenclatura filtros:
+        'x': {
+            'x_pesquisa': "TESTE = TESTE AND", # condição do where (obrigatorio)
+            'x_from': "TABELA,",               # tabela do from (obrigatorio se coluna for de uma tabela que não está no padrão)
+            'x_join': "TESTE = TESTE AND",     # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
+        }
+    """
     map_sql_orcamentos_itens_excluidos = {
         # coluna_custo_materia_prima_notas Não funciona com a fluxus, conferir se mudar a forma de beneficiamento
         'coluna_custo_materia_prima_notas': {'custo_materia_prima_notas_campo_alias': ""},
@@ -2555,10 +2764,23 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
 
 def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'], **kwargs):
+    """Retorna relatorio de vendas personalizavel (também funciona com formularios).
+
+    Parametros:
+    -----------
+    :fonte: Literal['orcamentos', 'pedidos', 'faturamentos']: com a fonte dos dados.
+    :kwargs [dict]: com os campos para serem exibidos (sempre começam com 'coluna') ou filtrados. Exemplos:
+
+    >>> {'coluna_campo_x': True, 'campo_x': '%%teste%%'}
+
+    Retorno:
+    --------
+    :list[dict]: com o relatorio."""
     kwargs_sql = {}
     kwargs_sql_itens_excluidos = {}
     kwargs_ora = {}
 
+    # Campos com filtro
     codigo_sql = kwargs.get('codigo_sql')
     data_inicio = kwargs.get('inicio')
     data_fim = kwargs.get('fim')
@@ -2596,12 +2818,14 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     cnpj_cpf = kwargs.get('cnpj_cpf')
     log_nome_inclusao_documento = kwargs.get('log_nome_inclusao_documento')
 
+    # Campos / filtros com comportamento diferente (precisam ser removidos de kwargs)
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
     coluna_proporcao_mercadorias = kwargs.pop('coluna_proporcao_mercadorias', False)
 
     if coluna_proporcao_mercadorias and not coluna_valor_bruto:
         kwargs.update({'coluna_valor_bruto': True})
 
+    # Datas padrão
     if not data_inicio:
         data_inicio = datetime.date(datetime(2010, 1, 1))
 
@@ -3014,6 +3238,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
 
         dt_resultado_final = pd.concat([dt_resultado, dt_resultado_itens_excluidos])
 
+        # Colunas que precisam ser agrupadas quando é considerado itens de orçamentos excluidos
         alias_para_header_groupby = ['DATA_EMISSAO', 'ANO_EMISSAO', 'MES_EMISSAO', 'DIA_EMISSAO', 'ANO_MES_EMISSAO',
                                      'CHAVE_GRUPO_ECONOMICO', 'GRUPO', 'CARTEIRA', 'TIPO_CLIENTE', 'FAMILIA_PRODUTO',
                                      'PRODUTO', 'UNIDADE', 'CIDADE_PRINCIPAL', 'UF_PRINCIPAL', 'STATUS', 'STATUS_TIPO',
@@ -3047,6 +3272,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             dt_resultado_final = dt_resultado_final.sum()
             resultado = [dt_resultado_final.to_dict()]
 
+    # Campos / filtros com comportamento diferente (que foram removidos de kwargs)
     if coluna_proporcao_mercadorias:
         df_resultado = pd.DataFrame(resultado)
         if not df_resultado.empty:
@@ -3057,6 +3283,15 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
 
 
 def get_email_contatos(condicao):
+    """Retorna emails validos de contatos ativos com enviar mala de clientes ativos a para email marketing.
+
+    Parametros:
+    -----------
+    :condicao [str]: com o codigo SQL para filtro de contato ou cliente.
+
+    Retorno:
+    --------
+    :list[dict]: com os emails dos contatos."""
     sql = """
         SELECT DISTINCT
             RTRIM(LTRIM(CONTATOS.EMAIL)) AS EMAIL
