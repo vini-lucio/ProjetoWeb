@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from analysis.models import CLIENTES
 from home.models import Responsaveis
 from datetime import datetime
 from utils.converter import converter_data_django_para_str_ddmmyyyy
@@ -75,7 +76,11 @@ class LeadsRdStation(models.Model):
 
     def clean(self) -> None:
         """Novos cadastros usam o que está em dados bruto para preencher os campos automaticamente atravez do texto
-        do email enviado pelo RD Station. Onde cada linha de dados bruto é um campo com seu valor separados por ':'"""
+        do email enviado pelo RD Station. Onde cada linha de dados bruto é um campo com seu valor separados por ':'
+
+        Se campo criado_em não estiver em dados bruto, será preenchido com a data e hora atual.
+
+        Se CNPJ / CPF já existir no Analysis, o campo chave_analysis será preenchido automaticamente com o ID do cliente."""
         if not self.pk and self.dados_bruto:
             map_nomes_alternativos_campos = LeadsRdStation.map_nomes_alternativos_campos
             bruto = self.dados_bruto
@@ -98,5 +103,11 @@ class LeadsRdStation(models.Model):
 
         if not self.criado_em:
             self.criado_em = timezone.now()
+
+        if not self.chave_analysis:
+            if self.cnpj:
+                cliente = CLIENTES.get_cgc_digitos(self.cnpj)
+                if cliente:
+                    self.chave_analysis = cliente.pk
 
         return super().clean()

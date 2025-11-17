@@ -1,6 +1,8 @@
 from django.db import models
 from django.db.models import F, Count, Max, Avg
+from django.db.models.expressions import RawSQL
 from utils.base_models import ReadOnlyMixin, ChaveAnalysisPropertyMixIn
+from utils.converter import somente_digitos
 from utils.data_hora_atual import hoje, data_inicio_analysis
 
 
@@ -349,6 +351,21 @@ class CLIENTES(ReadOnlyMixin, models.Model):
                                              verbose_name="Grupo Economico", on_delete=models.PROTECT,
                                              related_name="%(class)s", null=True, blank=True)
     TIPO = models.CharField("Natureza", max_length=20, null=True, blank=True)
+
+    @classmethod
+    def get_cgc_digitos(cls, cgc: str | int):
+        """Filtra CNPJ / CPF usando somente digitos.
+
+        Parametros:
+        :cgc [str | int]: com o CNPJ / CPF, pode enviar com a formatação ou somente os digitos.
+
+        Retorno:
+        --------
+        :CLIENTE | None: com o primeiro cliente encontrado."""
+        cgc_digitos = somente_digitos(str(cgc))
+        cliente = cls.objects.annotate(CGC_DIGITOS=RawSQL(
+            "REGEXP_REPLACE(CGC, '[^0-9]', '')", [])).filter(CGC_DIGITOS=cgc_digitos).first()
+        return cliente
 
     def __str__(self):
         return self.NOMERED
