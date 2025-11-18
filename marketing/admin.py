@@ -29,7 +29,9 @@ class LeadsRdStationAdmin(ExportarXlsxMixIn, BaseModelAdminRedRequired):
         return campos
 
     def preencher_chave_analysis(self, request, queryset):
-        """Ação para preencher automaticamente o campo chave_analysis se já houver cadastro no sistema Analysis."""
+        """Ação para preencher automaticamente o campo chave_analysis se já houver cadastro no sistema Analysis.
+
+        Registro será excluido se já houver outro cadastro com a mesma chave_analysis."""
         for obj in queryset:
             if obj.chave_analysis:
                 continue
@@ -45,7 +47,7 @@ class LeadsRdStationAdmin(ExportarXlsxMixIn, BaseModelAdminRedRequired):
                 obj.full_clean()
                 obj.save()
             except ValidationError:
-                # TODO: excluir ao inves de ignorar?
+                obj.delete()
                 continue
 
     preencher_chave_analysis.short_description = "Preencher ID Cliente Analysis selecionados"
