@@ -5,6 +5,7 @@ from .models import IndicadoresValores, MetasCarteiras
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
                        DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
                        get_relatorios_financeiros, confere_inscricoes_estaduais)
+from .services_marketing import DashBoardMarketing
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
                     FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormListagensVendas,
                     FormIndicadores, RelatoriosFinanceirosForm)
@@ -13,7 +14,7 @@ import plotly.io as pio
 import plotly.graph_objects as go
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.data_hora_atual import data_x_dias
-from utils.base_forms import FormVendedoresMixIn
+from utils.base_forms import FormVendedoresMixIn, FormPeriodoInicioFimMixIn
 from utils.cor_rentabilidade import get_cores_rentabilidade
 from utils.plotly_parametros import update_layout_kwargs
 from utils.site_setup import get_site_setup
@@ -851,3 +852,25 @@ def indicadores(request):
     contexto.update({'formulario': formulario})
 
     return render(request, 'dashboards/pages/indicadores.html', contexto)
+
+
+def marketing_leads(request):
+    """Retorna dados para pagina de dashboard de marketing de leads do RD Station."""
+    titulo_pagina = '*** TESTE Dashboard Marketing TESTE ***'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = FormPeriodoInicioFimMixIn()
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormPeriodoInicioFimMixIn(request.GET)
+        if formulario.is_valid():
+            inicio = formulario.cleaned_data.get('inicio')
+            fim = formulario.cleaned_data.get('fim')
+            dados = DashBoardMarketing(inicio, fim)
+
+            contexto.update({'dados': dados.__dict__, })
+
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/marketing-leads.html', contexto)

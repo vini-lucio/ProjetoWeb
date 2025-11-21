@@ -992,6 +992,13 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         chave_familia_produto = ', '.join(f'{f}' for f in familia_produto)
         chave_familia_produto = f'IN ({chave_familia_produto})'
 
+    # TODO: considerar casos com mais de 1000 dentro do IN
+    cliente = kwargs_formulario.get('chave_cliente', False)
+    chave_cliente = '= :chave_cliente'
+    if isinstance(cliente, list):
+        chave_cliente = ', '.join(f'{f}' for f in cliente)
+        chave_cliente = f'IN ({chave_cliente})'
+
     # Campos do formulario que possuem tratativas diferentes (não são necessariamente um comando SQL), são removidos com pop.
     incluir_orcamentos_oportunidade = kwargs_formulario.pop('incluir_orcamentos_oportunidade', False)
     incluir_orcamentos_oportunidade = "" if incluir_orcamentos_oportunidade else "ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'NAO' AND"
@@ -1495,6 +1502,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
+        'chave_cliente': {'chave_cliente_pesquisa': "CLIENTES.CODCLI {chave_cliente} AND".format(chave_cliente=chave_cliente), },
+
+        'coluna_quantidade_clientes': {'quantidade_clientes_campo_alias': "COUNT(DISTINCT CLIENTES.CODCLI) AS QUANTIDADE_CLIENTES,", },
 
         'cnpj_cpf': {'cnpj_cpf_pesquisa': "CLIENTES.CGC = :cnpj_cpf AND", },
 
@@ -2001,6 +2011,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
+        'chave_cliente': {'chave_cliente_pesquisa': "CLIENTES.CODCLI {chave_cliente} AND".format(chave_cliente=chave_cliente), },
+
+        'coluna_quantidade_clientes': {'quantidade_clientes_campo_alias': "COUNT(DISTINCT CLIENTES.CODCLI) AS QUANTIDADE_CLIENTES,", },
 
         'cnpj_cpf': {'cnpj_cpf_pesquisa': "CLIENTES.CGC = :cnpj_cpf AND", },
 
@@ -2530,6 +2543,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_cliente': {'cliente_campo_alias': "CLIENTES.NOMERED AS CLIENTE,",
                            'cliente_campo': "CLIENTES.NOMERED,", },
+        'chave_cliente': {'chave_cliente_pesquisa': "CLIENTES.CODCLI {chave_cliente} AND".format(chave_cliente=chave_cliente), },
+
+        'coluna_quantidade_clientes': {'quantidade_clientes_campo_alias': "COUNT(DISTINCT CLIENTES.CODCLI) AS QUANTIDADE_CLIENTES,", },
 
         'cnpj_cpf': {'cnpj_cpf_pesquisa': "CLIENTES.CGC = :cnpj_cpf AND", },
 
@@ -2785,6 +2801,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     data_inicio = kwargs.get('inicio')
     data_fim = kwargs.get('fim')
     grupo_economico = kwargs.get('grupo_economico')
+    chave_cliente = kwargs.get('chave_cliente')
     carteira = kwargs.get('carteira')
     tipo_cliente = kwargs.get('tipo_cliente')
     familia_produto = kwargs.get('familia_produto')
@@ -2844,6 +2861,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
 
     if grupo_economico:
         kwargs_ora.update({'grupo_economico': grupo_economico, })
+
+    if chave_cliente and not isinstance(chave_cliente, list):
+        kwargs_ora.update({'chave_cliente': chave_cliente, })
 
     if carteira:
         chave_carteira = carteira if isinstance(carteira, int) else carteira.chave_analysis
@@ -2996,6 +3016,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {cgc_campo_alias}
             {inscricao_estadual_campo_alias}
             {proximo_evento_grupo_economico_campo_alias}
+            {quantidade_clientes_campo_alias}
             {quantidade_documentos_campo_alias}
             {quantidade_meses_campo_alias}
             {estado_origem_campo_alias}
@@ -3135,6 +3156,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {cnpj_cpf_pesquisa}
             {grupo_produto_pesquisa}
             {log_nome_inclusao_documento_pesquisa}
+            {chave_cliente_pesquisa}
 
             {fonte_where_data}
 

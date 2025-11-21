@@ -10,7 +10,7 @@ class LeadsRdStationAdmin(ExportarXlsxMixIn, BaseModelAdminRedRequired):
     list_display = ('id', 'criado_em_as_ddmmyyyy', 'chave_analysis', 'empresa', 'identificador', 'nome',
                     'responsavel__nome', 'lead_valido',)
     list_display_links = list_display
-    list_filter = [('chave_analysis', admin.EmptyFieldListFilter),]
+    list_filter = [('chave_analysis', admin.EmptyFieldListFilter), 'criado_em',]
     search_fields = 'chave_analysis', 'empresa', 'nome', 'identificador', 'responsavel__nome',
     readonly_fields = 'dados_bruto',
     autocomplete_fields = 'responsavel',

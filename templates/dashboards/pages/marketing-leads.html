@@ -1,0 +1,68 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal principal-escuro">
+
+        <div class="link-conteudo link-conteudo-escuro">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            <form id="form" method="get">
+                <div class="grid-simples link-conteudo link-conteudo-escuro">
+                    {{ formulario.as_p }}
+                </div>
+                <div class="grid-simples">
+                    <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if dados %}
+
+                <div class="alinhar-esquerda">
+                    <p>Quantidade Leads Total: {{ dados.quantidade_leads_total }}</p>
+                    <p>Quantidade Leads Qualificados: {{ dados.quantidade_leads_qualificados }}</p>
+                    <p>Quantidade Leads que Compraram: {{ dados.quantidade_leads_compraram }}</p>
+                    <br>
+                    <p>Quantidade Leads por Canal de Origem:</p>
+                    <div>
+                        {% for canal in dados.quantidade_leads_por_canal_origem %}
+                            <li>{{ canal.origem }} - {{ canal.leads }}</li>
+                        {% endfor %}
+                    </div>
+                    <br>
+                    <p>Quantidade Leads por Região:</p>
+                    <div>
+                        {% for regiao in dados.quantidade_leads_por_regiao %}
+                            <li>{{ regiao.CHAVE_VENDEDOR3__NOMERED }} - {{ regiao.LEADS }}</li>
+                        {% endfor %}
+                    </div>
+                    <br>
+                    <p>Valor Investimento: R$ {{ dados.valor_investimento | floatformat:2 }}</p>
+                    <p>Valor Faturamento: R$ {{ dados.valor_faturamento | floatformat:2 }}</p>
+                    <br>
+                    <p>Taxa Conversão: {{ dados.taxa_conversao | floatformat:2 }}%</p>
+                    <p>Custo por Lead: R$ {{ dados.custo_por_lead | floatformat:2 }}</p>
+                    <p>ROAS: {{ dados.roas | floatformat:2 }}%</p>
+                    <br>
+                </div>
+
+                <div class="div-dashboard principal-escuro">
+                    <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>
+                </div>
+    
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

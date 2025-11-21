@@ -1,7 +1,7 @@
 from django.urls import path
 from dashboards.views import (vendas_tv, vendas_supervisao, relatorios_supervisao, vendas_carteira, eventos_dia,
                               listagens, analise_orcamentos, eventos_por_dia, detalhes_dia, indicadores,
-                              relatorios_financeiros)
+                              relatorios_financeiros, marketing_leads)
 
 app_name = 'dashboards'
 
@@ -17,4 +17,5 @@ urlpatterns = [
     path('relatorios-financeiros/', relatorios_financeiros, name='relatorios-financeiros'),
     path('analise-orcamentos/', analise_orcamentos, name='analise-orcamentos'),
     path('indicadores/', indicadores, name='indicadores'),
+    path('marketing-leads/', marketing_leads, name='marketing-leads'),
 ]

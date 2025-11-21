@@ -23,6 +23,17 @@ class LeadsRdStation(models.Model):
             ),
         ]
 
+    # TODO: criar pagina especifica com as informaçoes:
+    """
+    data da chegada do lead (ok criado_em)
+    canal de origem (ok origem)
+    carteira (analysis)
+    status de qualificação (analysis)
+    valor do pedido (analysis)
+    nome do cliente (empresa e/ou analysis)
+    cep (analysis)
+    """
+
     chave_analysis = models.IntegerField("ID Cliente Analysis", blank=True, null=True)
     dados_bruto = models.TextField("Dados Bruto", blank=True, null=True)
     identificador = models.CharField("Identificador", max_length=100, blank=True, null=True)
