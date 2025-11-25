@@ -53,6 +53,34 @@
                     <p>Custo por Lead: R$ {{ dados.custo_por_lead | floatformat:2 }}</p>
                     <p>ROAS: {{ dados.roas | floatformat:2 }}%</p>
                     <br>
+                    <p>Leads:</p>
+                    <div>
+                        <table>
+                            <tr>
+                                <th>Cliente</th>
+                                {% comment %} <th>CEP</th> {% endcomment %}
+                                <th>Criado em</th>
+                                <th>Origem</th>
+                                <th>Carteira</th>
+                                <th>Perdido</th>
+                                <th>Em Aberto</th>
+                                <th>Fechado</th>
+                            </tr>
+                            {% for lead in dados.leads_validos %}
+                                <tr>
+                                    <td>{{ lead.cliente_nome }}</td>
+                                    {% comment %} <td>{{ lead.cep }}</td> {% endcomment %}
+                                    <td>{{ lead.criado_em | date:"d/m/Y" }}</td>
+                                    <td>{{ lead.origem }}</td>
+                                    <td>{{ lead.carteira }}</td>
+                                    <td>{{ lead.valor_orcamentos_perdidos | floatformat:2 }}</td>
+                                    <td>{{ lead.valor_orcamentos_em_abertos | floatformat:2 }}</td>
+                                    <td>{{ lead.valor_orcamentos_fechados | floatformat:2 }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                    <br>
                 </div>
 
                 <div class="div-dashboard principal-escuro">

@@ -25,15 +25,36 @@ class DashBoardMarketing():
         data_hora_fim = timezone.make_aware(data_hora_fim)
 
         leads = LeadsRdStation.objects.filter(criado_em__gte=data_hora_inicio).filter(criado_em__lte=data_hora_fim)
-        leads_validos = leads.filter(lead_valido=True)
+        self.leads_validos = leads.filter(lead_valido=True)
 
-        canais = leads_validos.values('origem').annotate(leads=Count('pk')).order_by('-leads')
-        id_clientes_leads_validos = leads_validos.filter(
+        # Inclui novos atributos aos leads temporariamente
+        for lead in self.leads_validos:
+            lead.valor_orcamentos_perdidos = 0  # type:ignore
+            lead.valor_orcamentos_em_abertos = 0  # type:ignore
+            lead.valor_orcamentos_fechados = 0  # type:ignore
+
+            if lead.chave_analysis:
+                orcamentos = get_relatorios_vendas('orcamentos', inicio=data_inicio, fim=data_fim,
+                                                   coluna_status_produto_orcamento_tipo=True,
+                                                   chave_cliente=lead.chave_analysis)
+                for status in orcamentos:
+                    tipo = status['STATUS_TIPO']
+                    valor = status['VALOR_MERCADORIAS']
+                    if tipo == 'FECHADO':
+                        lead.valor_orcamentos_fechados += valor  # type: ignore
+                        continue
+                    if tipo == 'EM ABERTO':
+                        lead.valor_orcamentos_em_abertos += valor  # type: ignore
+                        continue
+                    lead.valor_orcamentos_perdidos += valor  # type: ignore
+
+        canais = self.leads_validos.values('origem').annotate(leads=Count('pk')).order_by('-leads')
+        id_clientes_leads_validos = self.leads_validos.filter(
             chave_analysis__isnull=False).values_list('chave_analysis', flat=True)
         id_clientes_leads_validos = list(id_clientes_leads_validos)
 
         self.quantidade_leads_total = leads.count()
-        self.quantidade_leads_qualificados = leads_validos.count()
+        self.quantidade_leads_qualificados = self.leads_validos.count()
         self.quantidade_leads_por_canal_origem = canais
         self.quantidade_leads_por_regiao = CLIENTES.objects.filter(pk__in=id_clientes_leads_validos).values(
             'CHAVE_VENDEDOR3__NOMERED').annotate(LEADS=Count('pk')).order_by('-LEADS')

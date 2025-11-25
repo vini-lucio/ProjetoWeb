@@ -14,7 +14,7 @@ import plotly.io as pio
 import plotly.graph_objects as go
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.data_hora_atual import data_x_dias
-from utils.base_forms import FormVendedoresMixIn, FormPeriodoInicioFimMixIn
+from utils.base_forms import FormVendedoresMixIn, FormPeriodoHojeMixIn
 from utils.cor_rentabilidade import get_cores_rentabilidade
 from utils.plotly_parametros import update_layout_kwargs
 from utils.site_setup import get_site_setup
@@ -860,16 +860,16 @@ def marketing_leads(request):
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
 
-    formulario = FormPeriodoInicioFimMixIn()
+    formulario = FormPeriodoHojeMixIn()
 
     if request.method == 'GET' and request.GET:
-        formulario = FormPeriodoInicioFimMixIn(request.GET)
+        formulario = FormPeriodoHojeMixIn(request.GET)
         if formulario.is_valid():
             inicio = formulario.cleaned_data.get('inicio')
             fim = formulario.cleaned_data.get('fim')
             dados = DashBoardMarketing(inicio, fim)
 
-            contexto.update({'dados': dados.__dict__, })
+            contexto.update({'dados': dados, })
 
     contexto.update({'formulario': formulario})
 

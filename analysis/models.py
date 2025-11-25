@@ -344,6 +344,7 @@ class CLIENTES(ReadOnlyMixin, models.Model):
     STATUS = models.CharField("Status", max_length=1, null=True, blank=True)
     UF = models.ForeignKey(ESTADOS, db_column="UF", verbose_name="Estado Principal", on_delete=models.PROTECT,
                            related_name="%(class)s_uf", null=True, blank=True)
+    CEP = models.CharField("CEP", max_length=9, null=True, blank=True)
     CGC = models.CharField("CNPJ / CPF", max_length=18, null=True, blank=True)
     CHAVE_TIPO = models.ForeignKey(CLIENTES_TIPOS, db_column="CHAVE_TIPO", verbose_name="Tipo de Cliente",
                                    on_delete=models.PROTECT, related_name="%(class)s_uf", null=True, blank=True)

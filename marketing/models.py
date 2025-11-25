@@ -23,17 +23,6 @@ class LeadsRdStation(models.Model):
             ),
         ]
 
-    # TODO: criar pagina especifica com as informaçoes:
-    """
-    data da chegada do lead (ok criado_em)
-    canal de origem (ok origem)
-    carteira (analysis)
-    status de qualificação (analysis)
-    valor do pedido (analysis)
-    nome do cliente (empresa e/ou analysis)
-    cep (analysis)
-    """
-
     chave_analysis = models.IntegerField("ID Cliente Analysis", blank=True, null=True)
     dados_bruto = models.TextField("Dados Bruto", blank=True, null=True)
     identificador = models.CharField("Identificador", max_length=100, blank=True, null=True)
@@ -70,6 +59,11 @@ class LeadsRdStation(models.Model):
         'form_url': 'conversion_url',
     }
 
+    def get_cliente(self):
+        if not self.pk:
+            return None
+        return CLIENTES.objects.filter(pk=self.chave_analysis).first()
+
     @property
     def criado_em_as_ddmmyyyy(self):
         return converter_data_django_para_str_ddmmyyyy(self.criado_em.date()) if self.criado_em else ''
@@ -81,6 +75,35 @@ class LeadsRdStation(models.Model):
         return self.responsavel.nome if self.responsavel else ''
 
     responsavel_nome.fget.short_description = 'Responsavel'  # type:ignore
+
+    @property
+    def cliente_nome(self):
+        cliente = self.get_cliente()
+        if not cliente:
+            return self.empresa
+        return cliente.NOMERED
+
+    cliente_nome.fget.short_description = 'Cliente'  # type:ignore
+
+    @property
+    def cep(self):
+        cliente = self.get_cliente()
+        if not cliente:
+            return ''
+        return cliente.CEP
+
+    cep.fget.short_description = 'CEP'  # type:ignore
+
+    @property
+    def carteira(self):
+        cliente = self.get_cliente()
+        if not cliente:
+            return ''
+        if not cliente.CHAVE_VENDEDOR3:
+            return ''
+        return cliente.CHAVE_VENDEDOR3.NOMERED
+
+    carteira.fget.short_description = 'Carteira'  # type:ignore
 
     def __str__(self) -> str:
         return str(self.pk) if self.pk else ''
