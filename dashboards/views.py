@@ -8,13 +8,13 @@ from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relator
 from .services_marketing import DashBoardMarketing
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
                     FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormListagensVendas,
-                    FormIndicadores, RelatoriosFinanceirosForm)
+                    FormIndicadores, RelatoriosFinanceirosForm, FormDashboardMarketing)
 import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.data_hora_atual import data_x_dias
-from utils.base_forms import FormVendedoresMixIn, FormPeriodoHojeMixIn
+from utils.base_forms import FormVendedoresMixIn
 from utils.cor_rentabilidade import get_cores_rentabilidade
 from utils.plotly_parametros import update_layout_kwargs
 from utils.site_setup import get_site_setup
@@ -856,18 +856,20 @@ def indicadores(request):
 
 def marketing_leads(request):
     """Retorna dados para pagina de dashboard de marketing de leads do RD Station."""
-    titulo_pagina = '*** TESTE Dashboard Marketing TESTE ***'
+    titulo_pagina = 'Dashboard Leads Marketing'
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
 
-    formulario = FormPeriodoHojeMixIn()
+    formulario = FormDashboardMarketing()
 
     if request.method == 'GET' and request.GET:
-        formulario = FormPeriodoHojeMixIn(request.GET)
+        formulario = FormDashboardMarketing(request.GET)
         if formulario.is_valid():
             inicio = formulario.cleaned_data.get('inicio')
             fim = formulario.cleaned_data.get('fim')
-            dados = DashBoardMarketing(inicio, fim)
+            fechado_inicio = formulario.cleaned_data.get('fechado_inicio')
+            fechado_fim = formulario.cleaned_data.get('fechado_fim')
+            dados = DashBoardMarketing(inicio, fim, fechado_inicio, fechado_fim)
 
             contexto.update({'dados': dados, })
 

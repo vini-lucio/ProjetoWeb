@@ -27,60 +27,57 @@
 
             {% if dados %}
 
-                <div class="alinhar-esquerda">
-                    <p>Quantidade Leads Total: {{ dados.quantidade_leads_total }}</p>
-                    <p>Quantidade Leads Qualificados: {{ dados.quantidade_leads_qualificados }}</p>
-                    <p>Quantidade Leads que Compraram: {{ dados.quantidade_leads_compraram }}</p>
-                    <br>
-                    <p>Quantidade Leads por Canal de Origem:</p>
-                    <div>
-                        {% for canal in dados.quantidade_leads_por_canal_origem %}
-                            <li>{{ canal.origem }} - {{ canal.leads }}</li>
-                        {% endfor %}
+                <div class="grid">
+
+                    <div class="moldura-verde-dashboard grid principal-escuro-2">
+                        <div>
+                            <p class="fonte-verde">Leads Total</p>
+                            <p>{{ dados.quantidade_leads_total }}</p>
+                        </div>
+                        <div>
+                            <p class="fonte-verde">Leads Validos</p>
+                            <p>{{ dados.quantidade_leads_validos }}</p>
+                        </div>
+                        <div>
+                            <p class="fonte-verde">Leads Compraram</p>
+                            <p>{{ dados.quantidade_leads_compraram }}</p>
+                        </div>
+                        <div>
+                            <p class="fonte-verde">Taxa de Conversão</p>
+                            <p>{{ dados.taxa_conversao | floatformat:2 }}%</p>
+                        </div>
                     </div>
-                    <br>
-                    <p>Quantidade Leads por Região:</p>
-                    <div>
-                        {% for regiao in dados.quantidade_leads_por_regiao %}
-                            <li>{{ regiao.CHAVE_VENDEDOR3__NOMERED }} - {{ regiao.LEADS }}</li>
-                        {% endfor %}
+
+                    <div class="moldura-verde-dashboard grid principal-escuro-2">
+                        <div>
+                            <p class="fonte-verde">Investimentos</p>
+                            <p>R$ {{ dados.investimentos | floatformat:2 }}</p>
+                        </div>
+                        <div>
+                            <p class="fonte-verde">Fechado</p>
+                            <p>R$ {{ dados.orcamentos_fechados | floatformat:2 }}</p>
+                        </div>
+                        <div>
+                            <p class="fonte-verde">Custo por Lead</p>
+                            <p>R$ {{ dados.custo_por_lead | floatformat:2 }}</p>
+                        </div>
+                        <div>
+                            <p class="fonte-verde">ROAS</p>
+                            <p>{{ dados.roas | floatformat:2 }}%</p>
+                        </div>
                     </div>
-                    <br>
-                    <p>Valor Investimento: R$ {{ dados.valor_investimento | floatformat:2 }}</p>
-                    <p>Valor Faturamento: R$ {{ dados.valor_faturamento | floatformat:2 }}</p>
-                    <br>
-                    <p>Taxa Conversão: {{ dados.taxa_conversao | floatformat:2 }}%</p>
-                    <p>Custo por Lead: R$ {{ dados.custo_por_lead | floatformat:2 }}</p>
-                    <p>ROAS: {{ dados.roas | floatformat:2 }}%</p>
-                    <br>
-                    <p>Leads:</p>
-                    <div>
-                        <table>
-                            <tr>
-                                <th>Cliente</th>
-                                {% comment %} <th>CEP</th> {% endcomment %}
-                                <th>Criado em</th>
-                                <th>Origem</th>
-                                <th>Carteira</th>
-                                <th>Perdido</th>
-                                <th>Em Aberto</th>
-                                <th>Fechado</th>
-                            </tr>
-                            {% for lead in dados.leads_validos %}
-                                <tr>
-                                    <td>{{ lead.cliente_nome }}</td>
-                                    {% comment %} <td>{{ lead.cep }}</td> {% endcomment %}
-                                    <td>{{ lead.criado_em | date:"d/m/Y" }}</td>
-                                    <td>{{ lead.origem }}</td>
-                                    <td>{{ lead.carteira }}</td>
-                                    <td>{{ lead.valor_orcamentos_perdidos | floatformat:2 }}</td>
-                                    <td>{{ lead.valor_orcamentos_em_abertos | floatformat:2 }}</td>
-                                    <td>{{ lead.valor_orcamentos_fechados | floatformat:2 }}</td>
-                                </tr>
-                            {% endfor %}
-                        </table>
+
+                </div>
+
+                <div class="grid">
+                    <div class="moldura-verde-dashboard grid principal-escuro-2">
+                        <div>
+                            {{ dados.grafico_leads_por_canal_origem_html | safe}}
+                        </div>
+                        <div>
+                            {{ dados.grafico_leads_por_regiao_html | safe}}
+                        </div>
                     </div>
-                    <br>
                 </div>
 
                 <div class="div-dashboard principal-escuro">

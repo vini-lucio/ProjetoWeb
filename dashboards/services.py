@@ -2897,7 +2897,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
 
     if status_produto_orcamento:
         if fonte == 'orcamentos':
-            chave_status_produto_orcamento = status_produto_orcamento.DESCRICAO
+            chave_status_produto_orcamento = status_produto_orcamento if isinstance(
+                status_produto_orcamento, str) else status_produto_orcamento.DESCRICAO
             kwargs_ora.update({'chave_status_produto_orcamento': chave_status_produto_orcamento, })
 
     if status_produto_orcamento_tipo:
