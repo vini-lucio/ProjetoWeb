@@ -50,7 +50,7 @@
 
                     <div class="moldura-verde-dashboard grid principal-escuro-2">
                         <div>
-                            <p class="fonte-verde">Investimentos</p>
+                            <p class="fonte-verde">Investimentos*¹</p>
                             <p>R$ {{ dados.investimentos | floatformat:2 }}</p>
                         </div>
                         <div>
@@ -82,6 +82,10 @@
 
                 <div class="div-dashboard principal-escuro">
                     <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>
+                </div>
+
+                <div class="div-dashboard principal-escuro">
+                    <p class="fonte-muito-pequena-dashboard">*¹ Fornecedor RD Station + Plano de Contas Midia</p>
                 </div>
     
             {% endif %}
