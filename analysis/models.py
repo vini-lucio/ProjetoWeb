@@ -6,6 +6,20 @@ from utils.converter import somente_digitos
 from utils.data_hora_atual import hoje, data_inicio_analysis
 
 
+class JOBS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."JOBS"'
+        verbose_name = 'Job'
+        verbose_name_plural = 'Jobs'
+
+    CODIGO = models.IntegerField("ID", primary_key=True)
+    DESCRICAO = models.CharField("Descrição", max_length=50, null=True, blank=True)
+
+    def __str__(self):
+        return self.DESCRICAO
+
+
 class CANAIS_VENDA(ReadOnlyMixin, models.Model):
     class Meta:
         managed = False
@@ -596,6 +610,8 @@ class NOTAS(ReadOnlyMixin, models.Model):
         verbose_name_plural = 'Notas'
 
     CHAVE = models.IntegerField("ID", primary_key=True)
+    CHAVE_JOB = models.ForeignKey(JOBS, db_column="CHAVE_JOB", verbose_name="Job", on_delete=models.PROTECT,
+                                  related_name="%(class)s", null=True, blank=True)
     NF = models.IntegerField("Nº Nota")
     CHAVE_CLIENTE = models.ForeignKey(CLIENTES, db_column="CHAVE_CLIENTE", verbose_name="Cliente",
                                       on_delete=models.PROTECT, related_name="%(class)s_chave_cliente", null=True,
@@ -612,6 +628,7 @@ class NOTAS(ReadOnlyMixin, models.Model):
     FRETE_INCL_ITEM = models.CharField("Frete Incluso nos Itens", max_length=3, null=True, blank=True)
     VALOR_FRETE_INCL_ITEM = models.DecimalField("Valor Frete Incluso nos Itens", max_digits=22, decimal_places=6,
                                                 null=True, blank=True)
+    NFE_NAC = models.CharField("NF-e Nacional", max_length=3, null=True, blank=True)
 
     @classmethod
     def filter_com_valor_comercial(cls):
@@ -646,6 +663,22 @@ class NOTAS_ITENS(ReadOnlyMixin, models.Model):
         return f'{self.CHAVE_NOTA} - {self.CHAVE_PRODUTO}'
 
 
+class NOTAS_NFE_LOG(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."NOTAS_NFE_LOG"'
+        verbose_name = 'Log NFe Nota'
+        verbose_name_plural = 'Logs NFe Notas'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CHAVE_NOTA = models.ForeignKey(NOTAS, db_column="CHAVE_NOTA", verbose_name="Nota",
+                                   on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    DESCRICAO = models.CharField("Descrição", max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.CHAVE_NOTA} - {self.DESCRICAO}'
+
+
 class INFORMACOES_CLI(ReadOnlyMixin, models.Model):
     class Meta:
         managed = False
@@ -655,20 +688,6 @@ class INFORMACOES_CLI(ReadOnlyMixin, models.Model):
 
     CHAVE = models.IntegerField("ID", primary_key=True)
     DESCRICAO = models.CharField("Descrição", max_length=100, null=True, blank=True)
-
-    def __str__(self):
-        return self.DESCRICAO
-
-
-class JOBS(ReadOnlyMixin, models.Model):
-    class Meta:
-        managed = False
-        db_table = '"COPLAS"."JOBS"'
-        verbose_name = 'Job'
-        verbose_name_plural = 'Jobs'
-
-    CODIGO = models.IntegerField("ID", primary_key=True)
-    DESCRICAO = models.CharField("Descrição", max_length=50, null=True, blank=True)
 
     def __str__(self):
         return self.DESCRICAO
