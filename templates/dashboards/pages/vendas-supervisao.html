@@ -91,7 +91,7 @@
 
                         <div class="div-dashboard">
                             <p class="fonte-verde">Pedidos Mês</p>
-                            <p>R$ {{ dados.pedidos_mes | floatformat:"2" }}</p>
+                            <p>R$ {{ dados.pedidos_mes | floatformat:"2" }} <a class="fonte-verde" target="_blank" href="{% url "dashboards:detalhes-dia" %}?carteira=">⊕</a></p>
                         </div>
 
                         <div class="div-dashboard">

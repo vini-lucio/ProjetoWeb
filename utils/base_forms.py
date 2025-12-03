@@ -41,6 +41,12 @@ class FormVendedoresMixIn(forms.Form):
     carteira = forms.ModelChoiceField(carteiras, label="Carteira")
 
 
+class FormVendedoresNonRequiredMixIn(FormVendedoresMixIn):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['carteira'].required = False
+
+
 class FormCampoGrandeMixIn(forms.ModelForm):
     """Mixin para aumentar campos em formularios.
 

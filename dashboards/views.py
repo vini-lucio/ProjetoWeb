@@ -14,7 +14,7 @@ import plotly.io as pio
 import plotly.graph_objects as go
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.data_hora_atual import data_x_dias
-from utils.base_forms import FormVendedoresMixIn
+from utils.base_forms import FormVendedoresMixIn, FormVendedoresNonRequiredMixIn
 from utils.cor_rentabilidade import get_cores_rentabilidade
 from utils.plotly_parametros import update_layout_kwargs
 from utils.site_setup import get_site_setup
@@ -245,7 +245,7 @@ def detalhes_dia(request):
     Contexto:
     ---------
     :titulo_pagina (str): com o titulo da pagina
-    :formulario (FormVendedoresMixIn): com o formulario
+    :formulario (FormVendedoresNonRequiredMixIn): com o formulario
 
     Se o formulario estiver valido:
 
@@ -254,16 +254,16 @@ def detalhes_dia(request):
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
 
-    formulario = FormVendedoresMixIn()
+    formulario = FormVendedoresNonRequiredMixIn()
 
     if request.method == 'GET' and request.GET:
-        formulario = FormVendedoresMixIn(request.GET)
+        formulario = FormVendedoresNonRequiredMixIn(request.GET)
         if formulario.is_valid():
             carteira = formulario.cleaned_data.get('carteira')
             carteira_nome = carteira.nome if carteira else '%%'
             contexto['titulo_pagina'] += f' {carteira_nome}' if carteira_nome != '%%' else ' Todos'
 
-            carteira_parametros = carteira.carteira_parametros()  # type:ignore
+            carteira_parametros = carteira.carteira_parametros() if carteira else {}  # type:ignore
 
             site_setup = get_site_setup()
             inicio = None
