@@ -123,6 +123,14 @@ class IndicadoresValores(models.Model):
     valor_meta = models.DecimalField("Valor Meta", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
     valor_real = models.DecimalField("Valor Real", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
 
+    @property
+    def indicador_descricao(self):
+        return self.indicador.descricao
+
+    @property
+    def periodo_descricao(self):
+        return str(self.periodo)
+
     def save(self, *args, **kwargs):
         """Ao incluir um novo Indicador Valor, são adicionados em Metas Carteiras todos os Vendedores ativos com
         o novo Indicador Valor"""
@@ -214,6 +222,20 @@ class MetasCarteiras(models.Model):
     valor_meta = models.DecimalField("Valor Meta", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
     valor_real = models.DecimalField("Valor Real", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
     considerar_total = models.BooleanField("Considerar Valores no Total", default=False)
+
+    @property
+    def indicador_valor_descricao(self):
+        return str(self.indicador_valor)
+
+    @property
+    def vendedor_nome(self):
+        return str(self.vendedor)
+
+    @property
+    def responsavel_nome(self):
+        if not self.responsavel:
+            return ''
+        return self.responsavel.nome
 
     def clean(self):
         """Garante que indicador seja 'Meta Carteiras'"""

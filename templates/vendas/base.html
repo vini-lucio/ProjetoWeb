@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        {% include "vendas/partials/_head.html" %}
+    </head>
+    <body>
+
+        {% comment %} {% include "vendas/partials/_cabecalho.html" %} {% endcomment %}
+
+        {% block conteudo %}{% endblock conteudo %}
+        
+        {% include "vendas/partials/_paginacao.html" %}
+
+        {% comment %} {% include "vendas/partials/_rodape.html" %} {% endcomment %}
+
+        <a href="#"><div class="botao-div topo">⇧</div></a>
+        
+    </body>
+</html>

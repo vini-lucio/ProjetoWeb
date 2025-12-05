@@ -1,6 +1,6 @@
 from django.contrib import admin
 from dashboards.models import Indicadores, IndicadoresValores, MetasCarteiras, IndicadoresPeriodos
-from utils.base_models import BaseModelAdminRedRequired
+from utils.base_models import BaseModelAdminRedRequired, ExportarXlsxMixIn
 
 
 @admin.register(Indicadores)
@@ -19,21 +19,28 @@ class IndicadoresPeriodosAdmin(BaseModelAdminRedRequired):
 
 
 @admin.register(IndicadoresValores)
-class IndicadoresValoresAdmin(BaseModelAdminRedRequired):
+class IndicadoresValoresAdmin(ExportarXlsxMixIn, BaseModelAdminRedRequired):
     list_display = 'id', 'indicador', 'periodo', 'valor_meta', 'valor_real',
     list_display_links = list_display
     ordering = '-periodo__ano_referencia', '-periodo__mes_referencia', 'indicador'
     search_fields = 'indicador__descricao',
 
+    actions = 'exportar_excel',
+    campos_exportar = ['indicador_descricao', 'periodo_descricao', 'valor_meta', 'valor_real',]
+
 
 @admin.register(MetasCarteiras)
-class MetasCarteirasAdmin(BaseModelAdminRedRequired):
+class MetasCarteirasAdmin(ExportarXlsxMixIn, BaseModelAdminRedRequired):
     list_display = 'id', 'indicador_valor', 'vendedor', 'responsavel', 'valor_meta', 'valor_real', 'considerar_total',
     list_display_links = list_display
     ordering = '-pk',
     search_fields = 'vendedor__nome',
     autocomplete_fields = 'responsavel',
     readonly_fields = 'indicador_valor',
+
+    actions = 'exportar_excel',
+    campos_exportar = ['indicador_valor_descricao', 'vendedor_nome', 'responsavel_nome', 'valor_meta', 'valor_real',
+                       'considerar_total',]
 
     def get_readonly_fields(self, request, obj):
         campos = super().get_readonly_fields(request, obj)

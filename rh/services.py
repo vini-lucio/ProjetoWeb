@@ -6,7 +6,7 @@ def get_funcionarios_ativos(funcionarios):
 
 
 def get_funcionarios_salarios_atuais(funcionarios, somente_ativos=True):
-    """Função descontinuada. Essa função funciona, mas usar model de FuncionariosSalarioFuncaoAtual.
+    """Função similar ao model de FuncionariosSalarioFuncaoAtual.
 
     Retorna lista com salarios atuais de funcionarios.
 

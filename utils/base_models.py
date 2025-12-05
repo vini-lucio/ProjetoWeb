@@ -107,6 +107,7 @@ class ExportarXlsxMixIn:
     campos_exportar = []
 
     def exportar_excel(self, request, queryset):
+        # TODO: fazer funcionar com chave estrangeira (detectar __ e usar getattr?)
         meta = self.model._meta  # type:ignore
 
         response = HttpResponse(

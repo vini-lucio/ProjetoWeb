@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Count, F, Sum
+from django.utils.safestring import mark_safe
 from analysis.models import NOTAS
 from home.models import Jobs, Responsaveis
 from utils.base_models import BaseLogModel
@@ -60,6 +62,13 @@ class RncNotas(BaseLogModel):
         return NOTAS.objects.filter(NF=self.nota_fiscal, CHAVE_JOB__DESCRICAO=self.job.descricao,
                                     NFE_NAC='SIM').first()
 
+    def link_abrir_sacpm(self):
+        """Retorna codigo html com a tag de link para a pagina de abertura de SACPM para ser injetado na
+        pagina de admin."""
+        return mark_safe('<a href="/home_link/formulario-sacpm/" target="_blank">Link SACPM</a>')
+
+    link_abrir_sacpm.short_description = 'Abrir SACPM'
+
     @property
     def cliente(self):
         nota = self.get_nota()
@@ -84,3 +93,68 @@ class RncNotas(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.job} - {self.nota_fiscal}'
+
+    @classmethod
+    def quantidade_por_responsavel(cls, data_inicio, data_fim):
+        """Lista a quantidade de RNCs por responsavel.
+
+        Parametros:
+        -----------
+        :data_inicio (Date): com a data inicial
+        :data_fim (Date): com a data final
+
+        Retorno:
+        --------
+        :ValuesQuerySet: com as quantidades de RNCs por responsavel"""
+        rncs = cls.objects.filter(data__gte=data_inicio, data__lte=data_fim)
+        rncs = rncs.values('responsavel__nome').annotate(quantidade=Count('pk'))
+        return rncs.order_by('-quantidade')
+
+    @classmethod
+    def custo_nao_recuperado_por_responsavel(cls, data_inicio, data_fim):
+        """Lista o custo não recuperado de RNCs por responsavel.
+
+        Parametros:
+        -----------
+        :data_inicio (Date): com a data inicial
+        :data_fim (Date): com a data final
+
+        Retorno:
+        --------
+        :ValuesQuerySet: com os custos não recuperados de RNCs por responsavel"""
+        rncs = cls.objects.filter(data__gte=data_inicio, data__lte=data_fim)
+        rncs = rncs.values('responsavel__nome').annotate(
+            custo_nao_recuperado=Sum(F('custo_adicional') - F('custo_recuperado')))
+        return rncs.order_by('-custo_nao_recuperado')
+
+    @classmethod
+    def quantidade_por_origem(cls, data_inicio, data_fim):
+        """Lista a quantidade de RNCs por origem.
+
+        Parametros:
+        -----------
+        :data_inicio (Date): com a data inicial
+        :data_fim (Date): com a data final
+
+        Retorno:
+        --------
+        :ValuesQuerySet: com as quantidades de RNCs por origem"""
+        rncs = cls.objects.filter(data__gte=data_inicio, data__lte=data_fim)
+        rncs = rncs.values('origem').annotate(quantidade=Count('pk'))
+        return rncs.order_by('-quantidade')
+
+    @classmethod
+    def quantidade_por_motivo(cls, data_inicio, data_fim):
+        """Lista a quantidade de RNCs por motivo.
+
+        Parametros:
+        -----------
+        :data_inicio (Date): com a data inicial
+        :data_fim (Date): com a data final
+
+        Retorno:
+        --------
+        :ValuesQuerySet: com as quantidades de RNCs por motivo"""
+        rncs = cls.objects.filter(data__gte=data_inicio, data__lte=data_fim)
+        rncs = rncs.values('motivo__descricao').annotate(quantidade=Count('pk'))
+        return rncs.order_by('-quantidade')

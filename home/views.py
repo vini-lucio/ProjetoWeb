@@ -22,7 +22,7 @@ from datetime import datetime
 # TODO: conferencia de campos não obrigatorios para serem preenchidos (exemplo: cadastros de produtos campos de calculo de frete e modelo, modelos sem tags)
 # TODO: Paginas personalizadas com informassões consolidades de clientes, produtos, vendas, produção, financeiro, etc???????
 # TODO: rest
-# TODO: documentar (google docstring, sphinx)
+# TODO: managers no lugar de class method para filtros customizados?
 
 # TODO: substituir sistema rnc marco moreno
 
