@@ -24,7 +24,7 @@ from datetime import datetime
 # TODO: rest
 # TODO: managers no lugar de class method para filtros customizados?
 
-# TODO: substituir sistema rnc marco moreno
+# TODO: substituir sistema monitoramento marco moreno?
 
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')

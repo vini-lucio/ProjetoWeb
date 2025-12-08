@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Count, F, Sum
+from django.db.models import Count, F, Sum, Q
 from django.utils.safestring import mark_safe
 from analysis.models import NOTAS
 from home.models import Jobs, Responsaveis
@@ -83,7 +83,8 @@ class RncNotas(BaseLogModel):
         nota = self.get_nota()
         if not nota:
             return ''
-        descricao = nota.notas_nfe_log.filter(DESCRICAO__icontains='NF CANCELADA')  # type:ignore
+        descricao = nota.notas_nfe_log.filter(Q(DESCRICAO__icontains='NF CANCELADA') | Q(  # type:ignore
+            DESCRICAO__icontains='NFe REJEITADA'))
         descricao = descricao.order_by('-pk').first()
         if not descricao:
             return ''
