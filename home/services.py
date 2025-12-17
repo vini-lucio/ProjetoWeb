@@ -1,13 +1,15 @@
 from typing import Iterable
 from collections import Counter
 from decimal import Decimal
+from django.db.models import Q
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
 from dashboards.services_financeiro import get_relatorios_financeiros, get_relatorios_financeiros_faturamentos
 from home.models import (Cidades, Unidades, Produtos, Estados, EstadosIcms, Vendedores, CanaisVendas, Regioes,
-                         ProdutosModelos)
+                         ProdutosModelos, ProdutosTipos)
 from rh.models import Comissoes, ComissoesVendedores, Faturamentos, FaturamentosVendedores
-from analysis.models import VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES, PRODUTOS, CANAIS_VENDA, REGIOES
+from analysis.models import (VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES, PRODUTOS, CANAIS_VENDA, REGIOES,
+                             TIPO_PRODUTOS)
 from utils.completar import completar_meses
 from utils.site_setup import get_site_setup
 from utils.conferir_alteracao import campo_migrar_mudou
@@ -2870,6 +2872,31 @@ def migrar_unidades():
                 instancia.save()
 
 
+def migrar_produtos_tipos():
+    mapeamento_destino_origem = {
+        'descricao': 'TIPO',
+    }
+
+    origem = TIPO_PRODUTOS.objects.all()
+    if origem:
+        destino = ProdutosTipos.objects
+        for objeto_origem in origem:
+            objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
+
+            mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
+
+            if mudou:
+                instancia, criado = destino.update_or_create(
+                    chave_analysis=objeto_origem.pk,
+                    defaults={
+                        'chave_analysis': objeto_origem.pk,
+                        'descricao': objeto_origem.TIPO,
+                    }
+                )
+                instancia.full_clean()
+                instancia.save()
+
+
 def migrar_produtos():
     mapeamento_destino_origem = {
         'nome': 'CODIGO',
@@ -2878,12 +2905,14 @@ def migrar_produtos():
         'peso_liquido': 'PESO_LIQUIDO',
         'peso_bruto': 'PESO_BRUTO',
         'ean13': 'CODIGO_BARRA',
+        'tipo': ('CHAVE_TIPO', ('chave_analysis', 'CHAVE')),
     }
 
-    origem = PRODUTOS.objects.filter(CHAVE_FAMILIA__CHAVE__in=(7766, 7767, 8378, 12441)).all()
+    origem = PRODUTOS.objects.filter(Q(CHAVE_FAMILIA__CHAVE__in=(7766, 7767, 8378, 12441)) | Q(CHAVE_GRUPO=8273)).all()
     if origem:
         destino = Produtos.objects
         unidade = Unidades.objects
+        tipo = ProdutosTipos.objects
         for objeto_origem in origem:
             objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
 
@@ -2905,6 +2934,7 @@ def migrar_produtos():
 
             if mudou:
                 fk_unidade = unidade.filter(chave_analysis=objeto_origem.CHAVE_UNIDADE.CHAVE).first()  # type:ignore
+                fk_tipo = tipo.filter(chave_analysis=objeto_origem.CHAVE_TIPO.CHAVE).first()  # type:ignore
 
                 instancia, criado = destino.update_or_create(
                     chave_analysis=objeto_origem.pk,
@@ -2918,6 +2948,7 @@ def migrar_produtos():
                         'peso_liquido': round(objeto_origem.PESO_LIQUIDO, 4),  # type:ignore
                         'peso_bruto': round(objeto_origem.PESO_BRUTO, 4),  # type:ignore
                         'ean13': objeto_origem.CODIGO_BARRA,
+                        'tipo': fk_tipo,
                     }
                 )
                 instancia.m3_volume = round(Decimal(instancia.m3_volume), 4)

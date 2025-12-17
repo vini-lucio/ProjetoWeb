@@ -7,7 +7,7 @@ from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesT
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
                          ProdutosModelosTags, Unidades, Produtos, EstadosIcms, Vendedores, CanaisVendas, Regioes,
                          VendedoresRegioes, VendedoresEstados, ControleInscricoesEstaduais, InscricoesEstaduais,
-                         Responsaveis)
+                         Responsaveis, Fornecedores, ProdutosTipos)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn, ExportarXlsxMixIn)
@@ -296,6 +296,14 @@ class UnidadesAdmin(BaseModelAdminRedRequired):
     search_fields = 'unidade', 'descricao',
 
 
+@admin.register(ProdutosTipos)
+class ProdutosTiposAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'descricao',
+    list_display_links = list_display
+    ordering = 'descricao',
+    search_fields = 'descricao',
+
+
 @admin.register(Produtos)
 class ProdutosAdmin(BaseModelAdminRedRequiredLog):
     list_display = 'id', 'nome', 'm3_volume', 'status',
@@ -318,6 +326,7 @@ class ProdutosAdmin(BaseModelAdminRedRequiredLog):
         (None, {
             "fields": (
                 'chave_analysis', 'modelo', 'nome', 'unidade', 'descricao', 'peso_liquido', 'peso_bruto', 'status',
+                'tipo',
             ),
         }),
         ('Embalagem', {
@@ -422,3 +431,11 @@ class ResponsaveisAdmin(BaseModelAdminRedRequired):
 #     ordering = 'vendedor',
 #     search_fields = 'vendedor',
 #     autocomplete_fields = 'vendedor', 'regiao',
+
+
+@admin.register(Fornecedores)
+class FornecedoresAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'nome_reduzido', 'sigla',
+    list_display_links = list_display
+    search_fields = 'sigla',
+    readonly_fields = 'nome', 'nome_reduzido'

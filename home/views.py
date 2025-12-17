@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils.text import slugify
 from .services import (get_tabela_precos, migrar_cidades, migrar_unidades, migrar_produtos, migrar_estados,
                        migrar_estados_icms, migrar_vendedores, migrar_canais_vendas, migrar_regioes, migrar_comissoes,
-                       migrar_faturamentos, sugestoes_modelos)
+                       migrar_faturamentos, sugestoes_modelos, migrar_produtos_tipos)
 from .forms import ConfirmacaoMigrar, ConfirmacaoMigrarDataFimNonRequired, ConfirmacaoMigrarData
 from django.contrib.auth.decorators import user_passes_test
 from datetime import datetime
@@ -55,8 +55,9 @@ def migracao(request):
             formulario_migrar_produtos = ConfirmacaoMigrar(request.POST, id_confirma=id_confirma_produtos)
             if formulario_migrar_produtos.is_valid() and formulario_migrar_produtos.cleaned_data['confirma']:
                 migrar_unidades()
+                migrar_produtos_tipos()
                 migrar_produtos()
-                mensagem = "Migração de produtos e unidades concluída!"
+                mensagem = "Migração de produtos, tipos de produtos e unidades concluída!"
                 extra_tags = 'produtos'
 
         elif 'unidades-submit' in request.POST:

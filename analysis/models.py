@@ -192,6 +192,20 @@ class MARCAS(ReadOnlyMixin, models.Model):
         return self.MARCA
 
 
+class TIPO_PRODUTOS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."TIPO_PRODUTOS"'
+        verbose_name = 'Tipo de Produto'
+        verbose_name_plural = 'Tipos de Produto'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    TIPO = models.CharField("Tipo", max_length=20, null=True, blank=True)
+
+    def __str__(self):
+        return self.TIPO
+
+
 class PRODUTOS(ReadOnlyMixin, models.Model):
     class Meta:
         managed = False
@@ -217,6 +231,8 @@ class PRODUTOS(ReadOnlyMixin, models.Model):
     CARACTERISTICA2 = models.CharField("Caracteristica 2", max_length=4000, null=True, blank=True)
     CHAVE_MARCA = models.ForeignKey(MARCAS, db_column="CHAVE_MARCA", verbose_name="Marca",
                                     on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_TIPO = models.ForeignKey(TIPO_PRODUTOS, db_column="CHAVE_TIPO", verbose_name="Tipo",
+                                   on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
 
     def __str__(self):
         return self.CODIGO
@@ -691,3 +707,18 @@ class INFORMACOES_CLI(ReadOnlyMixin, models.Model):
 
     def __str__(self):
         return self.DESCRICAO
+
+
+class FORNECEDORES(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."FORNECEDORES"'
+        verbose_name = 'Fornecedor'
+        verbose_name_plural = 'Fornecedores'
+
+    CODFOR = models.IntegerField("ID", primary_key=True)
+    NOMERED = models.CharField("Nome Reduzido", max_length=20, null=True, blank=True)
+    NOME = models.CharField("Razão Social", max_length=50, null=True, blank=True)
+
+    def __str__(self):
+        return self.NOMERED

@@ -30,7 +30,7 @@
                 <form method="POST" action="{% url "home:migracao" %}">
                     {% csrf_token %}
                     {{ formulario_migrar_produtos.as_p }}
-                    <button id="migrar-produtos" name="produtos-submit" onclick="mudarTextoProdutos()" class="botao" type="submit">Atualizar Cadastro de Produtos e Unidades</button>
+                    <button id="migrar-produtos" name="produtos-submit" onclick="mudarTextoProdutos()" class="botao" type="submit">Atualizar Cadastro de Produtos, Tipos de Produtos e Unidades</button>
                     {% if messages %}
                         {% for mensagem in messages %}
                             {% if 'produtos' in mensagem.tags %}

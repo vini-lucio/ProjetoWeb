@@ -27,7 +27,7 @@ def campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
     :objeto_origem [model]: com o objeto de origem da comparação.
     :mapeamento_destino_origem [dict[str, str | tuple[str, tuple[str, str]]]]: com a relação de campos. Quando campo
     não for chave estrangeira a chave é o campo_destino e valor é o campo_origem, ex: 'nome': 'CIDADE'. Se o campo for
-    chave estrangeira a chave é o campo_destino e o valor é uma tupla com o campo_destino e outra tupla com o campo da chave estrangeira do destino e campo da chave estrangeira da origem, ex: 'estado': ('UF', ('sigla', 'SIGLA')).
+    chave estrangeira a chave é o campo_destino e o valor é uma tupla com o campo_origem e outra tupla com o campo da chave estrangeira do destino e campo da chave estrangeira da origem, ex: 'estado': ('UF', ('sigla', 'SIGLA')).
 
     >>> mapeamento_destino_origem = {
         'estado': ('UF', ('sigla', 'SIGLA')),

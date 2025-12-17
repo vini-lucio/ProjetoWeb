@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'analysis',
     'marketing',
     'vendas',
+    'estoque',
     'django_summernote',
 ]
 

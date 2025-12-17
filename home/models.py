@@ -1,3 +1,4 @@
+from analysis.models import FORNECEDORES
 from django.apps import apps
 from django.db import models
 from django.utils.text import slugify
@@ -727,6 +728,30 @@ class Unidades(models.Model):
         return f'{self.descricao}'
 
 
+class ProdutosTipos(models.Model):
+    class Meta:
+        verbose_name = 'Tipo de Produto'
+        verbose_name_plural = 'Tipos de Produto'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['chave_analysis',],
+                name='produtos_tipos_unique_chave_analysis',
+                violation_error_message="Chave Analysis é unico em Produtos Tipos"
+            ),
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='produtos_tipos_unique_descricao',
+                violation_error_message="Unidade é unico em Produtos Tipos"
+            ),
+        ]
+
+    chave_analysis = models.IntegerField("ID Analysis")
+    descricao = models.CharField("Descrição", max_length=20)
+
+    def __str__(self) -> str:
+        return f'{self.descricao}'
+
+
 class Produtos(BaseLogModel):
     class Meta:
         verbose_name = 'Produto'
@@ -842,6 +867,9 @@ class Produtos(BaseLogModel):
     aditivo_percentual = models.DecimalField("% Aditivo (cor)", max_digits=5, decimal_places=2,
                                              default=0)  # type:ignore
     prioridade = models.DecimalField("Prioridade", max_digits=4, decimal_places=0, default=0)  # type:ignore
+    # TODO: tipo ser obrigatorio
+    tipo = models.ForeignKey(ProdutosTipos, verbose_name="Tipo", on_delete=models.PROTECT, related_name="%(class)s",
+                             null=True, blank=True)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     @classmethod
@@ -1070,3 +1098,49 @@ class Responsaveis(models.Model):
 
     def __str__(self) -> str:
         return f'{self.nome} - {self.status}'
+
+
+class Fornecedores(models.Model):
+    class Meta:
+        verbose_name = 'Fornecedor'
+        verbose_name_plural = 'Fornecedores'
+        ordering = 'sigla',
+        constraints = [
+            models.UniqueConstraint(
+                fields=['chave_analysis',],
+                name='fornecedores_unique_chave_analysis',
+                violation_error_message="Chave Analysis é campo unico"
+            ),
+            models.UniqueConstraint(
+                fields=['sigla',],
+                name='fornecedores_unique_sigla',
+                violation_error_message="Sigla é campo unico"
+            ),
+        ]
+
+    chave_analysis = models.IntegerField("ID Analysis")
+    sigla = models.CharField("Sigla", max_length=5)
+
+    def get_fornecedor(self):
+        return FORNECEDORES.objects.filter(CODFOR=self.chave_analysis).first()
+
+    @property
+    def nome(self):
+        fornecedor = self.get_fornecedor()
+        if not fornecedor:
+            return ''
+        return fornecedor.NOME
+
+    nome.fget.short_description = 'Nome'  # type:ignore
+
+    @property
+    def nome_reduzido(self):
+        fornecedor = self.get_fornecedor()
+        if not fornecedor:
+            return ''
+        return fornecedor.NOMERED
+
+    nome_reduzido.fget.short_description = 'Nome Reduzido'  # type:ignore
+
+    def __str__(self) -> str:
+        return self.sigla
