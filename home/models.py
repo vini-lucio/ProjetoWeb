@@ -867,9 +867,7 @@ class Produtos(BaseLogModel):
     aditivo_percentual = models.DecimalField("% Aditivo (cor)", max_digits=5, decimal_places=2,
                                              default=0)  # type:ignore
     prioridade = models.DecimalField("Prioridade", max_digits=4, decimal_places=0, default=0)  # type:ignore
-    # TODO: tipo ser obrigatorio (preencher todos os que estão em branco primeiro com comando customizado)
-    tipo = models.ForeignKey(ProdutosTipos, verbose_name="Tipo", on_delete=models.PROTECT, related_name="%(class)s",
-                             null=True, blank=True)
+    tipo = models.ForeignKey(ProdutosTipos, verbose_name="Tipo", on_delete=models.PROTECT, related_name="%(class)s")
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     @classmethod
