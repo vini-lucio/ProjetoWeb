@@ -38,6 +38,8 @@ def relatorios_rnc(request):
             quantidade_por_origem = RncNotas.quantidade_por_origem(inicio, fim)
             quantidade_por_motivo = RncNotas.quantidade_por_motivo(inicio, fim)
 
+            totais = RncNotas.totais(inicio, fim)
+
             dados_grafico_pie = [
                 {
                     'df': pd.DataFrame(quantidade_por_responsavel),
@@ -122,7 +124,8 @@ def relatorios_rnc(request):
                     graficos_dados_bar_html.append(grafico_html)
 
             contexto.update({'graficos_dados_pie_html': graficos_dados_pie_html,
-                             'graficos_dados_bar_html': graficos_dados_bar_html, })
+                             'graficos_dados_bar_html': graficos_dados_bar_html,
+                             'totais': totais, })
 
     contexto.update({'formulario': formulario})
 

@@ -15,13 +15,14 @@ class MotivosRncAdmin(BaseModelAdminRedRequired):
 @admin.register(RncNotas)
 class RncNotasAdmin(BaseModelAdminRedRequiredLog):
     list_display = ('id', 'job__descricao', 'nota_fiscal', 'cliente', 'responsavel__nome', 'follow_up_preenchido',
-                    'link_abrir_sacpm',)
-    list_display_links = 'id', 'job__descricao', 'nota_fiscal', 'cliente', 'responsavel__nome', 'follow_up_preenchido',
+                    'procedente', 'link_abrir_sacpm',)
+    list_display_links = ('id', 'job__descricao', 'nota_fiscal', 'cliente', 'responsavel__nome', 'follow_up_preenchido',
+                          'procedente',)
     ordering = '-pk',
     search_fields = 'nota_fiscal', 'responsavel__nome',
-    list_filter = [('follow_up', admin.EmptyFieldListFilter),]
+    list_filter = [('follow_up', admin.EmptyFieldListFilter), 'procedente',]
     readonly_fields = ['criado_por', 'criado_em', 'atualizado_por', 'atualizado_em', 'cliente',
-                       'descricao_cancelamento', 'link_abrir_sacpm',]
+                       'descricao_cancelamento', 'procedente', 'link_abrir_sacpm',]
 
     fieldsets = (
         (None, {
@@ -31,12 +32,12 @@ class RncNotasAdmin(BaseModelAdminRedRequiredLog):
         }),
         ('Detalhes', {
             "fields": (
-                'cliente', 'origem', 'motivo', 'descricao_cancelamento', 'descricao', 'acao_imediata',
+                'cliente', 'descricao_cancelamento', 'descricao', 'acao_imediata',
             ),
         }),
         ('Resolução', {
             "fields": (
-                'custo_adicional', 'custo_recuperado', 'follow_up',
+                'origem', 'motivo', 'custo_adicional', 'custo_recuperado', 'follow_up', 'procedente',
             ),
         }),
         ('Logs', {
@@ -51,14 +52,21 @@ class RncNotasAdmin(BaseModelAdminRedRequiredLog):
         return bool(obj.follow_up)
 
     def get_readonly_fields(self, request: HttpRequest, obj):
-        """Usuarios do grupo Vendas tem restrição na edição dos campos."""
+        """Usuarios do grupo Vendas tem restrição na edição dos campos. Campo procedente, só é possivel marcar quando
+        campo follow_up é preenchido e bloqueia usuarios do grupo Vendas de editar o registro."""
         usuario_vendas = request.user.groups.filter(name='Vendas').exists()
         campos = list(super().get_readonly_fields(request, obj))
 
         if not usuario_vendas:
+            if obj:
+                if obj.follow_up:
+                    campos.remove('procedente')
             return campos
 
-        campos += ['job', 'nota_fiscal', 'data', 'responsavel', 'acao_imediata', 'origem', 'motivo', 'custo_adicional',
-                   'descricao']
+        campos += ['job', 'nota_fiscal', 'data', 'responsavel', 'acao_imediata', 'custo_adicional', 'descricao',]
+
+        if obj:
+            if obj.procedente:
+                campos += ['origem', 'motivo', 'custo_recuperado', 'follow_up',]
 
         return campos

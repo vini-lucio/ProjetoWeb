@@ -25,6 +25,29 @@
                 <p>{{ erros }}</p>
             {% endif %}
 
+            <div class="moldura-verde-dashboard grid">
+                <div>
+                    <p class="fonte-verde">Custo Total</p>
+                    <p>R$ {{ totais.custo_total | floatformat:"2" }}</p>
+                </div>
+                <div>
+                    <p class="fonte-verde">Recuperado</p>
+                    <p>R$ {{ totais.custo_recuperado_total | floatformat:"2" }}</p>
+                </div>
+                <div>
+                    <p class="fonte-verde">Recuperado %</p>
+                    <p>{{ totais.custo_recuperado_percentual | floatformat:"2" }}%</p>
+                </div>
+                <div>
+                    <p class="fonte-verde">Não Recuperado</p>
+                    <p>R$ {{ totais.custo_nao_recuperado_total | floatformat:"2" }}</p>
+                </div>
+                <div>
+                    <p class="fonte-verde">Quantidade RNC's</p>
+                    <p>{{ totais.quantidade_total | floatformat:"0" }}</p>
+                </div>
+            </div>
+
             <div class="grid">
                 <div class="moldura-verde-dashboard grid">
                     {% for grafico in graficos_dados_bar_html %}

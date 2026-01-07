@@ -69,6 +69,7 @@ def vendas_carteira(request):
                 inicio = formulario.cleaned_data.get('inicio') if not em_aberto else None
                 fim = formulario.cleaned_data.get('fim') if not em_aberto else None
 
+                # TODO: filtrar pela legenda? Em aberto, perdido e liquidado (status) e por oportunidade
                 valores_periodo = get_relatorios_vendas(fonte=fonte, inicio=inicio, fim=fim, coluna_data_emissao=True,
                                                         coluna_status_documento=True, coluna_job=True,
                                                         status_documento_em_aberto=em_aberto,

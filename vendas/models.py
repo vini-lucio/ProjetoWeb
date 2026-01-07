@@ -49,14 +49,16 @@ class RncNotas(BaseLogModel):
     responsavel = models.ForeignKey(Responsaveis, verbose_name="Responsavel", on_delete=models.PROTECT,
                                     related_name="%(class)s")
     acao_imediata = models.TextField("Ação Imediata")
-    origem = models.CharField("Origem", max_length=20, choices=origens)  # type:ignore
-    motivo = models.ForeignKey(MotivosRnc, verbose_name="Motivo", on_delete=models.PROTECT, related_name="%(class)s")
+    origem = models.CharField("Origem", max_length=20, choices=origens, blank=True, null=True)  # type:ignore
+    motivo = models.ForeignKey(MotivosRnc, verbose_name="Motivo", on_delete=models.PROTECT, related_name="%(class)s",
+                               blank=True, null=True)
     follow_up = models.TextField("Follow-Up", blank=True, null=True)
     custo_adicional = models.DecimalField("Custo Adicional R$", default=0.00, max_digits=15,   # type:ignore
                                           decimal_places=2)
     custo_recuperado = models.DecimalField("Custo Recuperado R$", default=0.00, max_digits=15,   # type:ignore
                                            decimal_places=2)
     descricao = models.TextField("Descrição")
+    procedente = models.BooleanField("Procedente", default=False)
 
     def get_nota(self):
         return NOTAS.objects.filter(NF=self.nota_fiscal, CHAVE_JOB__DESCRICAO=self.job.descricao,
@@ -127,6 +129,27 @@ class RncNotas(BaseLogModel):
         rncs = rncs.values('responsavel__nome').annotate(
             custo_nao_recuperado=Sum(F('custo_adicional') - F('custo_recuperado')))
         return rncs.order_by('-custo_nao_recuperado')
+
+    @classmethod
+    def totais(cls, data_inicio, data_fim):
+        """Lista os custos totais das RNCs e quantidade total.
+
+        Parametros:
+        -----------
+        :data_inicio (Date): com a data inicial
+        :data_fim (Date): com a data final
+
+        Retorno:
+        --------
+        :ValuesQuerySet: com os custos e quantidades totais"""
+        rncs = cls.objects.filter(data__gte=data_inicio, data__lte=data_fim)
+        rncs = rncs.aggregate(
+            custo_total=Sum('custo_adicional'),
+            custo_recuperado_total=Sum('custo_recuperado'),
+            custo_recuperado_percentual=Sum('custo_recuperado') / Sum('custo_adicional') * 100,
+            custo_nao_recuperado_total=Sum(F('custo_adicional') - F('custo_recuperado')),
+            quantidade_total=Count('pk'),)
+        return rncs
 
     @classmethod
     def quantidade_por_origem(cls, data_inicio, data_fim):

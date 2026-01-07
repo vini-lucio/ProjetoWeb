@@ -180,7 +180,7 @@ class Pallets(models.Model):
         return super_save
 
     def __str__(self) -> str:
-        return f'{self.endereco}'
+        return f'{self.pk} - {self.endereco}'
 
 
 class ProdutosPallets(models.Model):
