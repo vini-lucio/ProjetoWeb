@@ -146,9 +146,13 @@ class RncNotas(BaseLogModel):
         rncs = rncs.aggregate(
             custo_total=Sum('custo_adicional'),
             custo_recuperado_total=Sum('custo_recuperado'),
-            custo_recuperado_percentual=Sum('custo_recuperado') / Sum('custo_adicional') * 100,
             custo_nao_recuperado_total=Sum(F('custo_adicional') - F('custo_recuperado')),
             quantidade_total=Count('pk'),)
+
+        rncs.update({'custo_recuperado_percentual': 100})
+        if rncs.get('custo_total'):
+            rncs.update({'custo_recuperado_percentual': rncs['custo_recuperado_total'] / rncs['custo_total'] * 100})
+
         return rncs
 
     @classmethod
