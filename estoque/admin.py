@@ -77,7 +77,7 @@ class ProdutosPalletsAdmin(BaseModelAdminRedRequired):
         }),
         ('Produto', {
             "fields": (
-                'produto', 'quantidade', 'unidade',
+                ('produto', 'quantidade', 'unidade'),
             ),
         }),
         ('Materia Prima', {
@@ -86,3 +86,9 @@ class ProdutosPalletsAdmin(BaseModelAdminRedRequired):
             ),
         }),
     )
+
+    class Media (BaseModelAdminRedRequired.Media):
+        """Adiciona arquivo css ao herdado da classe pai"""
+        css = {
+            'all': BaseModelAdminRedRequired.Media.css['all'] + ('admin/css/tablet.css',)
+        }

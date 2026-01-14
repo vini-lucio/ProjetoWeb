@@ -1,0 +1,31 @@
+.content * {
+    padding-top: 0.1rem !important;
+    padding-bottom: 0.1rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+input,
+label,
+select,
+textarea,
+table tbody tr th,
+table tbody tr td,
+.submit-row input,
+.button,
+.deletelink,
+.readonly {
+    font-size: 1.25rem !important;
+    height: 2.5rem !important;
+    line-height: 2.5rem !important;
+    padding: 0.3rem !important;
+}
+
+.select2-selection__rendered,
+.select2-results ul li {
+    font-size: 1.25rem !important;
+}
+
+#toggle-nav-sidebar {
+    font-size: 2rem !important;
+}
