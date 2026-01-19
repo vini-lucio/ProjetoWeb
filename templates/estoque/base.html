@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        {% include "estoque/partials/_head.html" %}
+    </head>
+    <body>
+
+        {% comment %} {% include "estoque/partials/_cabecalho.html" %} {% endcomment %}
+
+        {% block conteudo %}{% endblock conteudo %}
+        
+        {% comment %} {% include "estoque/partials/_paginacao.html" %} {% endcomment %}
+
+        {% comment %} {% include "estoque/partials/_rodape.html" %} {% endcomment %}
+
+        {% comment %} <a href="#"><div class="botao-div topo">⇧</div></a> {% endcomment %}
+        
+    </body>
+</html>

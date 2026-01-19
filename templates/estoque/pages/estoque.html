@@ -1,0 +1,79 @@
+{% extends "estoque/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo link-conteudo-grande">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            <form id="form" method="get" class="fonte-maior">
+                <div class="grid-simples link-conteudo link-conteudo-grande">
+                    {{ formulario.as_p }}
+                </div>
+                <div class="grid link-conteudo fonte-maior">
+                    <button class="botao botao-escuro" name="pesquisar-submit" type="submit">Pesquisar</button>
+                    <a href="{% url "estoque:estoque" %}?pesquisar=Embalagem">
+                        <div class="botao-div">Embalagem</div>
+                    </a>
+                    <a href="{% url "estoque:estoque" %}?pesquisar=Expedição">
+                        <div class="botao-div">Expedição</div>
+                    </a>
+                    <a href="{% url "estoque:estoque" %}?pesquisar=Recebimento">
+                        <div class="botao-div">Recebimento</div>
+                    </a>
+                    <a href="{% url "estoque:estoque" %}?pesquisar=Picking+Produção">
+                        <div class="botao-div">Picking Produção</div>
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        
+
+        <div class="link-conteudo link-conteudo-grande fonte-maior">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if dados %}
+                <div class="tabela-simples">
+                    <table>
+                        <tr>
+                            <th>Endereço</th>
+                            <th>Col.</th>
+                            <th>Alt.</th>
+                            <th>ID Emb.</th>
+                            <th>Itens</th>
+                            <th>Produto</th>
+                            <th>Un.</th>
+                            <th>Quantidade</th>
+                            <th>Fornecedor</th>
+                            <th>Lote</th>
+                        </tr>
+                        {% for produto in dados %}
+                            <tr class="{% cycle 'principal-azul-claro' '' %}">
+                                <td>{{ produto.endereco }}</td>
+                                <td>{{ produto.endereco_coluna }}</td>
+                                <td>{{ produto.endereco_altura }}</td>
+                                <td></td>
+                                <td>{{ produto.pallet.quantidade_produtos }}</td>
+                                <td>{{ produto.produto.nome }}</td>
+                                <td>{{ produto.unidade }}</td>
+                                <td>{{ produto.quantidade }}</td>
+                                <td>{% if produto.fornecedor %}{{ produto.fornecedor }}{% endif %}</td>
+                                <td>{% if produto.lote_fornecedor %}{{ produto.lote_fornecedor }}{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

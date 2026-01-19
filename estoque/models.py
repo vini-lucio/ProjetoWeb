@@ -209,6 +209,24 @@ class ProdutosPallets(models.Model):
 
     unidade.fget.short_description = 'Unidade'  # type:ignore
 
+    @property
+    def endereco(self):
+        return self.pallet.endereco.nome
+
+    endereco.fget.short_description = 'Endereço'  # type:ignore
+
+    @property
+    def endereco_coluna(self):
+        return self.pallet.endereco.coluna
+
+    endereco_coluna.fget.short_description = 'Coluna'  # type:ignore
+
+    @property
+    def endereco_altura(self):
+        return self.pallet.endereco.altura
+
+    endereco_altura.fget.short_description = 'Altura'  # type:ignore
+
     def __str__(self) -> str:
         return f'{self.pallet} - {self.produto} - {self.quantidade} {self.unidade}'
 
