@@ -1,7 +1,9 @@
 from typing import Dict
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from django.db.models import Q
 from .models import ProdutosPallets
+from .forms import ProdutosPalletsAlterarForm, PalletsMoverForm, ProdutosPalletsMoverForm
 from utils.base_forms import FormPesquisarMixIn
 
 
@@ -31,3 +33,74 @@ def estoque(request):
     contexto.update({'formulario': formulario, })
 
     return render(request, 'estoque/pages/estoque.html', contexto)
+
+
+# TODO: forçar login required nas views de movimentação/edição
+# TODO: tratar os pallets que ocupam espaço mas não tem produtos
+
+def estoque_alterar(request, pk: int):
+    """Retorna pagina de alteração de produto no estoque"""
+    produto_pallet = get_object_or_404(ProdutosPallets, pk=pk)
+
+    titulo_pagina = 'Alterar'
+
+    # busca paremetro da url enviado na pagina de estoque para lembrar o filtro da pesquisa
+    url_destino = request.GET.get('destino', reverse('estoque:estoque'))
+
+    formulario = ProdutosPalletsAlterarForm(instance=produto_pallet)
+    if request.method == 'POST' and request.POST:
+        formulario = ProdutosPalletsAlterarForm(request.POST, instance=produto_pallet)
+        if formulario.is_valid():
+            formulario.save()
+            return redirect(url_destino)
+
+    contexto: Dict = {'titulo_pagina': titulo_pagina, 'produto_pallet': produto_pallet, 'formulario': formulario,
+                      'url_destino': url_destino, }
+
+    return render(request, 'estoque/pages/estoque-alterar.html', contexto)
+
+
+def estoque_mover(request, pk: int):
+    """Retorna pagina de alteração de produto no estoque"""
+    produto_pallet = get_object_or_404(ProdutosPallets, pk=pk)
+    pallet = produto_pallet.pallet
+
+    titulo_pagina = 'Mover'
+
+    # busca paremetro da url enviado na pagina de estoque para lembrar o filtro da pesquisa
+    url_destino = request.GET.get('destino', reverse('estoque:estoque'))
+
+    formulario_mover_pallet = PalletsMoverForm(instance=pallet)
+    formulario_mover_mesmo_produto_pallet = ProdutosPalletsMoverForm(mesmo_produto=True, instance=produto_pallet)
+    formulario_mover_diferente_produto_pallet = ProdutosPalletsMoverForm(mesmo_produto=False, instance=produto_pallet)
+
+    if request.method == 'POST' and request.POST:
+        formulario_mover_pallet = PalletsMoverForm(request.POST, instance=pallet)
+        formulario_mover_mesmo_produto_pallet = ProdutosPalletsMoverForm(request.POST, mesmo_produto=True,
+                                                                         instance=produto_pallet)
+        formulario_mover_diferente_produto_pallet = ProdutosPalletsMoverForm(request.POST, mesmo_produto=False,
+                                                                             instance=produto_pallet)
+
+        if 'salvar-submit' in request.POST:
+            if formulario_mover_pallet.is_valid():
+                formulario_mover_pallet.save()
+                return redirect(url_destino)
+
+        if 'salvar-mesmo-produto-submit' in request.POST:
+            if formulario_mover_mesmo_produto_pallet.is_valid():
+                print('teste')
+                formulario_mover_mesmo_produto_pallet.save()
+                return redirect(url_destino)
+
+        if 'salvar-produto-diferente-submit' in request.POST:
+            if formulario_mover_diferente_produto_pallet.is_valid():
+                formulario_mover_diferente_produto_pallet.save()
+                return redirect(url_destino)
+
+    contexto: Dict = {'titulo_pagina': titulo_pagina, 'pallet': pallet,
+                      'formulario_mover_pallet': formulario_mover_pallet,
+                      'formulario_mover_mesmo_produto_pallet': formulario_mover_mesmo_produto_pallet,
+                      'formulario_mover_diferente_produto_pallet': formulario_mover_diferente_produto_pallet,
+                      'url_destino': url_destino, 'produto': produto_pallet.produto}
+
+    return render(request, 'estoque/pages/estoque-mover.html', contexto)

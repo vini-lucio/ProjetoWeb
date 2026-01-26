@@ -88,11 +88,17 @@ textarea,
 button,
 table,
 li,
+summary,
 .botao-div,
 .botao-div-2 {
     font-size: var(--tamanho-fonte-p);
     line-height: var(--tamanho-linha-p);
     padding: 0 0.5rem;
+}
+
+summary {
+    cursor: pointer;
+    user-select: none;
 }
 
 .fonte-maior * {
@@ -458,8 +464,18 @@ textarea:focus {
     color: var(--vermelho-escuro);
 }
 
+.errorlist,
 .fonte-vermelho {
     color: var(--vermelho-escuro);
+}
+
+.roxo-negrito {
+    font-weight: bolder;
+    color: var(--roxo-rentabilidade-2);
+}
+
+.fonte-roxo {
+    color: var(--roxo-rentabilidade-2);
 }
 
 .ultima-linha-negrito tr:last-child td,
@@ -488,6 +504,15 @@ textarea:focus {
 
 .fonte-cinza {
     color: var(--cinza-claro);
+}
+
+.cinza-escuro-negrito {
+    font-weight: bolder;
+    color: var(--cinza-escuro);
+}
+
+.fonte-cinza-escuro {
+    color: var(--cinza-escuro);
 }
 
 .cursor-pointer {
@@ -527,6 +552,11 @@ textarea:focus {
     color: var(--azul-escuro);
 }
 
+.botao-vermelho {
+    background: var(--vermelho-escuro);
+    color: var(--azul-escuro);
+}
+
 /* .botao-div-2:hover, */
 .botao:hover,
 .botao-div:hover {
@@ -537,6 +567,11 @@ textarea:focus {
 .botao-escuro:hover {
     background: var(--azul-escuro);
     color: var(--branco);
+}
+
+.botao-vermelho:hover {
+    background: var(--amarelo-rentabilidade);
+    color: var(--azul-escuro);
 }
 
 .tag {

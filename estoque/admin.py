@@ -36,6 +36,7 @@ class EnderecosAdmin(BaseModelAdminRedRequired):
     )
 
 
+# TODO: somente readonly?
 @admin.register(Pallets)
 class PalletsAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'endereco', 'quantidade_produtos',
@@ -49,6 +50,7 @@ class PalletsAdmin(BaseModelAdminRedRequired):
         return False
 
 
+# TODO: somente readonly?
 @admin.register(ProdutosPallets)
 class ProdutosPalletsAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'pallet', 'produto', 'quantidade', 'unidade', 'fornecedor', 'lote_fornecedor',

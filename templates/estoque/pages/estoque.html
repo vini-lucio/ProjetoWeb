@@ -54,18 +54,18 @@
                             <th>Fornecedor</th>
                             <th>Lote</th>
                         </tr>
-                        {% for produto in dados %}
+                        {% for produto_pallet in dados %}
                             <tr class="{% cycle 'principal-azul-claro' '' %}">
-                                <td>{{ produto.endereco }}</td>
-                                <td>{{ produto.endereco_coluna }}</td>
-                                <td>{{ produto.endereco_altura }}</td>
+                                <td class="fonte-roxo"><a href="{% url "estoque:mover" produto_pallet.pk %}?destino={{ request.get_full_path | urlencode}}">{{ produto_pallet.endereco }}</a></td>
+                                <td class="fonte-roxo"><a href="{% url "estoque:mover" produto_pallet.pk %}?destino={{ request.get_full_path | urlencode}}">{{ produto_pallet.endereco_coluna }}</a></td>
+                                <td class="fonte-roxo"><a href="{% url "estoque:mover" produto_pallet.pk %}?destino={{ request.get_full_path | urlencode}}">{{ produto_pallet.endereco_altura }}</a></td>
                                 <td></td>
-                                <td>{{ produto.pallet.quantidade_produtos }}</td>
-                                <td>{{ produto.produto.nome }}</td>
-                                <td>{{ produto.unidade }}</td>
-                                <td>{{ produto.quantidade }}</td>
-                                <td>{% if produto.fornecedor %}{{ produto.fornecedor }}{% endif %}</td>
-                                <td>{% if produto.lote_fornecedor %}{{ produto.lote_fornecedor }}{% endif %}</td>
+                                <td>{{ produto_pallet.pallet.quantidade_produtos }}</td>
+                                <td>{{ produto_pallet.produto.nome }}</td>
+                                <td>{{ produto_pallet.unidade }}</td>
+                                <td class="fonte-roxo"><a href="{% url "estoque:alterar" produto_pallet.pk %}?destino={{ request.get_full_path | urlencode}}">{{ produto_pallet.quantidade }}</a></td>
+                                <td class="fonte-roxo">{% if produto_pallet.fornecedor %}<a href="{% url "estoque:alterar" produto_pallet.pk %}?destino={{ request.get_full_path | urlencode}}">{{ produto_pallet.fornecedor }}</a>{% endif %}</td>
+                                <td class="fonte-roxo">{% if produto_pallet.lote_fornecedor %}<a href="{% url "estoque:alterar" produto_pallet.pk %}?destino={{ request.get_full_path | urlencode}}">{{ produto_pallet.lote_fornecedor }}</a>{% endif %}</td>
                             </tr>
                         {% endfor %}
                     </table>

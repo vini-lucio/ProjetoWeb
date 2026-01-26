@@ -89,7 +89,7 @@ class Enderecos(models.Model):
             pallet_acima.save()
 
     def __str__(self) -> str:
-        return f'{self.nome}, Col.: {self.coluna}, Alt.: {self.altura} - {self.status}'
+        return f'{self.nome}, Col.: {self.coluna}, Alt.: {self.altura}'
 
 
 class Pallets(models.Model):
@@ -107,6 +107,15 @@ class Pallets(models.Model):
     endereco = models.ForeignKey(Enderecos, verbose_name="Endereço", on_delete=models.PROTECT,
                                  related_name="%(class)s")
     quantidade_produtos = models.IntegerField("Quantidade de Produtos", default=0)
+
+    @property
+    def tipo_embalagem_produto(self):
+        produto_pallet = self.produtospallets.first()  # type:ignore
+        if not produto_pallet:
+            return None
+        return produto_pallet.produto.tipo_embalagem
+
+    tipo_embalagem_produto.fget.short_description = 'Tipo de Embalagem do Produto'  # type:ignore
 
     def incluir_produto(self):
         """Soma 1 na quantidade de produtos"""
@@ -133,7 +142,10 @@ class Pallets(models.Model):
 
     def clean(self) -> None:
         """Valida se novo endereço está com status disponivel. Valida se endereço atual e endereço novo possuem
-        o mesmo tipo de produto. Valida endereço novo, quando tipo for pilha de racks, se endereço abaixo está ocupado."""
+        o mesmo tipo de produto. Valida endereço novo, quando tipo for pilha de racks, se endereço abaixo está ocupado.
+        Valida endereco novo de tipo de produto PRODUTO ACABADO com o produto de tipo de embalagem RAFIA, se o tipo
+        de endereço é diferente de pilha de rack. Valida endereco novo de tipo de produto PRODUTO ACABADO com o
+        produto de tipo de embalagem diferente de RAFIA, se o tipo de endereço é diferente de porta pallet."""
         super_clean = super().clean()
 
         if self.pk:
@@ -154,6 +166,17 @@ class Pallets(models.Model):
                         raise ValidationError({'endereco': "Endereço de tipo pilha precisa ter altura abaixo ocupada"})
                 if endereco_atual.tipo_produto != endereco_novo.tipo_produto:
                     raise ValidationError({'endereco': "Endereço de tipo de produto diferente"})
+
+                if endereco_novo.tipo_produto.descricao == 'PRODUTO ACABADO':
+                    # se houver alteração, verificar filtros do model form
+                    if self.tipo_embalagem_produto == 'RAFIA' and endereco_novo.tipo == 'pilha_rack':
+                        raise ValidationError(
+                            {'endereco': f"Endereço não permite produto com o tipo de embalagem {self.tipo_embalagem_produto}"}
+                        )
+                    if self.tipo_embalagem_produto != 'RAFIA' and endereco_novo.tipo == 'porta_pallet':
+                        raise ValidationError(
+                            {'endereco': f"Endereço não permite produto com o tipo de embalagem {self.tipo_embalagem_produto}"}
+                        )
 
         return super_clean
 
@@ -242,7 +265,7 @@ class ProdutosPallets(models.Model):
         """Se for um novo registro, um pallet é criado automaticamente no endereço de recebimento (se produto for
         tipo materia prima) ou embalagem (se produto não for tipo materia prima).
 
-        Na alteração de pallet do produto, se o produto não existe no pallet destino ele é movido e a quantidade de
+        Na alteração de pallet do produto, se o produto não existir no pallet destino ele é movido e a quantidade de
         itens é atualiza nos dois pallets. Se o produto já existir no pallet destino, ele é excluido da origem e sua
         quantidade é somada ao destino."""
 
@@ -286,4 +309,4 @@ class ProdutosPallets(models.Model):
             pallet_novo_contem_mesmo_produto.quantidade += self.quantidade
             pallet_novo_contem_mesmo_produto.full_clean()
             pallet_novo_contem_mesmo_produto.save()
-            self.delete()
+            produto_pallet_atual.delete()

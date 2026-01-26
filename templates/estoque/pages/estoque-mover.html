@@ -1,0 +1,95 @@
+{% extends "estoque/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo link-conteudo-grande">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            <form id="form" method="post" class="fonte-maior">
+                <p>Todos os produtos ({{ pallet.quantidade_produtos }}) em {{ pallet.endereco.nome}} Col. {{ pallet.endereco.coluna}} Alt. {{ pallet.endereco.altura}} para:</p>
+                {% csrf_token %}
+                <div class="grid link-conteudo link-conteudo-grande">
+                    {{ formulario_mover_pallet.as_p }}
+                </div>
+                <div class="grid link-conteudo fonte-maior">
+                    <button class="botao" name="salvar-submit" type="submit">Salvar</button>
+                    <a href="{{ url_destino }}">
+                        <div class="botao-div botao-vermelho">Cancelar</div>
+                    </a>
+                </div>
+            </form>
+
+            {% if pallet.produtospallets.all %}
+                <div class="tabela-simples fonte-maior">
+                    <table>
+                        <tr>
+                            <th>ID Emb.</th>
+                            <th>Produto</th>
+                            <th>Un.</th>
+                            <th>Quantidade</th>
+                            <th>Fornecedor</th>
+                            <th>Lote</th>
+                        </tr>
+                        {% for produto_pallet in pallet.produtospallets.all %}
+                            <tr class="{% cycle 'principal-azul-claro' '' %}">
+                                <td></td>
+                                <td>{{ produto_pallet.produto.nome }}</td>
+                                <td>{{ produto_pallet.unidade }}</td>
+                                <td>{{ produto_pallet.quantidade }}</td>
+                                <td>{% if produto_pallet.fornecedor %}{{ produto_pallet.fornecedor }}{% endif %}</td>
+                                <td>{% if produto_pallet.lote_fornecedor %}{{ produto_pallet.lote_fornecedor }}{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
+            
+        </div>
+
+        <div class="link-conteudo link-conteudo-grande">
+            <details class="fonte-maior">
+                <summary>Juntar {{ produto.nome }} em uma posição com o mesmo item</summary>
+                <div>
+                    <form id="form-mesmo-produto" method="post" class="fonte-maior">
+                        {% csrf_token %}
+                        <div class="grid link-conteudo link-conteudo-grande">
+                            {{ formulario_mover_mesmo_produto_pallet.as_p }}
+                        </div>
+                        <div class="grid link-conteudo fonte-maior">
+                            <button class="botao" form="form-mesmo-produto" name="salvar-mesmo-produto-submit" type="submit">Salvar</button>
+                            <a href="{{ url_destino }}">
+                                <div class="botao-div botao-vermelho">Cancelar</div>
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </details>
+        </div>
+
+        <div class="link-conteudo link-conteudo-grande">
+            <details class="fonte-maior">
+                <summary>Juntar {{ produto.nome }} em uma posição com itens diferentes</summary>
+                <div>
+                    <form id="form-produto-diferente" method="post" class="fonte-maior">
+                        {% csrf_token %}
+                        <div class="grid link-conteudo link-conteudo-grande">
+                            {{ formulario_mover_diferente_produto_pallet.as_p }}
+                        </div>
+                        <div class="grid link-conteudo fonte-maior">
+                            <button class="botao" form="form-produto-diferente" name="salvar-produto-diferente-submit" type="submit">Salvar</button>
+                            <a href="{{ url_destino }}">
+                                <div class="botao-div botao-vermelho">Cancelar</div>
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </details>
+        </div>
+
+    </section>
+
+{% endblock conteudo %}
