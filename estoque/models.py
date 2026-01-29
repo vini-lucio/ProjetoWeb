@@ -123,13 +123,18 @@ class Pallets(models.Model):
         self.full_clean()
         self.save()
 
-    def remover_produto(self):
-        """Subtrai 1 na quantidade de produtos. Quando endereço é tipo chão o Pallet é excluido se nova quantidade for 0."""
+    def remover_produto(self, *args, disponibilizar_endereco: bool):
+        """Subtrai 1 na quantidade de produtos. Pallet é excluido ou não se nova quantidade for 0 de acordo com os parametros (endereços tipo chão os pallets sempre são excluidos).
+
+        Parametros:
+        -----------
+        :disponibilizar_endereco (bool, obrigatorio): se o Pallet será excluido ou não quando a nova quantidade for 0 (endereços tipo chão os pallets sempre são excluidos).
+        """
         self.quantidade_produtos -= 1
         self.full_clean()
         self.save()
 
-        if self.endereco.tipo == 'chao' and self.quantidade_produtos == 0:
+        if (self.endereco.tipo == 'chao' or disponibilizar_endereco) and self.quantidade_produtos == 0:
             self.delete()
 
     def delete(self, *args, **kwargs):
@@ -253,11 +258,16 @@ class ProdutosPallets(models.Model):
     def __str__(self) -> str:
         return f'{self.pallet} - {self.produto} - {self.quantidade} {self.unidade}'
 
-    def delete(self, *args, **kwargs):
-        """Atualiza a quantidade de produtos no pallet."""
+    def delete(self, *args, disponibilizar_endereco: bool, **kwargs):
+        """Atualiza a quantidade de produtos no pallet.
+
+        Parametros:
+        -----------
+        :disponibilizar_endereco (bool, obrigatorio): se o Pallet será excluido ou não quando a nova quantidade for 0 (endereços tipo chão os pallets sempre são excluidos).
+        """
         super_delete = super().delete(*args, **kwargs)
 
-        self.pallet.remover_produto()
+        self.pallet.remover_produto(disponibilizar_endereco=disponibilizar_endereco)
 
         return super_delete
 
@@ -266,8 +276,9 @@ class ProdutosPallets(models.Model):
         tipo materia prima) ou embalagem (se produto não for tipo materia prima).
 
         Na alteração de pallet do produto, se o produto não existir no pallet destino ele é movido e a quantidade de
-        itens é atualiza nos dois pallets. Se o produto já existir no pallet destino, ele é excluido da origem e sua
-        quantidade é somada ao destino."""
+        itens é atualiza nos dois pallets e o endereço de origem é disponibilizado se a quantidade de itens no pallet
+        for 0. Se o produto já existir no pallet destino, ele é excluido da origem e sua quantidade é somada ao destino
+        e o endereço de origem é disponibilizado se a quantidade de itens no pallet for 0."""
 
         # Inclusão
         if not self.pk:
@@ -304,9 +315,9 @@ class ProdutosPallets(models.Model):
             # Atualização da quantidade de produtos no pallet
             if pallet_atual != pallet_novo:
                 pallet_novo.incluir_produto()  # type:ignore
-                pallet_atual.remover_produto()  # type:ignore
+                pallet_atual.remover_produto(disponibilizar_endereco=True)  # type:ignore
         else:
             pallet_novo_contem_mesmo_produto.quantidade += self.quantidade
             pallet_novo_contem_mesmo_produto.full_clean()
             pallet_novo_contem_mesmo_produto.save()
-            produto_pallet_atual.delete()
+            produto_pallet_atual.delete(disponibilizar_endereco=True)

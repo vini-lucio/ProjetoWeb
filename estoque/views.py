@@ -2,8 +2,8 @@ from typing import Dict
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.db.models import Q
-from .models import ProdutosPallets
-from .forms import ProdutosPalletsAlterarForm, PalletsMoverForm, ProdutosPalletsMoverForm
+from .models import ProdutosPallets, Enderecos
+from .forms import ProdutosPalletsAlterarForm, PalletsMoverForm, ProdutosPalletsMoverForm, ProdutosPalletsExcluirForm
 from utils.base_forms import FormPesquisarMixIn
 
 
@@ -41,6 +41,9 @@ def estoque(request):
 def estoque_alterar(request, pk: int):
     """Retorna pagina de alteração de produto no estoque"""
     produto_pallet = get_object_or_404(ProdutosPallets, pk=pk)
+    pallet = produto_pallet.pallet
+    produto = produto_pallet.produto
+    endereco = pallet.endereco
 
     titulo_pagina = 'Alterar'
 
@@ -48,14 +51,28 @@ def estoque_alterar(request, pk: int):
     url_destino = request.GET.get('destino', reverse('estoque:estoque'))
 
     formulario = ProdutosPalletsAlterarForm(instance=produto_pallet)
+    formulario_excluir = ProdutosPalletsExcluirForm(pallet=pallet)
     if request.method == 'POST' and request.POST:
         formulario = ProdutosPalletsAlterarForm(request.POST, instance=produto_pallet)
-        if formulario.is_valid():
-            formulario.save()
-            return redirect(url_destino)
+        formulario_excluir = ProdutosPalletsExcluirForm(request.POST, pallet=pallet)
+
+        if 'salvar-submit' in request.POST:
+            if formulario.is_valid():
+                formulario.save()
+                return redirect(url_destino)
+
+        if 'excluir-submit' in request.POST:
+            if formulario_excluir.is_valid():
+                acao = formulario_excluir.cleaned_data.get('acao')
+                if acao == 'disponibilizar':
+                    produto_pallet.delete(disponibilizar_endereco=True)
+                else:
+                    produto_pallet.delete(disponibilizar_endereco=False)
+                return redirect(url_destino)
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, 'produto_pallet': produto_pallet, 'formulario': formulario,
-                      'url_destino': url_destino, }
+                      'url_destino': url_destino, 'pallet': pallet, 'endereco': endereco,
+                      'produto': produto, 'formulario_excluir': formulario_excluir, }
 
     return render(request, 'estoque/pages/estoque-alterar.html', contexto)
 
@@ -64,6 +81,8 @@ def estoque_mover(request, pk: int):
     """Retorna pagina de alteração de produto no estoque"""
     produto_pallet = get_object_or_404(ProdutosPallets, pk=pk)
     pallet = produto_pallet.pallet
+    produto = produto_pallet.produto
+    endereco = pallet.endereco
 
     titulo_pagina = 'Mover'
 
@@ -73,6 +92,7 @@ def estoque_mover(request, pk: int):
     formulario_mover_pallet = PalletsMoverForm(instance=pallet)
     formulario_mover_mesmo_produto_pallet = ProdutosPalletsMoverForm(mesmo_produto=True, instance=produto_pallet)
     formulario_mover_diferente_produto_pallet = ProdutosPalletsMoverForm(mesmo_produto=False, instance=produto_pallet)
+    formulario_excluir = ProdutosPalletsExcluirForm(pallet=pallet)
 
     if request.method == 'POST' and request.POST:
         formulario_mover_pallet = PalletsMoverForm(request.POST, instance=pallet)
@@ -80,15 +100,25 @@ def estoque_mover(request, pk: int):
                                                                          instance=produto_pallet)
         formulario_mover_diferente_produto_pallet = ProdutosPalletsMoverForm(request.POST, mesmo_produto=False,
                                                                              instance=produto_pallet)
+        formulario_excluir = ProdutosPalletsExcluirForm(request.POST, pallet=pallet)
 
         if 'salvar-submit' in request.POST:
             if formulario_mover_pallet.is_valid():
                 formulario_mover_pallet.save()
                 return redirect(url_destino)
 
+        if 'expedicao-picking-submit' in request.POST:
+            destino = Enderecos.objects.get(nome='Expedição')
+            if endereco.tipo_produto.descricao == "MATERIA PRIMA":
+                destino = Enderecos.objects.get(nome='Picking Produção')
+
+            pallet.endereco = destino
+            pallet.full_clean()
+            pallet.save()
+            return redirect(url_destino)
+
         if 'salvar-mesmo-produto-submit' in request.POST:
             if formulario_mover_mesmo_produto_pallet.is_valid():
-                print('teste')
                 formulario_mover_mesmo_produto_pallet.save()
                 return redirect(url_destino)
 
@@ -97,10 +127,20 @@ def estoque_mover(request, pk: int):
                 formulario_mover_diferente_produto_pallet.save()
                 return redirect(url_destino)
 
+        if 'excluir-submit' in request.POST:
+            if formulario_excluir.is_valid():
+                acao = formulario_excluir.cleaned_data.get('acao')
+                if acao == 'disponibilizar':
+                    produto_pallet.delete(disponibilizar_endereco=True)
+                else:
+                    produto_pallet.delete(disponibilizar_endereco=False)
+                return redirect(url_destino)
+
     contexto: Dict = {'titulo_pagina': titulo_pagina, 'pallet': pallet,
                       'formulario_mover_pallet': formulario_mover_pallet,
                       'formulario_mover_mesmo_produto_pallet': formulario_mover_mesmo_produto_pallet,
                       'formulario_mover_diferente_produto_pallet': formulario_mover_diferente_produto_pallet,
-                      'url_destino': url_destino, 'produto': produto_pallet.produto}
+                      'url_destino': url_destino, 'produto': produto, 'produto_pallet': produto_pallet,
+                      'endereco': endereco, 'formulario_excluir': formulario_excluir, }
 
     return render(request, 'estoque/pages/estoque-mover.html', contexto)

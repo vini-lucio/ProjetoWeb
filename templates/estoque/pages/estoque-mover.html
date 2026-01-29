@@ -14,6 +14,7 @@
                 {% csrf_token %}
                 <div class="grid link-conteudo link-conteudo-grande">
                     {{ formulario_mover_pallet.as_p }}
+                    <button class="botao" name="expedicao-picking-submit" type="submit" formnovalidate>{% if pallet.endereco.tipo_produto.descricao == "MATERIA PRIMA" %}Picking Produção{% else %}Expedição{% endif %}</button>
                 </div>
                 <div class="grid link-conteudo fonte-maior">
                     <button class="botao" name="salvar-submit" type="submit">Salvar</button>
@@ -52,7 +53,7 @@
 
         <div class="link-conteudo link-conteudo-grande">
             <details class="fonte-maior">
-                <summary>Juntar {{ produto.nome }} em uma posição com o mesmo item</summary>
+                <summary>Mover {{ produto.nome }} para uma posição com o mesmo item{% if pallet.quantidade_produtos == 1 and pallet.endereco.tipo != "chao" %}<span class="fonte-vermelho"> e disponibilizar origem</span>{% endif %}</summary>
                 <div>
                     <form id="form-mesmo-produto" method="post" class="fonte-maior">
                         {% csrf_token %}
@@ -72,7 +73,7 @@
 
         <div class="link-conteudo link-conteudo-grande">
             <details class="fonte-maior">
-                <summary>Juntar {{ produto.nome }} em uma posição com itens diferentes</summary>
+                <summary>Mover {{ produto.nome }} para uma posição com itens diferentes ou vazia{% if pallet.quantidade_produtos == 1 and pallet.endereco.tipo != "chao" %}<span class="fonte-vermelho"> e disponibilizar origem</span>{% endif %}</summary>
                 <div>
                     <form id="form-produto-diferente" method="post" class="fonte-maior">
                         {% csrf_token %}
@@ -89,6 +90,8 @@
                 </div>
             </details>
         </div>
+
+        {% include "estoque/partials/_estoque-excluir.html" %}
 
     </section>
 

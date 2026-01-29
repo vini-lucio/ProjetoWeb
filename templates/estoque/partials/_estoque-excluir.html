@@ -1,0 +1,19 @@
+<div class="link-conteudo link-conteudo-grande">
+    <details class="fonte-maior">
+        <summary>{% if endereco.tipo_produto.descricao == "MATERIA PRIMA" %}Consumir{% else %}Reembalar{% endif %} / Excluir {{ produto.nome }}</summary>
+        <div>
+            <form id="form-excluir" method="post" class="fonte-maior">
+                {% csrf_token %}
+                <div class="grid link-conteudo link-conteudo-grande">
+                    {{ formulario_excluir.as_p }}
+                </div>
+                <div class="grid link-conteudo fonte-maior">
+                    <button class="botao" form="form-excluir" name="excluir-submit" type="submit">Excluir</button>
+                    <a href="{{ url_destino }}">
+                        <div class="botao-div botao-vermelho">Cancelar</div>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </details>
+</div>

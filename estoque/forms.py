@@ -60,6 +60,30 @@ class ProdutosPalletsMoverForm(forms.ModelForm):
             self.fields['pallet'].queryset = queryset  # type:ignore
 
 
+class ProdutosPalletsExcluirForm(forms.Form):
+    acao = forms.ChoiceField(label="Ação", choices=[])
+
+    def __init__(self, *args, pallet: Pallets, **kwargs):
+        """Atualiza escolhas baseado na quantidade de produtos no pallet.
+
+        Parametros:
+        -----------
+        :pallet (Pallet, obrigatorio): com o pallet
+        """
+        super().__init__(*args, **kwargs)
+
+        disponibilizar = {
+            '': '--------',
+            'nao_disponibilizar': 'Excluir e manter ocupado o endereço',
+        }
+
+        if pallet.quantidade_produtos == 1:
+            disponibilizar.update({'disponibilizar': 'Excluir e disponibilizar o endereço', })
+
+        self.fields['acao'].choices = disponibilizar  # type:ignore
+        self.fields['acao'].initial = ''
+
+
 class PalletsMoverForm(forms.ModelForm):
     class Meta:
         model = Pallets

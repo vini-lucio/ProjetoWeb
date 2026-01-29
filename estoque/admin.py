@@ -59,6 +59,10 @@ class ProdutosPalletsAdmin(BaseModelAdminRedRequired):
     readonly_fields = 'unidade',
     autocomplete_fields = 'fornecedor', 'produto',
 
+    def has_delete_permission(self, request, obj=...) -> bool:
+        # return super().has_delete_permission(request, obj)
+        return False
+
     def get_actions(self, request: HttpRequest):
         return []
 
