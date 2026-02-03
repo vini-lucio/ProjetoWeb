@@ -6,7 +6,7 @@ from utils.base_models import BaseModelAdminRedRequired
 
 @admin.register(Enderecos)
 class EnderecosAdmin(BaseModelAdminRedRequired):
-    list_display = 'id', 'nome', 'coluna', 'altura', 'tipo', 'tipo_produto', 'status',
+    list_display = 'id', 'nome', 'coluna', 'altura', 'prioridade', 'tipo', 'tipo_produto', 'status',
     list_display_links = list_display
     search_fields = 'nome',
     readonly_fields = ['status',]
@@ -36,7 +36,6 @@ class EnderecosAdmin(BaseModelAdminRedRequired):
     )
 
 
-# TODO: somente readonly?
 @admin.register(Pallets)
 class PalletsAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'endereco', 'quantidade_produtos',
@@ -47,20 +46,28 @@ class PalletsAdmin(BaseModelAdminRedRequired):
         return []
 
     def has_add_permission(self, request: HttpRequest) -> bool:
+        # return super().has_add_permission(request)
+        return False
+
+    def has_change_permission(self, request: HttpRequest, obj=...) -> bool:
+        # return super().has_change_permission(request, obj)
         return False
 
 
-# TODO: somente readonly?
 @admin.register(ProdutosPallets)
 class ProdutosPalletsAdmin(BaseModelAdminRedRequired):
     list_display = 'id', 'pallet', 'produto', 'quantidade', 'unidade', 'fornecedor', 'lote_fornecedor',
     list_display_links = list_display
     search_fields = 'produto__nome',
-    readonly_fields = 'unidade',
+    readonly_fields = 'pallet', 'unidade',
     autocomplete_fields = 'fornecedor', 'produto',
 
     def has_delete_permission(self, request, obj=...) -> bool:
         # return super().has_delete_permission(request, obj)
+        return False
+
+    def has_change_permission(self, request: HttpRequest, obj=...) -> bool:
+        # return super().has_change_permission(request, obj)
         return False
 
     def get_actions(self, request: HttpRequest):

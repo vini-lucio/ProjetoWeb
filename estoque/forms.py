@@ -105,14 +105,16 @@ class PalletsMoverForm(forms.ModelForm):
                 if pallet.tipo_embalagem_produto == 'RAFIA':
                     filtro_remover = {'tipo': 'pilha_rack'}
 
-            self.fields['endereco'].queryset = Enderecos.objects.filter(  # type:ignore
-                tipo_produto=pallet.endereco.tipo_produto,
-                status='disponivel'
-            ).exclude(**filtro_remover)
+            lista_enderecos = Enderecos.objects.filter(tipo_produto=pallet.endereco.tipo_produto,
+                                                       status='disponivel').exclude(**filtro_remover)
 
-            # TODO: sugestão de movimentação de endereço
+            self.fields['endereco'].queryset = lista_enderecos.order_by('nome', 'coluna', 'altura')  # type:ignore
+
+            if not self.is_bound:
+                sugestao_endereco = lista_enderecos.filter(
+                    multi_pallet=False, prioridade__gte=pallet.prioridade
+                ).order_by('prioridade', 'altura', 'coluna').first()
+                self.initial['endereco'] = sugestao_endereco
 
 
-# TODO: sugerir endereço por prioridade de baixo para cima
-# TODO: tratar movimentação de produtos, em caso de só ter um produto, excluir o pallet e disponibilizar posição ao inves de deixar pallet vazio ocupando espaço?
-# TODO: remover css alternativo do app de estoque e desabilitar alterações pelo admin????
+# TODO: incluir MP a partir do RR

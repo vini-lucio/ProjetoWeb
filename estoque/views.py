@@ -1,7 +1,9 @@
 from typing import Dict
+from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.db.models import Q
+from django.db.models.functions import Concat
 from .models import ProdutosPallets, Enderecos
 from .forms import ProdutosPalletsAlterarForm, PalletsMoverForm, ProdutosPalletsMoverForm, ProdutosPalletsExcluirForm
 from utils.base_forms import FormPesquisarMixIn
@@ -21,11 +23,11 @@ def estoque(request):
 
         if formulario.is_valid():
             pesquisar = formulario.cleaned_data.get('pesquisar')
-            dados = ProdutosPallets.objects.filter(
+            dados = ProdutosPallets.objects.annotate(
+                fornecedor_lote=Concat('fornecedor__sigla', 'lote_fornecedor')).filter(
                 Q(produto__nome__icontains=pesquisar) |
                 Q(pallet__endereco__nome__icontains=pesquisar) |
-                Q(fornecedor__sigla__iexact=pesquisar) |
-                Q(lote_fornecedor__iexact=pesquisar)
+                Q(fornecedor_lote__icontains=pesquisar)
             )
 
         contexto.update({'dados': dados, })
@@ -35,9 +37,7 @@ def estoque(request):
     return render(request, 'estoque/pages/estoque.html', contexto)
 
 
-# TODO: forçar login required nas views de movimentação/edição
-# TODO: tratar os pallets que ocupam espaço mas não tem produtos
-
+@user_passes_test(lambda usuario: usuario.has_perm('estoque.change_produtospallets'), login_url='/admin/login/')
 def estoque_alterar(request, pk: int):
     """Retorna pagina de alteração de produto no estoque"""
     produto_pallet = get_object_or_404(ProdutosPallets, pk=pk)
@@ -77,6 +77,7 @@ def estoque_alterar(request, pk: int):
     return render(request, 'estoque/pages/estoque-alterar.html', contexto)
 
 
+@user_passes_test(lambda usuario: usuario.has_perm('estoque.change_produtospallets'), login_url='/admin/login/')
 def estoque_mover(request, pk: int):
     """Retorna pagina de alteração de produto no estoque"""
     produto_pallet = get_object_or_404(ProdutosPallets, pk=pk)

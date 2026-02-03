@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Min
 from home.models import Produtos, Fornecedores, ProdutosTipos
 
 
@@ -116,6 +116,13 @@ class Pallets(models.Model):
         return produto_pallet.produto.tipo_embalagem
 
     tipo_embalagem_produto.fget.short_description = 'Tipo de Embalagem do Produto'  # type:ignore
+
+    @property
+    def prioridade(self):
+        """Retorna a prioridade do produto mais prioritario (menor) do pallet"""
+        return self.produtospallets.aggregate(Min('produto__prioridade'))['produto__prioridade__min']  # type:ignore
+
+    prioridade.fget.short_description = 'Prioridade'  # type:ignore
 
     def incluir_produto(self):
         """Soma 1 na quantidade de produtos"""

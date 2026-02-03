@@ -29,3 +29,8 @@ table tbody tr td,
 #toggle-nav-sidebar {
     font-size: 2rem !important;
 }
+
+.bloco {
+    display: grid !important;
+    gap: 2rem !important;
+}
