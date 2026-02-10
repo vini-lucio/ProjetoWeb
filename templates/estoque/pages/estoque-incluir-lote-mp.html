@@ -1,0 +1,64 @@
+{% extends "estoque/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo link-conteudo-grande">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            {% if item_oc.CHAVE_OC.CHAVE_FORNECEDOR.sigla %}
+                <div class="tabela-simples fonte-maior">
+                    <table>
+                        <tr>
+                            <th>OC</th>
+                            <th>Data Entrega</th>
+                            <th>Produto</th>
+                            <th>Qtd.</th>
+                            <th>Un.</th>
+                        </tr>
+                        <tr class="{% cycle 'principal-azul-claro' '' %}">
+                            <td>{{ item_oc.CHAVE_OC.CHAVE | stringformat:"d" }}</td>
+                            <td>{{ item_oc.DATA_ENTREGA | date:"d/m/Y" }}</td>
+                            <td>{{ item_oc.CHAVE_MATERIAL.CODIGO }}</td>
+                            <td>{{ item_oc.QUANTIDADE | floatformat:4 }}</td>
+                            <td>{{ item_oc.CHAVE_UNIDADE.UNIDADE }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div>
+                    <p class="fonte-vermelho">* O maximo de pallets inclusos serão 20</p>
+                </div>
+
+                <form id="form" method="post" class="fonte-maior">
+                    {% csrf_token %}
+                    <div class="grid link-conteudo link-conteudo-grande">
+                        {{ formulario_incluir_lote_mp.as_p }}
+                        <p>Fornecedor: {{ item_oc.CHAVE_OC.CHAVE_FORNECEDOR.sigla }}</p>
+                    </div>
+                    <div class="grid link-conteudo fonte-maior">
+                        <button class="botao" name="salvar-submit" type="submit">Salvar</button>
+                        <a href="{{ url_destino }}">
+                            <div class="botao-div botao-vermelho">Cancelar</div>
+                        </a>
+                    </div>
+                </form>
+            {% else %}
+                <div class="link-conteudo-grande fonte-maior">
+                    <p>Cadastrar fornecedor {{ item_oc.CHAVE_OC.CHAVE_FORNECEDOR.NOMERED }} no DBCoplas</p>
+                </div>
+                <div class="grid link-conteudo fonte-maior">
+                    <a href="{{ url_destino }}">
+                        <div class="botao-div botao-vermelho">Cancelar</div>
+                    </a>
+                </div>
+            {% endif %}
+            
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

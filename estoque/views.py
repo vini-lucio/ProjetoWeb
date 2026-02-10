@@ -1,11 +1,13 @@
 from typing import Dict
+from analysis.models import OC_MP_ITENS
 from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.db.models import Q
 from django.db.models.functions import Concat
 from .models import ProdutosPallets, Enderecos
-from .forms import ProdutosPalletsAlterarForm, PalletsMoverForm, ProdutosPalletsMoverForm, ProdutosPalletsExcluirForm
+from .forms import (ProdutosPalletsAlterarForm, PalletsMoverForm, ProdutosPalletsMoverForm, ProdutosPalletsExcluirForm,
+                    ProdutosPalletsIncluirLoteMPForm)
 from utils.base_forms import FormPesquisarMixIn
 
 
@@ -145,3 +147,28 @@ def estoque_mover(request, pk: int):
                       'endereco': endereco, 'formulario_excluir': formulario_excluir, }
 
     return render(request, 'estoque/pages/estoque-mover.html', contexto)
+
+
+@user_passes_test(lambda usuario: usuario.has_perm('estoque.change_produtospallets'), login_url='/admin/login/')
+def estoque_incluir_lote_mp(request, pk: int):
+    """Retorna pagina de inclusão de lote de recebimento de materia prima"""
+    item_oc = get_object_or_404(OC_MP_ITENS, CHAVE=pk)
+
+    titulo_pagina = 'Incluir Lote de MP'
+
+    # busca paremetro da url enviado na pagina de estoque para lembrar o filtro da pesquisa
+    url_destino = request.GET.get('destino', reverse('estoque:estoque'))
+
+    formulario_incluir_lote_mp = ProdutosPalletsIncluirLoteMPForm(item_oc=item_oc)
+
+    if request.method == 'POST' and request.POST:
+        formulario_incluir_lote_mp = ProdutosPalletsIncluirLoteMPForm(request.POST, item_oc=item_oc)
+
+        if formulario_incluir_lote_mp.is_valid():
+            formulario_incluir_lote_mp.incluir_lote_mp()
+            return redirect(url_destino)
+
+    contexto: Dict = {'titulo_pagina': titulo_pagina, 'url_destino': url_destino, 'item_oc': item_oc,
+                      'formulario_incluir_lote_mp': formulario_incluir_lote_mp, }
+
+    return render(request, 'estoque/pages/estoque-incluir-lote-mp.html', contexto)

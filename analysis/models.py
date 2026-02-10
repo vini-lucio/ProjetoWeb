@@ -1,8 +1,9 @@
+from django.apps import apps
 from django.db import models
 from django.db.models import F, Count, Max, Avg
 from django.db.models.expressions import RawSQL
 from utils.base_models import ReadOnlyMixin, ChaveAnalysisPropertyMixIn
-from utils.converter import somente_digitos
+from utils.converter import somente_digitos, converter_data_django_para_str_ddmmyyyy
 from utils.data_hora_atual import hoje, data_inicio_analysis
 
 
@@ -233,6 +234,12 @@ class PRODUTOS(ReadOnlyMixin, models.Model):
                                     on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
     CHAVE_TIPO = models.ForeignKey(TIPO_PRODUTOS, db_column="CHAVE_TIPO", verbose_name="Tipo",
                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+
+    def get_produto(self):
+        Produtos = apps.get_model('home', 'Produtos')
+
+        produto = Produtos.objects.filter(chave_analysis=self.pk).first()
+        return produto
 
     def __str__(self):
         return self.CODIGO
@@ -720,5 +727,66 @@ class FORNECEDORES(ReadOnlyMixin, models.Model):
     NOMERED = models.CharField("Nome Reduzido", max_length=20, null=True, blank=True)
     NOME = models.CharField("Razão Social", max_length=50, null=True, blank=True)
 
+    def get_fornecedor(self):
+        Fornecedores = apps.get_model('home', 'Fornecedores')
+
+        fornecedor = Fornecedores.objects.filter(chave_analysis=self.pk).first()
+        return fornecedor
+
+    @property
+    def sigla(self):
+        fornecedor = self.get_fornecedor()
+        if not fornecedor:
+            return ''
+        return fornecedor.sigla  # type:ignore
+
+    sigla.fget.short_description = 'Sigla'  # type:ignore
+
     def __str__(self):
         return self.NOMERED
+
+
+class OC_MP(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."OC_MP"'
+        verbose_name = 'Ordem de Compra'
+        verbose_name_plural = 'Ordens de Compra'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CHAVE_FORNECEDOR = models.ForeignKey(FORNECEDORES, db_column="CHAVE_FORNECEDOR", verbose_name="Fornecedor",
+                                         on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_JOB = models.ForeignKey(JOBS, db_column="CHAVE_JOB", verbose_name="Job", on_delete=models.PROTECT,
+                                  related_name="%(class)s", null=True, blank=True)
+    DATA_EMISSAO = models.DateField("Data Emissão", auto_now=False, auto_now_add=False, null=True, blank=True)
+
+    def __str__(self):
+        return str(self.CHAVE)
+
+
+class OC_MP_ITENS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."OC_MP_ITENS"'
+        verbose_name = 'Ordem de Compra Item'
+        verbose_name_plural = 'Ordem de Compra Itens'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    ID_ITEM = models.IntegerField("ID Item")
+    CHAVE_OC = models.ForeignKey(OC_MP, db_column="CHAVE_OC", verbose_name="Ordem de Compra", on_delete=models.PROTECT,
+                                 related_name="%(class)s", null=True, blank=True)
+    CHAVE_MATERIAL = models.ForeignKey(PRODUTOS, db_column="CHAVE_MATERIAL", verbose_name="Material",
+                                       on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    QUANTIDADE = models.DecimalField("Quantidade", max_digits=22, decimal_places=6, null=True, blank=True)
+    DATA_ENTREGA = models.DateField("Data Entrega", auto_now=False, auto_now_add=False, null=True, blank=True)
+    CHAVE_UNIDADE = models.ForeignKey(UNIDADES, db_column="CHAVE_UNIDADE", verbose_name="Unidade",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+
+    @property
+    def data_entrega_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.DATA_ENTREGA)
+
+    data_entrega_as_ddmmyyyy.fget.short_description = 'Data Entrega'  # type:ignore
+
+    def __str__(self):
+        return str(self.CHAVE)

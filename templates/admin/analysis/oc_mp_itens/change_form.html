@@ -1,0 +1,14 @@
+{% extends "admin/change_form.html" %}
+
+{% block object-tools-items %}
+    <div class="bloco">
+        {{ block.super }}
+        {% if original %}
+            <li>
+                <a href="{% url 'estoque:incluir-lote-mp' original.pk %}" class="addlink">
+                    📦 Incluir Lote no Estoque
+                </a>
+            </li>
+        {% endif %}
+    </div>
+{% endblock %}
