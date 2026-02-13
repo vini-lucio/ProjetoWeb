@@ -5,6 +5,7 @@ from .models import IndicadoresValores, MetasCarteiras
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
                        DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
                        get_relatorios_financeiros, confere_inscricoes_estaduais)
+from .services_estoque import DashBoardEstoque
 from .services_marketing import DashBoardMarketing
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
                     FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormListagensVendas,
@@ -877,3 +878,16 @@ def marketing_leads(request):
     contexto.update({'formulario': formulario})
 
     return render(request, 'dashboards/pages/marketing-leads.html', contexto)
+
+
+def estoque(request):
+    """Retorna dados para pagina de dashboard de estoque."""
+    titulo_pagina = 'Dashboard Estoque'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    dados = DashBoardEstoque()
+
+    contexto.update({'dados': dados, })
+
+    return render(request, 'dashboards/pages/estoque.html', contexto)

@@ -1,0 +1,79 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal principal-escuro">
+
+        <div class="link-conteudo link-conteudo-escuro">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if dados %}
+
+                <div class="grid-dashboard-2">
+                    <div class="div-dashboard moldura-verde-dashboard principal-escuro-2">
+                        {% for totais_produto_acabado in dados.enderecos_totais_produto_acabado %}
+                            <div class="fonte-grande">
+                                <p class="fonte-verde">Ocupação Produto Acabado</p>
+                                <p>{{ totais_produto_acabado.ocupacao | floatformat:2 }}%</p>
+                            </div>
+                        {% endfor %}
+                        <div class="div-dashboard grid principal-escuro-2">
+                            {% for tipos_produto_acabado in dados.enderecos_produto_acabado %}
+                                <div>
+                                    <p class="fonte-verde">{{ tipos_produto_acabado.tipo }}</p>
+                                    <p>{{ tipos_produto_acabado.ocupacao | floatformat:2 }}%</p>
+                                    <p class="fonte-muito-pequena-dashboard">{{ tipos_produto_acabado.quantidade_disponivel | floatformat:0 }} disponiveis</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-dashboard-2">
+                    <div class="div-dashboard moldura-verde-dashboard principal-escuro-2">
+                        {% for totais_mp in dados.enderecos_totais_mp %}
+                            <div class="fonte-grande">
+                                <p class="fonte-verde">Ocupação MP</p>
+                                <p>{{ totais_mp.ocupacao | floatformat:2 }}%</p>
+                            </div>
+                        {% endfor %}
+                        <div class="div-dashboard grid principal-escuro-2">
+                            {% for tipos_mp in dados.enderecos_mp %}
+                                <div>
+                                    {% comment %} <p class="fonte-verde">{{ tipos_mp.tipo }}</p>
+                                    <p>{{ tipos_mp.ocupacao | floatformat:2 }}%</p> {% endcomment %}
+                                    <p class="fonte-muito-pequena-dashboard">{{ tipos_mp.quantidade_disponivel | floatformat:0 }} disponiveis</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="div-dashboard principal-escuro">
+                    <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>
+                </div>
+
+                <div class="grid-simples">
+                    <a target="_blank" href="{% url 'estoque:estoque' %}">
+                        <div class="botao-div botao-escuro">
+                            Estoque
+                        </div>
+                    </a>
+                </div>
+    
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

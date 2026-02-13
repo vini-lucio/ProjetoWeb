@@ -25,8 +25,13 @@
     --tamanho-linha-grande: 9rem;
 
     --tamanho-fonte-h1: 5rem;
+    --tamanho-linha-h1: 5.5rem;
+
     --tamanho-fonte-h2: 4rem;
+    --tamanho-linha-h2: 4.5rem;
+
     --tamanho-fonte-h3: 3rem;
+    --tamanho-linha-h3: 3.5rem;
 
     --tamanho-fonte-p: 2rem;
     --tamanho-linha-p: 2.5rem;
@@ -104,6 +109,11 @@ summary {
 .fonte-maior * {
     font-size: var(--tamanho-fonte-p-grande) !important;
     line-height: var(--tamanho-linha-p-grande) !important;
+}
+
+.fonte-grande * {
+    font-size: var(--tamanho-fonte-h1) !important;
+    line-height: var(--tamanho-linha-h1) !important;
 }
 
 input[type=checkbox] {
