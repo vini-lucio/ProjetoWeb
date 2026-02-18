@@ -1,16 +1,60 @@
 from django.core.management.base import BaseCommand
-from home.models import Produtos, ProdutosTipos
-
-# Atualizar produtos sem tipo para obrigar campo
+from estoque.models import Enderecos, ProdutosTipos
 
 
 class Command(BaseCommand):
-    help = "Atualizar produtos sem tipo para obrigar campo"
+    help = "Incluir endereços para materia prima"
 
     def handle(self, *args, **kwargs):
-        tipo_padrao = ProdutosTipos.objects.filter(descricao='PRODUTO ACABADO').first()
-        tipos_nulo = Produtos.objects.filter(tipo__isnull=True)
-        tipos_nulo = tipos_nulo.update(tipo=tipo_padrao)
+        tipo_produto = ProdutosTipos.objects.filter(descricao='MATERIA PRIMA').first()
+
+        nomes = [
+            'RUA MP A',
+            'RUA MP B',
+            'RUA MP C',
+            'RUA MP D',
+            'RUA MP E',
+            'RUA MP F',
+            'RUA MP G',
+        ]
+
+        colunas = list(range(1, 17))
+        alturas = list(range(1, 5))
+
+        for nome in nomes:
+            for coluna in colunas:
+                # Quantidade total de colunas
+                if nome in ['RUA MP A',] and coluna > 13:
+                    continue
+                if nome in ['RUA MP B', 'RUA MP C', 'RUA MP D', 'RUA MP E',] and coluna > 15:
+                    continue
+                if nome in ['RUA MP G',] and coluna > 4:
+                    continue
+
+                # Colunas sem vão
+                if nome in ['RUA MP A', 'RUA MP G',] and coluna in [5, 6]:
+                    continue
+
+                for altura in alturas:
+                    # Quantidade total de alturas
+                    if nome not in ['RUA MP G',] and altura > 3:
+                        continue
+
+                    # Vão
+                    if nome in ['RUA MP B', 'RUA MP C', 'RUA MP D',
+                                'RUA MP E', 'RUA MP F',] and coluna in [5, 6] and altura in [1, 2]:
+                        continue
+
+                    instancia = Enderecos(
+                        nome=nome,
+                        coluna=coluna,
+                        altura=altura,
+                        tipo='porta_pallet',
+                        tipo_produto=tipo_produto,
+                        prioridade=1,
+                    )
+                    instancia.full_clean()
+                    instancia.save()
 
         self.stdout.write(self.style.SUCCESS("Sucesso"))
 

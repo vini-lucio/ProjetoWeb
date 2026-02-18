@@ -2969,11 +2969,11 @@ def migrar_produtos():
             mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
             status = 'ativo' if objeto_origem.FORA_DE_LINHA == 'NAO' else 'inativo'
             prioridade = Decimal(3)
-            if 'ESTOQUE A' in objeto_origem.CARACTERISTICA2:  # type:ignore
+            if 'ESTOQUE A' in objeto_origem.CARACTERISTICA2 or 'ESTOQUE MP A' in objeto_origem.CARACTERISTICA2:  # type:ignore
                 prioridade = Decimal(1)
-            elif 'ESTOQUE B' in objeto_origem.CARACTERISTICA2:  # type:ignore
+            elif 'ESTOQUE B' in objeto_origem.CARACTERISTICA2 or 'ESTOQUE MP B' in objeto_origem.CARACTERISTICA2:  # type:ignore
                 prioridade = Decimal(2)
-            elif 'ESTOQUE C' in objeto_origem.CARACTERISTICA2:  # type:ignore
+            elif 'ESTOQUE C' in objeto_origem.CARACTERISTICA2 or 'ESTOQUE MP C' in objeto_origem.CARACTERISTICA2:  # type:ignore
                 prioridade = Decimal(3)
 
             if not mudou:
