@@ -30,7 +30,7 @@ def estoque(request):
                 Q(produto__nome__icontains=pesquisar) |
                 Q(pallet__endereco__nome__icontains=pesquisar) |
                 Q(fornecedor_lote__icontains=pesquisar)
-            )
+            ).order_by('pallet', 'pk')
 
         contexto.update({'dados': dados, })
 

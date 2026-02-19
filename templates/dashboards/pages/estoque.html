@@ -34,6 +34,24 @@
                                     <p class="fonte-muito-pequena-dashboard">{{ tipos_produto_acabado.quantidade_disponivel | floatformat:0 }} disponiveis</p>
                                 </div>
                             {% endfor %}
+                            {% if dados.embalagem.quantidade_pallets > 15 %}
+                                <div>
+                                    <p class="fonte-verde">Embalagem</p>
+                                    <p class="fonte-vermelho">{{ dados.embalagem.quantidade_pallets | floatformat:0 }} pallets</p>
+                                </div>
+                            {% endif %}
+                            {% if dados.expedicao.quantidade_pallets > 15 %}
+                                <div>
+                                    <p class="fonte-verde">Expedição</p>
+                                    <p class="fonte-vermelho">{{ dados.expedicao.quantidade_pallets | floatformat:0 }} pallets</p>
+                                </div>
+                            {% endif %}
+                            {% if dados.ocupado_vazio_produto_acabado > 0 %}
+                                <div>
+                                    <p class="fonte-verde">Ocupado Vazio</p>
+                                    <p class="fonte-vermelho">{{ dados.ocupado_vazio_produto_acabado | floatformat:0 }} pallets</p>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -49,11 +67,29 @@
                         <div class="div-dashboard grid principal-escuro-2">
                             {% for tipos_mp in dados.enderecos_mp %}
                                 <div>
-                                    {% comment %} <p class="fonte-verde">{{ tipos_mp.tipo }}</p>
-                                    <p>{{ tipos_mp.ocupacao | floatformat:2 }}%</p> {% endcomment %}
+                                    <p class="fonte-verde">{{ tipos_mp.tipo }}</p>
+                                    <p>{{ tipos_mp.ocupacao | floatformat:2 }}%</p>
                                     <p class="fonte-muito-pequena-dashboard">{{ tipos_mp.quantidade_disponivel | floatformat:0 }} disponiveis</p>
                                 </div>
                             {% endfor %}
+                            {% if dados.recebimento.quantidade_pallets > 15 %}
+                                <div>
+                                    <p class="fonte-verde">Recebimento</p>
+                                    <p class="fonte-vermelho">{{ dados.recebimento.quantidade_pallets | floatformat:0 }} pallets</p>
+                                </div>
+                            {% endif %}
+                            {% if dados.picking_producao.quantidade_pallets > 15 %}
+                                <div>
+                                    <p class="fonte-verde">Picking Prod.</p>
+                                    <p class="fonte-vermelho">{{ dados.picking_producao.quantidade_pallets | floatformat:0 }} pallets</p>
+                                </div>
+                            {% endif %}
+                            {% if dados.ocupado_vazio_mp > 0 %}
+                                <div>
+                                    <p class="fonte-verde">Ocupado Vazio</p>
+                                    <p class="fonte-vermelho">{{ dados.ocupado_vazio_mp | floatformat:0 }} pallets</p>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

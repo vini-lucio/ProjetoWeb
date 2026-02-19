@@ -1,4 +1,5 @@
 from estoque.models import Enderecos
+from home.models import ProdutosTipos
 from django.db.models import Count
 import pandas as pd
 
@@ -7,13 +8,17 @@ class DashBoardEstoque():
     """Gera dashboard de estoque."""
 
     def __init__(self) -> None:
-        # embalagem = Enderecos.objects.filter(nome='Embalagem').first()
-        # expedicao = Enderecos.objects.filter(nome='Expedição').first()
-        # picking_producao = Enderecos.objects.filter(nome='Picking Produção').first()
-        # recebimento = Enderecos.objects.filter(nome='Recebimento').first()
+        self.embalagem = Enderecos.objects.filter(nome='Embalagem').first()
+        self.expedicao = Enderecos.objects.filter(nome='Expedição').first()
+        self.picking_producao = Enderecos.objects.filter(nome='Picking Produção').first()
+        self.recebimento = Enderecos.objects.filter(nome='Recebimento').first()
 
-        # print(embalagem.quantidade_pallets, expedicao.quantidade_pallets,  # type:ignore
-        #       picking_producao.quantidade_pallets, recebimento.quantidade_pallets)  # type:ignore
+        produto_acabado = ProdutosTipos.objects.filter(descricao='PRODUTO ACABADO').first()
+        materia_prima = ProdutosTipos.objects.filter(descricao='MATERIA PRIMA').first()
+
+        self.ocupado_vazio_produto_acabado = Enderecos.quantidade_enderecos_vazios_ocupados(
+            produto_acabado)  # type:ignore
+        self.ocupado_vazio_mp = Enderecos.quantidade_enderecos_vazios_ocupados(materia_prima)  # type:ignore
 
         enderecos_validos = Enderecos.objects.exclude(tipo='chao')
         enderecos_ocupados = enderecos_validos.filter(status__in=['ocupado', 'reservado'])

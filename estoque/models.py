@@ -50,6 +50,17 @@ class Enderecos(models.Model):
 
     quantidade_pallets.fget.short_description = 'Quantidade de Pallets'  # type:ignore
 
+    @classmethod
+    def quantidade_enderecos_vazios_ocupados(cls, tipo_produto: ProdutosTipos):
+        """Retorna a quantidade de endereços vazios ocupados dos endereços de tipo de produto informado.
+
+        Parametros:
+        -----------
+        :tipo_produto (ProdutosTipos): com o tipo de produto"""
+        enderecos = cls.objects.filter(tipo_produto=tipo_produto, status='ocupado')
+        enderecos = enderecos.filter(pallets__quantidade_produtos=0)
+        return enderecos.count()
+
     def clean(self) -> None:
         """Valida se Endereços Multi Pallet possuem Tipo Chão. Valida se Endereços Tipo Chão possuem Coluna e Altura
         igual a 0. Valida se Endereços Tipo diferente de Chão possuem Coluna e Altura maior que 0."""
