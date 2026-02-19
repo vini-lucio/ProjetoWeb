@@ -41,6 +41,15 @@ class Enderecos(models.Model):
     multi_pallet = models.BooleanField("Multi Pallet", default=False)
     status = models.CharField("Status", max_length=20, default='disponivel', choices=status_enderecos)  # type:ignore
 
+    @property
+    def quantidade_pallets(self):
+        quantidade_pallets = self.pallets.count()  # type:ignore
+        if not quantidade_pallets:
+            return 0
+        return quantidade_pallets
+
+    quantidade_pallets.fget.short_description = 'Quantidade de Pallets'  # type:ignore
+
     def clean(self) -> None:
         """Valida se Endereços Multi Pallet possuem Tipo Chão. Valida se Endereços Tipo Chão possuem Coluna e Altura
         igual a 0. Valida se Endereços Tipo diferente de Chão possuem Coluna e Altura maior que 0."""

@@ -7,6 +7,14 @@ class DashBoardEstoque():
     """Gera dashboard de estoque."""
 
     def __init__(self) -> None:
+        # embalagem = Enderecos.objects.filter(nome='Embalagem').first()
+        # expedicao = Enderecos.objects.filter(nome='Expedição').first()
+        # picking_producao = Enderecos.objects.filter(nome='Picking Produção').first()
+        # recebimento = Enderecos.objects.filter(nome='Recebimento').first()
+
+        # print(embalagem.quantidade_pallets, expedicao.quantidade_pallets,  # type:ignore
+        #       picking_producao.quantidade_pallets, recebimento.quantidade_pallets)  # type:ignore
+
         enderecos_validos = Enderecos.objects.exclude(tipo='chao')
         enderecos_ocupados = enderecos_validos.filter(status__in=['ocupado', 'reservado'])
 
