@@ -32,7 +32,12 @@ def estoque(request):
                 Q(fornecedor_lote__icontains=pesquisar)
             ).order_by('pallet', 'pk')
 
-        contexto.update({'dados': dados, })
+            total_kg = 0
+            for produto_pallet in dados:
+                if produto_pallet.unidade == 'KG':
+                    total_kg += produto_pallet.quantidade
+
+        contexto.update({'dados': dados, 'total_kg': total_kg, })
 
     contexto.update({'formulario': formulario, })
 

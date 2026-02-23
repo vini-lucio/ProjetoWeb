@@ -886,7 +886,11 @@ def estoque(request):
 
     contexto: dict = {'titulo_pagina': titulo_pagina, }
 
-    dados = DashBoardEstoque()
+    if request.method == 'GET' and request.GET:
+        dados = DashBoardEstoque(com_sugestao=True)
+        contexto.update({'com_sugestao': True, })
+    else:
+        dados = DashBoardEstoque()
 
     contexto.update({'dados': dados, })
 

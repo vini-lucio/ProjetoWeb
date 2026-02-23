@@ -74,6 +74,20 @@
                                 <td class="fonte-roxo">{% if produto_pallet.lote_fornecedor %}<a href="{% url "estoque:alterar" produto_pallet.pk %}?destino={{ request.get_full_path | urlencode}}">{{ produto_pallet.lote_fornecedor }}</a>{% endif %}</td>
                             </tr>
                         {% endfor %}
+                        {% if total_kg %}
+                            <tr class="principal-claro">
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td class="azul-negrito">Total</td>
+                                <td class="azul-negrito">KG</td>
+                                <td class="azul-negrito">{{ total_kg | floatformat:3 }}</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        {% endif %}
                     </table>
                 </div>
             {% endif %}

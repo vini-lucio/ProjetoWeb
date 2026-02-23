@@ -94,6 +94,53 @@
                     </div>
                 </div>
 
+                <div class="link-conteudo link-conteudo-escuro">
+                    <form id="form" method="get">
+                        <div class="grid-simples">
+                            <button class="botao botao-escuro" name="submit" type="submit">Gerar Sugestão de Compra MP</button>
+                        </div>
+                    </form>
+                </div>
+
+                {% if com_sugestao %}
+                    <div class="link-conteudo link-conteudo-escuro">
+                        {% if dados.resumo_mp %}
+                            <div class="tabela-simples">
+                                <table>
+                                    <tr class="principal-claro">
+                                        <th>Produto</th>
+                                        <th>Un.</th>
+                                        <th>Qtd.</th>
+                                        <th>Pallets</th>
+                                        <th>Sugestão Comprar*</th>
+                                    </tr>
+                                    {% for produtos in dados.resumo_mp %}
+                                        <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
+                                            <td>{{ produtos.produto }}</td>
+                                            <td>{{ produtos.unidade }}</td>
+                                            <td>{{ produtos.quantidade | floatformat:3 }}</td>
+                                            <td>{{ produtos.pallets | floatformat:0 }}</td>
+                                            <td>{{ produtos.sugestao_ocupar | floatformat:0 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                    {% if dados.total_mp %}
+                                        <tr class="principal-claro">
+                                            <td class="azul-negrito">Total</td>
+                                            <td class="azul-negrito">KG</td>
+                                            <td class="azul-negrito">{{ dados.total_mp.quantidade | floatformat:3 }}</td>
+                                            <td class="azul-negrito">{{ dados.total_mp.pallets | floatformat:0 }}</td>
+                                            <td></td>
+                                        </tr>
+                                    {% endif %}
+                                </table>
+                            </div>
+                        {% endif %}
+                        <div class="div-dashboard principal-escuro">
+                            <p class="fonte-muito-pequena-dashboard">* Sugestão baseada na produção dos ultimos 365 dias para ocupar todas as posições disponiveis.</p>
+                        </div>
+                    </div>
+                {% endif %}
+
                 <div class="div-dashboard principal-escuro">
                     <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>
                 </div>
