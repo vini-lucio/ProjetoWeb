@@ -90,37 +90,46 @@ class DashBoardEstoque():
 
             # Relatorio resumo de quantidade por materia prima
 
-            resumo_mp = ProdutosPallets.objects.filter(produto__tipo__descricao='MATERIA PRIMA')
+            resumo_mp = ProdutosPallets.objects.filter(produto__tipo__descricao='MATERIA PRIMA').exclude(
+                pallet__endereco__tipo='chao'
+            )
             resumo_mp = resumo_mp.values('produto__nome', 'produto__unidade__unidade')
             resumo_mp = resumo_mp.annotate(quantidade=Sum('quantidade'), pallets=Count('pk')).order_by('-quantidade')
 
             dt_resumo_mp = pd.DataFrame(resumo_mp)
             dt_resumo_mp = dt_resumo_mp.rename(columns={'produto__nome': 'produto',
                                                         'produto__unidade__unidade': 'unidade'})
-
             dt_total_mp = pd.DataFrame([dt_resumo_mp[['quantidade', 'pallets']].sum()])
 
             if com_sugestao:
 
                 # Sugestão de compra de materia prima
 
-                sugestao_mp = producao_por_mp()
-                dt_sugestao_mp = pd.DataFrame(sugestao_mp)
-                dt_sugestao_mp = dt_sugestao_mp.rename(columns={'MATERIA_PRIMA': 'produto',
+                saldo_rr = saldo_rr_por_mp()
+                dt_saldo_rr = pd.DataFrame(saldo_rr)
+                dt_saldo_rr = dt_saldo_rr.rename(columns={'PRODUTO': 'produto',
+                                                          'SALDO': 'saldo_rr', 'UNIDADE': 'unidade', })
+                dt_saldo_rr['saldo_rr_pallets'] = (dt_saldo_rr['saldo_rr'] / 1000).apply(math.ceil)
+
+                producao_mp = producao_por_mp()
+                dt_producao_mp = pd.DataFrame(producao_mp)
+                dt_producao_mp = dt_producao_mp.rename(columns={'MATERIA_PRIMA': 'produto',
                                                                 'MEDIA_MES': 'media_mes_prod',
                                                                 'UNIDADE': 'unidade', })
-                total_produzido_mp = dt_sugestao_mp['media_mes_prod'].sum()
-                dt_sugestao_mp['proporcao_mes_prod'] = dt_sugestao_mp['media_mes_prod'] / total_produzido_mp
-                dt_sugestao_mp['sugestao_ocupar'] = (self.enderecos_totais_mp[0].get(
+                total_produzido_mp = dt_producao_mp['media_mes_prod'].sum()
+                dt_producao_mp['proporcao_mes_prod'] = dt_producao_mp['media_mes_prod'] / total_produzido_mp
+
+                # Resumo + RR + Sugestão
+
+                dt_resumo_mp = pd.merge(dt_resumo_mp, dt_producao_mp, 'outer', ['produto', 'unidade']).fillna(0)
+                dt_resumo_mp = pd.merge(dt_resumo_mp, dt_saldo_rr, 'outer', ['produto', 'unidade']).fillna(0)
+                dt_resumo_mp['sugestao_ocupar'] = (self.enderecos_totais_mp[0].get(
                     'quantidade_total') - self.enderecos_totais_mp[0].get(  # type:ignore
-                    'quantidade_ocupada')) * dt_sugestao_mp['proporcao_mes_prod']  # type:ignore
-                dt_sugestao_mp['sugestao_ocupar'] = (dt_sugestao_mp['sugestao_ocupar']).where(
-                    (dt_sugestao_mp['sugestao_ocupar'] > 1) & (dt_sugestao_mp['sugestao_ocupar'] != 0), 1)
-                dt_sugestao_mp['sugestao_ocupar'] = dt_sugestao_mp['sugestao_ocupar'].apply(math.floor)
-
-                # Resumo + Sugestão
-
-                dt_resumo_mp = pd.merge(dt_resumo_mp, dt_sugestao_mp, 'outer', ['produto', 'unidade']).fillna(0)
+                    'quantidade_ocupada')) * dt_resumo_mp['proporcao_mes_prod']  # type:ignore
+                dt_resumo_mp['sugestao_ocupar'] = dt_resumo_mp['sugestao_ocupar'] - dt_resumo_mp['saldo_rr_pallets']
+                dt_resumo_mp['sugestao_ocupar'] = (dt_resumo_mp['sugestao_ocupar']).where(
+                    (dt_resumo_mp['sugestao_ocupar'] > 1) | (dt_resumo_mp['sugestao_ocupar'] <= 0), 1)
+                dt_resumo_mp['sugestao_ocupar'] = dt_resumo_mp['sugestao_ocupar'].apply(math.floor)
 
             # Final
 
@@ -167,6 +176,28 @@ def producao_por_mp():
             AND APONTAMENTOS.INICIO >= SYSDATE - 365
         GROUP BY MATERIA_PRIMA.MATERIA_PRIMA,
             MATERIA_PRIMA.UNIDADE
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True)
+
+    return resultado
+
+
+def saldo_rr_por_mp():
+    """Retorna a quantidade por materia prima dos prodtos proprios com saldo a receber."""
+    sql = """
+        SELECT PRODUTOS.CODIGO AS PRODUTO,
+            SUM(OC_MP_ITENS.SALDO) AS SALDO,
+            UNIDADES.UNIDADE
+        FROM COPLAS.UNIDADES,
+            COPLAS.OC_MP_ITENS,
+            COPLAS.PRODUTOS
+        WHERE UNIDADES.CHAVE = PRODUTOS.CHAVE_UNIDADE
+            AND OC_MP_ITENS.CHAVE_MATERIAL = PRODUTOS.CPROD
+            AND PRODUTOS.CHAVE_GRUPO = 8273
+            AND OC_MP_ITENS.SALDO > 0
+        GROUP BY PRODUTOS.CODIGO,
+            UNIDADES.UNIDADE
     """
 
     resultado = executar_oracle(sql, exportar_cabecalho=True)
