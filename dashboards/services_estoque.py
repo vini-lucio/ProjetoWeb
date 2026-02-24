@@ -27,7 +27,7 @@ class DashBoardEstoque():
             produto_acabado)  # type:ignore
         self.ocupado_vazio_mp = Enderecos.quantidade_enderecos_vazios_ocupados(materia_prima)  # type:ignore
 
-        enderecos_validos = Enderecos.objects.exclude(tipo='chao')
+        enderecos_validos = Enderecos.objects.exclude(tipo='chao').exclude(status='inativo')
         enderecos_ocupados = enderecos_validos.filter(status__in=['ocupado', 'reservado'])
 
         quantidade_enderecos_validos = enderecos_validos.values(
@@ -91,7 +91,7 @@ class DashBoardEstoque():
             # Relatorio resumo de quantidade por materia prima
 
             resumo_mp = ProdutosPallets.objects.filter(produto__tipo__descricao='MATERIA PRIMA').exclude(
-                pallet__endereco__tipo='chao'
+                pallet__endereco=self.picking_producao
             )
             resumo_mp = resumo_mp.values('produto__nome', 'produto__unidade__unidade')
             resumo_mp = resumo_mp.annotate(quantidade=Sum('quantidade'), pallets=Count('pk')).order_by('-quantidade')
@@ -111,6 +111,13 @@ class DashBoardEstoque():
                                                           'SALDO': 'saldo_rr', 'UNIDADE': 'unidade', })
                 dt_saldo_rr['saldo_rr_pallets'] = (dt_saldo_rr['saldo_rr'] / 1000).apply(math.ceil)
 
+                recebimento = ProdutosPallets.objects.filter(pallet__endereco=self.recebimento)
+                recebimento = recebimento.values('produto__nome')
+                recebimento = recebimento.annotate(recebimento_pallets=Count('pk'))
+
+                dt_recebimento = pd.DataFrame(recebimento)
+                dt_recebimento = dt_recebimento.rename(columns={'produto__nome': 'produto'})
+
                 producao_mp = producao_por_mp()
                 dt_producao_mp = pd.DataFrame(producao_mp)
                 dt_producao_mp = dt_producao_mp.rename(columns={'MATERIA_PRIMA': 'produto',
@@ -123,10 +130,12 @@ class DashBoardEstoque():
 
                 dt_resumo_mp = pd.merge(dt_resumo_mp, dt_producao_mp, 'outer', ['produto', 'unidade']).fillna(0)
                 dt_resumo_mp = pd.merge(dt_resumo_mp, dt_saldo_rr, 'outer', ['produto', 'unidade']).fillna(0)
+                dt_resumo_mp = pd.merge(dt_resumo_mp, dt_recebimento, 'outer', 'produto').fillna(0)
                 dt_resumo_mp['sugestao_ocupar'] = (self.enderecos_totais_mp[0].get(
                     'quantidade_total') - self.enderecos_totais_mp[0].get(  # type:ignore
-                    'quantidade_ocupada')) * dt_resumo_mp['proporcao_mes_prod']  # type:ignore
-                dt_resumo_mp['sugestao_ocupar'] = dt_resumo_mp['sugestao_ocupar'] - dt_resumo_mp['saldo_rr_pallets']
+                    'quantidade_ocupada')) * dt_resumo_mp['proporcao_mes_prod']
+                dt_resumo_mp['sugestao_ocupar'] = dt_resumo_mp['sugestao_ocupar'] - \
+                    dt_resumo_mp['saldo_rr_pallets'] - dt_resumo_mp['recebimento_pallets']
                 dt_resumo_mp['sugestao_ocupar'] = (dt_resumo_mp['sugestao_ocupar']).where(
                     (dt_resumo_mp['sugestao_ocupar'] > 1) | (dt_resumo_mp['sugestao_ocupar'] <= 0), 1)
                 dt_resumo_mp['sugestao_ocupar'] = dt_resumo_mp['sugestao_ocupar'].apply(math.floor)

@@ -110,7 +110,7 @@
                                     <tr class="principal-claro">
                                         <th>Produto</th>
                                         <th>Un.</th>
-                                        <th>Qtd.</th>
+                                        <th>Qtd.*¹</th>
                                         <th>Pallets*¹</th>
                                         <th>Saldo RR</th>
                                         <th>Sugestão Comprar*²</th>
@@ -139,8 +139,8 @@
                             </div>
                         {% endif %}
                         <div class="div-dashboard principal-escuro">
-                            <p class="fonte-muito-pequena-dashboard">*¹ Excluindo endereços que são no chão.</p>
-                            <p class="fonte-muito-pequena-dashboard">*² Sugestão baseada na produção dos ultimos 365 dias para ocupar todas as posições disponiveis, desconsiderando o saldo a receber.</p>
+                            <p class="fonte-muito-pequena-dashboard">*¹ Excluindo o que está no picking de produção.</p>
+                            <p class="fonte-muito-pequena-dashboard">*² Sugestão baseada na produção dos ultimos 365 dias para ocupar todas as posições disponiveis, desconsiderando o saldo a receber e o que está no recebimento ({{ dados.recebimento.quantidade_pallets}}).</p>
                         </div>
                     </div>
                 {% endif %}
