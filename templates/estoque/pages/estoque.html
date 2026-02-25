@@ -16,16 +16,16 @@
                 <div class="grid link-conteudo fonte-maior">
                     <button class="botao botao-escuro" name="pesquisar-submit" type="submit">Pesquisar</button>
                     <a href="{% url "estoque:estoque" %}?pesquisar=Embalagem">
-                        <div class="botao-div">Embalagem</div>
+                        <div class="botao-div">Embalagem{% if embalagem.quantidade_pallets %}<span class="fonte-vermelho"> ({{ embalagem.quantidade_pallets }})</span>{% endif %}</div>
                     </a>
                     <a href="{% url "estoque:estoque" %}?pesquisar=Expedição">
-                        <div class="botao-div">Expedição</div>
+                        <div class="botao-div">Expedição{% if expedicao.quantidade_pallets %}<span class="fonte-vermelho"> ({{ expedicao.quantidade_pallets }})</span>{% endif %}</div>
                     </a>
                     <a href="{% url "estoque:estoque" %}?pesquisar=Recebimento">
-                        <div class="botao-div">Recebimento</div>
+                        <div class="botao-div">Recebimento{% if recebimento.quantidade_pallets %}<span class="fonte-vermelho"> ({{ recebimento.quantidade_pallets }})</span>{% endif %}</div>
                     </a>
                     <a href="{% url "estoque:estoque" %}?pesquisar=Picking+Produção">
-                        <div class="botao-div">Picking Produção</div>
+                        <div class="botao-div">Picking Produção{% if picking_producao.quantidade_pallets %}<span class="fonte-vermelho"> ({{ picking_producao.quantidade_pallets }})</span>{% endif %}</div>
                     </a>
                     <a href="/admin/estoque/produtospallets/add/">
                         <div class="botao-div botao-escuro">Incluir</div>

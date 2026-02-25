@@ -15,7 +15,13 @@ def estoque(request):
     """Retorna pagina de estoque"""
     titulo_pagina = 'Estoque'
 
-    contexto: Dict = {'titulo_pagina': titulo_pagina, }
+    embalagem = Enderecos.objects.filter(nome='Embalagem').first()
+    expedicao = Enderecos.objects.filter(nome='Expedição').first()
+    picking_producao = Enderecos.objects.filter(nome='Picking Produção').first()
+    recebimento = Enderecos.objects.filter(nome='Recebimento').first()
+
+    contexto: Dict = {'titulo_pagina': titulo_pagina, 'embalagem': embalagem, 'expedicao': expedicao,
+                      'picking_producao': picking_producao, 'recebimento': recebimento, }
 
     formulario = FormPesquisarMixIn()
 
