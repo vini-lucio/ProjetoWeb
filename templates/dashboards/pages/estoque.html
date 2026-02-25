@@ -31,7 +31,7 @@
                                 <div>
                                     <p class="fonte-verde">{{ tipos_produto_acabado.tipo }}</p>
                                     <p>{{ tipos_produto_acabado.ocupacao | floatformat:2 }}%</p>
-                                    <p class="fonte-muito-pequena-dashboard">{{ tipos_produto_acabado.quantidade_disponivel | floatformat:0 }} disponiveis</p>
+                                    <p class="fonte-muito-pequena-dashboard">{{ tipos_produto_acabado.quantidade_disponivel | floatformat:0 }} disponiveis *¹</p>
                                 </div>
                             {% endfor %}
                             {% if dados.embalagem.quantidade_pallets > 15 %}
@@ -69,7 +69,7 @@
                                 <div>
                                     <p class="fonte-verde">{{ tipos_mp.tipo }}</p>
                                     <p>{{ tipos_mp.ocupacao | floatformat:2 }}%</p>
-                                    <p class="fonte-muito-pequena-dashboard">{{ tipos_mp.quantidade_disponivel | floatformat:0 }} disponiveis</p>
+                                    <p class="fonte-muito-pequena-dashboard">{{ tipos_mp.quantidade_disponivel | floatformat:0 }} disponiveis *¹</p>
                                 </div>
                             {% endfor %}
                             {% if dados.recebimento.quantidade_pallets > 15 %}
@@ -110,10 +110,10 @@
                                     <tr class="principal-claro">
                                         <th>Produto</th>
                                         <th>Un.</th>
-                                        <th>Qtd.*¹</th>
-                                        <th>Pallets*¹</th>
+                                        <th>Qtd.*¹ ²</th>
+                                        <th>Pallets*¹ ²</th>
                                         <th>Saldo RR</th>
-                                        <th>Sugestão Comprar*²</th>
+                                        <th>Sugestão Comprar*³</th>
                                     </tr>
                                     {% for produtos in dados.resumo_mp %}
                                         <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
@@ -138,12 +138,14 @@
                                 </table>
                             </div>
                         {% endif %}
-                        <div class="div-dashboard principal-escuro">
-                            <p class="fonte-muito-pequena-dashboard">*¹ Excluindo o que está no picking de produção.</p>
-                            <p class="fonte-muito-pequena-dashboard">*² Sugestão baseada na produção dos ultimos 365 dias para ocupar todas as posições disponiveis, desconsiderando o saldo a receber e o que está no recebimento ({{ dados.recebimento.quantidade_pallets}}).</p>
-                        </div>
                     </div>
                 {% endif %}
+
+                <div class="div-dashboard principal-escuro">
+                    <p class="fonte-muito-pequena-dashboard">*¹ Excluindo endereços de prioridade 0.</p>
+                    <p class="fonte-muito-pequena-dashboard">*² Excluindo o que está no picking de produção.</p>
+                    <p class="fonte-muito-pequena-dashboard">*³ Sugestão baseada na produção dos ultimos 365 dias para ocupar todas as posições disponiveis, desconsiderando o saldo a receber e o que está no recebimento ({{ dados.recebimento.quantidade_pallets}}).</p>
+                </div>
 
                 <div class="div-dashboard principal-escuro">
                     <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>

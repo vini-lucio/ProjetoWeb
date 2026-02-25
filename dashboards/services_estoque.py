@@ -1,6 +1,6 @@
 from estoque.models import Enderecos, ProdutosPallets
 from home.models import ProdutosTipos
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q
 from utils.oracle.conectar import executar_oracle
 import math
 import pandas as pd
@@ -27,7 +27,7 @@ class DashBoardEstoque():
             produto_acabado)  # type:ignore
         self.ocupado_vazio_mp = Enderecos.quantidade_enderecos_vazios_ocupados(materia_prima)  # type:ignore
 
-        enderecos_validos = Enderecos.objects.exclude(tipo='chao').exclude(status='inativo')
+        enderecos_validos = Enderecos.objects.exclude(tipo='chao').exclude(status='inativo').exclude(prioridade=0)
         enderecos_ocupados = enderecos_validos.filter(status__in=['ocupado', 'reservado'])
 
         quantidade_enderecos_validos = enderecos_validos.values(
@@ -92,7 +92,7 @@ class DashBoardEstoque():
 
             resumo_mp = ProdutosPallets.objects.filter(produto__tipo__descricao='MATERIA PRIMA').exclude(
                 pallet__endereco=self.picking_producao
-            )
+            ).exclude(Q(pallet__endereco__prioridade=0) & ~Q(pallet__endereco__tipo='chao'))
             resumo_mp = resumo_mp.values('produto__nome', 'produto__unidade__unidade')
             resumo_mp = resumo_mp.annotate(quantidade=Sum('quantidade'), pallets=Count('pk')).order_by('-quantidade')
 
