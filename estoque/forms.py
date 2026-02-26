@@ -7,7 +7,7 @@ import math
 class ProdutosPalletsAlterarForm(forms.ModelForm):
     class Meta:
         model = ProdutosPallets
-        fields = ['quantidade', 'fornecedor', 'lote_fornecedor',]
+        fields = ['quantidade', 'fornecedor', 'lote_fornecedor', 'aprovado',]
         widgets = {
             'quantidade': forms.NumberInput(attrs={'style': 'width: 19rem;'}),
             'lote_fornecedor': forms.TextInput(attrs={'style': 'width: 19rem;'}),

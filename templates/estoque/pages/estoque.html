@@ -14,17 +14,17 @@
                     {{ formulario.as_p }}
                 </div>
                 <div class="grid link-conteudo fonte-maior">
-                    <button class="botao botao-escuro" name="pesquisar-submit" type="submit">Pesquisar</button>
-                    <a href="{% url "estoque:estoque" %}?pesquisar=Embalagem">
+                    <button class="botao botao-escuro" form="form" name="pesquisar-submit" type="submit">Pesquisar</button>
+                    <a href="{% url "estoque:estoque" %}?pesquisar=Embalagem&pesquisar-submit=">
                         <div class="botao-div">Embalagem{% if embalagem.quantidade_pallets %}<span class="fonte-vermelho"> ({{ embalagem.quantidade_pallets }})</span>{% endif %}</div>
                     </a>
-                    <a href="{% url "estoque:estoque" %}?pesquisar=Expedição">
+                    <a href="{% url "estoque:estoque" %}?pesquisar=Expedição&pesquisar-submit=">
                         <div class="botao-div">Expedição{% if expedicao.quantidade_pallets %}<span class="fonte-vermelho"> ({{ expedicao.quantidade_pallets }})</span>{% endif %}</div>
                     </a>
-                    <a href="{% url "estoque:estoque" %}?pesquisar=Recebimento">
+                    <a href="{% url "estoque:estoque" %}?pesquisar=Recebimento&pesquisar-submit=">
                         <div class="botao-div">Recebimento{% if recebimento.quantidade_pallets %}<span class="fonte-vermelho"> ({{ recebimento.quantidade_pallets }})</span>{% endif %}</div>
                     </a>
-                    <a href="{% url "estoque:estoque" %}?pesquisar=Picking+Produção">
+                    <a href="{% url "estoque:estoque" %}?pesquisar=Picking+Produção&pesquisar-submit=">
                         <div class="botao-div">Picking Produção{% if picking_producao.quantidade_pallets %}<span class="fonte-vermelho"> ({{ picking_producao.quantidade_pallets }})</span>{% endif %}</div>
                     </a>
                     <a href="/admin/estoque/produtospallets/add/">
@@ -35,6 +35,13 @@
                     </a>
                 </div>
             </form>
+            {% if quantidade_reprovados %}
+                <form id="form-reprovado" method="get" class="fonte-maior">
+                    <div class="grid link-conteudo fonte-maior">
+                        <button class="botao botao-vermelho" form="form-reprovado" name="reprovado-submit" type="submit">Reprovados<span class="fonte-verde"> ({{ quantidade_reprovados }})</span></button>
+                    </div>
+                </form>
+            {% endif %}
         </div>
 
         
@@ -61,7 +68,7 @@
                             <th>Lote</th>
                         </tr>
                         {% for produto_pallet in dados %}
-                            <tr class="{% cycle 'principal-azul-claro' '' %}">
+                            <tr class="{% if produto_pallet.aprovado %}{% cycle 'principal-azul-claro' '' %}{% else %}principal-vermelho{% endif %}">
                                 <td class="fonte-roxo"><a href="{% url "estoque:mover" produto_pallet.pk %}?destino={{ request.get_full_path | urlencode}}">{{ produto_pallet.endereco }}</a></td>
                                 <td class="fonte-roxo"><a href="{% url "estoque:mover" produto_pallet.pk %}?destino={{ request.get_full_path | urlencode}}">{{ produto_pallet.endereco_coluna }}</a></td>
                                 <td class="fonte-roxo"><a href="{% url "estoque:mover" produto_pallet.pk %}?destino={{ request.get_full_path | urlencode}}">{{ produto_pallet.endereco_altura }}</a></td>

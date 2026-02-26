@@ -257,6 +257,7 @@ class ProdutosPallets(models.Model):
     fornecedor = models.ForeignKey(Fornecedores, verbose_name="Fornecedor", on_delete=models.PROTECT,
                                    related_name="%(class)s", null=True, blank=True)
     lote_fornecedor = models.CharField("Lote Fornecedor", max_length=50, null=True, blank=True)
+    aprovado = models.BooleanField("Aprovado", default=True)
 
     @property
     def unidade(self):

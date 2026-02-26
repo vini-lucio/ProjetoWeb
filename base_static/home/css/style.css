@@ -202,6 +202,10 @@ textarea:focus {
     background-color: var(--azul-claro);
 }
 
+.principal-vermelho {
+    background-color: var(--vermelho-escuro);
+}
+
 .logo-img {
     width: 100%;
     max-width: 29rem;

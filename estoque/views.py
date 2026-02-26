@@ -19,29 +19,34 @@ def estoque(request):
     expedicao = Enderecos.objects.filter(nome='Expedição').first()
     picking_producao = Enderecos.objects.filter(nome='Picking Produção').first()
     recebimento = Enderecos.objects.filter(nome='Recebimento').first()
+    quantidade_reprovados = ProdutosPallets.objects.filter(aprovado=False).count()
 
     contexto: Dict = {'titulo_pagina': titulo_pagina, 'embalagem': embalagem, 'expedicao': expedicao,
-                      'picking_producao': picking_producao, 'recebimento': recebimento, }
+                      'picking_producao': picking_producao, 'recebimento': recebimento,
+                      'quantidade_reprovados': quantidade_reprovados, }
 
     formulario = FormPesquisarMixIn()
 
     if request.method == 'GET' and request.GET:
-        formulario = FormPesquisarMixIn(request.GET)
-        dados = []
+        dados = ProdutosPallets.objects.annotate(fornecedor_lote=Concat('fornecedor__sigla', 'lote_fornecedor'))
 
-        if formulario.is_valid():
-            pesquisar = formulario.cleaned_data.get('pesquisar')
-            dados = ProdutosPallets.objects.annotate(
-                fornecedor_lote=Concat('fornecedor__sigla', 'lote_fornecedor')).filter(
-                Q(produto__nome__icontains=pesquisar) |
-                Q(pallet__endereco__nome__icontains=pesquisar) |
-                Q(fornecedor_lote__icontains=pesquisar)
-            ).order_by('pallet__endereco__coluna', 'pallet__endereco__altura', 'pk')
+        if 'pesquisar-submit' in request.GET:
+            formulario = FormPesquisarMixIn(request.GET)
+            if formulario.is_valid():
+                pesquisar = formulario.cleaned_data.get('pesquisar')
+                dados = dados.filter(
+                    Q(produto__nome__icontains=pesquisar) |
+                    Q(pallet__endereco__nome__icontains=pesquisar) |
+                    Q(fornecedor_lote__icontains=pesquisar)
+                ).order_by('pallet__endereco__coluna', 'pallet__endereco__altura', 'pk')
 
-            total_kg = 0
-            for produto_pallet in dados:
-                if produto_pallet.unidade == 'KG':
-                    total_kg += produto_pallet.quantidade
+        if 'reprovado-submit' in request.GET:
+            dados = dados.filter(aprovado=False).order_by('pallet__endereco__coluna', 'pallet__endereco__altura', 'pk')
+
+        total_kg = 0
+        for produto_pallet in dados:
+            if produto_pallet.unidade == 'KG':
+                total_kg += produto_pallet.quantidade
 
         contexto.update({'dados': dados, 'total_kg': total_kg, })
 
