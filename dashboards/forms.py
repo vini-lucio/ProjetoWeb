@@ -59,7 +59,17 @@ class FormDashboardVendasCarteiras(FormVendedoresMixIn, FormPeriodoInicioFimMixI
         'faturamentos': 'Faturamentos',
     }
 
+    status_documentos = {
+        # Incluir 'em aberto' e 'bloqueado' se necessario, ajustar junto com somente em aberto independente do periodo
+        '': '---------',
+        'LIQUIDADO': 'Liquidado',
+        'PERDIDO': 'Perdido',
+    }
+
     fonte = forms.ChoiceField(label="Fonte", choices=fontes, initial='pedidos', required=True)  # type: ignore
+    status_documento = forms.ChoiceField(label="Status", help_text="No periodo",
+                                         choices=status_documentos, initial='', required=False)  # type: ignore
+    somente_oportunidade = forms.BooleanField(label="Somente Oportunidade", initial=False, required=False)
     em_aberto = forms.BooleanField(label="Em Aberto", help_text="Independente do periodo",
                                    initial=False, required=False)
 
@@ -93,6 +103,7 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     # Campos Sobre Cliente
     coluna_grupo_economico = forms.BooleanField(label="Coluna Grupo Economico", initial=True, required=False)
     grupo_economico = forms.CharField(label="Grupo Economico", max_length=300, required=False)
+    coluna_cliente = forms.BooleanField(label="Coluna Cliente", initial=True, required=False)
     cnpj_cpf = forms.CharField(label="CNPJ / CPF", max_length=18, required=False)
     coluna_carteira = forms.BooleanField(label="Coluna Carteira", initial=True, required=False)
     carteira = forms.ModelChoiceField(carteiras, label="Carteira", required=False)
@@ -128,6 +139,8 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_quantidade = forms.BooleanField(label="Coluna Quantidade", initial=False, required=False)
     coluna_estoque_abc = forms.BooleanField(label="Coluna Estoque ABC", initial=False, required=False)
     produto_marca = forms.ModelChoiceField(marcas, label="Marca", required=False)
+    coluna_peso_liquido_produto_documento = forms.BooleanField(label="Coluna Peso Liquido kg", help_text='no documento',
+                                                               initial=False, required=False)
 
     # Campos Gerais
     codigo_sql = forms.BooleanField(label="Codigo SQL", initial=False, required=False)
@@ -171,12 +184,13 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
             'Sobre Cliente': ['coluna_grupo_economico', 'coluna_carteira', 'coluna_tipo_cliente', 'coluna_cidade',
                               'coluna_estado', 'coluna_segundo_representante', 'grupo_economico', 'carteira',
                               'carteira_parede_de_concreto', 'carteira_premoldado_poste', 'tipo_cliente', 'cidade',
-                              'estado', 'informacao_estrategica', 'segundo_representante', 'cnpj_cpf',],
+                              'estado', 'informacao_estrategica', 'segundo_representante', 'cnpj_cpf',
+                              'coluna_cliente',],
 
             'Sobre Produto': ['coluna_familia_produto', 'coluna_produto', 'coluna_unidade',
                               'coluna_preco_tabela_inclusao', 'coluna_preco_venda_medio', 'coluna_quantidade',
                               'coluna_estoque_abc', 'familia_produto', 'produto', 'produto_marca',
-                              'coluna_grupo_produto', 'grupo_produto',],
+                              'coluna_grupo_produto', 'grupo_produto', 'coluna_peso_liquido_produto_documento',],
 
             'Geral': ['coluna_job', 'coluna_rentabilidade', 'coluna_rentabilidade_valor',
                       'coluna_quantidade_documentos', 'coluna_ano_emissao', 'coluna_mes_emissao', 'coluna_dia_emissao',

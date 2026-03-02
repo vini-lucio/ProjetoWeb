@@ -38,10 +38,11 @@ def estoque(request):
                     Q(produto__nome__icontains=pesquisar) |
                     Q(pallet__endereco__nome__icontains=pesquisar) |
                     Q(fornecedor_lote__icontains=pesquisar)
-                ).order_by('pallet__endereco__coluna', 'pallet__endereco__altura', 'pk')
+                ).order_by('pallet__endereco__nome', 'pallet__endereco__coluna', 'pallet__endereco__altura', 'pk')
 
         if 'reprovado-submit' in request.GET:
-            dados = dados.filter(aprovado=False).order_by('pallet__endereco__coluna', 'pallet__endereco__altura', 'pk')
+            dados = dados.filter(aprovado=False).order_by('pallet__endereco__nome', 'pallet__endereco__coluna',
+                                                          'pallet__endereco__altura', 'pk')
 
         total_kg = 0
         for produto_pallet in dados:

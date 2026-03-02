@@ -4,12 +4,12 @@
     <div class="bloco">
         {{ block.super }}
         <li>
-            <a href="{% url 'estoque:estoque' %}?pesquisar=Embalagem" class="viewsitelink">
+            <a href="{% url 'estoque:estoque' %}?pesquisar=Embalagem&pesquisar-submit=" class="viewsitelink">
                 📦 Estoque Embalagem
             </a>
         </li>
         <li>
-            <a href="{% url 'estoque:estoque' %}?pesquisar=Recebimento" class="viewsitelink">
+            <a href="{% url 'estoque:estoque' %}?pesquisar=Recebimento&pesquisar-submit=" class="viewsitelink">
                 🏭 Estoque Recebimento
             </a>
         </li>

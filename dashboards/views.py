@@ -69,8 +69,14 @@ def vendas_carteira(request):
                     'em_aberto') if fonte != 'faturamentos' else False  # type: ignore
                 inicio = formulario.cleaned_data.get('inicio') if not em_aberto else None
                 fim = formulario.cleaned_data.get('fim') if not em_aberto else None
+                somente_oportunidade = formulario.cleaned_data.get('somente_oportunidade')
 
-                # TODO: filtrar pela legenda? Em aberto, perdido e liquidado (status) e por oportunidade
+                status_documento = formulario.cleaned_data.get('status_documento')
+                if fonte == 'faturamentos' and status_documento == 'liquidado':
+                    status_documento = 'SIM'
+                elif fonte == 'faturamentos' and status_documento == 'perdido':
+                    status_documento = 'NAO'
+
                 valores_periodo = get_relatorios_vendas(fonte=fonte, inicio=inicio, fim=fim, coluna_data_emissao=True,
                                                         coluna_status_documento=True, coluna_job=True,
                                                         status_documento_em_aberto=em_aberto,
@@ -79,6 +85,8 @@ def vendas_carteira(request):
                                                         coluna_grupo_economico=True, coluna_data_entrega_itens=True,
                                                         coluna_orcamento_oportunidade=True,
                                                         incluir_orcamentos_oportunidade=True, coluna_carteira=True,
+                                                        status_documento=status_documento,
+                                                        somente_orcamento_oportunidade=somente_oportunidade,
                                                         **carteira_parametros)
 
                 valor_total = 0
@@ -567,17 +575,22 @@ def relatorios_supervisao(request, fonte: str):
                 coluna_rentabilidade = formulario.cleaned_data.get('coluna_rentabilidade')
                 coluna_rentabilidade_valor = formulario.cleaned_data.get('coluna_rentabilidade_valor')
                 coluna_quantidade_documentos = formulario.cleaned_data.get('coluna_quantidade_documentos')
+                coluna_peso_liquido_produto_documento = formulario.cleaned_data.get(
+                    'coluna_peso_liquido_produto_documento')
 
                 valor_mercadorias_total = 0
                 mc_total = 0
                 mc_valor_total = 0
                 quantidade_documentos_total = 0
+                peso_liquido_produto_documento = 0
                 for dado in dados:
                     valor_mercadorias_total += dado.get('VALOR_MERCADORIAS', 0)  # type:ignore
                     if coluna_rentabilidade or coluna_rentabilidade_valor:
                         mc_valor_total += dado.get('MC_VALOR', 0)  # type:ignore
                     if coluna_quantidade_documentos:
                         quantidade_documentos_total += dado.get('QUANTIDADE_DOCUMENTOS', 0)  # type:ignore
+                    if coluna_peso_liquido_produto_documento:
+                        peso_liquido_produto_documento += dado.get('PESO_LIQUIDO_PRODUTO_DOCUMENTO', 0)  # type:ignore
                 if mc_valor_total and valor_mercadorias_total:
                     mc_total = mc_valor_total / valor_mercadorias_total * 100
 
@@ -586,6 +599,7 @@ def relatorios_supervisao(request, fonte: str):
                     'MC': round(mc_total, 2),
                     'MC VALOR': round(mc_valor_total, 2),
                     'QUANTIDADE DOCUMENTOS': round(quantidade_documentos_total, 0),
+                    'PESO LIQUIDO PRODUTO DOCUMENTO': round(peso_liquido_produto_documento, 3),
                 }
 
                 cabecalho = []

@@ -85,6 +85,8 @@
                                             {{ valor | stringformat:"d" }}
                                         {% elif 'VALOR' in chave or 'MEDIA' in chave %}
                                             {{ valor | floatformat:2 }}
+                                        {% elif 'PESO_LIQUIDO' in chave %}
+                                            {{ valor | floatformat:3 }}
                                         {% else %}
                                             {{ valor }}
                                         {% endif %}

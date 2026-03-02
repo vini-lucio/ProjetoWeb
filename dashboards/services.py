@@ -1368,6 +1368,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE,", },
 
+        'coluna_peso_liquido_produto_documento': {'peso_liquido_produto_documento_campo_alias': "ROUND(SUM(NOTAS_ITENS.PESO_LIQUIDO * CASE WHEN NOTAS.ESPECIE = 'S' THEN 1 ELSE (-1) END), 3) AS PESO_LIQUIDO_PRODUTO_DOCUMENTO,", },
+
         'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
                           'cidade_campo': "CLIENTES.CIDADE,", },
         'cidade': {'cidade_pesquisa': "UPPER(CLIENTES.CIDADE) LIKE UPPER(:cidade) AND", },
@@ -1515,10 +1517,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_status_documento': {'status_documento_campo_alias': "CASE NOTAS.ATIVA WHEN 'NAO' THEN 'CANCELADA' END AS STATUS_DOCUMENTO,",
                                     'status_documento_campo': "CASE NOTAS.ATIVA WHEN 'NAO' THEN 'CANCELADA' END,", },
+        'status_documento': {'status_documento_pesquisa': "NOTAS.ATIVA = :status_documento AND", },
         'status_documento_em_aberto': {'status_documento_em_aberto_pesquisa': "", },
 
         'coluna_orcamento_oportunidade': {'orcamento_oportunidade_campo_alias': "",
                                           'orcamento_oportunidade_campo': "", },
+        'somente_orcamento_oportunidade': {'somente_orcamento_oportunidade_pesquisa': "", },
 
         'status_cliente_ativo': {'status_cliente_ativo_pesquisa': "CLIENTES.STATUS IN ('Y', 'P') AND", },
 
@@ -1528,7 +1532,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                        'job_campo': "JOBS.DESCRICAO,", },
         'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
 
-        'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.PESO_LIQUIDO ELSE 0 END) AS PESO_PP,", },
+        'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN NOTAS_ITENS.PESO_LIQUIDO ELSE 0 END * CASE WHEN NOTAS.ESPECIE = 'S' THEN 1 ELSE (-1) END) AS PESO_PP,", },
 
         'coluna_especie': {'especie_campo_alias': "CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END AS ESPECIE,",
                            'especie_campo': "CASE NOTAS.ESPECIE WHEN 'S' THEN 'SAIDA' WHEN 'E' THEN 'ENTRADA' END,", },
@@ -1906,6 +1910,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(PEDIDOS_ITENS.QUANTIDADE) AS QUANTIDADE,", },
 
+        'coluna_peso_liquido_produto_documento': {'peso_liquido_produto_documento_campo_alias': "ROUND(SUM(PEDIDOS_ITENS.PESO_LIQUIDO), 3) AS PESO_LIQUIDO_PRODUTO_DOCUMENTO,", },
+
         'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
                           'cidade_campo': "CLIENTES.CIDADE,", },
         'cidade': {'cidade_pesquisa': "UPPER(CLIENTES.CIDADE) LIKE UPPER(:cidade) AND", },
@@ -2024,10 +2030,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_status_documento': {'status_documento_campo_alias': "PEDIDOS.STATUS AS STATUS_DOCUMENTO,",
                                     'status_documento_campo': "PEDIDOS.STATUS,", },
+        'status_documento': {'status_documento_pesquisa': "PEDIDOS.STATUS = :status_documento AND", },
         'status_documento_em_aberto': {'status_documento_em_aberto_pesquisa': "PEDIDOS.STATUS IN ('EM ABERTO', 'BLOQUEADO') AND", },
 
         'coluna_orcamento_oportunidade': {'orcamento_oportunidade_campo_alias': "",
                                           'orcamento_oportunidade_campo': "", },
+        'somente_orcamento_oportunidade': {'somente_orcamento_oportunidade_pesquisa': "", },
 
         'status_cliente_ativo': {'status_cliente_ativo_pesquisa': "CLIENTES.STATUS IN ('Y', 'P') AND", },
 
@@ -2424,6 +2432,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS.QUANTIDADE) AS QUANTIDADE,", },
 
+        'coluna_peso_liquido_produto_documento': {'peso_liquido_produto_documento_campo_alias': "ROUND(SUM(ORCAMENTOS_ITENS.PESO_LIQUIDO), 3) AS PESO_LIQUIDO_PRODUTO_DOCUMENTO,", },
+
         'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
                           'cidade_campo': "CLIENTES.CIDADE,", },
         'cidade': {'cidade_pesquisa': "UPPER(CLIENTES.CIDADE) LIKE UPPER(:cidade) AND", },
@@ -2556,10 +2566,12 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_status_documento': {'status_documento_campo_alias': "ORCAMENTOS.STATUS AS STATUS_DOCUMENTO,",
                                     'status_documento_campo': "ORCAMENTOS.STATUS,", },
+        'status_documento': {'status_documento_pesquisa': "ORCAMENTOS.STATUS = :status_documento AND", },
         'status_documento_em_aberto': {'status_documento_em_aberto_pesquisa': "ORCAMENTOS.STATUS IN ('EM ABERTO', 'BLOQUEADO') AND", },
 
         'coluna_orcamento_oportunidade': {'orcamento_oportunidade_campo_alias': "ORCAMENTOS.REGISTRO_OPORTUNIDADE AS OPORTUNIDADE,",
                                           'orcamento_oportunidade_campo': "ORCAMENTOS.REGISTRO_OPORTUNIDADE,", },
+        'somente_orcamento_oportunidade': {'somente_orcamento_oportunidade_pesquisa': "ORCAMENTOS.REGISTRO_OPORTUNIDADE = 'SIM' AND", },
 
         'status_cliente_ativo': {'status_cliente_ativo_pesquisa': "CLIENTES.STATUS IN ('Y', 'P') AND", },
 
@@ -2692,6 +2704,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                             'desconto_campo': "ROUND((1 - (ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA / ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_TABELA)) * 100, 2),", },
 
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE) AS QUANTIDADE,", },
+
+        'coluna_peso_liquido_produto_documento': {'peso_liquido_produto_documento_campo_alias': "ROUND(SUM(PRODUTOS.PESO_LIQUIDO), 3) AS PESO_LIQUIDO_PRODUTO_DOCUMENTO,", },
 
         'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "{} AND".format(justificativas(True)), },
 
@@ -2834,6 +2848,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     coluna_valor_bruto = kwargs.get('coluna_valor_bruto')
     cnpj_cpf = kwargs.get('cnpj_cpf')
     log_nome_inclusao_documento = kwargs.get('log_nome_inclusao_documento')
+    status_documento = kwargs.get('status_documento')
 
     # Campos / filtros com comportamento diferente (precisam ser removidos de kwargs)
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
@@ -2983,6 +2998,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     if log_nome_inclusao_documento:
         kwargs_ora.update({'log_nome_inclusao_documento': log_nome_inclusao_documento, })
 
+    if status_documento:
+        kwargs_ora.update({'status_documento': status_documento})
+
     sql_base = """
         SELECT
             {job_campo_alias}
@@ -3044,6 +3062,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {preco_venda_campo_alias}
             {desconto_campo_alias}
             {quantidade_campo_alias}
+            {peso_liquido_produto_documento_campo_alias}
             {peso_produto_proprio_campo_alias}
             {quantidade_volumes_campo_alias}
             {media_dia_campo_alias}
@@ -3158,6 +3177,8 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {grupo_produto_pesquisa}
             {log_nome_inclusao_documento_pesquisa}
             {chave_cliente_pesquisa}
+            {status_documento_pesquisa}
+            {somente_orcamento_oportunidade_pesquisa}
 
             {fonte_where_data}
 
