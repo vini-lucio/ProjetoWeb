@@ -179,14 +179,16 @@ class DashBoardVendas():
         self.porcentagem_mc_mes = self.rentabilidade_pedidos_mes_rentabilidade_mes
         self.porcentagem_meta_mes = int(self.pedidos_mes / self.meta_mes * 100) if self.meta_mes else 0
         self.faltam_meta_mes = round(self.meta_mes - self.pedidos_mes, 2)
-        self.cor_rentabilidade_css_dia = cor_rentabilidade_css(self.rentabilidade_pedidos_dia, True)
-        self.cor_rentabilidade_css_mes = cor_rentabilidade_css(self.rentabilidade_pedidos_mes_rentabilidade_mes, True)
+        self.cor_rentabilidade_css_dia = cor_rentabilidade_css(self.rentabilidade_pedidos_dia, 'TOTAL', True)
+        self.cor_rentabilidade_css_mes = cor_rentabilidade_css(
+            self.rentabilidade_pedidos_mes_rentabilidade_mes, 'TOTAL', True)
 
         self.falta_mudar_cor_mes = (0.0, 0.0, 0.0, '')
         if executar_completo:
             self.falta_mudar_cor_mes = falta_mudar_cor_mes(self.rentabilidade_pedidos_mes_mc_mes,
                                                            self.pedidos_mes,
-                                                           self.rentabilidade_pedidos_mes_rentabilidade_mes)
+                                                           self.rentabilidade_pedidos_mes_rentabilidade_mes,
+                                                           'TOTAL')
         self.falta_mudar_cor_mes_valor = round(self.falta_mudar_cor_mes[0], 2)
         self.falta_mudar_cor_mes_valor_rentabilidade = round(self.falta_mudar_cor_mes[1], 2)
         self.falta_mudar_cor_mes_porcentagem = round(self.falta_mudar_cor_mes[2], 2)

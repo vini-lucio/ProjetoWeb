@@ -2774,6 +2774,7 @@ def get_tabela_precos() -> list | None:
     return resultado
 
 
+# Cadastro de regiões no analysis não é mais editavel
 def migrar_regioes():
     mapeamento_destino_origem = {
         'nome': 'REGIAO',
@@ -2803,20 +2804,21 @@ def migrar_estados():
     mapeamento_destino_origem = {
         'uf': 'ESTADO',
         'sigla': 'SIGLA',
-        'regiao': ('CHAVE_REGIAO', ('chave_analysis', 'CHAVE')),
+        # Cadastro de regiões no analysis não é mais editavel
+        # 'regiao': ('CHAVE_REGIAO', ('chave_analysis', 'CHAVE')),
     }
 
     origem = ESTADOS.objects.all()
     if origem:
         destino = Estados.objects
-        regiao = Regioes.objects
+        # regiao = Regioes.objects
         for objeto_origem in origem:
             objeto_destino = destino.filter(chave_analysis=objeto_origem.pk).first()
 
             mudou = campo_migrar_mudou(objeto_destino, objeto_origem, mapeamento_destino_origem)
 
             if mudou:
-                fk_regiao = regiao.filter(chave_analysis=objeto_origem.CHAVE_REGIAO.CHAVE).first()  # type:ignore
+                # fk_regiao = regiao.filter(chave_analysis=objeto_origem.CHAVE_REGIAO.CHAVE).first()  # type:ignore
 
                 instancia, criado = destino.update_or_create(
                     chave_analysis=objeto_origem.pk,
@@ -2824,7 +2826,7 @@ def migrar_estados():
                         'chave_analysis': objeto_origem.pk,
                         'uf': objeto_origem.ESTADO,
                         'sigla': objeto_origem.SIGLA,
-                        'regiao': fk_regiao,
+                        # 'regiao': fk_regiao,
                     }
                 )
                 instancia.full_clean()

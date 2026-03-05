@@ -16,7 +16,7 @@ import plotly.graph_objects as go
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
 from utils.data_hora_atual import data_x_dias
 from utils.base_forms import FormVendedoresMixIn, FormVendedoresNonRequiredMixIn
-from utils.cor_rentabilidade import get_cores_rentabilidade
+from utils.cor_rentabilidade import get_cores_rentabilidade_job
 from utils.plotly_parametros import update_layout_kwargs
 from utils.site_setup import get_site_setup
 import pandas as pd
@@ -168,12 +168,12 @@ def analise_orcamentos(request):
     :confere_inscricoes_estaduais (list[dict]): com a lista de erros de inscrição estadual do orçamento do formulario"""
     titulo_pagina = 'Analise Orçamento'
 
-    cores_rentabilidade = get_cores_rentabilidade()
+    cores_rentabilidade = get_cores_rentabilidade_job('COPLAS')
     cores_rentabilidade.update({'verde': cores_rentabilidade['verde'] + cores_rentabilidade['despesa_adm']})
     cores_rentabilidade.update({'amarelo': cores_rentabilidade['amarelo'] + cores_rentabilidade['despesa_adm']})
     cores_rentabilidade.update({'vermelho': cores_rentabilidade['vermelho'] + cores_rentabilidade['despesa_adm']})
 
-    contexto: dict = {'titulo_pagina': titulo_pagina, 'cores_rentabilidade': cores_rentabilidade, }
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
 
     # forçar estar logado para aparecer todas as opções de desconto (customização desfeita)
     # formulario = FormAnaliseOrcamentos(usuario=request.user)
@@ -193,7 +193,19 @@ def analise_orcamentos(request):
                                           coluna_frete_incluso_item=True, coluna_custo_total_item=True,
                                           coluna_aliquotas_itens=True, coluna_preco_tabela_inclusao=True,
                                           ordenar_sequencia_prioritario=True, coluna_rentabilidade_cor=True,
-                                          coluna_mc_cor_ajuste=True, nao_converter_moeda=True,)
+                                          coluna_mc_cor_ajuste=True, nao_converter_moeda=True, coluna_job=True,)
+
+            if dados:
+                job = dados[0].get('JOB', '')
+                if job != 'COPLAS':
+                    cores_rentabilidade = get_cores_rentabilidade_job(job)
+                    cores_rentabilidade.update(
+                        {'verde': cores_rentabilidade['verde'] + cores_rentabilidade['despesa_adm']})
+                    cores_rentabilidade.update(
+                        {'amarelo': cores_rentabilidade['amarelo'] + cores_rentabilidade['despesa_adm']})
+                    cores_rentabilidade.update(
+                        {'vermelho': cores_rentabilidade['vermelho'] + cores_rentabilidade['despesa_adm']})
+
             if dados:
                 dt_dados = pd.DataFrame(dados)
 
@@ -243,7 +255,7 @@ def analise_orcamentos(request):
                 contexto.update({'dados': dados, 'confere_orcamento': confere,
                                  'confere_inscricoes_estaduais': confere_ie})
 
-    contexto.update({'formulario': formulario})
+    contexto.update({'formulario': formulario, 'cores_rentabilidade': cores_rentabilidade, })
 
     return render(request, 'dashboards/pages/analise_orcamentos.html', contexto)
 

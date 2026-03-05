@@ -7,7 +7,7 @@ from home.forms import PesquisarForm
 from django.db.models import Q
 from django.utils.text import slugify
 from .services import (get_tabela_precos, migrar_cidades, migrar_unidades, migrar_produtos, migrar_estados,
-                       migrar_estados_icms, migrar_vendedores, migrar_canais_vendas, migrar_regioes, migrar_comissoes,
+                       migrar_estados_icms, migrar_vendedores, migrar_canais_vendas, migrar_comissoes,
                        migrar_faturamentos, sugestoes_modelos, migrar_produtos_tipos)
 from .forms import ConfirmacaoMigrar, ConfirmacaoMigrarDataFimNonRequired, ConfirmacaoMigrarData
 from django.contrib.auth.decorators import user_passes_test
@@ -15,12 +15,10 @@ from datetime import datetime
 
 # TODO: criar testes automatizados?
 # TODO: nas migrações, trazer tudo para memoria, para não ter que fazer select no loop nas comparações?
-# TODO: relatorios por semelhantes ao get_relatorios_vendas
-# TODO: todos os relatorios onde usam despesa administrativas (do site_setup) tratar por job (iniciado na função de cor)
+# TODO: relatorios semelhantes ao get_relatorios_vendas
 # TODO: conferencia de campos não obrigatorios para serem preenchidos (exemplo: cadastros de produtos campos de calculo de frete e modelo, modelos sem tags)
 # TODO: Paginas personalizadas com informassões consolidades de clientes, produtos, vendas, produção, financeiro, etc???????
 # TODO: rest
-# TODO: managers no lugar de class method para filtros customizados?
 # TODO: substituir sistema monitoramento marco moreno?
 
 
@@ -41,7 +39,8 @@ def migracao(request):
         if 'cidades-submit' in request.POST:
             formulario_migrar_cidades = ConfirmacaoMigrar(request.POST, id_confirma=id_confirma_cidades)
             if formulario_migrar_cidades.is_valid() and formulario_migrar_cidades.cleaned_data['confirma']:
-                migrar_regioes()
+                # Cadastro de regiões no analysis não é mais editavel
+                # migrar_regioes()
                 migrar_estados()
                 migrar_estados_icms()
                 migrar_cidades()

@@ -45,7 +45,7 @@ class HomeLinksAdmin(AdminRedRequiredMixIn, SummernoteModelAdmin):
 
 @admin.register(SiteSetup)
 class SiteSetupAdmin(BaseModelAdminRedRequired):
-    readonly_fields = 'meta_diaria',
+    readonly_fields = 'meta_diaria', '_despesa_administrativa_fixa',
 
     fieldsets = (
         ('Dados Site', {
@@ -56,7 +56,7 @@ class SiteSetupAdmin(BaseModelAdminRedRequired):
         ('Dados Mês', {
             "fields": (
                 'primeiro_dia_mes', 'primeiro_dia_util_mes', 'ultimo_dia_mes', 'primeiro_dia_util_proximo_mes',
-                'despesa_administrativa_fixa',
+                '_despesa_administrativa_fixa',
             ),
         }),
         ('Meta Mês', {

@@ -218,6 +218,12 @@ class SiteSetup(models.Model):
                                                 max_digits=5, decimal_places=2)
 
     @property
+    def _despesa_administrativa_fixa(self):
+        return 'Incluir no cadastro de jobs'
+
+    _despesa_administrativa_fixa.fget.short_description = 'Despesa Administrativa Fixa'  # type:ignore
+
+    @property
     def primeiro_dia_mes_as_ddmmyyyy(self):
         return converter_data_django_para_str_ddmmyyyy(self.primeiro_dia_mes)
 

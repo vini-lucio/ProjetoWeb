@@ -207,7 +207,7 @@
                                     <td>{{ valor.DATA_EMISSAO | date:"d/m/Y" }}</td>
                                     <td>{{ valor.DATA_ENTREGA | date:"d/m/Y" }}</td>
                                     <td>R$ {{ valor.VALOR_MERCADORIAS | floatformat:2 }}</td>
-                                    <td class="fonte-cinza" style="background-color: var({{ valor.MC_COR | cor_rentabilidade_css }});"></td>
+                                    <td class="fonte-cinza" style="background-color: var({{ valor.MC_COR|cor_rentabilidade_css:valor.JOB }});"></td>
                                 </tr>
                             {% endfor %}
                             <tr class="principal-claro">

@@ -80,11 +80,11 @@
                                 <td>{{ dado.PRODUTO }}</td>
                                 <td>R$ {{ dado.PRECO_VENDA | floatformat:2 }}</td>
                                 <td>{{ dado.DESCONTO | floatformat:2 }}%</td>
-                                <td class="fonte-cinza" style="background-color: var({{ dado.MC_COR | cor_rentabilidade_css }});">{{ dado.MC | floatformat:2 }}%</td>
+                                <td class="fonte-cinza" style="background-color: var({{ dado.MC_COR|cor_rentabilidade_css:dado.JOB }});">{{ dado.MC | floatformat:2 }}%</td>
                                 <td class="botao-escuro"></td>
                                 <td>R$ {{ dado.PRECO_NOVO | floatformat:2 }}</td>
                                 <td>{{ dado.DESCONTO_NOVO | floatformat:2 }}%</td>
-                                <td class="fonte-cinza" style="background-color: var({{ dado.MC_COR_NOVO | cor_rentabilidade_css }});">{{ dado.MC_NOVO | floatformat:2 }}%</td>
+                                <td class="fonte-cinza" style="background-color: var({{ dado.MC_COR_NOVO|cor_rentabilidade_css:dado.JOB }});">{{ dado.MC_NOVO | floatformat:2 }}%</td>
                             </tr>
                         {% endfor %}
                     </table>

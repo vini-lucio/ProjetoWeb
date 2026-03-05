@@ -30,9 +30,9 @@ def multiplicar_porcentagem(valor, porcentagem):
 register.filter('multiplicar_porcentagem', multiplicar_porcentagem)
 
 
-def cor_rentabilidade_css(margem_contribuicao) -> str:
+def cor_rentabilidade_css(margem_contribuicao, job_descricao) -> str:
     """Retorna o nome da variavel da dor no css da margem de contribuição informada"""
-    return cor_css(margem_contribuicao, True)
+    return cor_css(margem_contribuicao, job_descricao, True)
 
 
 register.filter('cor_rentabilidade_css', cor_rentabilidade_css)

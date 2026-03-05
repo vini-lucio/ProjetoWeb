@@ -1,21 +1,22 @@
-from utils.site_setup import get_cores_rentabilidade
+from utils.site_setup import get_cores_rentabilidade_job
 
 sugestao_rentabilidade_a_menos = -1.99
 sugestao_rentabilidade_a_mais = 3.0
 
 
-def cor_rentabilidade_css(rentabilidade: float, subtrair_despesa_adm: bool = False) -> str:
+def cor_rentabilidade_css(rentabilidade: float, job_descricao: str, subtrair_despesa_adm: bool = False) -> str:
     """Retorna o nome da variavel do css referente a cor da rentabilidade atual.
 
     Parametros:
     -----------
     :rentabilidade [float]: com a rentabilidade para saber a cor.
+    :job_descricao [str]: com a descrição (nome) do job a ser considerado a despesa fixa
     :subtrair_despesa_adm [bool]: boolano se é necessario subtrair a despesa administrativa fixa atual da rentabilidade.
 
     Retorno:
     --------
     :str: com o nome da variavel do estilo css da cor da rentabilidade."""
-    cores = get_cores_rentabilidade()
+    cores = get_cores_rentabilidade_job(job_descricao)
     verde = cores['verde']
     amarelo = cores['amarelo']
     vermelho = cores['vermelho']
@@ -33,7 +34,7 @@ def cor_rentabilidade_css(rentabilidade: float, subtrair_despesa_adm: bool = Fal
     return '--roxo-rentabilidade'
 
 
-def falta_mudar_cor_mes(mc_mes: float, total_mes: float, rentabilidade_mes: float, subtrair_despesa_adm: bool = True) -> tuple[float, float, float, str]:
+def falta_mudar_cor_mes(mc_mes: float, total_mes: float, rentabilidade_mes: float, job_descricao: str, subtrair_despesa_adm: bool = True) -> tuple[float, float, float, str]:
     """Retorna quanto precisa vender [0] em uma determinada rentabilidade [1] para mudar de cor,
     a porcentagem de quanto falta [2] e a cor que vai mudar [3] no mes.
 
@@ -42,12 +43,13 @@ def falta_mudar_cor_mes(mc_mes: float, total_mes: float, rentabilidade_mes: floa
     :mc_mes [float]: com o valor de margem de contribuição do mes atual.
     :total_mes [float]: com o valor total vendido no mes.
     :rentabilidade_mes [float]: com o valor percentual de margem de contribuição do mes atual.
+    :job_descricao [str]: com a descrição (nome) do job a ser considerado a despesa fixa
     :subtrair_despesa_adm [bool]: boolano se é necessario subtrair a despesa administrativa fixa atual da rentabilidade.
 
     Retorno:
     --------
     :tuple[float, float, float, str]: com quanto precisa vender [0] em uma determinada rentabilidade [1] para mudar de cor, a porcentagem de quanto falta [2] e a cor que vai mudar [3] no mes"""
-    cores = get_cores_rentabilidade()
+    cores = get_cores_rentabilidade_job(job_descricao)
     verde = cores['verde']
     amarelo = cores['amarelo']
     vermelho = cores['vermelho']

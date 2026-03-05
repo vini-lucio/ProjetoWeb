@@ -11,7 +11,7 @@ def get_site_setup():
     return SiteSetup.objects.order_by('-id').first()
 
 
-def get_cores_rentabilidade():
+def get_cores_rentabilidade_job(job_descricao: str) -> dict[str, float]:
     SITE_SETUP = get_site_setup()
 
     if not SITE_SETUP:
@@ -20,31 +20,14 @@ def get_cores_rentabilidade():
     verde = SITE_SETUP.rentabilidade_verde_as_float
     amarelo = SITE_SETUP.rentabilidade_amarela_as_float
     vermelho = SITE_SETUP.rentabilidade_vermelha_as_float
-    despesa_adm = SITE_SETUP.despesa_administrativa_fixa_as_float
+
+    job = Jobs.objects.filter(descricao=job_descricao).first()
+    if not job:
+        return {}
+
+    despesa_adm = job.despesa_administrativa_fixa_as_float
 
     return {'verde': verde, 'amarelo': amarelo, 'vermelho': vermelho, 'despesa_adm': despesa_adm}
-
-
-def get_cores_rentabilidade_jobs() -> dict[str, dict[str, float]]:
-    SITE_SETUP = get_site_setup()
-
-    if not SITE_SETUP:
-        return {}
-
-    cores_jobs = {}
-
-    verde = SITE_SETUP.rentabilidade_verde_as_float
-    amarelo = SITE_SETUP.rentabilidade_amarela_as_float
-    vermelho = SITE_SETUP.rentabilidade_vermelha_as_float
-
-    jobs = Jobs.objects.all()
-    for job in jobs:
-        despesa_adm = job.despesa_administrativa_fixa_as_float
-        cores_jobs.update(
-            {job.descricao: {'verde': verde, 'amarelo': amarelo, 'vermelho': vermelho, 'despesa_adm': despesa_adm}}
-        )
-
-    return cores_jobs
 
 
 def get_assistentes_tecnicos():
