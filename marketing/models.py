@@ -7,6 +7,7 @@ from utils.converter import converter_data_django_para_str_ddmmyyyy
 
 
 class LeadsRdStation(models.Model):
+    # TODO: campo recompra? e remover unique, para controlar os repetidos ao inves de só dos novos e separar no dashboard
     class Meta:
         verbose_name = 'Lead RD Station'
         verbose_name_plural = 'Leads RD Station'
