@@ -870,7 +870,7 @@ def lucro_ano_mes_a_mes():
 
     pt = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                coluna_mes_emissao=True, coluna_rentabilidade=True,
-                               familia_produto=[7767, 12441,],)
+                               familia_produto=[7767, 12441, 12819,],)
     pt = pd.DataFrame(pt)
     pt = pt[['MES_EMISSAO', 'MC']]
     pt = pt.rename(columns={'MC': 'PT'})
@@ -1316,7 +1316,7 @@ def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
     pp = pp.rename(columns={'VALOR_MERCADORIAS': 'PP'})
 
     pt = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
-                               coluna_mes_emissao=True, familia_produto=[7767, 12441,],)
+                               coluna_mes_emissao=True, familia_produto=[7767, 12441, 12819,],)
     pt = pd.DataFrame(pt)
     pt = pt if not pt.empty else padrao
     pt = pt.rename(columns={'VALOR_MERCADORIAS': 'PT'})
@@ -2744,7 +2744,7 @@ def get_tabela_precos() -> list | None:
             CLASSE_IPI.CHAVE = PRODUTOS.CHAVE_CLASSEIPI AND
             PRODUTOS.CPROD = PRODUTOS_JOBS_CUSTOS.CHAVE_PRODUTO AND
             PRODUTOS.FORA_DE_LINHA = 'NAO' AND
-            PRODUTOS.CHAVE_FAMILIA IN (7767, 7766, 8378, 12441) AND
+            PRODUTOS.CHAVE_FAMILIA IN (7767, 7766, 8378, 12441, 12819) AND
             PRODUTOS_JOBS_CUSTOS.CHAVE_JOB IN (22, 25) AND
             PRODUTOS.DESENVOLVIMENTO = 'NAO' AND
             PRODUTOS_JOBS_CUSTOS.PRECO_ICMS0 > 0 AND
@@ -2960,7 +2960,8 @@ def migrar_produtos():
         'tipo': ('CHAVE_TIPO', ('chave_analysis', 'CHAVE')),
     }
 
-    origem = PRODUTOS.objects.filter(Q(CHAVE_FAMILIA__CHAVE__in=(7766, 7767, 8378, 12441)) | Q(CHAVE_GRUPO=8273)).all()
+    origem = PRODUTOS.objects.filter(Q(CHAVE_FAMILIA__CHAVE__in=(
+        7766, 7767, 8378, 12441, 12819)) | Q(CHAVE_GRUPO=8273)).all()
     if origem:
         destino = Produtos.objects
         unidade = Unidades.objects
@@ -3081,7 +3082,7 @@ def migrar_comissoes(data_inicio, data_fim):
                                   coluna_tipo_cliente=True, coluna_frete_incluso_item=True,
                                   coluna_informacao_estrategica=True, coluna_proporcao_mercadorias=True,
                                   coluna_chave_documento=True, coluna_valor_bruto=True,
-                                  familia_produto=[7766, 7767, 8378, 12441])
+                                  familia_produto=[7766, 7767, 8378, 12441, 12819])
     notas = pd.DataFrame(notas)
 
     receber = get_relatorios_financeiros('receber', data_vencimento_inicio=data_inicio,
@@ -3331,7 +3332,7 @@ def migrar_faturamentos(data_inicio, data_fim):
                                    coluna_segundo_representante_documento=True, coluna_especie=True,
                                    coluna_status_documento=True, coluna_tipo_cliente=True,
                                    coluna_informacao_estrategica=True,
-                                   familia_produto=[7766, 7767, 8378, 12441])
+                                   familia_produto=[7766, 7767, 8378, 12441, 12819])
 
     infra = get_relatorios_vendas('faturamentos', inicio=data_inicio, fim=data_fim, coluna_documento=True,
                                   informacao_estrategica=8)
