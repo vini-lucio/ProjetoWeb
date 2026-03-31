@@ -1344,6 +1344,22 @@ def faturado_mercadorias_ano_mes_a_mes(*, mes_atual: bool = False):
     return resultado
 
 
+def fluxus_faturado_mercadorias_ano_mes_a_mes():
+    """Retorna o faturamento do valor das mercadorias do job Fluxus do periodo informado em site setup mes a mes"""
+    from dashboards.services import get_relatorios_vendas
+    site_setup = get_site_setup()
+    if site_setup:
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
+
+    resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
+                                      coluna_mes_emissao=True, job=25)
+    resultado = completar_meses(pd.DataFrame(resultado), 'MES_EMISSAO', ['VALOR_MERCADORIAS'])
+    resultado = resultado.to_dict(orient='records')
+
+    return resultado
+
+
 def faturado_bruto_ano_mes_a_mes(*, mes_atual: bool = False):
     """Retorna o faturamento bruto por familia de produto do periodo informado em site setup mes a mes"""
     from dashboards.services import get_relatorios_vendas
@@ -3321,7 +3337,6 @@ def migrar_comissoes(data_inicio, data_fim):
 
 
 def migrar_faturamentos(data_inicio, data_fim):
-    # TODO: Job Fluxus não marcar erro com repre Fluxus
     from dashboards.services import get_relatorios_vendas
 
     origem = get_relatorios_vendas('faturamentos', inicio=data_inicio, fim=data_fim, coluna_data_emissao=True,
@@ -3378,6 +3393,7 @@ def migrar_faturamentos(data_inicio, data_fim):
         estados = Estados.objects
         vendedores = Vendedores.objects
         representante_coplas = Vendedores.objects.get(nome='COPLAS')
+        representantes_fluxus = Vendedores.objects.filter(nome__icontains='FLUX')
 
         for objeto_origem in origem:
 
@@ -3483,7 +3499,8 @@ def migrar_faturamentos(data_inicio, data_fim):
                 if instancia.representante_nota.canal_venda.descricao.upper() not in ('REPRESENTANTE', 'MERCADO LIVRE'):
                     instancia.erro = True
                 if instancia.representante_nota != instancia.representante_cliente:
-                    instancia.erro = True
+                    if instancia.representante_nota not in representantes_fluxus:
+                        instancia.erro = True
 
             divisoes = len(vendedores_divisao)
             if divisoes:
