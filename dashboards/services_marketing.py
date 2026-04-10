@@ -29,15 +29,21 @@ class DashBoardMarketing():
         data_hora_fim = timezone.make_aware(data_hora_fim)
 
         leads = LeadsRdStation.objects.filter(criado_em__gte=data_hora_inicio).filter(criado_em__lte=data_hora_fim)
-        leads_validos = leads.filter(lead_valido=True)
+        leads_validos = leads.filter(lead_valido=True, recadastro=False)
+        leads_recadastros = leads.filter(lead_valido=True, recadastro=True)
 
         canais = leads_validos.values('origem').annotate(leads=Count('pk')).order_by('-leads')
         id_clientes_leads_validos = leads_validos.filter(
             chave_analysis__isnull=False).values_list('chave_analysis', flat=True)
         id_clientes_leads_validos = list(id_clientes_leads_validos)
 
+        id_clientes_leads_recadastros = leads_recadastros.filter(
+            chave_analysis__isnull=False).values_list('chave_analysis', flat=True)
+        id_clientes_leads_recadastros = list(id_clientes_leads_recadastros)
+
         self.quantidade_leads_total = leads.count()
         self.quantidade_leads_validos = leads_validos.count()
+        self.quantidade_leads_recadastros = leads_recadastros.count()
         self.quantidade_leads_por_canal_origem = canais
         self.quantidade_leads_por_regiao = CLIENTES.objects.filter(pk__in=id_clientes_leads_validos).values(
             'CHAVE_VENDEDOR3__NOMERED').annotate(LEADS=Count('pk')).order_by('-LEADS')
@@ -76,11 +82,23 @@ class DashBoardMarketing():
         if self.investimentos:
             self.roas = self.orcamentos_fechados / self.investimentos * 100
 
+        orcamentos_recadastros_fechados = None
+        if id_clientes_leads_recadastros:
+            orcamentos_recadastros_fechados = get_relatorios_vendas('orcamentos', inicio=fechado_inicio, fim=fechado_fim,
+                                                                    coluna_quantidade_clientes=True,
+                                                                    status_produto_orcamento='FECHADO',
+                                                                    chave_cliente=id_clientes_leads_recadastros)
+            orcamentos_recadastros_fechados = orcamentos_recadastros_fechados[0] if orcamentos_recadastros_fechados else None
+        self.quantidade_leads_recadastros_compraram = orcamentos_recadastros_fechados[
+            'QUANTIDADE_CLIENTES'] if orcamentos_recadastros_fechados else 0
+        self.orcamentos_recadastros_fechados = orcamentos_recadastros_fechados[
+            'VALOR_MERCADORIAS'] if orcamentos_recadastros_fechados else 0
+
         # Geração de graficos
         dados_grafico_leads_por_canal_origem = pd.DataFrame(self.quantidade_leads_por_canal_origem)
         if not dados_grafico_leads_por_canal_origem.empty:
             grafico_leads_por_canal_origem = px.pie(dados_grafico_leads_por_canal_origem, values='leads',
-                                                    names='origem', title='Leads por Canal de Origem')
+                                                    names='origem', title='Novos Leads por Canal de Origem')
             grafico_leads_por_canal_origem.update_layout(update_layout_kwargs, paper_bgcolor='rgb(238, 238, 238)',
                                                          legend_orientation='v', height=400, width=540)
             self.grafico_leads_por_canal_origem_html = pio.to_html(grafico_leads_por_canal_origem, full_html=False)
@@ -89,7 +107,7 @@ class DashBoardMarketing():
         if not dados_grafico_leads_por_regiao.empty:
             grafico_leads_por_regiao = px.pie(dados_grafico_leads_por_regiao, values='LEADS',
                                               names='CHAVE_VENDEDOR3__NOMERED',
-                                              title='Leads por Região')
+                                              title='Novos Leads por Região')
             grafico_leads_por_regiao.update_layout(update_layout_kwargs, paper_bgcolor='rgb(238, 238, 238)',
                                                    legend_orientation='v', height=400, width=540)
             self.grafico_leads_por_regiao_html = pio.to_html(grafico_leads_por_regiao, full_html=False)

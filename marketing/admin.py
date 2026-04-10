@@ -8,7 +8,7 @@ from utils.base_models import BaseModelAdminRedRequired, ExportarXlsxMixIn
 @admin.register(LeadsRdStation)
 class LeadsRdStationAdmin(ExportarXlsxMixIn, BaseModelAdminRedRequired):
     list_display = ('id', 'criado_em_as_ddmmyyyy', 'chave_analysis', 'empresa', 'identificador', 'nome',
-                    'responsavel__nome', 'lead_valido',)
+                    'responsavel__nome', 'lead_valido', 'recadastro',)
     list_display_links = list_display
     list_filter = [('chave_analysis', admin.EmptyFieldListFilter), 'criado_em',]
     search_fields = 'chave_analysis', 'empresa', 'nome', 'identificador', 'responsavel__nome',

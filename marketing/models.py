@@ -1,26 +1,27 @@
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from analysis.models import CLIENTES
 from home.models import Responsaveis
 from datetime import datetime
 from utils.converter import converter_data_django_para_str_ddmmyyyy
+from utils.conferir_alteracao import campo_django_mudou
 
 
 class LeadsRdStation(models.Model):
-    # TODO: campo recompra? e remover unique, para controlar os repetidos ao inves de só dos novos e separar no dashboard
     class Meta:
         verbose_name = 'Lead RD Station'
         verbose_name_plural = 'Leads RD Station'
         constraints = [
             models.UniqueConstraint(
-                fields=['empresa',],
+                fields=['empresa', 'criado_em',],
                 name='leadsrdstation_unique_empresa',
-                violation_error_message="Empresa é unico em Leads RD Station"
+                violation_error_message="Empresa e Data de Criação são unicos em Leads RD Station"
             ),
             models.UniqueConstraint(
-                fields=['chave_analysis',],
+                fields=['chave_analysis', 'criado_em',],
                 name='leadsrdstation_unique_chave_analysis',
-                violation_error_message="ID Cliente Analysis é unico em Leads RD Station"
+                violation_error_message="ID Cliente Analysis e Data de Criação são unicos em Leads RD Station"
             ),
         ]
 
@@ -46,6 +47,7 @@ class LeadsRdStation(models.Model):
     observacoes = models.CharField("Observações", max_length=100, blank=True, null=True)
     responsavel = models.ForeignKey(Responsaveis, verbose_name="Responsavel", on_delete=models.PROTECT,
                                     related_name="%(class)s", null=True, blank=True)
+    recadastro = models.BooleanField("Recadastro", default=False)
 
     # Chave é o nome do campo retornado no email do RD Station e o valor é o campo relacionado do model
     map_nomes_alternativos_campos = {
@@ -133,7 +135,6 @@ class LeadsRdStation(models.Model):
                         data_hora = datetime.strptime(data_hora, "%d/%m/%Y %H:%M")
                         valor = data_hora
 
-                    print(chave, valor)
                     setattr(self, chave, valor)
 
         if not self.criado_em:
@@ -146,3 +147,17 @@ class LeadsRdStation(models.Model):
                     self.chave_analysis = cliente.pk
 
         return super().clean()
+
+    def save(self, *args, **kwargs) -> None:
+        """Verifica se cadastro já existe baseado nos campos chave_analysis ou empresa e altera o campo recadastro se
+        existir"""
+        conferir_recadastro = campo_django_mudou(LeadsRdStation, self, chave_analysis=self.chave_analysis,
+                                                 empresa=self.empresa)
+        if not self.pk or conferir_recadastro:
+            if not self.recadastro:
+                recadastro = LeadsRdStation.objects.filter(recadastro=False).filter(
+                    Q(chave_analysis=self.chave_analysis) | Q(empresa=self.empresa)).exclude(pk=self.pk).exists()
+                if recadastro:
+                    self.recadastro = True
+
+        return super().save(*args, **kwargs)

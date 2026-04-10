@@ -17,7 +17,7 @@ from datetime import datetime
 # TODO: nas migrações, trazer tudo para memoria, para não ter que fazer select no loop nas comparações?
 # TODO: relatorios semelhantes ao get_relatorios_vendas
 # TODO: conferencia de campos não obrigatorios para serem preenchidos (exemplo: cadastros de produtos campos de calculo de frete e modelo, modelos sem tags)
-# TODO: Paginas personalizadas com informassões consolidades de clientes, produtos, vendas, produção, financeiro, etc???????
+# TODO: Paginas personalizadas com informassões consolidades (com links) de clientes, produtos, vendas, produção, financeiro, etc???????
 # TODO: rest
 # TODO: substituir sistema monitoramento marco moreno?
 

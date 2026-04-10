@@ -4,6 +4,7 @@ from django.utils.safestring import mark_safe
 from analysis.models import NOTAS
 from home.models import Jobs, Responsaveis
 from utils.base_models import BaseLogModel
+from utils.converter import converter_data_django_para_str_ddmmyyyy
 from datetime import date
 
 
@@ -70,6 +71,12 @@ class RncNotas(BaseLogModel):
         return mark_safe('<a href="/home_link/formulario-sacpm/" target="_blank">Link SACPM</a>')
 
     link_abrir_sacpm.short_description = 'Abrir SACPM'
+
+    @property
+    def data_as_ddmmyyyy(self):
+        return converter_data_django_para_str_ddmmyyyy(self.data)
+
+    data_as_ddmmyyyy.fget.short_description = 'Data'  # type:ignore
 
     @property
     def cliente(self):

@@ -14,10 +14,10 @@ class MotivosRncAdmin(BaseModelAdminRedRequired):
 
 @admin.register(RncNotas)
 class RncNotasAdmin(BaseModelAdminRedRequiredLog):
-    list_display = ('id', 'job__descricao', 'nota_fiscal', 'cliente', 'responsavel__nome', 'follow_up_preenchido',
-                    'procedente', 'link_abrir_sacpm',)
-    list_display_links = ('id', 'job__descricao', 'nota_fiscal', 'cliente', 'responsavel__nome', 'follow_up_preenchido',
-                          'procedente',)
+    list_display = ('id', 'data_as_ddmmyyyy', 'job__descricao', 'nota_fiscal', 'cliente', 'responsavel__nome',
+                    'follow_up_preenchido', 'procedente', 'link_abrir_sacpm',)
+    list_display_links = ('id', 'data_as_ddmmyyyy', 'job__descricao', 'nota_fiscal', 'cliente', 'responsavel__nome',
+                          'follow_up_preenchido', 'procedente',)
     ordering = '-pk',
     search_fields = 'nota_fiscal', 'responsavel__nome',
     list_filter = [('follow_up', admin.EmptyFieldListFilter), 'procedente',]

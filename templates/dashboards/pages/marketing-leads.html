@@ -67,6 +67,21 @@
                         </div>
                     </div>
 
+                    <div class="moldura-verde-dashboard grid principal-escuro-2">
+                        <div>
+                            <p class="fonte-verde">Leads Recadastros</p>
+                            <p>{{ dados.quantidade_leads_recadastros }}</p>
+                        </div>
+                        <div>
+                            <p class="fonte-verde">Leads Recadastros Compraram</p>
+                            <p>{{ dados.quantidade_leads_recadastros_compraram }}</p>
+                        </div>
+                        <div>
+                            <p class="fonte-verde">Leads Recadastros Fechado</p>
+                            <p>R$ {{ dados.orcamentos_recadastros_fechados | floatformat:2 }}</p>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="grid">
