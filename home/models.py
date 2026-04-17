@@ -967,6 +967,8 @@ class Vendedores(models.Model):
             return {'carteira_parede_de_concreto': True}
         if self.nome == 'PREMOLDADO / POSTE':
             return {'carteira_premoldado_poste': True}
+        if self.nome == 'zFLUXUS':
+            return {'job': 25}
         return {'carteira': self}
 
     @property
@@ -980,6 +982,8 @@ class Vendedores(models.Model):
             return 'carteira_parede_de_concreto=on'
         if self.nome == 'PREMOLDADO / POSTE':
             return 'carteira_premoldado_poste=on'
+        if self.nome == 'zFLUXUS':
+            return 'job=25'
         return f'carteira={self.chave_analysis}'
 
     def save(self, *args, **kwargs) -> None:

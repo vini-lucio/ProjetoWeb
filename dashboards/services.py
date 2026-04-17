@@ -23,7 +23,7 @@ import pandas as pd
 class DashBoardVendas():
     """Gera dashboards de vendas base."""
 
-    def __init__(self, carteira='%%', executar_completo: bool = True,
+    def __init__(self, carteira='%%', executar_completo: bool = True, job_descricao: str = 'TOTAL',
                  dados_pedidos_mes_entrega_mes_dias: pd.DataFrame | None = None,
                  dados_pedidos_fora_mes_entrega_mes: pd.DataFrame | None = None,
                  dados_desvolucoes_mes: pd.DataFrame | None = None,
@@ -33,6 +33,7 @@ class DashBoardVendas():
         -----------
         :carteira [str, Default '%%']: com o nome da carteira especifica ou usar default para todas as carteiras.
         :executar_completo [bool, Default True]: booleano se vai executar todas as funções em todos os atributos. False melhora a performance na classe filho DashboardVendasSupervisao.
+        :job_descricao [str, Default 'TOTAL']: com a descrição (nome) do job a ser considerado a despesa fixa na cor de rentabilidade.
         :dados_pedidos_mes_entrega_mes_dias [DataFrame | None, Default None]: se for None será executado a função que busca os dados, para melhorar a performance na classe filho DashboardVendasSupervisao enviar os dados de pedidos no mes com entrega no mes por dia.
         :dados_pedidos_fora_mes_entrega_mes [DataFrame | None, Default None]: se for None será executado a função que busca os dados, para melhorar a performance na classe filho DashboardVendasSupervisao enviar os dados de pedidos fora do mes com entrega no mes total.
         :dados_desvolucoes_mes [DataFrame | None, Default None]: se for None será executado a função que busca os dados, para melhorar a performance na classe filho DashboardVendasSupervisao enviar os dados de notas de devoluções no mes total.
@@ -179,16 +180,16 @@ class DashBoardVendas():
         self.porcentagem_mc_mes = self.rentabilidade_pedidos_mes_rentabilidade_mes
         self.porcentagem_meta_mes = int(self.pedidos_mes / self.meta_mes * 100) if self.meta_mes else 0
         self.faltam_meta_mes = round(self.meta_mes - self.pedidos_mes, 2)
-        self.cor_rentabilidade_css_dia = cor_rentabilidade_css(self.rentabilidade_pedidos_dia, 'TOTAL', True)
+        self.cor_rentabilidade_css_dia = cor_rentabilidade_css(self.rentabilidade_pedidos_dia, job_descricao, True)
         self.cor_rentabilidade_css_mes = cor_rentabilidade_css(
-            self.rentabilidade_pedidos_mes_rentabilidade_mes, 'TOTAL', True)
+            self.rentabilidade_pedidos_mes_rentabilidade_mes, job_descricao, True)
 
         self.falta_mudar_cor_mes = (0.0, 0.0, 0.0, '')
         if executar_completo:
             self.falta_mudar_cor_mes = falta_mudar_cor_mes(self.rentabilidade_pedidos_mes_mc_mes,
                                                            self.pedidos_mes,
                                                            self.rentabilidade_pedidos_mes_rentabilidade_mes,
-                                                           'TOTAL')
+                                                           job_descricao)
         self.falta_mudar_cor_mes_valor = round(self.falta_mudar_cor_mes[0], 2)
         self.falta_mudar_cor_mes_valor_rentabilidade = round(self.falta_mudar_cor_mes[1], 2)
         self.falta_mudar_cor_mes_porcentagem = round(self.falta_mudar_cor_mes[2], 2)
@@ -210,11 +211,15 @@ class DashBoardVendas():
 class DashboardVendasCarteira(DashBoardVendas):
     """Gera dashboards de vendas por carteira."""
 
-    def __init__(self, carteira='%%', executar_completo: bool = True,
+    def __init__(self, carteira='%%', executar_completo: bool = True, job_descricao: str = 'TOTAL',
                  dados_pedidos_mes_entrega_mes_dias: pd.DataFrame | None = None,
                  dados_pedidos_fora_mes_entrega_mes: pd.DataFrame | None = None,
                  dados_desvolucoes_mes: pd.DataFrame | None = None,) -> None:
-        super().__init__(carteira, executar_completo, dados_pedidos_mes_entrega_mes_dias,
+
+        if carteira == 'zFLUXUS':
+            job_descricao = 'FLUXUS'
+
+        super().__init__(carteira, executar_completo, job_descricao, dados_pedidos_mes_entrega_mes_dias,
                          dados_pedidos_fora_mes_entrega_mes, dados_desvolucoes_mes)
 
         self.recebido, self.a_receber = (0.0, 0.0)
@@ -255,7 +260,7 @@ class DashboardVendasSupervisao(DashBoardVendas):
         self.carteiras = []
         for carteira in get_consultores_tecnicos_ativos():
             dados = {}
-            if carteira.nome not in ('PAREDE DE CONCRETO', 'PREMOLDADO / POSTE'):
+            if carteira.nome not in ('PAREDE DE CONCRETO', 'PREMOLDADO / POSTE', 'zFLUXUS'):
                 dados_desvolucoes_mes = self.desvolucoes_mes
                 if not dados_desvolucoes_mes.empty:
                     dados_desvolucoes_mes = self.desvolucoes_mes[self.desvolucoes_mes['CARTEIRA'] == carteira.nome]
@@ -286,7 +291,11 @@ def carteira_mapping(carteira):
         'PAREDE DE CONCRETO': {
             'carteira': "%%",
             'filtro_nao_carteira': "CLIENTES.CODCLI IN (SELECT DISTINCT CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO=23) AND"
-        }
+        },
+        'zFLUXUS': {
+            'carteira': "%%",
+            'filtro_nao_carteira': "EXISTS(SELECT CLIENTES_JOBS.CHAVE_CLIENTE FROM COPLAS.CLIENTES_JOBS WHERE CLIENTES_JOBS.CHAVE_CLIENTE = CLIENTES.CODCLI AND CLIENTES_JOBS.CHAVE_JOB = 25) AND"
+        },
     }
 
     filtro_nao_carteira = ""

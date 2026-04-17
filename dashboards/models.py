@@ -132,8 +132,8 @@ class IndicadoresValores(models.Model):
         return str(self.periodo)
 
     def save(self, *args, **kwargs):
-        """Ao incluir um novo Indicador Valor, são adicionados em Metas Carteiras todos os Vendedores ativos com
-        o novo Indicador Valor"""
+        """Ao incluir um novo Indicador Valor, são adicionados em Metas Carteiras todos os Vendedores definidos
+        como CONSULTOR TECNICO ativos com o novo Indicador Valor"""
         novo = True if not self.pk else False
         super().save(*args, **kwargs)
 
