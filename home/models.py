@@ -4,7 +4,7 @@ from django.db import models
 from django.utils.text import slugify
 from utils.imagens import redimensionar_imagem
 from django_summernote.models import AbstractAttachment
-from django.db.models import Q, Max
+from django.db.models import Q, Max, Sum
 from utils.base_models import BaseLogModel
 from utils.converter import (converter_data_django_para_str_ddmmyyyy, converter_data_django_para_dia_semana,
                              somente_digitos)
@@ -875,6 +875,27 @@ class Produtos(BaseLogModel):
     prioridade = models.DecimalField("Prioridade", max_digits=4, decimal_places=0, default=0)  # type:ignore
     tipo = models.ForeignKey(ProdutosTipos, verbose_name="Tipo", on_delete=models.PROTECT, related_name="%(class)s")
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
+
+    @property
+    def estoque_disponivel_real(self):
+        """Retorna a quantidade em estoque que não esta reprovada ou nas posições de expedição / picking produção.
+
+        Retorno:
+        --------
+        :float: com a quantidade disponivel em estoque do produto."""
+        ProdutosPallets = apps.get_model('estoque', 'ProdutosPallets')
+        Enderecos = apps.get_model('estoque', 'Enderecos')
+
+        embalagem = Enderecos.get_endereco_embalagem()  # type:ignore
+        expedicao = Enderecos.get_endereco_expedicao()  # type:ignore
+        picking_producao = Enderecos.get_endereco_picking_producao()  # type:ignore
+        recebimento = Enderecos.get_endereco_recebimento()  # type:ignore
+
+        pallets_produto = ProdutosPallets.objects.filter(aprovado=True, produto=self).exclude(
+            pallet__endereco__in=(embalagem, expedicao, picking_producao, recebimento)
+        )
+        estoque_produto = pallets_produto.aggregate(Sum('quantidade'))['quantidade__sum']
+        return estoque_produto if estoque_produto else 0
 
     @classmethod
     def filter_ativos(cls):

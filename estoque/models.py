@@ -61,6 +61,22 @@ class Enderecos(models.Model):
         enderecos = enderecos.filter(pallets__quantidade_produtos=0)
         return enderecos.count()
 
+    @classmethod
+    def get_endereco_embalagem(cls):
+        return Enderecos.objects.filter(nome='Embalagem').first()
+
+    @classmethod
+    def get_endereco_expedicao(cls):
+        return Enderecos.objects.filter(nome='Expedição').first()
+
+    @classmethod
+    def get_endereco_picking_producao(cls):
+        return Enderecos.objects.filter(nome='Picking Produção').first()
+
+    @classmethod
+    def get_endereco_recebimento(cls):
+        return Enderecos.objects.filter(nome='Recebimento').first()
+
     def clean(self) -> None:
         """Valida se Endereços Multi Pallet possuem Tipo Chão. Valida se Endereços Tipo Chão possuem Coluna e Altura
         igual a 0. Valida se Endereços Tipo diferente de Chão possuem Coluna e Altura maior que 0."""

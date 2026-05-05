@@ -1,22 +1,25 @@
 from django import forms
 from django.forms.widgets import DateInput
 from .models import Indicadores
-from utils.base_forms import FormPeriodoInicioFimMixIn, FormVendedoresMixIn, FormPesquisarIntegerMixIn
+from utils.base_forms import (FormPeriodoInicioFimMixIn, FormVendedoresMixIn, FormPesquisarIntegerMixIn,
+                              FormPeriodoMesAtualMixIn)
 from analysis.models import (VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS, STATUS_ORCAMENTOS_ITENS,
                              INFORMACOES_CLI, JOBS, MARCAS, GRUPO_PRODUTOS)
 from utils.data_hora_atual import hoje_as_yyyymmdd, hoje
 from datetime import date, timedelta
 
 
-class FormDashboardMarketing(FormPeriodoInicioFimMixIn, forms.Form):
+class FormDashboardProducao(FormPeriodoMesAtualMixIn, forms.Form):
+    ...
+
+
+class FormDashboardMarketing(FormPeriodoMesAtualMixIn, forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         h = hoje()
         primeiro_dia = date(h.year, h.month, 1).strftime("%Y-%m-%d")
 
-        self.fields['inicio'].initial = primeiro_dia
-        self.fields['fim'].initial = hoje_as_yyyymmdd()
         self.fields['fechado_inicio'].initial = primeiro_dia
         self.fields['fechado_fim'].initial = hoje_as_yyyymmdd()
 

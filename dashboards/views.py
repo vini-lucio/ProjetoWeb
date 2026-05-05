@@ -7,9 +7,10 @@ from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relator
                        get_relatorios_financeiros, confere_inscricoes_estaduais)
 from .services_estoque import DashBoardEstoque
 from .services_marketing import DashBoardMarketing
+from .services_producao import DashBoardProducao
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
                     FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormListagensVendas,
-                    FormIndicadores, RelatoriosFinanceirosForm, FormDashboardMarketing)
+                    FormIndicadores, RelatoriosFinanceirosForm, FormDashboardMarketing, FormDashboardProducao)
 import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
@@ -921,3 +922,25 @@ def estoque(request):
     contexto.update({'dados': dados, })
 
     return render(request, 'dashboards/pages/estoque.html', contexto)
+
+
+def producao(request):
+    """Retorna dados para pagina de dashboard de produção."""
+    titulo_pagina = 'Dashboard Produção'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = FormDashboardProducao()
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormDashboardProducao(request.GET)
+        if formulario.is_valid():
+            data_inicio = formulario.cleaned_data.get('inicio')
+            data_fim = formulario.cleaned_data.get('fim')
+            dados = DashBoardProducao(data_inicio, data_fim)
+
+            contexto.update({'dados': dados, })
+
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/producao.html', contexto)

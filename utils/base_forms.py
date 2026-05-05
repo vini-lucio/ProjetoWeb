@@ -2,7 +2,8 @@ from django import forms
 from django.db.models import Q
 from django.forms.widgets import DateInput
 from home.models import Jobs, Vendedores
-from utils.data_hora_atual import hoje_as_yyyymmdd
+from utils.data_hora_atual import hoje_as_yyyymmdd, hoje
+from datetime import date
 
 
 class BaseFormRelatoriosRh(forms.Form):
@@ -20,6 +21,17 @@ class FormPeriodoHojeMixIn(FormPeriodoInicioFimMixIn, forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['inicio'].initial = hoje_as_yyyymmdd()
+        self.fields['fim'].initial = hoje_as_yyyymmdd()
+
+
+class FormPeriodoMesAtualMixIn(FormPeriodoInicioFimMixIn, forms.Form):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        h = hoje()
+        primeiro_dia = date(h.year, h.month, 1).strftime("%Y-%m-%d")
+
+        self.fields['inicio'].initial = primeiro_dia
         self.fields['fim'].initial = hoje_as_yyyymmdd()
 
 

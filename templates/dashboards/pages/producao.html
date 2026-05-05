@@ -1,0 +1,154 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal principal-escuro">
+
+        <div class="link-conteudo link-conteudo-escuro">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            <form id="form" method="get">
+                <div class="grid-simples link-conteudo link-conteudo-escuro">
+                    {{ formulario.as_p }}
+                </div>
+                <div class="grid-simples">
+                    <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="grid link-conteudo link-conteudo-escuro">
+            <a target="_blank" href="{% url "dashboards:estoque" %}">
+                <div class="botao-div botao-escuro">Dashboard Estoque</div>
+            </a>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if dados %}
+
+                <div class="grid">
+
+                    <div class="grid-dashboard-2">
+                        <div class="moldura-verde-dashboard principal-escuro-2">
+                            <div>
+                                <p class="fonte-verde">Toneladas Transformadas</p>
+                                <p class="fonte-muito-pequena-dashboard">* embalado no periodo</p>
+                            </div>
+                            <div class="grid principal-escuro-2">
+                                {% for tonelada_transformada_abc in dados.toneladas_transformadas_abc %}
+                                    {% if tonelada_transformada_abc.ESTOQUE_ABC %}
+                                        <div>
+                                            <p class="fonte-verde">Itens {{ tonelada_transformada_abc.ESTOQUE_ABC }}</p>
+                                            <p>{{ tonelada_transformada_abc.TONELADAS_APONTADAS_LIQUIDAS | floatformat:1 }}</p>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                                <div>
+                                    <p class="fonte-verde verde-negrito">Total</p>
+                                    <p class="branco-negrito">{{ dados.toneladas_transformadas_total | floatformat:1 }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-dashboard-2">
+                        <div class="moldura-verde-dashboard principal-escuro-2">
+                            <div>
+                                <p class="fonte-verde">Toneladas Faturadas</p>
+                                <p class="fonte-muito-pequena-dashboard">* CFOP que movimentam estoque no periodo</p>
+                            </div>
+                            <div class="grid principal-escuro-2">
+                                {% for tonelada_faturada_abc in dados.toneladas_faturadas_abc %}
+                                    {% if tonelada_faturada_abc.ESTOQUE_ABC %}
+                                        <div>
+                                            <p class="fonte-verde">Itens {{ tonelada_faturada_abc.ESTOQUE_ABC }}</p>
+                                            <p>{{ tonelada_faturada_abc.TONELADAS_LIQUIDAS_PRODUTO_DOCUMENTO | floatformat:1 }}</p>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                                <div>
+                                    <p class="fonte-verde verde-negrito">Total</p>
+                                    <p class="branco-negrito">{{ dados.toneladas_faturadas_total | floatformat:1 }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-dashboard-2">
+                        <div class="moldura-verde-dashboard principal-escuro-2">
+                            <div>
+                                <p class="fonte-verde">Toneladas Estoque Disponivel</p>
+                                <p class="fonte-muito-pequena-dashboard">* hoje ({% now "d/m/Y" %})</p>
+                            </div>
+                            <div class="grid principal-escuro-2">
+                                {% for key, value in dados.toneladas_estoque_atual_abc.items %}
+                                    {% if value %}
+                                        <div>
+                                            <p class="fonte-verde">Itens {{ key }}</p>
+                                            <p>{{ value | floatformat:1 }}</p>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                                <div>
+                                    <p class="fonte-verde verde-negrito">Total</p>
+                                    <p class="branco-negrito">{{ dados.toneladas_estoque_atual_total | floatformat:1 }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-dashboard-2">
+                        <div class="grid moldura-verde-dashboard principal-escuro-2">
+                            <div class="div-dashboard">
+                                {{ dados.grafico_toneladas_transformadas_abc_html | safe}}
+                            </div>
+                            <div class="div-dashboard">
+                                {{ dados.grafico_toneladas_faturadas_abc_html | safe}}
+                            </div>
+                            <div class="div-dashboard">
+                                {{ dados.grafico_toneladas_estoque_atual_abc_html | safe}}
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                {% if dados.toneladas_estoque_atual_disponivel_materia_prima %}
+                    <div class="link-conteudo link-conteudo-escuro">
+                        <div class="tabela-simples">
+                            <table>
+                                <tr class="principal-claro">
+                                    <th>Produto</th>
+                                    <th>Ton. Disponivel</th>
+                                    <th>Ton. Disponivel Real</th>
+                                </tr>
+                                {% for mp in dados.toneladas_estoque_atual_disponivel_materia_prima %}
+                                    <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
+                                        <td>{{ mp.PRODUTO }}</td>
+                                        <td>{{ mp.TONELADAS_ESTOQUE_DISPONIVEL | floatformat:1 }}</td>
+                                        <td>{{ mp.TONELADAS_ESTOQUE_DISPONIVEL_REAL | floatformat:1 }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="principal-escuro">
+                    <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

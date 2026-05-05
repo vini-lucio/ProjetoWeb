@@ -1386,6 +1386,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE,", },
 
         'coluna_peso_liquido_produto_documento': {'peso_liquido_produto_documento_campo_alias': "ROUND(SUM(NOTAS_ITENS.PESO_LIQUIDO * CASE WHEN NOTAS.ESPECIE = 'S' THEN 1 ELSE (-1) END), 3) AS PESO_LIQUIDO_PRODUTO_DOCUMENTO,", },
+        'coluna_toneladas_liquidas_produto_documento': {'toneladas_liquidas_produto_documento_campo_alias': "ROUND(SUM(NOTAS_ITENS.PESO_LIQUIDO * CASE WHEN NOTAS.ESPECIE = 'S' THEN 1 ELSE (-1) END / 1000), 3) AS TONELADAS_LIQUIDAS_PRODUTO_DOCUMENTO,", },
 
         'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
                           'cidade_campo': "CLIENTES.CIDADE,", },
@@ -1934,6 +1935,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(PEDIDOS_ITENS.QUANTIDADE) AS QUANTIDADE,", },
 
         'coluna_peso_liquido_produto_documento': {'peso_liquido_produto_documento_campo_alias': "ROUND(SUM(PEDIDOS_ITENS.PESO_LIQUIDO), 3) AS PESO_LIQUIDO_PRODUTO_DOCUMENTO,", },
+        'coluna_toneladas_liquidas_produto_documento': {'toneladas_liquidas_produto_documento_campo_alias': "ROUND(SUM(PEDIDOS_ITENS.PESO_LIQUIDO / 1000), 3) AS TONELADAS_LIQUIDAS_PRODUTO_DOCUMENTO,", },
 
         'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
                           'cidade_campo': "CLIENTES.CIDADE,", },
@@ -2462,6 +2464,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS.QUANTIDADE) AS QUANTIDADE,", },
 
         'coluna_peso_liquido_produto_documento': {'peso_liquido_produto_documento_campo_alias': "ROUND(SUM(ORCAMENTOS_ITENS.PESO_LIQUIDO), 3) AS PESO_LIQUIDO_PRODUTO_DOCUMENTO,", },
+        'coluna_toneladas_liquidas_produto_documento': {'toneladas_liquidas_produto_documento_campo_alias': "ROUND(SUM(ORCAMENTOS_ITENS.PESO_LIQUIDO / 1000), 3) AS TONELADAS_LIQUIDAS_PRODUTO_DOCUMENTO,", },
 
         'coluna_cidade': {'cidade_campo_alias': "CLIENTES.CIDADE AS CIDADE_PRINCIPAL,",
                           'cidade_campo': "CLIENTES.CIDADE,", },
@@ -2734,7 +2737,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_quantidade': {'quantidade_campo_alias': "SUM(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE) AS QUANTIDADE,", },
 
-        'coluna_peso_liquido_produto_documento': {'peso_liquido_produto_documento_campo_alias': "ROUND(SUM(PRODUTOS.PESO_LIQUIDO), 3) AS PESO_LIQUIDO_PRODUTO_DOCUMENTO,", },
+        'coluna_peso_liquido_produto_documento': {'peso_liquido_produto_documento_campo_alias': "ROUND(SUM(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * PRODUTOS.PESO_LIQUIDO), 3) AS PESO_LIQUIDO_PRODUTO_DOCUMENTO,", },
+        'coluna_toneladas_liquidas_produto_documento': {'toneladas_liquidas_produto_documento_campo_alias': "ROUND(SUM(ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * PRODUTOS.PESO_LIQUIDO / 1000), 3) AS TONELADAS_LIQUIDAS_PRODUTO_DOCUMENTO,", },
 
         'desconsiderar_justificativas': {'desconsiderar_justificativa_pesquisa': "{} AND".format(justificativas(True)), },
 
@@ -2787,7 +2791,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'ordenar_sequencia_prioritario': {'sequencia_campo': "ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE,",
                                           'ordenar_sequencia_prioritario': "ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE,", },
 
-        'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "0 AS PESO_PP,", },
+        'coluna_peso_produto_proprio': {'peso_produto_proprio_campo_alias': "SUM(CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * PRODUTOS.PESO_LIQUIDO ELSE 0 END) AS PESO_PP,", },
     }
 
     sql_final = {}
@@ -3092,6 +3096,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {desconto_campo_alias}
             {quantidade_campo_alias}
             {peso_liquido_produto_documento_campo_alias}
+            {toneladas_liquidas_produto_documento_campo_alias}
             {peso_produto_proprio_campo_alias}
             {quantidade_volumes_campo_alias}
             {media_dia_campo_alias}
