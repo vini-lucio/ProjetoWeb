@@ -90,7 +90,11 @@ class DashBoardProducao():
         dt_materia_prima = pd.merge(dt_materia_prima, dt_materia_prima_real,
                                     'outer', 'PRODUTO').fillna(0).sort_values('PRODUTO')
 
+        dt_materia_prima_totais = pd.DataFrame([dt_materia_prima.sum(numeric_only=True)])
+
         self.toneladas_estoque_atual_disponivel_materia_prima = dt_materia_prima.to_dict(orient='records')
+        self.toneladas_estoque_atual_disponivel_materia_prima_totais = dt_materia_prima_totais.to_dict(
+            orient='records')[0]
 
     def gerar_graficos_toneladas_abc_html(self, px_pie_title: str, px_pie_values, px_pie_names, px_pie_data_frame=None):
         """Gera html para renderizar graficos.
