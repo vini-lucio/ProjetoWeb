@@ -1,0 +1,58 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <script type = "text/javascript">
+
+        function calcular_conjunto_nivelamento() {
+            var altura_piso = document.getElementById("altura_piso").value;
+            altura_piso = Number(altura_piso);
+
+            altura_base_lisa = 10;
+            altura_mestra = 20;
+            altura_nm40 = 30;
+
+            altura_tubete = altura_piso - altura_base_lisa - altura_mestra - altura_nm40;
+
+            document.getElementById("altura_tubete").value = altura_tubete;
+        }
+
+    </script>
+
+    <section id="agcura-premium" class="principal">
+
+        <div class="titulo">
+            <h2>{{ titulo_pagina }}</h2>
+        </div>
+
+        <div class="link-conteudo">
+
+            <fieldset class="moldura-verde">
+                <div class="grid-2col-numero">
+
+                    <label for ="altura_piso">Altura do piso (mm):</label>
+                    <input type="number" id="altura_piso" name="altura_piso">
+
+                </div>
+
+            </fieldset>
+
+            <div>
+                <button class="botao" type="button" onclick="calcular_conjunto_nivelamento()">Calcular</button>
+            </div>
+
+            <fieldset class="moldura-verde">
+                <div class="grid-simples">
+                    <p class="azul-negrito">NM40 + Mestra + Base Lisa +</p>
+                    <div class="grid-2col-numero">
+                        <label class="verde-negrito" for ="altura_tubete">Altura Tubete (mm):</label>
+                        <input type="number" id="altura_tubete" name="nivamento_laje">
+                    </div>
+                </div>
+            </fieldset>
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

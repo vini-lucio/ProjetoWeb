@@ -136,6 +136,11 @@
                                         <td>{{ mp.TONELADAS_ESTOQUE_DISPONIVEL_REAL | floatformat:1 }}</td>
                                     </tr>
                                 {% endfor %}
+                                <tr class="principal-claro">
+                                    <td class="azul-negrito">TOTAL</td>
+                                    <td class="azul-negrito">{{ dados.toneladas_estoque_atual_disponivel_materia_prima_totais.TONELADAS_ESTOQUE_DISPONIVEL | floatformat:1 }}</td>
+                                    <td class="azul-negrito">{{ dados.toneladas_estoque_atual_disponivel_materia_prima_totais.TONELADAS_ESTOQUE_DISPONIVEL_REAL | floatformat:1 }}</td>
+                                </tr>
                             </table>
                         </div>
                     </div>

@@ -182,6 +182,12 @@ def calculo_niveladores(request):
     return render(request, 'home/pages/calculo-niveladores.html', {'titulo_pagina': titulo_pagina})
 
 
+def calculo_nivelamento_lajes(request):
+    """Retorna pagina para calculo de quantificação de produtos de nivelamento de lajes"""
+    titulo_pagina = 'Calculo Nivelamento de Lajes'
+    return render(request, 'home/pages/calculo-nivelamento-lajes.html', {'titulo_pagina': titulo_pagina})
+
+
 def tabela_precos(request):
     """Retorna dados para pagina de tabela de preços de produtos para venda"""
     titulo_pagina = 'Tabela de Preços'
