@@ -105,7 +105,7 @@
                     </div>
 
                     <div class="grid-dashboard-2">
-                        <div class="grid moldura-verde-dashboard principal-escuro-2">
+                        <div class="grid moldura-verde-dashboard principal-claro">
                             <div class="div-dashboard">
                                 {{ dados.grafico_toneladas_transformadas_abc_html | safe}}
                             </div>
@@ -118,33 +118,100 @@
                         </div>
                     </div>
 
-                </div>
-
-                {% if dados.toneladas_estoque_atual_disponivel_materia_prima %}
-                    <div class="link-conteudo link-conteudo-escuro">
-                        <div class="tabela-simples">
-                            <table>
-                                <tr class="principal-claro">
-                                    <th>Produto</th>
-                                    <th>Ton. Disponivel</th>
-                                    <th>Ton. Disponivel Real</th>
-                                </tr>
-                                {% for mp in dados.toneladas_estoque_atual_disponivel_materia_prima %}
-                                    <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
-                                        <td>{{ mp.PRODUTO }}</td>
-                                        <td>{{ mp.TONELADAS_ESTOQUE_DISPONIVEL | floatformat:1 }}</td>
-                                        <td>{{ mp.TONELADAS_ESTOQUE_DISPONIVEL_REAL | floatformat:1 }}</td>
+                    {% if dados.toneladas_estoque_atual_disponivel_materia_prima %}
+                        <div class="link-conteudo link-conteudo-escuro moldura-verde-dashboard principal-escuro-2">
+                            <div>
+                                <p class="fonte-verde">Estoque MP Detalhe</p>
+                            </div>
+                            <div class="tabela-simples">
+                                <table>
+                                    <tr class="principal-claro">
+                                        <th>Produto</th>
+                                        <th>Ton. Disponivel</th>
+                                        <th>Ton. Disponivel Real</th>
                                     </tr>
-                                {% endfor %}
-                                <tr class="principal-claro">
-                                    <td class="azul-negrito">TOTAL</td>
-                                    <td class="azul-negrito">{{ dados.toneladas_estoque_atual_disponivel_materia_prima_totais.TONELADAS_ESTOQUE_DISPONIVEL | floatformat:1 }}</td>
-                                    <td class="azul-negrito">{{ dados.toneladas_estoque_atual_disponivel_materia_prima_totais.TONELADAS_ESTOQUE_DISPONIVEL_REAL | floatformat:1 }}</td>
-                                </tr>
-                            </table>
+                                    {% for mp in dados.toneladas_estoque_atual_disponivel_materia_prima %}
+                                        <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
+                                            <td>{{ mp.PRODUTO }}</td>
+                                            <td>{{ mp.TONELADAS_ESTOQUE_DISPONIVEL | floatformat:1 }}</td>
+                                            <td>{{ mp.TONELADAS_ESTOQUE_DISPONIVEL_REAL | floatformat:1 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                    <tr class="principal-claro">
+                                        <td class="azul-negrito">TOTAL</td>
+                                        <td class="azul-negrito">{{ dados.toneladas_estoque_atual_disponivel_materia_prima_totais.TONELADAS_ESTOQUE_DISPONIVEL | floatformat:1 }}</td>
+                                        <td class="azul-negrito">{{ dados.toneladas_estoque_atual_disponivel_materia_prima_totais.TONELADAS_ESTOQUE_DISPONIVEL_REAL | floatformat:1 }}</td>
+                                    </tr>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                {% endif %}
+                    {% endif %}
+
+                    {% if dados.entregas_em_aberto %}
+                        <div class="link-conteudo link-conteudo-escuro moldura-verde-dashboard principal-escuro-2">
+                            <div>
+                                <p class="fonte-verde">Proximas Entregas MP - OC's Em Aberto (valores com impostos)</p>
+                            </div>
+                            <div class="tabela-simples">
+                                <table>
+                                    <tr class="principal-claro">
+                                        <th>OC</th>
+                                        <th>Fornecedor</th>
+                                        <th>Produto</th>
+                                        <th>Valor Un.</th>
+                                        <th>Un.</th>
+                                        <th>Saldo</th>
+                                        <th>Data Entrega</th>
+                                    </tr>
+                                    {% for entrega in dados.entregas_em_aberto %}
+                                        <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
+                                            <td>{{ entrega.OC | stringformat:"d" }}</td>
+                                            <td>{{ entrega.FORNECEDOR }}</td>
+                                            <td>{{ entrega.PRODUTO }}</td>
+                                            <td>{{ entrega.VALOR_UNITARIO | floatformat:2 }}</td>
+                                            <td>{{ entrega.UNIDADE }}</td>
+                                            <td>{{ entrega.SALDO | floatformat:1 }}</td>
+                                            <td>{{ entrega.DATA_ENTREGA | date:"d/m/Y"}}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </table>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if dados.ordens_producao_em_aberto %}
+                        <div class="link-conteudo link-conteudo-escuro moldura-verde-dashboard principal-escuro-2">
+                            <div>
+                                <p class="fonte-verde">OP's Em Aberto</p>
+                            </div>
+                            <div class="tabela-simples">
+                                <table>
+                                    <tr class="principal-claro">
+                                        <th>Maquina</th>
+                                        <th>OP</th>
+                                        <th>Produto</th>
+                                        <th>ABC</th>
+                                        <th>Cav.</th>
+                                        <th>Ciclo Padrão</th>
+                                        <th>Ciclo Atual</th>
+                                    </tr>
+                                    {% for op in dados.ordens_producao_em_aberto %}
+                                        <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %} {% if op.CICLO_ATUAL > op.CICLO_PADRAO %}fonte-vermelho{% endif %}">
+                                            <td>{{ op.MAQUINA }}</td>
+                                            <td>{{ op.OP | stringformat:"d" }}</td>
+                                            <td>{{ op.PRODUTO }}</td>
+                                            <td>{{ op.ABC }}</td>
+                                            <td>{{ op.CAVIDADES }}</td>
+                                            <td>{{ op.CICLO_PADRAO | floatformat:1 }}</td>
+                                            <td>{{ op.CICLO_ATUAL | floatformat:1 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </table>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                </div>
 
                 <div class="principal-escuro">
                     <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>

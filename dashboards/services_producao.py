@@ -96,6 +96,12 @@ class DashBoardProducao():
         self.toneladas_estoque_atual_disponivel_materia_prima_totais = dt_materia_prima_totais.to_dict(
             orient='records')[0]
 
+        # Entregas de em aberto
+        self.entregas_em_aberto = entregas_materia_prima_em_aberto()
+
+        # Ordens de produção em aberto
+        self.ordens_producao_em_aberto = produtividade_ordens_producao_em_aberto()
+
     def gerar_graficos_toneladas_abc_html(self, px_pie_title: str, px_pie_values, px_pie_names, px_pie_data_frame=None):
         """Gera html para renderizar graficos.
 
@@ -110,7 +116,7 @@ class DashBoardProducao():
         --------
         :str: com o html para renderizar o grafico."""
         grafico = px.pie(px_pie_data_frame, title=px_pie_title, values=px_pie_values, names=px_pie_names,)
-        grafico.update_layout(update_layout_kwargs, paper_bgcolor='rgb(0, 37, 77)', showlegend=False, height=300,
+        grafico.update_layout(update_layout_kwargs, paper_bgcolor='rgb(238, 238, 238)', showlegend=False, height=300,
                               width=300,)
         grafico.update_traces(textinfo='percent+label',)
         return pio.to_html(grafico, full_html=False)
@@ -179,11 +185,11 @@ def toneladas_estoque_reservado_abc() -> list | None:
 
 
 def toneladas_estoque_disponivel_materia_prima() -> list | None:
-    """Retorna as toneladas no estoque disponivel de meterias primas.
+    """Retorna as toneladas no estoque disponivel de materias primas.
 
     Retorno:
     --------
-    :list[dict]: com as toneladas no estoque disponivel de meterias primas."""
+    :list[dict]: com as toneladas no estoque disponivel de materias primas."""
     sql = """
         SELECT PRODUTOS.CODIGO AS PRODUTO,
             SUM(
@@ -194,6 +200,123 @@ def toneladas_estoque_disponivel_materia_prima() -> list | None:
             AND PRODUTOS.ESTOQUE_ATUAL != 0
         GROUP BY PRODUTOS.CODIGO
         ORDER BY PRODUTOS.CODIGO
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True,)
+
+    if not resultado:
+        return []
+
+    return resultado
+
+
+def entregas_materia_prima_em_aberto() -> list | None:
+    """Retorna as entregas de materias primas de ordens de compra em aberto.
+
+    Retorno:
+    --------
+    :list[dict]: com as entregas de materias primas."""
+    sql = """
+        SELECT OC_MP_ITENS.CHAVE_OC AS OC,
+            FORNECEDORES.NOMERED AS FORNECEDOR,
+            PRODUTOS.CODIGO AS PRODUTO,
+            OC_MP_ITENS.VALOR_UNITARIO,
+            OC_MP_ITENS.SALDO,
+            UNIDADES.UNIDADE,
+            OC_MP_ITENS.DATA_ENTREGA
+        FROM COPLAS.FORNECEDORES,
+            COPLAS.UNIDADES,
+            COPLAS.OC_MP_ITENS,
+            COPLAS.PRODUTOS,
+            COPLAS.OC_MP
+        WHERE OC_MP.CHAVE = OC_MP_ITENS.CHAVE_OC
+            AND FORNECEDORES.CODFOR = OC_MP.CHAVE_FORNECEDOR
+            AND UNIDADES.CHAVE = PRODUTOS.CHAVE_UNIDADE
+            AND OC_MP_ITENS.CHAVE_MATERIAL = PRODUTOS.CPROD
+            AND PRODUTOS.CHAVE_GRUPO = 8273
+            AND OC_MP_ITENS.SALDO > 0
+        ORDER BY OC_MP_ITENS.DATA_ENTREGA
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True,)
+
+    if not resultado:
+        return []
+
+    return resultado
+
+
+def produtividade_ordens_producao_em_aberto() -> list | None:
+    """Retorna as ordens de produção em aberto com o ciclo atual.
+
+    Retorno:
+    --------
+    :list[dict]: com as ordens de produção em aberto."""
+    sql = """
+        SELECT MAQUINAS.CODIGO AS MAQUINA,
+            ORDENS.CHAVE AS OP,
+            PRODUTOS.CODIGO AS PRODUTO,
+            CASE
+                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A'
+                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B'
+                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C'
+                ELSE NULL
+            END AS ABC,
+            COALESCE(
+                APONTAMENTOS.CAVIDADES,
+                PROCESSOS_OPERACOES.CAVIDADES
+            ) AS CAVIDADES,
+            CASE
+                WHEN PRODUTOS.CHAVE_UNIDADE = 5988 THEN PROCESSOS_OPERACOES.CICLO / 1000
+                ELSE PROCESSOS_OPERACOES.CICLO
+            END AS CICLO_PADRAO,
+            CASE
+                WHEN PRODUTOS.CHAVE_UNIDADE = 5988 THEN SUM(APONTAMENTOS.TEMPO) * 60 / SUM(APONTAMENTOS.PRODUCAO_LIQUIDA) * COALESCE(
+                    APONTAMENTOS.CAVIDADES,
+                    PROCESSOS_OPERACOES.CAVIDADES
+                ) / 1000
+                ELSE SUM(APONTAMENTOS.TEMPO) * 60 / SUM(APONTAMENTOS.PRODUCAO_LIQUIDA) * COALESCE(
+                    APONTAMENTOS.CAVIDADES,
+                    PROCESSOS_OPERACOES.CAVIDADES
+                )
+            END AS CICLO_ATUAL
+        FROM COPLAS.ORDENS,
+            COPLAS.PRODUTOS,
+            COPLAS.PROCESSOS,
+            COPLAS.PROCESSOS_OPERACOES,
+            COPLAS.APONTAMENTOS,
+            COPLAS.MAQUINAS
+        WHERE ORDENS.CHAVE_PRODUTO = PRODUTOS.CPROD
+            AND ORDENS.CHAVE_PROCESSO = PROCESSOS.CHAVE
+            AND PROCESSOS.CHAVE = PROCESSOS_OPERACOES.CHAVE_PROCESSO
+            AND ORDENS.CHAVE = APONTAMENTOS.CHAVE_ORDEM(+)
+            AND APONTAMENTOS.CHAVE_MAQUINA = MAQUINAS.CHAVE(+)
+            AND PROCESSOS_OPERACOES.CHAVE_SETOR = 3
+            AND (
+                APONTAMENTOS.CHAVE_SETOR = 3
+                OR APONTAMENTOS.CHAVE_SETOR IS NULL
+            )
+            AND PRODUTOS.CHAVE_FAMILIA = 7766
+            AND ORDENS.STATUS NOT IN ('FECHADA', 'CANCELADA')
+            AND APONTAMENTOS.CHAVE_MAQUINA IS NOT NULL
+        GROUP BY MAQUINAS.CODIGO,
+            ORDENS.CHAVE,
+            PRODUTOS.CODIGO,
+            CASE
+                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A'
+                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B'
+                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C'
+                ELSE NULL
+            END,
+            COALESCE(
+                APONTAMENTOS.CAVIDADES,
+                PROCESSOS_OPERACOES.CAVIDADES
+            ),
+            PRODUTOS.CHAVE_UNIDADE,
+            PROCESSOS_OPERACOES.CICLO
+        ORDER BY MAQUINAS.CODIGO,
+            ABC,
+            PRODUTOS.CODIGO
     """
 
     resultado = executar_oracle(sql, exportar_cabecalho=True,)
