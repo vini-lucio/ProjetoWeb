@@ -88,11 +88,11 @@
                                 <p class="fonte-muito-pequena-dashboard">* hoje ({% now "d/m/Y" %})</p>
                             </div>
                             <div class="grid principal-escuro-2">
-                                {% for key, value in dados.toneladas_estoque_atual_abc.items %}
-                                    {% if value %}
+                                {% for tonelada_estoque_abc in dados.toneladas_estoque_atual_abc %}
+                                    {% if tonelada_estoque_abc.ESTOQUE_ABC %}
                                         <div>
-                                            <p class="fonte-verde">Itens {{ key }}</p>
-                                            <p>{{ value | floatformat:1 }}</p>
+                                            <p class="fonte-verde">Itens {{ tonelada_estoque_abc.ESTOQUE_ABC }}</p>
+                                            <p>{{ tonelada_estoque_abc.TONELADAS_ESTOQUE_DISPONIVEL | floatformat:1 }}</p>
                                         </div>
                                     {% endif %}
                                 {% endfor %}
@@ -121,14 +121,14 @@
                     {% if dados.toneladas_estoque_atual_disponivel_materia_prima %}
                         <div class="link-conteudo link-conteudo-escuro moldura-verde-dashboard principal-escuro-2">
                             <div>
-                                <p class="fonte-verde">Estoque MP Detalhe</p>
+                                <p class="fonte-verde">Estoque MP Detalhe - Toneladas Disponiveis</p>
                             </div>
                             <div class="tabela-simples">
                                 <table>
                                     <tr class="principal-claro">
                                         <th>Produto</th>
-                                        <th>Ton. Disponivel</th>
-                                        <th>Ton. Disponivel Real</th>
+                                        <th>Analysis</th>
+                                        <th>Real</th>
                                     </tr>
                                     {% for mp in dados.toneladas_estoque_atual_disponivel_materia_prima %}
                                         <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
@@ -196,14 +196,14 @@
                                         <th>Ciclo Atual</th>
                                     </tr>
                                     {% for op in dados.ordens_producao_em_aberto %}
-                                        <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %} {% if op.CICLO_ATUAL > op.CICLO_PADRAO %}fonte-vermelho{% endif %}">
+                                        <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %} {% if op.CICLO > op.CICLO_PADRAO %}fonte-vermelho{% endif %}">
                                             <td>{{ op.MAQUINA }}</td>
                                             <td>{{ op.OP | stringformat:"d" }}</td>
                                             <td>{{ op.PRODUTO }}</td>
-                                            <td>{{ op.ABC }}</td>
+                                            <td>{{ op.ESTOQUE_ABC }}</td>
                                             <td>{{ op.CAVIDADES }}</td>
                                             <td>{{ op.CICLO_PADRAO | floatformat:1 }}</td>
-                                            <td>{{ op.CICLO_ATUAL | floatformat:1 }}</td>
+                                            <td>{{ op.CICLO | floatformat:1 }}</td>
                                         </tr>
                                     {% endfor %}
                                 </table>

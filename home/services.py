@@ -522,6 +522,7 @@ def quantidade_notas_ano_mes_a_mes():
     return resultado
 
 
+# TODO: relatorio produção / filter django
 def produtividade_ano_mes_a_mes():
     """Retorna a produtividade do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -687,6 +688,7 @@ def peso_estoque_abc_ano_mes_a_mes():
     return resultado
 
 
+# TODO: relatorio produção / filter django
 def setups_dia_ano_mes_a_mes():
     """Retorna a media de setups por dia do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -724,6 +726,7 @@ def setups_dia_ano_mes_a_mes():
     return resultado
 
 
+# TODO: relatorio produção / filter django
 def horas_improdutivas_ano_mes_a_mes():
     """Retorna as horas improdutivas por motivo do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -890,6 +893,7 @@ def lucro_ano_mes_a_mes():
     return resultado
 
 
+# TODO: relatorio produção / filter django
 def peso_embalado_produto_proprio_ano_mes_a_mes():
     """Retorna o peso embalado de produto proprio do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -935,6 +939,7 @@ def peso_embalado_produto_proprio_ano_mes_a_mes():
     return resultado
 
 
+# TODO: relatorio produção / filter django
 def peso_materia_prima_produto_proprio_detalhe_ano_mes_a_mes():
     """Retorna o peso da materia prima de produto proprio detalhado do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -1028,6 +1033,7 @@ def peso_materia_prima_produto_proprio_detalhe_ano_mes_a_mes():
     return resultado
 
 
+# TODO: relatorio produção / filter django
 def peso_materia_prima_produto_proprio_ano_mes_a_mes():
     """Retorna o peso da materia prima de produto proprio do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -2224,6 +2230,7 @@ def ativo_operacional_materia_prima_ano_mes_a_mes():
     return resultado
 
 
+# TODO: relatorio produção / filter django
 def horas_produtivas_ano_mes_a_mes():
     """Retorna a quantidade de horas produtivas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -2579,6 +2586,7 @@ def receitas_despesas_fluxus():
     return resultado
 
 
+# TODO: relatorio produção / filter django
 def minutos_produtivos_ano_mes_a_mes_12_meses():
     """Retorna os minutos produtivos do periodo informado em site setup mes a mes (ultimos 12 meses de cada mes)"""
     site_setup = get_site_setup()
@@ -2736,6 +2744,7 @@ def rateio_salario_adm_cp_ano_mes_a_mes():
     return resultado
 
 
+# TODO: relatorio produção / filter django
 def get_tabela_precos() -> list | None:
     """Retorna tabela de preços dos produtos para vendas"""
     sql = """

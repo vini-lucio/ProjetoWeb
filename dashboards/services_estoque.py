@@ -146,6 +146,7 @@ class DashBoardEstoque():
             self.total_mp = dt_total_mp.to_dict(orient='records')[0] if not dt_total_mp.empty else None
 
 
+# TODO: relatorio produção / filter django
 def producao_por_mp():
     """Retorna a quantidade por materia prima dos prodtos proprios embalados nos ultimos 365 dias."""
     sql = """
@@ -192,6 +193,7 @@ def producao_por_mp():
     return resultado
 
 
+# TODO: relatorio produção / filter django
 def saldo_rr_por_mp():
     """Retorna a quantidade por materia prima dos prodtos proprios com saldo a receber."""
     sql = """

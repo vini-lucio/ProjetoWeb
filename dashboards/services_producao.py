@@ -1,4 +1,5 @@
-from analysis.models import PRODUTOS
+from analysis.models import PRODUTOS, OC_MP_ITENS
+from django.db.models import Sum, F
 from utils.custom import DefaultDict
 from utils.oracle.conectar import executar_oracle
 from .services import get_relatorios_vendas
@@ -56,30 +57,39 @@ class DashBoardProducao():
             )
 
         # Toneladas Estoque Atual
-        estoque_atual_abc = toneladas_estoque_disponivel_abc()
-        self.toneladas_estoque_atual_abc = estoque_atual_abc[0] if estoque_atual_abc else {}
+        self.toneladas_estoque_atual_abc = list(PRODUTOS.coluna_estoque_abc().filter(CHAVE_FAMILIA__pk=7766).values(
+            'ESTOQUE_ABC').annotate(
+            TONELADAS_ESTOQUE_DISPONIVEL=Sum(F('ESTOQUE_DISPONIVEL') * F('PESO_LIQUIDO') / 1000)).order_by(
+                'ESTOQUE_ABC'))
         self.toneladas_estoque_atual_total = 0
-        for tonelada_abc in self.toneladas_estoque_atual_abc.values():
-            self.toneladas_estoque_atual_total += tonelada_abc if tonelada_abc else 0
+        for tonelada_abc in self.toneladas_estoque_atual_abc:  # type:ignore
+            self.toneladas_estoque_atual_total += tonelada_abc['TONELADAS_ESTOQUE_DISPONIVEL'] if tonelada_abc['ESTOQUE_ABC'] else 0
+            if not tonelada_abc['ESTOQUE_ABC']:
+                self.toneladas_estoque_atual_abc.remove(tonelada_abc)  # type:ignore
 
         # Geração de graficos de toneladas estoque_atual
-        dados_grafico_toneladas_estoque_atual_abc = pd.DataFrame(estoque_atual_abc)
+        dados_grafico_toneladas_estoque_atual_abc = pd.DataFrame(self.toneladas_estoque_atual_abc)
         if not dados_grafico_toneladas_estoque_atual_abc.empty:
             self.grafico_toneladas_estoque_atual_abc_html = self.gerar_graficos_toneladas_abc_html(
-                'Estoque', [ea_valor for ea_chave, ea_valor in self.toneladas_estoque_atual_abc.items()],
-                [ea_chave for ea_chave, ea_valor in self.toneladas_estoque_atual_abc.items()],
+                'Estoque', 'TONELADAS_ESTOQUE_DISPONIVEL', 'ESTOQUE_ABC', dados_grafico_toneladas_estoque_atual_abc
             )
 
         # Detalhe estoque materia prima
-        toneladas_estoque_atual_disponivel_materia_prima = toneladas_estoque_disponivel_materia_prima()
+        toneladas_estoque_atual_disponivel_materia_prima = list(PRODUTOS.objects.filter(
+            CHAVE_GRUPO__pk=8273, ESTOQUE_ATUAL__gt=0).values(PRODUTO=F('CODIGO')).annotate(
+            TONELADAS_ESTOQUE_DISPONIVEL=Sum(F('ESTOQUE_DISPONIVEL') * F('PESO_LIQUIDO') / 1000)).order_by('PRODUTO'))
+
         dt_materia_prima = pd.DataFrame(toneladas_estoque_atual_disponivel_materia_prima)
+        dt_materia_prima['TONELADAS_ESTOQUE_DISPONIVEL'] = pd.to_numeric(
+            dt_materia_prima['TONELADAS_ESTOQUE_DISPONIVEL'], errors='coerce',
+        )
 
         toneladas_estoque_atual_disponivel_materia_prima_real = []
         mps = PRODUTOS.objects.filter(CHAVE_GRUPO__CHAVE=8273)
         for mp in mps:
             produto = mp.get_produto()
             if produto:
-                estoque_real = produto.estoque_disponivel_real  # type:ignore
+                estoque_real = produto.estoque_disponivel  # type:ignore
                 if estoque_real:
                     toneladas_estoque_atual_disponivel_materia_prima_real.append(
                         {'PRODUTO': produto.nome,   # type:ignore
@@ -97,10 +107,18 @@ class DashBoardProducao():
             orient='records')[0]
 
         # Entregas de em aberto
-        self.entregas_em_aberto = entregas_materia_prima_em_aberto()
+        self.entregas_em_aberto = OC_MP_ITENS.objects.filter(SALDO__gt=0, CHAVE_MATERIAL__CHAVE_GRUPO__pk=8273).values(
+            'VALOR_UNITARIO', 'SALDO', 'DATA_ENTREGA', OC=F('CHAVE_OC'),
+            FORNECEDOR=F('CHAVE_OC__CHAVE_FORNECEDOR__NOMERED'), PRODUTO=F('CHAVE_MATERIAL__CODIGO'),
+            UNIDADE=F('CHAVE_MATERIAL__CHAVE_UNIDADE__UNIDADE'),
+        ).order_by('DATA_ENTREGA')
 
         # Ordens de produção em aberto
-        self.ordens_producao_em_aberto = produtividade_ordens_producao_em_aberto()
+        self.ordens_producao_em_aberto = get_relatorios_producao(
+            coluna_maquina=True, coluna_chave_ordem_producao=True, coluna_produto=True, coluna_estoque_abc=True,
+            status_ordem_producao_em_aberto=True, coluna_cavidades=True, coluna_ciclo_padrao=True, coluna_ciclo=True,
+            job=22, setor=3, familia_produto=7766, ordenar_maquina_prioritario=True,
+        )
 
     def gerar_graficos_toneladas_abc_html(self, px_pie_title: str, px_pie_values, px_pie_names, px_pie_data_frame=None):
         """Gera html para renderizar graficos.
@@ -120,211 +138,6 @@ class DashBoardProducao():
                               width=300,)
         grafico.update_traces(textinfo='percent+label',)
         return pio.to_html(grafico, full_html=False)
-
-
-def toneladas_estoque_disponivel_abc() -> list | None:
-    """Retorna as toneladas no estoque disponivel de produtos proprios abc.
-
-    Retorno:
-    --------
-    :list[dict]: com as toneladas no estoque disponivel de produtos proprios abc."""
-    sql = """
-        SELECT SUM(
-                CASE
-                    WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN PRODUTOS.ESTOQUE_DISPONIVEL * PRODUTOS.PESO_LIQUIDO
-                    ELSE 0
-                END
-            ) / 1000 AS "A",
-            SUM(
-                CASE
-                    WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN PRODUTOS.ESTOQUE_DISPONIVEL * PRODUTOS.PESO_LIQUIDO
-                    ELSE 0
-                END
-            ) / 1000 AS "B",
-            SUM(
-                CASE
-                    WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN PRODUTOS.ESTOQUE_DISPONIVEL * PRODUTOS.PESO_LIQUIDO
-                    ELSE 0
-                END
-            ) / 1000 AS "C"
-        FROM COPLAS.PRODUTOS
-        WHERE PRODUTOS.CHAVE_FAMILIA = 7766
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True,)
-
-    if not resultado:
-        return []
-
-    return resultado
-
-
-def toneladas_estoque_reservado_abc() -> list | None:
-    """Retorna as toneladas no estoque reservado de produtos proprios abc.
-
-    Retorno:
-    --------
-    :list[dict]: com as toneladas no estoque reservado de produtos proprios abc."""
-    sql = """
-        SELECT SUM(
-                CASE
-                    WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE _%' THEN PRODUTOS.ESTOQUE_RESERVADO * PRODUTOS.PESO_LIQUIDO
-                    ELSE 0
-                END
-            ) / 1000 AS RESERVADO
-        FROM COPLAS.PRODUTOS
-        WHERE PRODUTOS.CHAVE_FAMILIA = 7766
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True,)
-
-    if not resultado:
-        return []
-
-    return resultado
-
-
-def toneladas_estoque_disponivel_materia_prima() -> list | None:
-    """Retorna as toneladas no estoque disponivel de materias primas.
-
-    Retorno:
-    --------
-    :list[dict]: com as toneladas no estoque disponivel de materias primas."""
-    sql = """
-        SELECT PRODUTOS.CODIGO AS PRODUTO,
-            SUM(
-                PRODUTOS.ESTOQUE_DISPONIVEL * PRODUTOS.PESO_LIQUIDO
-            ) / 1000 AS TONELADAS_ESTOQUE_DISPONIVEL
-        FROM COPLAS.PRODUTOS
-        WHERE PRODUTOS.CHAVE_GRUPO = 8273
-            AND PRODUTOS.ESTOQUE_ATUAL != 0
-        GROUP BY PRODUTOS.CODIGO
-        ORDER BY PRODUTOS.CODIGO
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True,)
-
-    if not resultado:
-        return []
-
-    return resultado
-
-
-def entregas_materia_prima_em_aberto() -> list | None:
-    """Retorna as entregas de materias primas de ordens de compra em aberto.
-
-    Retorno:
-    --------
-    :list[dict]: com as entregas de materias primas."""
-    sql = """
-        SELECT OC_MP_ITENS.CHAVE_OC AS OC,
-            FORNECEDORES.NOMERED AS FORNECEDOR,
-            PRODUTOS.CODIGO AS PRODUTO,
-            OC_MP_ITENS.VALOR_UNITARIO,
-            OC_MP_ITENS.SALDO,
-            UNIDADES.UNIDADE,
-            OC_MP_ITENS.DATA_ENTREGA
-        FROM COPLAS.FORNECEDORES,
-            COPLAS.UNIDADES,
-            COPLAS.OC_MP_ITENS,
-            COPLAS.PRODUTOS,
-            COPLAS.OC_MP
-        WHERE OC_MP.CHAVE = OC_MP_ITENS.CHAVE_OC
-            AND FORNECEDORES.CODFOR = OC_MP.CHAVE_FORNECEDOR
-            AND UNIDADES.CHAVE = PRODUTOS.CHAVE_UNIDADE
-            AND OC_MP_ITENS.CHAVE_MATERIAL = PRODUTOS.CPROD
-            AND PRODUTOS.CHAVE_GRUPO = 8273
-            AND OC_MP_ITENS.SALDO > 0
-        ORDER BY OC_MP_ITENS.DATA_ENTREGA
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True,)
-
-    if not resultado:
-        return []
-
-    return resultado
-
-
-def produtividade_ordens_producao_em_aberto() -> list | None:
-    """Retorna as ordens de produção em aberto com o ciclo atual.
-
-    Retorno:
-    --------
-    :list[dict]: com as ordens de produção em aberto."""
-    sql = """
-        SELECT MAQUINAS.CODIGO AS MAQUINA,
-            ORDENS.CHAVE AS OP,
-            PRODUTOS.CODIGO AS PRODUTO,
-            CASE
-                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A'
-                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B'
-                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C'
-                ELSE NULL
-            END AS ABC,
-            COALESCE(
-                APONTAMENTOS.CAVIDADES,
-                PROCESSOS_OPERACOES.CAVIDADES
-            ) AS CAVIDADES,
-            CASE
-                WHEN PRODUTOS.CHAVE_UNIDADE = 5988 THEN PROCESSOS_OPERACOES.CICLO / 1000
-                ELSE PROCESSOS_OPERACOES.CICLO
-            END AS CICLO_PADRAO,
-            CASE
-                WHEN PRODUTOS.CHAVE_UNIDADE = 5988 THEN SUM(APONTAMENTOS.TEMPO) * 60 / SUM(APONTAMENTOS.PRODUCAO_LIQUIDA) * COALESCE(
-                    APONTAMENTOS.CAVIDADES,
-                    PROCESSOS_OPERACOES.CAVIDADES
-                ) / 1000
-                ELSE SUM(APONTAMENTOS.TEMPO) * 60 / SUM(APONTAMENTOS.PRODUCAO_LIQUIDA) * COALESCE(
-                    APONTAMENTOS.CAVIDADES,
-                    PROCESSOS_OPERACOES.CAVIDADES
-                )
-            END AS CICLO_ATUAL
-        FROM COPLAS.ORDENS,
-            COPLAS.PRODUTOS,
-            COPLAS.PROCESSOS,
-            COPLAS.PROCESSOS_OPERACOES,
-            COPLAS.APONTAMENTOS,
-            COPLAS.MAQUINAS
-        WHERE ORDENS.CHAVE_PRODUTO = PRODUTOS.CPROD
-            AND ORDENS.CHAVE_PROCESSO = PROCESSOS.CHAVE
-            AND PROCESSOS.CHAVE = PROCESSOS_OPERACOES.CHAVE_PROCESSO
-            AND ORDENS.CHAVE = APONTAMENTOS.CHAVE_ORDEM(+)
-            AND APONTAMENTOS.CHAVE_MAQUINA = MAQUINAS.CHAVE(+)
-            AND PROCESSOS_OPERACOES.CHAVE_SETOR = 3
-            AND (
-                APONTAMENTOS.CHAVE_SETOR = 3
-                OR APONTAMENTOS.CHAVE_SETOR IS NULL
-            )
-            AND PRODUTOS.CHAVE_FAMILIA = 7766
-            AND ORDENS.STATUS NOT IN ('FECHADA', 'CANCELADA')
-            AND APONTAMENTOS.CHAVE_MAQUINA IS NOT NULL
-        GROUP BY MAQUINAS.CODIGO,
-            ORDENS.CHAVE,
-            PRODUTOS.CODIGO,
-            CASE
-                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A'
-                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B'
-                WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C'
-                ELSE NULL
-            END,
-            COALESCE(
-                APONTAMENTOS.CAVIDADES,
-                PROCESSOS_OPERACOES.CAVIDADES
-            ),
-            PRODUTOS.CHAVE_UNIDADE,
-            PROCESSOS_OPERACOES.CICLO
-        ORDER BY MAQUINAS.CODIGO,
-            ABC,
-            PRODUTOS.CODIGO
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True,)
-
-    if not resultado:
-        return []
-
-    return resultado
 
 
 def map_relatorio_producao_sql_string_placeholders(**kwargs_formulario):
@@ -358,6 +171,28 @@ def map_relatorio_producao_sql_string_placeholders(**kwargs_formulario):
         }
     """
     map_sql_apontamentos = {
+        'coluna_maquina': {'maquina_campo_alias': "MAQUINAS.CODIGO AS MAQUINA,",
+                           'maquina_campo': "MAQUINAS.CODIGO,", },
+        'ordenar_maquina_prioritario': {'maquina_campo': "MAQUINAS.CODIGO,",
+                                        'ordenar_maquina_prioritario': "MAQUINAS.CODIGO,", },
+
+        'coluna_chave_ordem_producao': {'chave_ordem_producao_campo_alias': "ORDENS.CHAVE AS OP,",
+                                        'chave_ordem_producao_campo': "ORDENS.CHAVE,", },
+
+        'coluna_cavidades_padrao': {'cavidades_padrao_campo_alias': "PROCESSOS_OPERACOES.CAVIDADES AS CAVIDADES_PADRAO,",
+                                    'cavidades_padrao_campo': "PROCESSOS_OPERACOES.CAVIDADES,", },
+
+        'coluna_cavidades': {'cavidades_campo_alias': "COALESCE(APONTAMENTOS.CAVIDADES, PROCESSOS_OPERACOES.CAVIDADES) AS CAVIDADES,",
+                             'cavidades_campo': "COALESCE(APONTAMENTOS.CAVIDADES, PROCESSOS_OPERACOES.CAVIDADES),", },
+
+        'coluna_ciclo_padrao': {'ciclo_padrao_campo_alias': "PROCESSOS_OPERACOES.CICLO / CASE WHEN PRODUTOS.CHAVE_UNIDADE = 5988 THEN 1000 ELSE 1 END AS CICLO_PADRAO,",
+                                'ciclo_padrao_campo': "PROCESSOS_OPERACOES.CICLO, PRODUTOS.CHAVE_UNIDADE,", },
+
+        'coluna_ciclo': {'ciclo_campo_alias': "(SUM(APONTAMENTOS.TEMPO) * 60 / SUM(APONTAMENTOS.PRODUCAO_LIQUIDA) * COALESCE(APONTAMENTOS.CAVIDADES, PROCESSOS_OPERACOES.CAVIDADES)) / CASE WHEN PRODUTOS.CHAVE_UNIDADE = 5988 THEN 1000 ELSE 1 END AS CICLO,",
+                         'ciclo_campo': "COALESCE(APONTAMENTOS.CAVIDADES, PROCESSOS_OPERACOES.CAVIDADES), PRODUTOS.CHAVE_UNIDADE,", },
+
+        'status_ordem_producao_em_aberto': {'status_ordem_producao_em_aberto_pesquisa': "ORDENS.STATUS NOT IN ('FECHADA', 'CANCELADA') AND", },
+
         'coluna_estoque_abc': {'estoque_abc_campo_alias': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END AS ESTOQUE_ABC,",
                                'estoque_abc_campo': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END,", },
         'estoque_abc': {'estoque_abc_pesquisa': "CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE B%' THEN 'B' WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END = UPPER(:estoque_abc) AND", },
@@ -471,10 +306,16 @@ def get_relatorios_producao(**kwargs):
     sql_base = """
         SELECT
             {job_campo_alias}
+            {maquina_campo_alias}
+            {chave_ordem_producao_campo_alias}
             {estoque_abc_campo_alias}
             {grupo_produto_campo_alias}
             {produto_campo_alias}
             {unidade_campo_alias}
+            {cavidades_padrao_campo_alias}
+            {cavidades_campo_alias}
+            {ciclo_padrao_campo_alias}
+            {ciclo_campo_alias}
             {toneladas_apontadas_liquidas_campo_alias}
 
             SUM(APONTAMENTOS.TEMPO / 60) AS HORAS_APONTADAS
@@ -486,6 +327,9 @@ def get_relatorios_producao(**kwargs):
             COPLAS.APONTAMENTOS,
             COPLAS.PRODUTOS,
             COPLAS.UNIDADES,
+            COPLAS.PROCESSOS,
+            COPLAS.PROCESSOS_OPERACOES,
+            COPLAS.MAQUINAS,
             COPLAS.JOBS
 
         WHERE
@@ -495,6 +339,10 @@ def get_relatorios_producao(**kwargs):
             ORDENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
             PRODUTOS.CHAVE_UNIDADE = UNIDADES.CHAVE AND
             ORDENS.CHAVE_JOB = JOBS.CODIGO AND
+            ORDENS.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
+            PROCESSOS.CHAVE = PROCESSOS_OPERACOES.CHAVE_PROCESSO AND
+            APONTAMENTOS.CHAVE_SETOR = PROCESSOS_OPERACOES.CHAVE_SETOR AND
+            APONTAMENTOS.CHAVE_MAQUINA = MAQUINAS.CHAVE AND
 
             {estoque_abc_pesquisa}
             {grupo_produto_pesquisa}
@@ -505,6 +353,7 @@ def get_relatorios_producao(**kwargs):
             {data_apontamento_inicio_menor_igual_pesquisa}
             {setor_pesquisa}
             {familia_produto_pesquisa}
+            {status_ordem_producao_em_aberto_pesquisa}
 
             1 = 1
 
@@ -514,10 +363,18 @@ def get_relatorios_producao(**kwargs):
             {produto_campo}
             {unidade_campo}
             {job_campo}
+            {maquina_campo}
+            {chave_ordem_producao_campo}
+            {cavidades_padrao_campo}
+            {cavidades_campo}
+            {ciclo_padrao_campo}
+            {ciclo_campo}
 
             1
 
         ORDER BY
+            {ordenar_maquina_prioritario}
+
             {job_campo}
             {estoque_abc_campo}
             {grupo_produto_campo}

@@ -886,14 +886,25 @@ class Produtos(BaseLogModel):
         ProdutosPallets = apps.get_model('estoque', 'ProdutosPallets')
         Enderecos = apps.get_model('estoque', 'Enderecos')
 
-        embalagem = Enderecos.get_endereco_embalagem()  # type:ignore
         expedicao = Enderecos.get_endereco_expedicao()  # type:ignore
         picking_producao = Enderecos.get_endereco_picking_producao()  # type:ignore
-        recebimento = Enderecos.get_endereco_recebimento()  # type:ignore
 
         pallets_produto = ProdutosPallets.objects.filter(aprovado=True, produto=self).exclude(
-            pallet__endereco__in=(embalagem, expedicao, picking_producao, recebimento)
+            pallet__endereco__in=(expedicao, picking_producao)
         )
+        estoque_produto = pallets_produto.aggregate(Sum('quantidade'))['quantidade__sum']
+        return estoque_produto if estoque_produto else 0
+
+    @property
+    def estoque_disponivel(self):
+        """Retorna a quantidade em estoque que não esta reprovada.
+
+        Retorno:
+        --------
+        :float: com a quantidade disponivel em estoque do produto."""
+        ProdutosPallets = apps.get_model('estoque', 'ProdutosPallets')
+
+        pallets_produto = ProdutosPallets.objects.filter(aprovado=True, produto=self)
         estoque_produto = pallets_produto.aggregate(Sum('quantidade'))['quantidade__sum']
         return estoque_produto if estoque_produto else 0
 

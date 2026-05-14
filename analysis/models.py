@@ -1,6 +1,6 @@
 from django.apps import apps
 from django.db import models
-from django.db.models import F, Count, Max, Avg
+from django.db.models import F, Count, Max, Avg, Case, When, Value, CharField
 from django.db.models.expressions import RawSQL
 from utils.base_models import ReadOnlyMixin, ChaveAnalysisPropertyMixIn
 from utils.converter import somente_digitos, converter_data_django_para_str_ddmmyyyy
@@ -234,12 +234,34 @@ class PRODUTOS(ReadOnlyMixin, models.Model):
                                     on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
     CHAVE_TIPO = models.ForeignKey(TIPO_PRODUTOS, db_column="CHAVE_TIPO", verbose_name="Tipo",
                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    ESTOQUE_ATUAL = models.DecimalField("Estoque Atual", max_digits=22, decimal_places=6, null=True, blank=True)
+    ESTOQUE_BLOQUEADO = models.DecimalField("Estoque Bloqueado", max_digits=22, decimal_places=6, null=True,
+                                            blank=True)
+    ESTOQUE_DISPONIVEL = models.DecimalField("Estoque Disponivel", max_digits=22, decimal_places=6, null=True,
+                                             blank=True)
+    ESTOQUE_RESERVADO = models.DecimalField("Estoque Reservado", max_digits=22, decimal_places=6, null=True,
+                                            blank=True)
 
     def get_produto(self):
         Produtos = apps.get_model('home', 'Produtos')
 
         produto = Produtos.objects.filter(chave_analysis=self.pk).first()
         return produto
+
+    @classmethod
+    def coluna_estoque_abc(cls, valor_padrao=None):
+        """Retorna coluna de estoque abc dos produtos.
+
+        Parametros:
+        -----------
+        :valor_padrao(str, Default None): com o valor caso o produto não tenha estoque abc definido."""
+        return cls.objects.annotate(ESTOQUE_ABC=Case(
+            When(CARACTERISTICA2__icontains='ESTOQUE A', then=Value('A')),
+            When(CARACTERISTICA2__icontains='ESTOQUE B', then=Value('B')),
+            When(CARACTERISTICA2__icontains='ESTOQUE C', then=Value('C')),
+            default=Value(valor_padrao),
+            output_field=CharField(),
+        ))
 
     def __str__(self):
         return self.CODIGO
@@ -778,6 +800,8 @@ class OC_MP_ITENS(ReadOnlyMixin, models.Model):
     CHAVE_MATERIAL = models.ForeignKey(PRODUTOS, db_column="CHAVE_MATERIAL", verbose_name="Material",
                                        on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
     QUANTIDADE = models.DecimalField("Quantidade", max_digits=22, decimal_places=6, null=True, blank=True)
+    VALOR_UNITARIO = models.DecimalField("Valor Unitario", max_digits=22, decimal_places=6, null=True, blank=True)
+    SALDO = models.DecimalField("Saldo", max_digits=22, decimal_places=6, null=True, blank=True)
     DATA_ENTREGA = models.DateField("Data Entrega", auto_now=False, auto_now_add=False, null=True, blank=True)
     CHAVE_UNIDADE = models.ForeignKey(UNIDADES, db_column="CHAVE_UNIDADE", verbose_name="Unidade",
                                       on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
