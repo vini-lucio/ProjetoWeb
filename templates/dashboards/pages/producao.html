@@ -118,10 +118,10 @@
                         </div>
                     </div>
 
-                    {% if dados.toneladas_estoque_atual_disponivel_materia_prima %}
+                    {% if dados.toneladas_estoque_atual_total_materia_prima %}
                         <div class="link-conteudo link-conteudo-escuro moldura-verde-dashboard principal-escuro-2">
                             <div>
-                                <p class="fonte-verde">Estoque MP Detalhe - Toneladas Disponiveis</p>
+                                <p class="fonte-verde">Estoque MP Detalhe - Toneladas Totais</p>
                             </div>
                             <div class="tabela-simples">
                                 <table>
@@ -130,17 +130,17 @@
                                         <th>Analysis</th>
                                         <th>Real</th>
                                     </tr>
-                                    {% for mp in dados.toneladas_estoque_atual_disponivel_materia_prima %}
+                                    {% for mp in dados.toneladas_estoque_atual_total_materia_prima %}
                                         <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
                                             <td>{{ mp.PRODUTO }}</td>
-                                            <td>{{ mp.TONELADAS_ESTOQUE_DISPONIVEL | floatformat:1 }}</td>
-                                            <td>{{ mp.TONELADAS_ESTOQUE_DISPONIVEL_REAL | floatformat:1 }}</td>
+                                            <td>{{ mp.TONELADAS_ESTOQUE_TOTAL | floatformat:1 }}</td>
+                                            <td>{{ mp.TONELADAS_ESTOQUE_TOTAL_REAL | floatformat:1 }}</td>
                                         </tr>
                                     {% endfor %}
                                     <tr class="principal-claro">
                                         <td class="azul-negrito">TOTAL</td>
-                                        <td class="azul-negrito">{{ dados.toneladas_estoque_atual_disponivel_materia_prima_totais.TONELADAS_ESTOQUE_DISPONIVEL | floatformat:1 }}</td>
-                                        <td class="azul-negrito">{{ dados.toneladas_estoque_atual_disponivel_materia_prima_totais.TONELADAS_ESTOQUE_DISPONIVEL_REAL | floatformat:1 }}</td>
+                                        <td class="azul-negrito">{{ dados.toneladas_estoque_atual_total_materia_prima_totais.TONELADAS_ESTOQUE_TOTAL | floatformat:1 }}</td>
+                                        <td class="azul-negrito">{{ dados.toneladas_estoque_atual_total_materia_prima_totais.TONELADAS_ESTOQUE_TOTAL_REAL | floatformat:1 }}</td>
                                     </tr>
                                 </table>
                             </div>

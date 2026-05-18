@@ -908,6 +908,19 @@ class Produtos(BaseLogModel):
         estoque_produto = pallets_produto.aggregate(Sum('quantidade'))['quantidade__sum']
         return estoque_produto if estoque_produto else 0
 
+    @property
+    def estoque_total(self):
+        """Retorna a quantidade total em estoque.
+
+        Retorno:
+        --------
+        :float: com a quantidade total em estoque do produto."""
+        ProdutosPallets = apps.get_model('estoque', 'ProdutosPallets')
+
+        pallets_produto = ProdutosPallets.objects.filter(produto=self)
+        estoque_produto = pallets_produto.aggregate(Sum('quantidade'))['quantidade__sum']
+        return estoque_produto if estoque_produto else 0
+
     @classmethod
     def filter_ativos(cls):
         return cls.objects.filter(status='ativo')

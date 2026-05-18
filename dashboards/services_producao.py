@@ -75,35 +75,35 @@ class DashBoardProducao():
             )
 
         # Detalhe estoque materia prima
-        toneladas_estoque_atual_disponivel_materia_prima = list(PRODUTOS.objects.filter(
+        toneladas_estoque_atual_total_materia_prima = list(PRODUTOS.objects.filter(
             CHAVE_GRUPO__pk=8273, ESTOQUE_ATUAL__gt=0).values(PRODUTO=F('CODIGO')).annotate(
-            TONELADAS_ESTOQUE_DISPONIVEL=Sum(F('ESTOQUE_DISPONIVEL') * F('PESO_LIQUIDO') / 1000)).order_by('PRODUTO'))
+            TONELADAS_ESTOQUE_TOTAL=Sum(F('ESTOQUE_ATUAL') * F('PESO_LIQUIDO') / 1000)).order_by('PRODUTO'))
 
-        dt_materia_prima = pd.DataFrame(toneladas_estoque_atual_disponivel_materia_prima)
-        dt_materia_prima['TONELADAS_ESTOQUE_DISPONIVEL'] = pd.to_numeric(
-            dt_materia_prima['TONELADAS_ESTOQUE_DISPONIVEL'], errors='coerce',
+        dt_materia_prima = pd.DataFrame(toneladas_estoque_atual_total_materia_prima)
+        dt_materia_prima['TONELADAS_ESTOQUE_TOTAL'] = pd.to_numeric(
+            dt_materia_prima['TONELADAS_ESTOQUE_TOTAL'], errors='coerce',
         )
 
-        toneladas_estoque_atual_disponivel_materia_prima_real = []
+        toneladas_estoque_atual_total_materia_prima_real = []
         mps = PRODUTOS.objects.filter(CHAVE_GRUPO__CHAVE=8273)
         for mp in mps:
             produto = mp.get_produto()
             if produto:
-                estoque_real = produto.estoque_disponivel  # type:ignore
+                estoque_real = produto.estoque_total  # type:ignore
                 if estoque_real:
-                    toneladas_estoque_atual_disponivel_materia_prima_real.append(
+                    toneladas_estoque_atual_total_materia_prima_real.append(
                         {'PRODUTO': produto.nome,   # type:ignore
-                         'TONELADAS_ESTOQUE_DISPONIVEL_REAL': float(estoque_real) / 1000}
+                         'TONELADAS_ESTOQUE_TOTAL_REAL': float(estoque_real) / 1000}
                     )
-        dt_materia_prima_real = pd.DataFrame(toneladas_estoque_atual_disponivel_materia_prima_real)
+        dt_materia_prima_real = pd.DataFrame(toneladas_estoque_atual_total_materia_prima_real)
 
         dt_materia_prima = pd.merge(dt_materia_prima, dt_materia_prima_real,
                                     'outer', 'PRODUTO').fillna(0).sort_values('PRODUTO')
 
         dt_materia_prima_totais = pd.DataFrame([dt_materia_prima.sum(numeric_only=True)])
 
-        self.toneladas_estoque_atual_disponivel_materia_prima = dt_materia_prima.to_dict(orient='records')
-        self.toneladas_estoque_atual_disponivel_materia_prima_totais = dt_materia_prima_totais.to_dict(
+        self.toneladas_estoque_atual_total_materia_prima = dt_materia_prima.to_dict(orient='records')
+        self.toneladas_estoque_atual_total_materia_prima_totais = dt_materia_prima_totais.to_dict(
             orient='records')[0]
 
         # Entregas de em aberto

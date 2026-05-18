@@ -12,9 +12,31 @@
             altura_mestra = 20;
             altura_nm40 = 30;
 
-            altura_tubete = altura_piso - altura_base_lisa - altura_mestra - altura_nm40;
+            if (altura_piso >= 65 & altura_piso <= 85) {
+                combinacao = "NMR + NM40 + Mestra";
+                altura_tubete = "N/A";
+            } else {
+                if (altura_piso >= 70 & altura_piso <= 100) {
+                    combinacao = "RPL + NM40 + Mestra";
+                    altura_tubete = "N/A";
+                } else {
+                    if (altura_piso >= 135 & altura_piso <= 150) {
+                        combinacao = "NMR + NM110 + Mestra";
+                        altura_tubete = "N/A";
+                    } else {
+                        if (altura_piso >= 130 & altura_piso <= 165) {
+                            combinacao = "RPL + NM110 + Mestra";
+                            altura_tubete = "N/A";
+                        } else {
+                            combinacao = "NM40 + Base Lisa + Mestra + ";
+                            altura_tubete = altura_piso - altura_base_lisa - altura_mestra - altura_nm40;
+                        }
+                    }
+                }
+            }
 
             document.getElementById("altura_tubete").value = altura_tubete;
+            document.getElementById("combinacao").textContent = combinacao;
         }
 
     </script>
@@ -43,10 +65,10 @@
 
             <fieldset class="moldura-verde">
                 <div class="grid-simples">
-                    <p class="azul-negrito">NM40 + Mestra + Base Lisa +</p>
+                    <p class="azul-negrito" id="combinacao"></p>
                     <div class="grid-2col-numero">
                         <label class="verde-negrito" for ="altura_tubete">Comprimento Tubete (mm):</label>
-                        <input type="number" id="altura_tubete" name="nivamento_laje">
+                        <input type="text" id="altura_tubete" name="nivamento_laje">
                     </div>
                 </div>
             </fieldset>
