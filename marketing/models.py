@@ -156,7 +156,8 @@ class LeadsRdStation(models.Model):
         if not self.pk or conferir_recadastro:
             if not self.recadastro:
                 recadastro = LeadsRdStation.objects.filter(recadastro=False).filter(
-                    Q(chave_analysis=self.chave_analysis) | Q(empresa=self.empresa)).exclude(pk=self.pk).exists()
+                    (Q(chave_analysis__isnull=False) & Q(chave_analysis=self.chave_analysis)) |
+                    Q(empresa=self.empresa)).exclude(pk=self.pk).exists()
                 if recadastro:
                     self.recadastro = True
 
