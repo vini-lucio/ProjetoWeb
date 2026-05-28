@@ -1,7 +1,7 @@
 from typing import Iterable
 from collections import Counter
 from decimal import Decimal
-from django.db.models import Q
+from django.db.models import Q, F
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
 from dashboards.services_financeiro import get_relatorios_financeiros, get_relatorios_financeiros_faturamentos
@@ -2230,42 +2230,18 @@ def ativo_operacional_materia_prima_ano_mes_a_mes():
     return resultado
 
 
-# TODO: relatorio produção / filter django
 def horas_produtivas_ano_mes_a_mes():
     """Retorna a quantidade de horas produtivas do periodo informado em site setup mes a mes"""
+    from dashboards.services_producao import get_relatorios_producao
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM APONTAMENTOS.INICIO) AS MES,
-            ROUND(SUM(APONTAMENTOS.TEMPO) / 60, 2) AS HORAS
-
-        FROM
-            COPLAS.ORDENS,
-            COPLAS.APONTAMENTOS
-
-        WHERE
-            APONTAMENTOS.CHAVE_ORDEM = ORDENS.CHAVE AND
-            ORDENS.CHAVE_JOB = 22 AND
-            APONTAMENTOS.CHAVE_SETOR = 3 AND
-
-            -- primeiro dia do ano
-            TRUNC(APONTAMENTOS.INICIO) >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
-            -- ultimo dia do ano
-            TRUNC(APONTAMENTOS.INICIO) <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM APONTAMENTOS.INICIO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM APONTAMENTOS.INICIO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = get_relatorios_producao(
+        data_apontamento_inicio_maior_igual=data_ano_inicio, data_apontamento_inicio_menor_igual=data_ano_fim, job=22,
+        setor=3, coluna_mes_apontamento_inicio=True,
+    )
 
     return resultado
 
@@ -2586,54 +2562,27 @@ def receitas_despesas_fluxus():
     return resultado
 
 
-# TODO: relatorio produção / filter django
 def minutos_produtivos_ano_mes_a_mes_12_meses():
     """Retorna os minutos produtivos do periodo informado em site setup mes a mes (ultimos 12 meses de cada mes)"""
+    from dashboards.services_producao import get_relatorios_producao
     site_setup = get_site_setup()
     if site_setup:
-        mes = site_setup.atualizacoes_mes
-        ano = site_setup.atualizacoes_ano
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_inicio = data_ano_inicio - relativedelta(months=11)
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            PERIODO.MES,
-            SUM(TEMPO) AS MINUTOS
+    apontamentos_tempo = get_relatorios_producao(
+        data_apontamento_inicio_maior_igual=data_ano_inicio, data_apontamento_inicio_menor_igual=data_ano_fim,
+        job=22, setor=3, coluna_ano_apontamento_inicio=True, coluna_mes_apontamento_inicio=True,
+    )
 
-        FROM
-            COPLAS.ORDENS,
-            COPLAS.APONTAMENTOS,
-            (
-                SELECT 12 AS MES, :ano + 12 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                SELECT 11 AS MES, :ano + 11 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                SELECT 10 AS MES, :ano + 10 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                SELECT 9 AS MES, :ano + 9 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                SELECT 8 AS MES, :ano + 8 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                SELECT 7 AS MES, :ano + 7 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                SELECT 6 AS MES, :ano + 6 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                SELECT 5 AS MES, :ano + 5 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                SELECT 4 AS MES, :ano + 4 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                SELECT 3 AS MES, :ano + 3 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                SELECT 2 AS MES, :ano + 2 / 12.00 AS ANOMES FROM DUAL UNION ALL
-                SELECT 1 AS MES, :ano + 1 / 12.00 AS ANOMES FROM DUAL
-            ) PERIODO
+    df_apontamentos_tempo = pd.DataFrame(apontamentos_tempo)
+    df_apontamentos_tempo['MINUTOS_APONTADOS'] = df_apontamentos_tempo['HORAS_APONTADAS'] * 60
+    df_apontamentos_tempo['MINUTOS'] = df_apontamentos_tempo['MINUTOS_APONTADOS'].rolling(window=12).sum()
+    df_apontamentos_tempo = df_apontamentos_tempo.dropna(subset=['MINUTOS'])
+    df_apontamentos_tempo = df_apontamentos_tempo[['MES_APONTAMENTO', 'MINUTOS']]
 
-        WHERE
-            APONTAMENTOS.CHAVE_ORDEM = ORDENS.CHAVE AND
-            ORDENS.CHAVE_JOB = 22 AND
-            APONTAMENTOS.CHAVE_SETOR = 3 AND
-            EXTRACT(YEAR FROM APONTAMENTOS.INICIO) + EXTRACT(MONTH FROM APONTAMENTOS.INICIO) / 12.00 >= PERIODO.ANOMES - 11 / 12 AND
-            EXTRACT(YEAR FROM APONTAMENTOS.INICIO) + EXTRACT(MONTH FROM APONTAMENTOS.INICIO) / 12.00 <= PERIODO.ANOMES AND
-
-            PERIODO.MES <= :mes
-
-        GROUP BY
-            PERIODO.MES
-
-        ORDER BY
-            PERIODO.MES
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes)
+    resultado = df_apontamentos_tempo.to_dict(orient='records')
 
     return resultado
 
@@ -2744,57 +2693,18 @@ def rateio_salario_adm_cp_ano_mes_a_mes():
     return resultado
 
 
-# TODO: relatorio produção / filter django
-def get_tabela_precos() -> list | None:
+def get_tabela_precos():
     """Retorna tabela de preços dos produtos para vendas"""
-    sql = """
-        SELECT
-            CASE WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE C%' THEN 'C' END AS C,
-            PRODUTOS.CODIGO,
-            PRODUTOS_JOBS_CUSTOS.PRECO_ICMS18 AS PRECO_TABELA,
-            UNIDADES.UNIDADE,
-            CLASSE_IPI.IPI AS IPI,
-            PRODUTOS.MULTIPLICIDADE,
-            PRODUTOS.PESO_LIQUIDO,
-            UNIDADES.UNIDADE AS UNIDADE_PESO
-
-        FROM
-            COPLAS.PRODUTOS_JOBS_CUSTOS,
-            COPLAS.CLASSE_IPI,
-            COPLAS.PRODUTOS,
-            COPLAS.UNIDADES
-
-        WHERE
-            UNIDADES.CHAVE = PRODUTOS.CHAVE_UNIDADE AND
-            CLASSE_IPI.CHAVE = PRODUTOS.CHAVE_CLASSEIPI AND
-            PRODUTOS.CPROD = PRODUTOS_JOBS_CUSTOS.CHAVE_PRODUTO AND
-            PRODUTOS.FORA_DE_LINHA = 'NAO' AND
-            PRODUTOS.CHAVE_FAMILIA IN (7767, 7766, 8378, 12441, 12819) AND
-            PRODUTOS_JOBS_CUSTOS.CHAVE_JOB IN (22, 25) AND
-            PRODUTOS.DESENVOLVIMENTO = 'NAO' AND
-            PRODUTOS_JOBS_CUSTOS.PRECO_ICMS18 > 0 AND
-
-            PRODUTOS.CHAVE_LINHA != 7927 AND
-            PRODUTOS.CODIGO NOT LIKE 'ITEM INATIVO%' AND
-            PRODUTOS.CODIGO NOT LIKE '*%' AND
-            PRODUTOS.CODIGO NOT LIKE '%*' AND
-            PRODUTOS.CODIGO NOT LIKE '%AMOSTRA%' AND
-            PRODUTOS.DESCRICAO NOT LIKE '%AMOSTRA%' AND
-            PRODUTOS.CODIGO NOT LIKE '% UN.%' AND
-            PRODUTOS.CODIGO NOT LIKE 'UN %' AND
-            PRODUTOS.CODIGO NOT LIKE 'MA500-40  - UN' AND
-            PRODUTOS.CODIGO NOT LIKE 'KIT %' AND
-            PRODUTOS.CODIGO NOT LIKE 'MA500-35  - %' AND
-            PRODUTOS.CODIGO NOT LIKE 'DALI %' AND
-            PRODUTOS.CODIGO NOT LIKE 'WURTH %' AND
-            PRODUTOS.CODIGO NOT LIKE 'EX %'
-
-        ORDER BY
-            PRODUTOS.CHAVE_FAMILIA,
-            PRODUTOS.CODIGO
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True)
+    resultado = PRODUTOS.coluna_estoque_abc().filter(
+        FORA_DE_LINHA='NAO', CHAVE_FAMILIA__in=(7767, 7766, 8378, 12441, 12819), DESENVOLVIMENTO='NAO',
+        produtos_jobs_custos__CHAVE_JOB__in=(22, 25), produtos_jobs_custos__PRECO_ICMS18__gt=0,
+    ).values('CODIGO', 'MULTIPLICIDADE', 'PESO_LIQUIDO', C=F('ESTOQUE_ABC'),
+             PRECO_TABELA=F('produtos_jobs_custos__PRECO_ICMS18'), UNIDADE=F('CHAVE_UNIDADE__UNIDADE'),
+             IPI=F('CHAVE_CLASSEIPI__IPI'), UNIDADE_PESO=F('CHAVE_UNIDADE__UNIDADE'),).exclude(
+                 Q(CODIGO__icontains='AMOSTRA') | Q(CODIGO__icontains=' UN.') | Q(CODIGO__istartswith='UN ') |
+                 Q(CODIGO__istartswith='KIT ') | Q(CODIGO='MA500-40  - UN') | Q(CODIGO__istartswith='MA500-35  - ') |
+                 Q(CODIGO__istartswith='EX ')
+    ).order_by('CHAVE_FAMILIA', 'CODIGO',)
 
     return resultado
 

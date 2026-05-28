@@ -176,14 +176,12 @@ def calculo_quimicos(request):
     return render(request, 'home/pages/calculo-quimicos.html', {'titulo_pagina': titulo_pagina})
 
 
-# TODO: aumentar tamanho dos campos
 def calculo_niveladores(request):
     """Retorna pagina para calculo de quantificação de peças de niveladores de piso"""
     titulo_pagina = 'Calculo Niveladores de Piso'
     return render(request, 'home/pages/calculo-niveladores.html', {'titulo_pagina': titulo_pagina})
 
 
-# TODO: zerar tubete se altura laje menor que 90mm (incluir titulo: com tubete)
 def calculo_nivelamento_lajes(request):
     """Retorna pagina para calculo de quantificação de produtos de nivelamento de lajes"""
     titulo_pagina = 'Calculo Nivelamento de Lajes'

@@ -207,6 +207,21 @@ class TIPO_PRODUTOS(ReadOnlyMixin, models.Model):
         return self.TIPO
 
 
+class CLASSE_IPI(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."CLASSE_IPI"'
+        verbose_name = 'NCM'
+        verbose_name_plural = 'NCMs'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CLASSIFICACAO = models.CharField("Classificação", max_length=14, null=True, blank=True)
+    IPI = models.DecimalField("IPI %", max_digits=22, decimal_places=6, null=True, blank=True)
+
+    def __str__(self):
+        return self.CLASSIFICACAO
+
+
 class PRODUTOS(ReadOnlyMixin, models.Model):
     class Meta:
         managed = False
@@ -228,12 +243,14 @@ class PRODUTOS(ReadOnlyMixin, models.Model):
     PESO_LIQUIDO = models.DecimalField("Peso Liquido", max_digits=8, decimal_places=4, null=True, blank=True)
     PESO_BRUTO = models.DecimalField("Peso Bruto", max_digits=8, decimal_places=4, null=True, blank=True)
     FORA_DE_LINHA = models.CharField("Fora de Linha", max_length=3, null=True, blank=True)
+    DESENVOLVIMENTO = models.CharField("Desenvolvimento", max_length=3, null=True, blank=True)
     CODIGO_BARRA = models.CharField("Codigo de Barras (EAN13)", max_length=13, null=True, blank=True)
     CARACTERISTICA2 = models.CharField("Caracteristica 2", max_length=4000, null=True, blank=True)
     CHAVE_MARCA = models.ForeignKey(MARCAS, db_column="CHAVE_MARCA", verbose_name="Marca",
                                     on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
     CHAVE_TIPO = models.ForeignKey(TIPO_PRODUTOS, db_column="CHAVE_TIPO", verbose_name="Tipo",
                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    MULTIPLICIDADE = models.DecimalField("Multiplicidade", max_digits=22, decimal_places=6, null=True, blank=True)
     ESTOQUE_ATUAL = models.DecimalField("Estoque Atual", max_digits=22, decimal_places=6, null=True, blank=True)
     ESTOQUE_BLOQUEADO = models.DecimalField("Estoque Bloqueado", max_digits=22, decimal_places=6, null=True,
                                             blank=True)
@@ -241,6 +258,8 @@ class PRODUTOS(ReadOnlyMixin, models.Model):
                                              blank=True)
     ESTOQUE_RESERVADO = models.DecimalField("Estoque Reservado", max_digits=22, decimal_places=6, null=True,
                                             blank=True)
+    CHAVE_CLASSEIPI = models.ForeignKey(CLASSE_IPI, db_column="CHAVE_CLASSEIPI", verbose_name="NCM",
+                                        on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
 
     def get_produto(self):
         Produtos = apps.get_model('home', 'Produtos')
@@ -265,6 +284,36 @@ class PRODUTOS(ReadOnlyMixin, models.Model):
 
     def __str__(self):
         return self.CODIGO
+
+
+class PRODUTOS_JOBS_CUSTOS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."PRODUTOS_JOBS_CUSTOS"'
+        verbose_name = 'Custo de Produto por Job'
+        verbose_name_plural = 'Custos de Produtos por jobs'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CHAVE_PRODUTO = models.ForeignKey(PRODUTOS, db_column="CHAVE_PRODUTO", verbose_name="Produto",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_JOB = models.ForeignKey(JOBS, db_column="CHAVE_JOB", verbose_name="Job",
+                                  on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CUSTO_INDUSTRIAL = models.DecimalField("Custo Industrial", max_digits=22, decimal_places=6, null=True, blank=True)
+    CUSTO_MEDIO_COMPRA = models.DecimalField("Custo Compra", max_digits=22, decimal_places=6, null=True, blank=True)
+    CUSTO_TOTAL = models.DecimalField("Custo Total", max_digits=22, decimal_places=6, null=True, blank=True)
+    DIVISOR = models.DecimalField("Divisor", max_digits=22, decimal_places=6, null=True, blank=True)
+    PRECO_OBJETIVO_VISTA = models.DecimalField("Preço Objetivo Vista", max_digits=22, decimal_places=6, null=True,
+                                               blank=True)
+    PRECO_ICMS0 = models.DecimalField("Preço ICMS 0%", max_digits=22, decimal_places=6, null=True, blank=True)
+    PRECO_ICMS4 = models.DecimalField("Preço ICMS 4%", max_digits=22, decimal_places=6, null=True, blank=True)
+    PRECO_ICMS7 = models.DecimalField("Preço ICMS 7%", max_digits=22, decimal_places=6, null=True, blank=True)
+    PRECO_ICMS12 = models.DecimalField("Preço ICMS 12%", max_digits=22, decimal_places=6, null=True, blank=True)
+    PRECO_ICMS18 = models.DecimalField("Preço ICMS 18%", max_digits=22, decimal_places=6, null=True, blank=True)
+    PRECO_ICMS17 = models.DecimalField("Preço ICMS 17%", max_digits=22, decimal_places=6, null=True, blank=True)
+    PRECO_ICMS19 = models.DecimalField("Preço ICMS 19%", max_digits=22, decimal_places=6, null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.CHAVE_PRODUTO.CODIGO} - {self.CHAVE_JOB.DESCRICAO}'  # type:ignore
 
 
 class CLIENTES_TIPOS(ReadOnlyMixin, models.Model):

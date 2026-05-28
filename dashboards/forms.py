@@ -125,6 +125,8 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     segundo_representante = forms.ModelChoiceField(representantes, label="Segundo Representante", required=False)
     informacao_estrategica = forms.ModelChoiceField(informacoes_estrategicas, label="Informação Estrategica",
                                                     required=False)
+    conteudo_informacao_estrategica = forms.CharField(label="Conteudo Informação Estrategica", max_length=300,
+                                                      required=False)
 
     # Campos Sobre Produto
     coluna_familia_produto = forms.BooleanField(label="Coluna Familia", initial=False, required=False)
@@ -188,7 +190,7 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
                               'coluna_estado', 'coluna_segundo_representante', 'grupo_economico', 'carteira',
                               'carteira_parede_de_concreto', 'carteira_premoldado_poste', 'tipo_cliente', 'cidade',
                               'estado', 'informacao_estrategica', 'segundo_representante', 'cnpj_cpf',
-                              'coluna_cliente',],
+                              'coluna_cliente', 'conteudo_informacao_estrategica',],
 
             'Sobre Produto': ['coluna_familia_produto', 'coluna_produto', 'coluna_unidade',
                               'coluna_preco_tabela_inclusao', 'coluna_preco_venda_medio', 'coluna_quantidade',

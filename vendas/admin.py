@@ -63,10 +63,9 @@ class RncNotasAdmin(BaseModelAdminRedRequiredLog):
                     campos.remove('procedente')
             return campos
 
-        campos += ['job', 'nota_fiscal', 'data', 'responsavel', 'acao_imediata', 'custo_adicional', 'descricao',]
-
         if obj:
             if obj.procedente:
-                campos += ['origem', 'motivo', 'custo_recuperado', 'follow_up',]
+                campos += ['job', 'nota_fiscal', 'data', 'responsavel', 'acao_imediata', 'custo_adicional',
+                           'descricao', 'origem', 'motivo', 'custo_recuperado', 'follow_up',]
 
         return campos

@@ -1,7 +1,9 @@
+from analysis.models import OC_MP_ITENS
 from estoque.models import Enderecos, ProdutosPallets
 from home.models import ProdutosTipos
-from django.db.models import Count, Sum, Q
-from utils.oracle.conectar import executar_oracle
+from .services_producao import get_relatorios_producao
+from django.db.models import Count, Sum, Q, F
+from utils.data_hora_atual import data_365_dias_atras
 import math
 import pandas as pd
 
@@ -105,8 +107,11 @@ class DashBoardEstoque():
 
                 # Sugestão de compra de materia prima
 
-                saldo_rr = saldo_rr_por_mp()
+                saldo_rr = list(OC_MP_ITENS.objects.filter(SALDO__gt=0, CHAVE_MATERIAL__CHAVE_GRUPO__pk=8273).values(
+                    PRODUTO=F('CHAVE_MATERIAL__CODIGO'), UNIDADE=F('CHAVE_MATERIAL__CHAVE_UNIDADE__UNIDADE'),
+                ).annotate(SALDO=Sum(F('SALDO'))).order_by('PRODUTO'))
                 dt_saldo_rr = pd.DataFrame(saldo_rr)
+                dt_saldo_rr['SALDO'] = pd.to_numeric(dt_saldo_rr['SALDO'], errors='coerce',)
                 dt_saldo_rr = dt_saldo_rr.rename(columns={'PRODUTO': 'produto',
                                                           'SALDO': 'saldo_rr', 'UNIDADE': 'unidade', })
                 dt_saldo_rr['saldo_rr_pallets'] = (dt_saldo_rr['saldo_rr'] / 1000).apply(math.ceil)
@@ -118,11 +123,15 @@ class DashBoardEstoque():
                 dt_recebimento = pd.DataFrame(recebimento)
                 dt_recebimento = dt_recebimento.rename(columns={'produto__nome': 'produto'})
 
-                producao_mp = producao_por_mp()
+                producao_mp = get_relatorios_producao(data_apontamento_inicio_maior_igual=data_365_dias_atras(),
+                                                      coluna_material=True, coluna_quantidade_material_liquido=True,
+                                                      coluna_unidade_material=True, setor=12, familia_produto=7766,
+                                                      grupo_material=8273,)
                 dt_producao_mp = pd.DataFrame(producao_mp)
-                dt_producao_mp = dt_producao_mp.rename(columns={'MATERIA_PRIMA': 'produto',
-                                                                'MEDIA_MES': 'media_mes_prod',
-                                                                'UNIDADE': 'unidade', })
+                dt_producao_mp['QUANTIDADE_MATERIAL_LIQUIDO'] = dt_producao_mp['QUANTIDADE_MATERIAL_LIQUIDO'] / 12
+                dt_producao_mp = dt_producao_mp.rename(columns={'MATERIAL': 'produto',
+                                                                'QUANTIDADE_MATERIAL_LIQUIDO': 'media_mes_prod',
+                                                                'UNIDADE_MATERIAL': 'unidade', })
                 total_produzido_mp = dt_producao_mp['media_mes_prod'].sum()
                 dt_producao_mp['proporcao_mes_prod'] = dt_producao_mp['media_mes_prod'] / total_produzido_mp
 
@@ -144,73 +153,3 @@ class DashBoardEstoque():
 
             self.resumo_mp = dt_resumo_mp.to_dict(orient='records')
             self.total_mp = dt_total_mp.to_dict(orient='records')[0] if not dt_total_mp.empty else None
-
-
-# TODO: relatorio produção / filter django
-def producao_por_mp():
-    """Retorna a quantidade por materia prima dos prodtos proprios embalados nos ultimos 365 dias."""
-    sql = """
-        SELECT MATERIA_PRIMA.MATERIA_PRIMA,
-            ROUND(
-                SUM(
-                    APONTAMENTOS.PRODUCAO_LIQUIDA * PRODUTOS.PESO_LIQUIDO
-                ) / 12,
-                3
-            ) AS MEDIA_MES,
-            MATERIA_PRIMA.UNIDADE
-        FROM (
-                SELECT PROCESSOS_MATERIAIS.CHAVE_PROCESSO,
-                    PRODUTOS.CODIGO AS MATERIA_PRIMA,
-                    PROCESSOS_MATERIAIS.QUANTIDADE,
-                    UNIDADES.UNIDADE
-                FROM COPLAS.UNIDADES,
-                    COPLAS.PROCESSOS_MATERIAIS,
-                    COPLAS.PRODUTOS
-                WHERE PRODUTOS.CPROD = PROCESSOS_MATERIAIS.CHAVE_MATERIAL
-                    AND UNIDADES.CHAVE = PRODUTOS.CHAVE_UNIDADE
-                    AND PRODUTOS.CHAVE_GRUPO = 8273
-            ) MATERIA_PRIMA,
-            COPLAS.PRODUTOS,
-            COPLAS.PROCESSOS_OPERACOES,
-            COPLAS.PROCESSOS,
-            COPLAS.APONTAMENTOS,
-            COPLAS.ORDENS
-        WHERE ORDENS.CHAVE = APONTAMENTOS.CHAVE_ORDEM
-            AND ORDENS.CHAVE_PROCESSO = PROCESSOS.CHAVE
-            AND PROCESSOS_OPERACOES.CHAVE_PROCESSO = PROCESSOS.CHAVE
-            AND PRODUTOS.CPROD = ORDENS.CHAVE_PRODUTO
-            AND MATERIA_PRIMA.CHAVE_PROCESSO = PROCESSOS.CHAVE
-            AND APONTAMENTOS.CHAVE_SETOR = 12
-            AND PROCESSOS_OPERACOES.CHAVE_SETOR = 12
-            AND PRODUTOS.CHAVE_FAMILIA = 7766
-            AND APONTAMENTOS.INICIO >= SYSDATE - 365
-        GROUP BY MATERIA_PRIMA.MATERIA_PRIMA,
-            MATERIA_PRIMA.UNIDADE
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True)
-
-    return resultado
-
-
-# TODO: relatorio produção / filter django
-def saldo_rr_por_mp():
-    """Retorna a quantidade por materia prima dos prodtos proprios com saldo a receber."""
-    sql = """
-        SELECT PRODUTOS.CODIGO AS PRODUTO,
-            SUM(OC_MP_ITENS.SALDO) AS SALDO,
-            UNIDADES.UNIDADE
-        FROM COPLAS.UNIDADES,
-            COPLAS.OC_MP_ITENS,
-            COPLAS.PRODUTOS
-        WHERE UNIDADES.CHAVE = PRODUTOS.CHAVE_UNIDADE
-            AND OC_MP_ITENS.CHAVE_MATERIAL = PRODUTOS.CPROD
-            AND PRODUTOS.CHAVE_GRUPO = 8273
-            AND OC_MP_ITENS.SALDO > 0
-        GROUP BY PRODUTOS.CODIGO,
-            UNIDADES.UNIDADE
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True)
-
-    return resultado

@@ -170,7 +170,47 @@ def map_relatorio_producao_sql_string_placeholders(**kwargs_formulario):
             'x_join': "TESTE = TESTE AND",     # join no where (obrigatorio se coluna for de uma tabela que não está no padrão)
         }
     """
+
+    # Codigo reutilizavel
+    materiais_from = """
+        (
+            SELECT PRODUTOS.*,
+                UNIDADES.UNIDADE
+            FROM COPLAS.PRODUTOS,
+                COPLAS.UNIDADES
+            WHERE PRODUTOS.CHAVE_UNIDADE = UNIDADES.CHAVE
+        ) MATERIAIS,
+        COPLAS.PROCESSOS_MATERIAIS,
+    """
+    materiais_join = """
+        PROCESSOS_MATERIAIS.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
+        PROCESSOS_MATERIAIS.CHAVE_MATERIAL = MATERIAIS.CPROD AND
+    """
+
     map_sql_apontamentos = {
+        'coluna_material': {'material_campo_alias': "MATERIAIS.CODIGO AS MATERIAL,",
+                            'material_campo': "MATERIAIS.CODIGO,",
+                            'materiais_from': materiais_from,
+                            'materiais_join': materiais_join, },
+
+        'coluna_unidade_material': {'unidade_material_campo_alias': "MATERIAIS.UNIDADE AS UNIDADE_MATERIAL,",
+                                    'unidade_material_campo': "MATERIAIS.UNIDADE,",
+                                    'materiais_from': materiais_from,
+                                    'materiais_join': materiais_join, },
+
+        'coluna_quantidade_material': {'quantidade_material_campo_alias': "PROCESSOS_MATERIAIS.QUANTIDADE AS QUANTIDADE_MATERIAL,",
+                                       'quantidade_material_campo': "PROCESSOS_MATERIAIS.QUANTIDADE,",
+                                       'materiais_from': materiais_from,
+                                       'materiais_join': materiais_join, },
+
+        'coluna_quantidade_material_liquido': {'quantidade_material_liquido_campo_alias': "SUM(PROCESSOS_MATERIAIS.QUANTIDADE * APONTAMENTOS.PRODUCAO_LIQUIDA) AS QUANTIDADE_MATERIAL_LIQUIDO,",
+                                               'materiais_from': materiais_from,
+                                               'materiais_join': materiais_join, },
+
+        'grupo_material': {'grupo_material_pesquisa': "MATERIAIS.CHAVE_GRUPO = :chave_grupo_material AND",
+                           'materiais_from': materiais_from,
+                           'materiais_join': materiais_join, },
+
         'coluna_maquina': {'maquina_campo_alias': "MAQUINAS.CODIGO AS MAQUINA,",
                            'maquina_campo': "MAQUINAS.CODIGO,", },
         'ordenar_maquina_prioritario': {'maquina_campo': "MAQUINAS.CODIGO,",
@@ -205,6 +245,8 @@ def map_relatorio_producao_sql_string_placeholders(**kwargs_formulario):
                           'grupo_produto_from': "COPLAS.GRUPO_PRODUTOS,",
                           'grupo_produto_join': "PRODUTOS.CHAVE_GRUPO = GRUPO_PRODUTOS.CHAVE AND", },
 
+        'familia_produto': {'familia_produto_pesquisa': "PRODUTOS.CHAVE_FAMILIA = :chave_familia_produto AND", },
+
         'coluna_produto': {'produto_campo_alias': "PRODUTOS.CODIGO AS PRODUTO,",
                            'produto_campo': "PRODUTOS.CODIGO,", },
         'produto': {'produto_pesquisa': "UPPER(PRODUTOS.CODIGO) LIKE UPPER(:produto) AND", },
@@ -217,14 +259,20 @@ def map_relatorio_producao_sql_string_placeholders(**kwargs_formulario):
                        'job_campo': "JOBS.DESCRICAO,", },
         'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
 
+        'coluna_ano_apontamento_inicio': {'ano_apontamento_inicio_campo_alias': "EXTRACT(YEAR FROM APONTAMENTOS.INICIO) AS ANO_APONTAMENTO,",
+                                          'ano_apontamento_inicio_campo': "EXTRACT(YEAR FROM APONTAMENTOS.INICIO),", },
+
+        'coluna_mes_apontamento_inicio': {'mes_apontamento_inicio_campo_alias': "EXTRACT(MONTH FROM APONTAMENTOS.INICIO) AS MES_APONTAMENTO,",
+                                          'mes_apontamento_inicio_campo': "EXTRACT(MONTH FROM APONTAMENTOS.INICIO),", },
+
         'data_apontamento_inicio_maior_igual': {'data_apontamento_inicio_maior_igual_pesquisa': "TRUNC(APONTAMENTOS.INICIO) >= :data_apontamento_inicio_maior_igual AND", },
         'data_apontamento_inicio_menor_igual': {'data_apontamento_inicio_menor_igual_pesquisa': "TRUNC(APONTAMENTOS.INICIO) <= :data_apontamento_inicio_menor_igual AND", },
 
         'coluna_toneladas_apontadas_liquidas': {'toneladas_apontadas_liquidas_campo_alias': "SUM(APONTAMENTOS.PRODUCAO_LIQUIDA * PRODUTOS.PESO_LIQUIDO / 1000) AS TONELADAS_APONTADAS_LIQUIDAS,", },
 
-        'setor': {'setor_pesquisa': "APONTAMENTOS.CHAVE_SETOR = :chave_setor AND", },
+        'coluna_producao_liquida': {'producao_liquida_campo_alias': "SUM(APONTAMENTOS.PRODUCAO_LIQUIDA) AS PRODUCAO_LIQUIDA,", },
 
-        'familia_produto': {'familia_produto_pesquisa': "PRODUTOS.CHAVE_FAMILIA = :chave_familia_produto AND", }
+        'setor': {'setor_pesquisa': "APONTAMENTOS.CHAVE_SETOR = :chave_setor AND", },
     }
 
     sql_final = {}
@@ -263,6 +311,7 @@ def get_relatorios_producao(**kwargs):
     job = kwargs.get('job')
     setor = kwargs.get('setor')
     familia_produto = kwargs.get('familia_produto')
+    grupo_material = kwargs.get('grupo_material')
 
     kwargs_sql.update(map_relatorio_producao_sql_string_placeholders(**kwargs))
 
@@ -303,11 +352,21 @@ def get_relatorios_producao(**kwargs):
         chave_familia_produto = familia_produto if isinstance(familia_produto, int) else familia_produto.pk
         kwargs_ora.update({'chave_familia_produto': chave_familia_produto, })
 
+    if grupo_material:
+        chave_grupo_material = grupo_material if isinstance(grupo_material, int) else grupo_material.pk
+        kwargs_ora.update({'chave_grupo_material': chave_grupo_material, })
+
     sql_base = """
         SELECT
             {job_campo_alias}
+            {ano_apontamento_inicio_campo_alias}
+            {mes_apontamento_inicio_campo_alias}
             {maquina_campo_alias}
             {chave_ordem_producao_campo_alias}
+            {material_campo_alias}
+            {quantidade_material_campo_alias}
+            {quantidade_material_liquido_campo_alias}
+            {unidade_material_campo_alias}
             {estoque_abc_campo_alias}
             {grupo_produto_campo_alias}
             {produto_campo_alias}
@@ -317,11 +376,13 @@ def get_relatorios_producao(**kwargs):
             {ciclo_padrao_campo_alias}
             {ciclo_campo_alias}
             {toneladas_apontadas_liquidas_campo_alias}
+            {producao_liquida_campo_alias}
 
             SUM(APONTAMENTOS.TEMPO / 60) AS HORAS_APONTADAS
 
         FROM
             {grupo_produto_from}
+            {materiais_from}
 
             COPLAS.ORDENS,
             COPLAS.APONTAMENTOS,
@@ -334,6 +395,7 @@ def get_relatorios_producao(**kwargs):
 
         WHERE
             {grupo_produto_join}
+            {materiais_join}
 
             ORDENS.CHAVE = APONTAMENTOS.CHAVE_ORDEM AND
             ORDENS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
@@ -354,6 +416,7 @@ def get_relatorios_producao(**kwargs):
             {setor_pesquisa}
             {familia_produto_pesquisa}
             {status_ordem_producao_em_aberto_pesquisa}
+            {grupo_material_pesquisa}
 
             1 = 1
 
@@ -369,6 +432,11 @@ def get_relatorios_producao(**kwargs):
             {cavidades_campo}
             {ciclo_padrao_campo}
             {ciclo_campo}
+            {material_campo}
+            {quantidade_material_campo}
+            {unidade_material_campo}
+            {ano_apontamento_inicio_campo}
+            {mes_apontamento_inicio_campo}
 
             1
 
@@ -376,6 +444,9 @@ def get_relatorios_producao(**kwargs):
             {ordenar_maquina_prioritario}
 
             {job_campo}
+            {ano_apontamento_inicio_campo}
+            {mes_apontamento_inicio_campo}
+            {material_campo}
             {estoque_abc_campo}
             {grupo_produto_campo}
             {produto_campo}

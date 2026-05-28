@@ -20,6 +20,7 @@ from datetime import datetime
 import pandas as pd
 
 
+# TODO: incluir ticket de vendas (igual PL vendas) (total na supervisão ou por carteira?)
 class DashBoardVendas():
     """Gera dashboards de vendas base."""
 
@@ -545,7 +546,7 @@ def confere_orcamento(orcamento: int = 0) -> list | None:
                         WHEN ORCAMENTOS.CHAVE_TIPO IN (47, 71, 12, 36) AND (PRODUTOS.CHAVE_FAMILIA != 8378 AND PRODUTOS.PESO_LIQUIDO != PRODUTOS.CUBAGEM OR PRODUTOS.CHAVE_FAMILIA = 8378 AND PRODUTOS.CUBAGEM = 0) THEN 'INFORMAR TI, PESO ESPECIFICO INCORRETO'
                         -- WHEN ORCAMENTOS.PEDCLI IS NULL OR ORCAMENTOS.PEDCLI NOT LIKE '%____%' OR (ORCAMENTOS.PEDCLI IS NULL AND ORCAMENTOS_ITENS.PEDCLI IS NOT NULL AND ORCAMENTOS_ITENS.PEDCLI NOT LIKE '%____%') THEN 'PEDIDO DO CLIENTE INCORRETO'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.UF_ENT != CLIENTES.UF AND PLATAFORMAS.CNPJ_CPF = CLIENTES.CGC AND PLATAFORMAS.INSCRICAO = CLIENTES.INSCRICAO THEN 'INSCRICAO ESTADUAL DO ENDERECO DE ENTREGA INCORRETA'
-                        WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.TIPO IS NOT NULL AND PLATAFORMAS.CNPJ_CPF IS NULL THEN 'CNPJ/CPF DO ENDERECO DE ENTREGA INCORRETO'
+                        WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND (PLATAFORMAS.TIPO IS NOT NULL AND PLATAFORMAS.CNPJ_CPF IS NULL OR PLATAFORMAS.CNPJ_CPF != CLIENTES.CGC) THEN 'CNPJ/CPF DO ENDERECO DE ENTREGA INCORRETO'
                         -- WHEN TRANSPORTADORAS.GERAR_TITULO_FRETE = 'SIM' AND ORCAMENTOS.COBRANCA_FRETE IN (0, 1, 4, 5) AND (ORCAMENTOS.VALOR_FRETE_EMPRESA IS NULL OR ORCAMENTOS.VALOR_FRETE_EMPRESA = 0) THEN 'PREENCHER VALOR FRETE COPLAS/EMPRESA'
                         WHEN ORCAMENTOS.CHAVE_JOB = 25 AND ORCAMENTOS.CHAVE_CENTRO_RESULTADO != 48 THEN 'CENTRO RESULTADO INCORRETO'
                         WHEN ORCAMENTOS.CHAVE_JOB = 25 AND (ORCAMENTOS.CHAVE_VENDEDOR != 640 AND REPRESENTANTES.NOME NOT LIKE '%FLUXUS%') THEN 'REPRESENTANTE INCORRETO'
@@ -673,7 +674,7 @@ def confere_pedidos(carteira: str = '%%', parametro_carteira: dict = {}) -> list
                         WHEN PEDIDOS.CHAVE_TIPO IN (47, 71, 12, 36) AND (PRODUTOS.CHAVE_FAMILIA != 8378 AND PRODUTOS.PESO_LIQUIDO != PRODUTOS.CUBAGEM OR PRODUTOS.CHAVE_FAMILIA = 8378 AND PRODUTOS.CUBAGEM = 0) THEN 'INFORMAR TI, PESO ESPECIFICO INCORRETO'
                         WHEN PEDIDOS.PEDCLI IS NULL OR PEDIDOS.PEDCLI NOT LIKE '%____%' OR (PEDIDOS.PEDCLI IS NULL AND PEDIDOS_ITENS.PEDCLI IS NOT NULL AND PEDIDOS_ITENS.PEDCLI NOT LIKE '%____%') THEN 'PEDIDO DO CLIENTE INCORRETO'
                         WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.UF_ENT != CLIENTES.UF AND PLATAFORMAS.CNPJ_CPF = CLIENTES.CGC AND PLATAFORMAS.INSCRICAO = CLIENTES.INSCRICAO THEN 'INSCRICAO ESTADUAL DO ENDERECO DE ENTREGA INCORRETA'
-                        WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND PLATAFORMAS.TIPO IS NOT NULL AND PLATAFORMAS.CNPJ_CPF IS NULL THEN 'CNPJ/CPF DO ENDERECO DE ENTREGA INCORRETO'
+                        WHEN PLATAFORMAS.ENTREGA_ALTERNATIVA = 'SIM' AND (PLATAFORMAS.TIPO IS NOT NULL AND PLATAFORMAS.CNPJ_CPF IS NULL OR PLATAFORMAS.CNPJ_CPF != CLIENTES.CGC) THEN 'CNPJ/CPF DO ENDERECO DE ENTREGA INCORRETO'
                         WHEN TRANSPORTADORAS.GERAR_TITULO_FRETE = 'SIM' AND PEDIDOS.COBRANCA_FRETE IN (0, 1, 4, 5) AND (PEDIDOS.VALOR_FRETE_EMPRESA IS NULL OR PEDIDOS.VALOR_FRETE_EMPRESA = 0) THEN 'PREENCHER VALOR FRETE COPLAS/EMPRESA'
                         WHEN PEDIDOS.CHAVE_TRANSPORTADORA = 6798 AND PEDIDOS.STATUS != 'BLOQUEADO' AND PEDIDOS.CHAVE_TIPO NOT IN (47, 71, 12, 36, 45) THEN 'TRANSPORTADORA INCORRETA'
                         WHEN PEDIDOS.CHAVE_JOB = 25 AND PEDIDOS.CHAVE_CENTRO_RESULTADO != 48 THEN 'CENTRO RESULTADO INCORRETO'
@@ -1546,6 +1547,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'informacao_estrategica': {'informacao_estrategica_pesquisa': "EXISTS(SELECT CLIENTES_INFORMACOES_CLI.CHAVE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES.CODCLI = CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE AND CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO = :chave_informacao_estrategica) AND", },
 
+        'conteudo_informacao_estrategica': {'conteudo_informacao_estrategica_pesquisa': "EXISTS(SELECT CLIENTES_INFORMACOES_CLI.CHAVE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES.CODCLI = CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE AND UPPER(CLIENTES_INFORMACOES_CLI.CONTEUDO) LIKE UPPER(:conteudo_informacao_estrategica)) AND", },
+
         'coluna_job': {'job_campo_alias': "JOBS.DESCRICAO AS JOB,",
                        'job_campo': "JOBS.DESCRICAO,", },
         'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
@@ -2065,6 +2068,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'status_cliente_ativo': {'status_cliente_ativo_pesquisa': "CLIENTES.STATUS IN ('Y', 'P') AND", },
 
         'informacao_estrategica': {'informacao_estrategica_pesquisa': "EXISTS(SELECT CLIENTES_INFORMACOES_CLI.CHAVE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES.CODCLI = CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE AND CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO = :chave_informacao_estrategica) AND", },
+
+        'conteudo_informacao_estrategica': {'conteudo_informacao_estrategica_pesquisa': "EXISTS(SELECT CLIENTES_INFORMACOES_CLI.CHAVE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES.CODCLI = CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE AND UPPER(CLIENTES_INFORMACOES_CLI.CONTEUDO) LIKE UPPER(:conteudo_informacao_estrategica)) AND", },
 
         'coluna_job': {'job_campo_alias': "JOBS.DESCRICAO AS JOB,",
                        'job_campo': "JOBS.DESCRICAO,", },
@@ -2609,6 +2614,8 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'informacao_estrategica': {'informacao_estrategica_pesquisa': "EXISTS(SELECT CLIENTES_INFORMACOES_CLI.CHAVE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES.CODCLI = CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE AND CLIENTES_INFORMACOES_CLI.CHAVE_INFORMACAO = :chave_informacao_estrategica) AND", },
 
+        'conteudo_informacao_estrategica': {'conteudo_informacao_estrategica_pesquisa': "EXISTS(SELECT CLIENTES_INFORMACOES_CLI.CHAVE FROM COPLAS.CLIENTES_INFORMACOES_CLI WHERE CLIENTES.CODCLI = CLIENTES_INFORMACOES_CLI.CHAVE_CLIENTE AND UPPER(CLIENTES_INFORMACOES_CLI.CONTEUDO) LIKE UPPER(:conteudo_informacao_estrategica)) AND", },
+
         'coluna_job': {'job_campo_alias': "JOBS.DESCRICAO AS JOB,",
                        'job_campo': "JOBS.DESCRICAO,", },
         'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
@@ -2882,6 +2889,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     cnpj_cpf = kwargs.get('cnpj_cpf')
     log_nome_inclusao_documento = kwargs.get('log_nome_inclusao_documento')
     status_documento = kwargs.get('status_documento')
+    conteudo_informacao_estrategica = kwargs.get('conteudo_informacao_estrategica')
 
     # Campos / filtros com comportamento diferente (precisam ser removidos de kwargs)
     trocar_para_itens_excluidos = kwargs.pop('considerar_itens_excluidos', False)
@@ -3033,6 +3041,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
 
     if status_documento:
         kwargs_ora.update({'status_documento': status_documento})
+
+    if conteudo_informacao_estrategica:
+        kwargs_ora.update({'conteudo_informacao_estrategica': conteudo_informacao_estrategica, })
 
     sql_base = """
         SELECT
@@ -3213,6 +3224,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {chave_cliente_pesquisa}
             {status_documento_pesquisa}
             {somente_orcamento_oportunidade_pesquisa}
+            {conteudo_informacao_estrategica_pesquisa}
 
             {fonte_where_data}
 
