@@ -1,7 +1,8 @@
 from typing import Iterable
 from collections import Counter
 from decimal import Decimal
-from django.db.models import Q, F
+from django.db.models import Q, F, IntegerField, Sum, Count, FloatField, ExpressionWrapper
+from django.db.models.expressions import RawSQL
 from utils.oracle.conectar import executar_oracle
 from utils.conectar_database_django import executar_django
 from dashboards.services_financeiro import get_relatorios_financeiros, get_relatorios_financeiros_faturamentos
@@ -9,7 +10,7 @@ from home.models import (Cidades, Unidades, Produtos, Estados, EstadosIcms, Vend
                          ProdutosModelos, ProdutosTipos)
 from rh.models import Comissoes, ComissoesVendedores, Faturamentos, FaturamentosVendedores
 from analysis.models import (VENDEDORES, ESTADOS, MATRIZ_ICMS, FAIXAS_CEP, UNIDADES, PRODUTOS, CANAIS_VENDA, REGIOES,
-                             TIPO_PRODUTOS)
+                             TIPO_PRODUTOS, APONTAMENTOS_PARADAS)
 from utils.completar import completar_meses
 from utils.site_setup import get_site_setup
 from utils.conferir_alteracao import campo_migrar_mudou
@@ -18,6 +19,7 @@ import datetime
 import pandas as pd
 
 
+# TODO: get_relatorio_xxx ou filter django
 def forma_captacao_clientes_ano_mes_a_mes():
     """Retorna a quantidade de clientes cadastrados no periodo informado em site setup mes a mes e o total do ano anterior."""
     site_setup = get_site_setup()
@@ -522,48 +524,18 @@ def quantidade_notas_ano_mes_a_mes():
     return resultado
 
 
-# TODO: relatorio produção / filter django
 def produtividade_ano_mes_a_mes():
     """Retorna a produtividade do periodo informado em site setup mes a mes"""
+    from dashboards.services_producao import get_relatorios_producao
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM APONTAMENTOS.INICIO) AS MES,
-            ROUND(SUM(APONTAMENTOS.PRODUCAO_LIQUIDA * PRODUTOS.PESO_LIQUIDO) / SUM(APONTAMENTOS.TEMPO * PROCESSOS_OPERACOES.PECAS_MINUTO * PRODUTOS.PESO_LIQUIDO) * 100, 2) * (-1) + 100 AS PRODUTIV_POR_CENTO
-
-        FROM
-            COPLAS.PRODUTOS,
-            COPLAS.PROCESSOS_OPERACOES,
-            COPLAS.PROCESSOS,
-            COPLAS.APONTAMENTOS,
-            COPLAS.ORDENS
-
-        WHERE
-            ORDENS.CHAVE = APONTAMENTOS.CHAVE_ORDEM AND
-            ORDENS.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
-            PROCESSOS_OPERACOES.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
-            PRODUTOS.CPROD = ORDENS.CHAVE_PRODUTO AND
-            APONTAMENTOS.CHAVE_SETOR = 3 AND
-            PROCESSOS_OPERACOES.CHAVE_SETOR = 3 AND
-            ORDENS.CHAVE_JOB = 22 AND
-            ORDENS.CHAVE != 20658 AND
-
-            TRUNC(APONTAMENTOS.INICIO) >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
-            TRUNC(APONTAMENTOS.INICIO) <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM APONTAMENTOS.INICIO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM APONTAMENTOS.INICIO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = get_relatorios_producao(
+        data_apontamento_inicio_maior_igual=data_ano_inicio, data_apontamento_inicio_menor_igual=data_ano_fim,
+        setor=3, job=22, coluna_mes_apontamento_inicio=True, coluna_produtividade=True,
+    )
 
     return resultado
 
@@ -613,6 +585,7 @@ def peso_faturado_abc_ano_mes_a_mes():
     return resultado
 
 
+# TODO: get_relatorio_xxx ou filter django
 def peso_estoque_abc_ano_mes_a_mes():
     """Retorna o peso do estoque por classe ABC do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -688,84 +661,62 @@ def peso_estoque_abc_ano_mes_a_mes():
     return resultado
 
 
-# TODO: relatorio produção / filter django
 def setups_dia_ano_mes_a_mes():
     """Retorna a media de setups por dia do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO) AS MES,
-            ROUND(COUNT(APONTAMENTOS_PARADAS.CHAVE) / COUNT(DISTINCT EXTRACT(DAY FROM APONTAMENTOS_PARADAS.INICIO)), 0) AS SETUPS_DIA
-
-        FROM
-            COPLAS.PARADAS,
-            COPLAS.APONTAMENTOS_PARADAS
-
-        WHERE
-            PARADAS.CHAVE = APONTAMENTOS_PARADAS.CHAVE_PARADA AND
-            APONTAMENTOS_PARADAS.CHAVE_JOB = 22 AND
-            PARADAS.DESCRICAO = 'SET-UP' AND
-
-            TRUNC(APONTAMENTOS_PARADAS.INICIO) >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
-            TRUNC(APONTAMENTOS_PARADAS.INICIO) <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = APONTAMENTOS_PARADAS.coluna_inicio_trunc().filter(
+        INICIO_TRUNC__gte=data_ano_inicio, INICIO_TRUNC__lte=data_ano_fim, CHAVE_JOB=22,
+        CHAVE_PARADA__DESCRICAO='SET-UP',
+    ).values(
+        MES=RawSQL("EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO)", [], output_field=IntegerField(),),
+    ).annotate(
+        SETUPS=ExpressionWrapper(Count('CHAVE') / Count('INICIO_TRUNC', distinct=True), FloatField())
+    ).order_by('MES')
 
     return resultado
 
 
-# TODO: relatorio produção / filter django
 def horas_improdutivas_ano_mes_a_mes():
     """Retorna as horas improdutivas por motivo do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO) AS MES,
-            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('SET-UP') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS SETUP,
-            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('MANUTENCAO DE MOLDE', 'FALTA DE OPCAO DE MOLDE') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS MOLDE,
-            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('MANUTENCAO DE MAQUINA CORRETIVA') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS MAQUINA,
-            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('OUTROS') AND APONTAMENTOS_PARADAS.OBSERVACOES LIKE '%CHIL%' THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS CHILLER,
-            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('FALTA DE ENERGIA ELETRICA') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS ENERGIA,
-            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('PROBLEMAS PIOVAN') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS PIOVAN,
-            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('MANUTENCAO DE GELADEIRA', 'MATERIA PRIMA') OR PARADAS.DESCRICAO IN ('OUTROS') AND APONTAMENTOS_PARADAS.OBSERVACOES NOT LIKE '%CHIL%' THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS OUTROS,
-            ROUND(SUM(CASE WHEN PARADAS.DESCRICAO IN ('PARADA ESTRATEGICA') THEN APONTAMENTOS_PARADAS.TEMPO / 60 ELSE 0 END), 2) AS PARADA_ESTRATEGICA
+    paradas = APONTAMENTOS_PARADAS.coluna_inicio_trunc().filter(
+        INICIO_TRUNC__gte=data_ano_inicio, INICIO_TRUNC__lte=data_ano_fim, CHAVE_JOB=22).values(
+        MES=RawSQL("EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO)", [], output_field=IntegerField(),),
+    ).annotate(HORAS=Sum(F('TEMPO') / 60)).order_by('MES')
 
-        FROM
-            COPLAS.PARADAS,
-            COPLAS.APONTAMENTOS_PARADAS
+    # Tupla com nome da coluna e dict com parametros para o filter
+    filtros_paradas = [
+        ('SETUP', {'CHAVE_PARADA__DESCRICAO': 'SET-UP'}),
+        ('MOLDE', {'CHAVE_PARADA__DESCRICAO__in': ['MANUTENCAO DE MOLDE', 'FALTA DE OPCAO DE MOLDE']}),
+        ('MAQUINA', {'CHAVE_PARADA__DESCRICAO': 'MANUTENCAO DE MAQUINA CORRETIVA'}),
+        ('CHILLER', {'CHAVE_PARADA__DESCRICAO': 'CHILLER'}),
+        ('ENERGIA', {'CHAVE_PARADA__DESCRICAO': 'FALTA DE ENERGIA ELETRICA'}),
+        ('PIOVAN', {'CHAVE_PARADA__DESCRICAO': 'PROBLEMAS PIOVAN'}),
+        ('OUTROS', {'CHAVE_PARADA__DESCRICAO__in': ['MANUTENCAO DE GELADEIRA', 'MATERIA PRIMA', 'OUTROS']}),
+        ('PARADA_ESTRATEGICA', {'CHAVE_PARADA__DESCRICAO': 'PARADA ESTRATEGICA'}),
+    ]
 
-        WHERE
-            PARADAS.CHAVE = APONTAMENTOS_PARADAS.CHAVE_PARADA AND
-            APONTAMENTOS_PARADAS.CHAVE_JOB = 22 AND
+    resultado = pd.DataFrame()
+    for nome, filtro in filtros_paradas:
+        parada = paradas.filter(**filtro)
+        parada = pd.DataFrame(parada)
+        parada = parada.rename(columns={'HORAS': nome, })
+        parada = completar_meses(parada, 'MES', [nome,])
+        if resultado.empty:
+            resultado = parada.copy()
+            continue
 
-            APONTAMENTOS_PARADAS.INICIO >= TO_DATE(:data_ano_inicio, 'DD-MM-YY') AND
-            APONTAMENTOS_PARADAS.INICIO <= TO_DATE(:data_ano_fim, 'DD-MM-YY')
+        resultado = pd.merge(resultado, parada, 'inner', 'MES')
 
-        GROUP BY
-            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM APONTAMENTOS_PARADAS.INICIO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = resultado.to_dict(orient='records')
 
     return resultado
 
@@ -893,147 +844,23 @@ def lucro_ano_mes_a_mes():
     return resultado
 
 
-# TODO: relatorio produção / filter django
 def peso_embalado_produto_proprio_ano_mes_a_mes():
     """Retorna o peso embalado de produto proprio do periodo informado em site setup mes a mes"""
+    from dashboards.services_producao import get_relatorios_producao
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio_as_ddmmyyyy
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim_as_ddmmyyyy
+        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+        data_ano_fim = site_setup.atualizacoes_data_mes_fim
 
-    sql = """
-        SELECT
-            EXTRACT(MONTH FROM APONTAMENTOS.INICIO) AS MES,
-            ROUND(SUM(APONTAMENTOS.PRODUCAO_LIQUIDA * PRODUTOS.PESO_LIQUIDO), 4) AS EMBALADO_KG
-
-        FROM
-            COPLAS.PRODUTOS,
-            COPLAS.PROCESSOS_OPERACOES,
-            COPLAS.PROCESSOS,
-            COPLAS.APONTAMENTOS,
-            COPLAS.ORDENS
-
-        WHERE
-            ORDENS.CHAVE = APONTAMENTOS.CHAVE_ORDEM AND
-            ORDENS.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
-            PROCESSOS_OPERACOES.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
-            PRODUTOS.CPROD = ORDENS.CHAVE_PRODUTO AND
-            APONTAMENTOS.CHAVE_SETOR = 12 AND
-            PROCESSOS_OPERACOES.CHAVE_SETOR = 12 AND
-            ORDENS.CHAVE_JOB = 22 AND
-            PRODUTOS.CHAVE_FAMILIA = 7766 AND
-
-            TRUNC(APONTAMENTOS.INICIO) >= TO_DATE(:data_ano_inicio, 'DD-MM-YYYY') AND
-            TRUNC(APONTAMENTOS.INICIO) <= TO_DATE(:data_ano_fim, 'DD-MM-YYYY')
-
-        GROUP BY
-            EXTRACT(MONTH FROM APONTAMENTOS.INICIO)
-
-        ORDER BY
-            EXTRACT(MONTH FROM APONTAMENTOS.INICIO)
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, data_ano_inicio=data_ano_inicio,
-                                data_ano_fim=data_ano_fim)
+    resultado = get_relatorios_producao(
+        data_apontamento_inicio_maior_igual=data_ano_inicio, data_apontamento_inicio_menor_igual=data_ano_fim,
+        coluna_mes_apontamento_inicio=True, coluna_peso_apontado_liquido=True, setor=12, job=22, familia_produto=7766,
+    )
 
     return resultado
 
 
-# TODO: relatorio produção / filter django
-def peso_materia_prima_produto_proprio_detalhe_ano_mes_a_mes():
-    """Retorna o peso da materia prima de produto proprio detalhado do periodo informado em site setup mes a mes"""
-    site_setup = get_site_setup()
-    if site_setup:
-        mes = site_setup.atualizacoes_mes
-        ano = site_setup.atualizacoes_ano
-
-    sql = """
-        SELECT
-            ULTIMA_MOVIMENTACAO.MES,
-            MATERIAIS.CODIGO,
-            SUM(MOVESTOQUE.SALDO_ESTOQUE * MATERIAIS.PESO_LIQUIDO) / 1000 AS PESO_MP_ESTOQUE_TON
-
-        FROM
-            COPLAS.MOVESTOQUE,
-            COPLAS.ALMOXARIFADOS,
-            (
-                SELECT DISTINCT
-                    MATERIAIS.CPROD,
-                    MATERIAIS.CODIGO,
-                    MATERIAIS.PESO_LIQUIDO
-
-                FROM
-                    COPLAS.PRODUTOS MATERIAIS,
-                    COPLAS.PRODUTOS,
-                    COPLAS.PROCESSOS_MATERIAIS,
-                    COPLAS.PROCESSOS
-
-                WHERE
-                    PROCESSOS_MATERIAIS.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
-                    PROCESSOS.CHAVE_PRODUTO = PRODUTOS.CPROD AND
-                    MATERIAIS.CPROD = PROCESSOS_MATERIAIS.CHAVE_MATERIAL AND
-                    PRODUTOS.CHAVE_FAMILIA = 7766 AND
-                    MATERIAIS.CHAVE_GRUPO = 8273
-            ) MATERIAIS,
-            (
-                SELECT
-                    PERIODO.MES,
-                    MAX(MOVESTOQUE.CHAVE) AS ULTIMA_MOVIMENTACAO
-
-                FROM
-                    COPLAS.MOVESTOQUE,
-                    COPLAS.ALMOXARIFADOS,
-                    (
-                        SELECT 12 AS MES, :ano + (12 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                        SELECT 11 AS MES, :ano + (11 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                        SELECT 10 AS MES, :ano + (10 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                        SELECT 9 AS MES, :ano + (9 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                        SELECT 8 AS MES, :ano + (8 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                        SELECT 7 AS MES, :ano + (7 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                        SELECT 6 AS MES, :ano + (6 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                        SELECT 5 AS MES, :ano + (5 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                        SELECT 4 AS MES, :ano + (4 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                        SELECT 3 AS MES, :ano + (3 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                        SELECT 2 AS MES, :ano + (2 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL UNION ALL
-                        SELECT 1 AS MES, :ano + (1 + 1) / 12.00 + 1 / 365.00 AS ANOMESDIA FROM DUAL
-                    ) PERIODO
-
-                WHERE
-                    MOVESTOQUE.CHAVE_ALMOXARIFADO = ALMOXARIFADOS.CHAVE AND
-                    ALMOXARIFADOS.CHAVE_JOB = 22 AND
-
-                    EXTRACT(YEAR FROM MOVESTOQUE.DATA_MOV) + EXTRACT(MONTH FROM MOVESTOQUE.DATA_MOV) / 12.00 + EXTRACT(DAY FROM MOVESTOQUE.DATA_MOV) / 365.00 < PERIODO.ANOMESDIA AND
-                    EXISTS(SELECT PRODUTOS.CPROD FROM COPLAS.PRODUTOS WHERE PRODUTOS.CHAVE_GRUPO = 8273 AND PRODUTOS.CPROD = MOVESTOQUE.CHAVE_PRODUTO) AND
-
-                    PERIODO.MES <= :mes
-
-                GROUP BY
-                    PERIODO.MES,
-                    MOVESTOQUE.CHAVE_PRODUTO
-            ) ULTIMA_MOVIMENTACAO
-
-        WHERE
-            MOVESTOQUE.CHAVE_ALMOXARIFADO = ALMOXARIFADOS.CHAVE AND
-            ULTIMA_MOVIMENTACAO.ULTIMA_MOVIMENTACAO = MOVESTOQUE.CHAVE AND
-            MATERIAIS.CPROD = MOVESTOQUE.CHAVE_PRODUTO AND
-            ALMOXARIFADOS.CHAVE_JOB = 22 AND
-            MOVESTOQUE.SALDO_ESTOQUE != 0
-
-        GROUP BY
-            ULTIMA_MOVIMENTACAO.MES,
-            MATERIAIS.CODIGO
-
-        ORDER BY
-            ULTIMA_MOVIMENTACAO.MES,
-            MATERIAIS.CODIGO
-    """
-
-    resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes)
-
-    return resultado
-
-
-# TODO: relatorio produção / filter django
+# TODO: get_relatorio_xxx ou filter django
 def peso_materia_prima_produto_proprio_ano_mes_a_mes():
     """Retorna o peso da materia prima de produto proprio do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -1141,6 +968,7 @@ def peso_faturado_produto_proprio_ano_mes_a_mes():
     return resultado
 
 
+# TODO: get_relatorio_xxx ou filter django
 def peso_estoque_produto_proprio_ano_mes_a_mes():
     """Retorna o peso do estoque de produto proprio do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -1558,6 +1386,7 @@ def custo_materia_prima_faturada_ano_mes_a_mes():
     return resultado
 
 
+# TODO: get_relatorio_xxx ou filter django
 def custo_materia_prima_estoque_acabado_ano_mes_a_mes():
     """Retorna o custo de materia prima dos produtos acabados no estoque do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -1749,6 +1578,7 @@ def custo_materia_prima_estoque_acabado_ano_mes_a_mes():
     return resultado
 
 
+# TODO: get_relatorio_xxx ou filter django
 def ativo_operacional_produto_acabado_ano_mes_a_mes():
     """Retorna o ativo operacional dos produtos acabados do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -1869,6 +1699,7 @@ def ativo_operacional_produto_acabado_ano_mes_a_mes():
     return resultado
 
 
+# TODO: get_relatorio_xxx ou filter django
 def ativo_operacional_materia_prima_ano_mes_a_mes():
     """Retorna o ativo operacional das materias primas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -2625,6 +2456,7 @@ def contas_estrategicas_ano_mes_a_mes():
     return resultado
 
 
+# TODO: get_relatorio_xxx ou filter django
 def totalizar_funcionarios_ano_mes_a_mes():
     """Retorna a quantidade de funcionarios ativos do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()
@@ -2676,6 +2508,7 @@ def totalizar_funcionarios_ano_mes_a_mes():
     return resultado
 
 
+# Não trocado para get_relatorios_xxx, muito especifico
 def rateio_salario_adm_cp_ano_mes_a_mes():
     """Retorna a proporção dos salarios de custo de produção com o resto, funcionarios ativos do periodo informado
     em site setup mes a mes"""

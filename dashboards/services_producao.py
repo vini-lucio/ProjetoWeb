@@ -270,9 +270,13 @@ def map_relatorio_producao_sql_string_placeholders(**kwargs_formulario):
 
         'coluna_toneladas_apontadas_liquidas': {'toneladas_apontadas_liquidas_campo_alias': "SUM(APONTAMENTOS.PRODUCAO_LIQUIDA * PRODUTOS.PESO_LIQUIDO / 1000) AS TONELADAS_APONTADAS_LIQUIDAS,", },
 
+        'coluna_peso_apontado_liquido': {'peso_apontado_liquido_campo_alias': "SUM(APONTAMENTOS.PRODUCAO_LIQUIDA * PRODUTOS.PESO_LIQUIDO) AS PESO_APONTADO_LIQUIDO,", },
+
         'coluna_producao_liquida': {'producao_liquida_campo_alias': "SUM(APONTAMENTOS.PRODUCAO_LIQUIDA) AS PRODUCAO_LIQUIDA,", },
 
         'setor': {'setor_pesquisa': "APONTAMENTOS.CHAVE_SETOR = :chave_setor AND", },
+
+        'coluna_produtividade': {'produtividade_campo_alias': "ROUND(SUM(APONTAMENTOS.PRODUCAO_LIQUIDA * PRODUTOS.PESO_LIQUIDO) / SUM(APONTAMENTOS.TEMPO * PROCESSOS_OPERACOES.PECAS_MINUTO * PRODUTOS.PESO_LIQUIDO) * 100, 2) * (-1) + 100 AS PRODUTIVIDADE_POR_CENTO,", },
     }
 
     sql_final = {}
@@ -376,7 +380,9 @@ def get_relatorios_producao(**kwargs):
             {ciclo_padrao_campo_alias}
             {ciclo_campo_alias}
             {toneladas_apontadas_liquidas_campo_alias}
+            {peso_apontado_liquido_campo_alias}
             {producao_liquida_campo_alias}
+            {produtividade_campo_alias}
 
             SUM(APONTAMENTOS.TEMPO / 60) AS HORAS_APONTADAS
 

@@ -1,6 +1,6 @@
 from django.apps import apps
 from django.db import models
-from django.db.models import F, Count, Max, Avg, Case, When, Value, CharField
+from django.db.models import F, Count, Max, Avg, Case, When, Value, CharField, DateTimeField
 from django.db.models.expressions import RawSQL
 from utils.base_models import ReadOnlyMixin, ChaveAnalysisPropertyMixIn
 from utils.converter import somente_digitos, converter_data_django_para_str_ddmmyyyy
@@ -461,6 +461,7 @@ class CLIENTES(ReadOnlyMixin, models.Model):
                                              related_name="%(class)s", null=True, blank=True)
     TIPO = models.CharField("Natureza", max_length=20, null=True, blank=True)
 
+    # TODO: cnpj aceitará letras (criar função de somente_digitos e letras)
     @classmethod
     def get_cgc_digitos(cls, cgc: str | int):
         """Filtra CNPJ / CPF usando somente digitos.
@@ -863,3 +864,45 @@ class OC_MP_ITENS(ReadOnlyMixin, models.Model):
 
     def __str__(self):
         return str(self.CHAVE)
+
+
+class PARADAS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."PARADAS"'
+        verbose_name = 'Parada'
+        verbose_name_plural = 'Paradas'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CODIGO = models.IntegerField("Codigo")
+    DESCRICAO = models.CharField("Descrição", max_length=50, null=True, blank=True)
+
+    def __str__(self):
+        return self.DESCRICAO
+
+
+class APONTAMENTOS_PARADAS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."APONTAMENTOS_PARADAS"'
+        verbose_name = 'Ordem de Compra Item'
+        verbose_name_plural = 'Ordem de Compra Itens'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CHAVE_JOB = models.ForeignKey(JOBS, db_column="CHAVE_JOB", verbose_name="Job", on_delete=models.PROTECT,
+                                  related_name="%(class)s", null=True, blank=True)
+    CHAVE_PARADA = models.ForeignKey(PARADAS, db_column="CHAVE_PARADA", verbose_name="Parada",
+                                     on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    OBSERVACOES = models.CharField("Observações", max_length=100, null=True, blank=True)
+    INICIO = models.DateTimeField("Inicio", auto_now=False, auto_now_add=False, null=True, blank=True)
+    TERMINO = models.DateTimeField("Termino", auto_now=False, auto_now_add=False, null=True, blank=True)
+    TEMPO = models.DecimalField("Tempo", max_digits=22, decimal_places=6, null=True, blank=True)
+
+    def __str__(self):
+        return str(self.CHAVE)
+
+    @classmethod
+    def coluna_inicio_trunc(cls):
+        """Retorna coluna de com data de inicio truncada sem as horas."""
+        return cls.objects.annotate(INICIO_TRUNC=RawSQL('TRUNC(APONTAMENTOS_PARADAS.INICIO)', [],
+                                                        output_field=DateTimeField()))

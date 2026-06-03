@@ -77,6 +77,7 @@ def confere_inscricoes_api() -> None:
     cnpjs = documentos_conferir_pessoas_juridicas.values_list('CHAVE_CLIENTE__CGC', flat=True)
 
     for cnpj in cnpjs:
+        # TODO: cnpj aceitará letras (criar função de somente_digitos e letras)
         cnpj_numeros = somente_digitos_(cnpj)
 
         inscricoes = InscricoesEstaduais.objects.filter(cnpj=cnpj)

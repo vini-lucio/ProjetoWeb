@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 
 
+# TODO: cnpj aceitará letras (criar função de somente_digitos e letras)
 def somente_digitos(string: str):
     return re.sub(r'\D', '', string)
 

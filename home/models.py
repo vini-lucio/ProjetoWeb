@@ -1114,6 +1114,7 @@ class InscricoesEstaduais(models.Model):
     habilitado = models.BooleanField("Habilitado", default=True)
     ultima_conferencia = models.DateTimeField("Ultima Conferencia", auto_now=False, auto_now_add=False)
 
+    # TODO: cnpj aceitará letras (criar função de somente_digitos e letras)
     @property
     def cnpj_digitos(self):
         return somente_digitos(self.cnpj)

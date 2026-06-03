@@ -274,6 +274,7 @@ class DashboardVendasSupervisao(DashBoardVendas):
             self.carteiras.append(DashboardVendasCarteira(carteira.nome, executar_completo=False, **dados))
 
 
+# TODO: get_relatorio_xxx ou filter django
 def carteira_mapping(carteira):
     """Retorna a carteira e o filtro SQL das carteiras que não são carteiras.
 
@@ -478,6 +479,7 @@ def confere_inscricoes_estaduais(fonte, parametro_carteira: dict = {}, parametro
     return erros
 
 
+# Não trocado para get_relatorios_xxx, muito especifico
 def confere_orcamento(orcamento: int = 0) -> list | None:
     """Retorna possiveis erros de um orçamento em aberto.
 
@@ -604,6 +606,7 @@ def confere_orcamento(orcamento: int = 0) -> list | None:
     return resultado
 
 
+# Não trocado para get_relatorios_xxx, muito especifico
 def confere_pedidos(carteira: str = '%%', parametro_carteira: dict = {}) -> list | None:
     """Retorna possiveis erros dos pedidos em aberto.
 
@@ -773,6 +776,7 @@ def confere_pedidos_atendimento_transportadoras(parametro_carteira: dict = {}) -
     return erros
 
 
+# TODO: get_relatorio_xxx ou filter django
 def eventos_dia_atrasos(carteira: str = '%%', incluir_futuros: bool = False) -> list | None:
     """Retorna eventos do dia e em atraso.
 
@@ -913,6 +917,7 @@ def eventos_dia_atrasos(carteira: str = '%%', incluir_futuros: bool = False) -> 
     return resultado
 
 
+# TODO: get_relatorio_xxx ou filter django
 def eventos_em_aberto_por_dia(carteira: str = '%%') -> list | None:
     """Retorna a quantidade de eventos em aberto por dia.
 
@@ -3372,6 +3377,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     return resultado
 
 
+# Não trocado para get_relatorios_xxx, muito especifico
 def get_email_contatos(condicao):
     """Retorna emails validos de contatos ativos com enviar mala de clientes ativos a para email marketing.
 
