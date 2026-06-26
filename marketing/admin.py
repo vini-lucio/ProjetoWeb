@@ -38,7 +38,7 @@ class LeadsRdStationAdmin(ExportarXlsxMixIn, BaseModelAdminRedRequired):
             if not obj.cnpj:
                 continue
 
-            cliente = CLIENTES.get_cgc_digitos(obj.cnpj)
+            cliente = CLIENTES.filter_cgc_digitos(obj.cnpj)
             if not cliente:
                 continue
 

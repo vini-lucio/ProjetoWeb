@@ -7,7 +7,7 @@ from django_summernote.models import AbstractAttachment
 from django.db.models import Q, Max, Sum
 from utils.base_models import BaseLogModel
 from utils.converter import (converter_data_django_para_str_ddmmyyyy, converter_data_django_para_dia_semana,
-                             somente_digitos)
+                             somente_digitos, somente_letras_digitos)
 from utils.choices import status_ativo_inativo
 from utils.conferir_alteracao import campo_django_mudou
 
@@ -1114,10 +1114,9 @@ class InscricoesEstaduais(models.Model):
     habilitado = models.BooleanField("Habilitado", default=True)
     ultima_conferencia = models.DateTimeField("Ultima Conferencia", auto_now=False, auto_now_add=False)
 
-    # TODO: cnpj aceitará letras (criar função de somente_digitos e letras)
     @property
     def cnpj_digitos(self):
-        return somente_digitos(self.cnpj)
+        return somente_letras_digitos(self.cnpj)
 
     cnpj_digitos.fget.short_description = 'CNPJ'  # type:ignore
 

@@ -869,7 +869,7 @@ class Ferias(BaseLogModel):
     antecipar_13 = models.BooleanField("Antecipar 1ª parcela 13º", default=False)
     periodo_descanso_inicio = models.DateField("Periodo Descanso Inicio", auto_now=False, auto_now_add=False,
                                                null=True, blank=True)
-    observacoes = models.CharField("Observações", max_length=100, null=True, blank=True)
+    observacoes = models.CharField("Observações", max_length=500, null=True, blank=True)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     def link_solicitacao_ferias(self):

@@ -142,7 +142,7 @@ class LeadsRdStation(models.Model):
 
         if not self.chave_analysis:
             if self.cnpj:
-                cliente = CLIENTES.get_cgc_digitos(self.cnpj)
+                cliente = CLIENTES.filter_cgc_digitos(self.cnpj)
                 if cliente:
                     self.chave_analysis = cliente.pk
 

@@ -194,6 +194,7 @@
                                         <th>Cav.</th>
                                         <th>Ciclo Padrão</th>
                                         <th>Ciclo Atual</th>
+                                        <th>Produtividade</th>
                                     </tr>
                                     {% for op in dados.ordens_producao_em_aberto %}
                                         <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %} {% if op.CICLO > op.CICLO_PADRAO %}fonte-vermelho{% endif %}">
@@ -204,6 +205,7 @@
                                             <td>{{ op.CAVIDADES }}</td>
                                             <td>{{ op.CICLO_PADRAO | floatformat:1 }}</td>
                                             <td>{{ op.CICLO | floatformat:1 }}</td>
+                                            <td>{{ op.PRODUTIVIDADE_POR_CENTO | floatformat:1 }}%</td>
                                         </tr>
                                     {% endfor %}
                                 </table>

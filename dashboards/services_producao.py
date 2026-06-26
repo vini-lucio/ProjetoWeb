@@ -9,6 +9,7 @@ import plotly.express as px
 import plotly.io as pio
 
 
+# TODO: pagina de grafico evolução de toneladas
 class DashBoardProducao():
     """Gera dashboards de produção."""
 
@@ -116,8 +117,9 @@ class DashBoardProducao():
         # Ordens de produção em aberto
         self.ordens_producao_em_aberto = get_relatorios_producao(
             coluna_maquina=True, coluna_chave_ordem_producao=True, coluna_produto=True, coluna_estoque_abc=True,
-            status_ordem_producao_em_aberto=True, coluna_cavidades=True, coluna_ciclo_padrao=True, coluna_ciclo=True,
-            job=22, setor=3, familia_produto=7766, ordenar_maquina_prioritario=True,
+            coluna_produtividade=True, coluna_cavidades=True, coluna_ciclo_padrao=True, coluna_ciclo=True,
+            status_ordem_producao_em_aberto=True, job=22, setor=3, familia_produto=7766,
+            ordenar_maquina_prioritario=True,
         )
 
     def gerar_graficos_toneladas_abc_html(self, px_pie_title: str, px_pie_values, px_pie_names, px_pie_data_frame=None):

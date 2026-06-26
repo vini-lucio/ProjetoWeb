@@ -5,9 +5,12 @@ from pathlib import Path
 import re
 
 
-# TODO: cnpj aceitará letras (criar função de somente_digitos e letras)
 def somente_digitos(string: str):
     return re.sub(r'\D', '', string)
+
+
+def somente_letras_digitos(string: str):
+    return re.sub(r'[^a-zA-Z0-9]', '', string)
 
 
 def converter_excel_para_json_temporario(caminho_excel_media):

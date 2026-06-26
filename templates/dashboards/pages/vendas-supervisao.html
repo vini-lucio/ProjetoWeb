@@ -91,7 +91,11 @@
 
                         <div class="div-dashboard">
                             <p class="fonte-verde">Pedidos Mês</p>
-                            <p>R$ {{ dados.pedidos_mes | floatformat:"2" }} <a class="fonte-verde" target="_blank" href="{% url "dashboards:detalhes-dia" %}?carteira=">⊕</a></p>
+                            <p>R$ {{ dados.pedidos_mes | floatformat:"2" }}</p>
+                        </div>
+
+                        <div class="div-dashboard botao-div">
+                            <a target="_blank" href="{% url "dashboards:detalhes-dia" %}?carteira=">Por familia</a>
                         </div>
 
                         <div class="div-dashboard">
@@ -112,6 +116,11 @@
                         <div class="div-dashboard">
                             <p class="fonte-verde">Media Dia*⁴</p>
                             <p>R$ {{ dados.media_dia_pedido_mes_entrega_mes_sem_hoje | floatformat:"2" }}</p>
+                        </div>
+
+                        <div class="div-dashboard">
+                            <p class="fonte-verde">Ticket Medio</p>
+                            <p>R$ {{ dados.ticket_medio | floatformat:"2" }}</p>
                         </div>
                     </div>
 

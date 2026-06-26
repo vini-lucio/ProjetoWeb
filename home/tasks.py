@@ -6,7 +6,7 @@ from home.models import ControleInscricoesEstaduais, InscricoesEstaduais, Estado
 from django.conf import settings
 from django.utils import timezone
 from django.db.models import Max
-from utils.converter import somente_digitos
+from utils.converter import somente_letras_digitos
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError
 import json
@@ -49,7 +49,7 @@ def confere_inscricoes_api() -> None:
 
     Em caso de erro HTTP no momento da consulta ou não encontrar a chave JSON registrations, o CNPJ é pulado para o
     proximo da lista."""
-    somente_digitos_ = somente_digitos
+    somente_letras_digitos_ = somente_letras_digitos
     conferencia = timezone.now()
 
     controle_inscricao_estadual = ControleInscricoesEstaduais.objects.first()
@@ -77,8 +77,7 @@ def confere_inscricoes_api() -> None:
     cnpjs = documentos_conferir_pessoas_juridicas.values_list('CHAVE_CLIENTE__CGC', flat=True)
 
     for cnpj in cnpjs:
-        # TODO: cnpj aceitará letras (criar função de somente_digitos e letras)
-        cnpj_numeros = somente_digitos_(cnpj)
+        cnpj_letras_numeros = somente_letras_digitos_(cnpj)
 
         inscricoes = InscricoesEstaduais.objects.filter(cnpj=cnpj)
         inscricoes_existe = inscricoes.first()
@@ -88,9 +87,9 @@ def confere_inscricoes_api() -> None:
                 continue
 
         # url chave publica
-        # url_api = f'https://open.cnpja.com/office/{cnpj_numeros}'
+        # url_api = f'https://open.cnpja.com/office/{cnpj_letras_numeros}'
 
-        url_api = f'https://api.cnpja.com/ccc?taxId={cnpj_numeros}&states=AC,AL,AM,AP,BA,CE,DF,ES,GO,MA,MG,MS,MT,PA,PB,PE,PI,PR,RJ,RN,RO,RR,RS,SC,SP,SE,TO'
+        url_api = f'https://api.cnpja.com/ccc?taxId={cnpj_letras_numeros}&states=AC,AL,AM,AP,BA,CE,DF,ES,GO,MA,MG,MS,MT,PA,PB,PE,PI,PR,RJ,RN,RO,RR,RS,SC,SP,SE,TO'
         chave_api = settings.CHAVE_API_CNPJA
         request = Request(url_api, headers={'Authorization': chave_api})
 

@@ -11,7 +11,7 @@ from utils.site_setup import (get_site_setup, get_assistentes_tecnicos, get_assi
 from utils.lfrete import notas as lfrete_notas, orcamentos as lfrete_orcamentos, pedidos as lfrete_pedidos
 from utils.perdidos_justificativas import justificativas
 from frete.services import get_dados_pedidos_em_aberto, get_transportadoras_valores_atendimento
-from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes
+from home.services import frete_cif_ano_mes_a_mes, faturado_bruto_ano_mes_a_mes, ticket_medio_ano_mes_a_mes
 from home.models import Vendedores, InscricoesEstaduais
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import IntegerField
@@ -20,7 +20,6 @@ from datetime import datetime
 import pandas as pd
 
 
-# TODO: incluir ticket de vendas (igual PL vendas) (total na supervisão ou por carteira?)
 class DashBoardVendas():
     """Gera dashboards de vendas base."""
 
@@ -51,16 +50,24 @@ class DashBoardVendas():
             self.ultimo_dia_mes = self.site_setup.ultimo_dia_mes_as_ddmmyyyy
             self.primeiro_dia_util_proximo_mes = self.site_setup.primeiro_dia_util_proximo_mes_as_ddmmyyyy
 
+            # Diferenças quando tem ou não carteira selecionada
             if self.carteira == '%%':
                 self.meta_diaria = self.site_setup.meta_diaria_as_float
                 self.meta_diaria_real = self.site_setup.meta_diaria_real_as_float
                 self.meta_mes = self.site_setup.meta_mes_as_float
+                ticket_medio = ticket_medio_ano_mes_a_mes(mes_atual=True)
+                try:
+                    ticket_medio = ticket_medio['MEDIANA_PEDIDO']  # type:ignore
+                except TypeError:
+                    ticket_medio = 0
+                self.ticket_medio = ticket_medio
             else:
                 self.vendedor = Vendedores.objects.get(nome=self.carteira)
                 parametro_carteira = self.vendedor.carteira_parametros()
                 self.meta_mes = float(self.vendedor.meta_mes)
                 self.meta_diaria = self.meta_mes / self.dias_meta if self.dias_meta else 0.0
                 self.meta_diaria_real = self.meta_mes / self.dias_meta_reais if self.dias_meta_reais else 0.0
+                self.ticket_medio = 0
 
         self.dias_decorridos = dias_decorridos(
             self.site_setup.primeiro_dia_mes, self.site_setup.ultimo_dia_mes)  # type:ignore

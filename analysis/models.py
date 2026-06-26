@@ -3,7 +3,7 @@ from django.db import models
 from django.db.models import F, Count, Max, Avg, Case, When, Value, CharField, DateTimeField
 from django.db.models.expressions import RawSQL
 from utils.base_models import ReadOnlyMixin, ChaveAnalysisPropertyMixIn
-from utils.converter import somente_digitos, converter_data_django_para_str_ddmmyyyy
+from utils.converter import somente_letras_digitos, converter_data_django_para_str_ddmmyyyy
 from utils.data_hora_atual import hoje, data_inicio_analysis
 
 
@@ -461,10 +461,9 @@ class CLIENTES(ReadOnlyMixin, models.Model):
                                              related_name="%(class)s", null=True, blank=True)
     TIPO = models.CharField("Natureza", max_length=20, null=True, blank=True)
 
-    # TODO: cnpj aceitará letras (criar função de somente_digitos e letras)
     @classmethod
-    def get_cgc_digitos(cls, cgc: str | int):
-        """Filtra CNPJ / CPF usando somente digitos.
+    def filter_cgc_digitos(cls, cgc: str | int):
+        """Filtra CNPJ / CPF usando somente digitos (letras e numeros).
 
         Parametros:
         :cgc [str | int]: com o CNPJ / CPF, pode enviar com a formatação ou somente os digitos.
@@ -472,9 +471,9 @@ class CLIENTES(ReadOnlyMixin, models.Model):
         Retorno:
         --------
         :CLIENTE | None: com o primeiro cliente encontrado."""
-        cgc_digitos = somente_digitos(str(cgc))
+        cgc_digitos = somente_letras_digitos(str(cgc))
         cliente = cls.objects.annotate(CGC_DIGITOS=RawSQL(
-            "REGEXP_REPLACE(CGC, '[^0-9]', '')", [])).filter(CGC_DIGITOS=cgc_digitos).first()
+            "REGEXP_REPLACE(CGC, '[^0-9A-Za-z]', '')", [])).filter(CGC_DIGITOS=cgc_digitos).first()
         return cliente
 
     def __str__(self):

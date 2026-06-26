@@ -400,13 +400,18 @@ def eolicas_ano_mes_a_mes():
     return resultado
 
 
-def ticket_medio_ano_mes_a_mes():
-    """Retorna o valor mediano das notas acima do faturamento minimo no periodo informado em site setup mes a mes"""
+def ticket_medio_ano_mes_a_mes(*, mes_atual: bool = False):
+    """Retorna o valor mediano das notas acima do faturamento minimo no periodo informado em site setup mes a mes.
+    Parametro para considerar somente o mes atual."""
     from dashboards.services import get_relatorios_vendas
     site_setup = get_site_setup()
     if site_setup:
-        data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
-        data_ano_fim = site_setup.atualizacoes_data_mes_fim
+        if not mes_atual:
+            data_ano_inicio = site_setup.atualizacoes_data_ano_inicio
+            data_ano_fim = site_setup.atualizacoes_data_mes_fim
+        else:
+            data_ano_inicio = site_setup.primeiro_dia_mes
+            data_ano_fim = site_setup.ultimo_dia_mes
 
     resultado = get_relatorios_vendas('faturamentos', inicio=data_ano_inicio, fim=data_ano_fim,
                                       coluna_mes_emissao=True, coluna_documento=True,
@@ -417,6 +422,9 @@ def ticket_medio_ano_mes_a_mes():
     resultado = resultado.groupby('MES_EMISSAO').agg(VALOR_MERCADORIAS=('VALOR_MERCADORIAS', 'sum'),
                                                      MEDIANA_PEDIDO=('VALOR_MERCADORIAS', 'median'),).reset_index()
     resultado = resultado.to_dict(orient='records')
+
+    if mes_atual and resultado:
+        resultado = resultado[0]
 
     return resultado
 
