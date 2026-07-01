@@ -430,9 +430,21 @@ class Jobs(models.Model):
     status = models.CharField("Status", max_length=30, choices=status_jobs, default='ativo')  # type:ignore
     despesa_administrativa_fixa = models.DecimalField("Despesa Administrativa Fixa %", default=0.00,  # type:ignore
                                                       max_digits=5, decimal_places=2)
+    proporcao_meta = models.DecimalField("Proporção Meta %", default=0.00,  # type:ignore
+                                         max_digits=13, decimal_places=10, help_text='da meta definida em site setup')
 
     def __str__(self) -> str:
         return self.descricao
+
+    @property
+    def meta(self):
+        site_setup = SiteSetup.objects.first()
+        if not site_setup:
+            return 0
+        meta_total = site_setup.meta_mes
+        return round(meta_total * self.proporcao_meta / 100, 2)
+
+    meta.fget.short_description = 'Meta'  # type:ignore
 
     @property
     def despesa_administrativa_fixa_as_float(self):

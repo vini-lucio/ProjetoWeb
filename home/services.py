@@ -419,8 +419,9 @@ def ticket_medio_ano_mes_a_mes(*, mes_atual: bool = False):
 
     resultado = pd.DataFrame(resultado)
 
-    resultado = resultado.groupby('MES_EMISSAO').agg(VALOR_MERCADORIAS=('VALOR_MERCADORIAS', 'sum'),
-                                                     MEDIANA_PEDIDO=('VALOR_MERCADORIAS', 'median'),).reset_index()
+    if not resultado.empty:
+        resultado = resultado.groupby('MES_EMISSAO').agg(VALOR_MERCADORIAS=('VALOR_MERCADORIAS', 'sum'),
+                                                         MEDIANA_PEDIDO=('VALOR_MERCADORIAS', 'median'),).reset_index()
     resultado = resultado.to_dict(orient='records')
 
     if mes_atual and resultado:
