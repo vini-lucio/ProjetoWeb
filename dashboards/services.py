@@ -1266,6 +1266,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_cgc': {'cgc_campo_alias': "CLIENTES.CGC,",
                        'cgc_campo': "CLIENTES.CGC,", },
 
+        'coluna_natureza_cliente': {'natureza_cliente_campo_alias': "CLIENTES.TIPO AS NATUREZA_CLIENTE,",
+                                    'natureza_cliente_campo': "CLIENTES.TIPO,", },
+
         'coluna_inscricao_estadual': {'inscricao_estadual_campo_alias': "CLIENTES.INSCRICAO AS INSCRICAO_ESTADUAL,",
                                       'inscricao_estadual_campo': "CLIENTES.INSCRICAO,", },
 
@@ -1817,6 +1820,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_cgc': {'cgc_campo_alias': "CLIENTES.CGC,",
                        'cgc_campo': "CLIENTES.CGC,", },
 
+        'coluna_natureza_cliente': {'natureza_cliente_campo_alias': "CLIENTES.TIPO AS NATUREZA_CLIENTE,",
+                                    'natureza_cliente_campo': "CLIENTES.TIPO,", },
+
         'coluna_inscricao_estadual': {'inscricao_estadual_campo_alias': "CLIENTES.INSCRICAO AS INSCRICAO_ESTADUAL,",
                                       'inscricao_estadual_campo': "CLIENTES.INSCRICAO,", },
 
@@ -2347,6 +2353,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_cgc': {'cgc_campo_alias': "CLIENTES.CGC,",
                        'cgc_campo': "CLIENTES.CGC,", },
+
+        'coluna_natureza_cliente': {'natureza_cliente_campo_alias': "CLIENTES.TIPO AS NATUREZA_CLIENTE,",
+                                    'natureza_cliente_campo': "CLIENTES.TIPO,", },
 
         'coluna_inscricao_estadual': {'inscricao_estadual_campo_alias': "CLIENTES.INSCRICAO AS INSCRICAO_ESTADUAL,",
                                       'inscricao_estadual_campo': "CLIENTES.INSCRICAO,", },
@@ -3089,6 +3098,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {grupo_economico_campo_alias}
             {cliente_campo_alias}
             {cgc_campo_alias}
+            {natureza_cliente_campo_alias}
             {inscricao_estadual_campo_alias}
             {proximo_evento_grupo_economico_campo_alias}
             {quantidade_clientes_campo_alias}
@@ -3296,6 +3306,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {segundo_representante_documento_campo}
             {especie_campo}
             {grupo_produto_campo}
+            {natureza_cliente_campo}
             1
 
         {having}

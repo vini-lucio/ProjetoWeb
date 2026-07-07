@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.db.models.expressions import RawSQL
 from django.utils.safestring import mark_safe
 from django.urls import reverse
 from utils.base_models import BaseLogModel
@@ -126,6 +127,9 @@ class TransportadorasRegioesValores(BaseLogModel):
                                             default=0)  # type:ignore
     taxa_sefaz = models.DecimalField("Taxa Sefaz / TAS (R$)", max_digits=9, decimal_places=2, default=0)  # type:ignore
     taxa_suframa = models.DecimalField("Taxa Suframa (R$)", max_digits=9, decimal_places=2, default=0)  # type:ignore
+    taxa_dificuldade_entrega = models.DecimalField("Taxa Dificuldade Entrega / TDE (R$)", max_digits=9,
+                                                   help_text="Nos CNPJs definidos", decimal_places=2,
+                                                   default=0)  # type:ignore
     pedagio_fracao = models.DecimalField("Pedagio Fração (kg)", max_digits=9, decimal_places=2,
                                          default=0)  # type:ignore
     pedagio_valor_fracao = models.DecimalField("Pedagio Valor da Fração (R$)", max_digits=9, decimal_places=2,
@@ -360,3 +364,31 @@ class TransportadorasRegioesCidades(BaseLogModel):
 
     def __str__(self) -> str:
         return f'{self.transportadora_regiao_valor} / {self.cidade.nome}'
+
+
+class TransportadorasTaxasCnpj(BaseLogModel):
+    class Meta:
+        verbose_name = 'Transportadoras Taxas por CNPJ'
+        verbose_name_plural = 'Transportadoras Taxas por CNPJ'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['transportadora', 'cnpj',],
+                name='transportadorastaxascnpj_unique_cnpj',
+                violation_error_message="Transportadora e CNPJ são campos unicos"
+            ),
+        ]
+
+    transportadora = models.ForeignKey(Transportadoras, verbose_name="Transportadora", on_delete=models.CASCADE,
+                                       related_name="%(class)s")
+    cnpj = models.CharField("CNPJ / Raiz CNPJ", max_length=18)
+    taxa_dificuldade_entrega = models.DecimalField("Taxa Dificuldade Entrega / TDE (R$)", max_digits=9,
+                                                   help_text="Deixar 0 para usar o definido em valores",
+                                                   decimal_places=2, default=0)  # type:ignore
+
+    @classmethod
+    def coluna_cnpj_digitos(cls):
+        """Inclui a coluna CNPJ usando somente digitos (letras e numeros)."""
+        return cls.objects.annotate(cnpj_digitos=RawSQL("regexp_replace(cnpj, '[^0-9A-Za-z]', '', 'g')", []))
+
+    def __str__(self) -> str:
+        return f'{self.transportadora} / {self.cnpj}'

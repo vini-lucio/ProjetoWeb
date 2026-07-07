@@ -1,6 +1,7 @@
 from decimal import Decimal
 from math import ceil
-from frete.models import TransportadorasRegioesValores
+from frete.models import TransportadorasRegioesValores, TransportadorasTaxasCnpj
+from utils.converter import somente_letras_digitos
 from utils.site_setup import (get_transportadoras_regioes_cidades, get_produtos, get_site_setup, get_estados_icms,
                               get_cidades)
 from django.core.exceptions import ObjectDoesNotExist
@@ -24,7 +25,8 @@ def get_dados_orcamento(orcamento: int):
     resultado = get_relatorios_vendas('orcamentos', documento=orcamento, coluna_documento=True, coluna_cliente=True,
                                       coluna_estado=True, coluna_chave_transportadora=True, coluna_valor_bruto=True,
                                       coluna_estado_origem=True, coluna_estado_destino=True, coluna_cidade_destino=True,
-                                      coluna_destino_mercadorias=True, coluna_zona_franca_alc=True,
+                                      coluna_destino_mercadorias=True, coluna_zona_franca_alc=True, coluna_cgc=True,
+                                      coluna_natureza_cliente=True,
                                       incluir_orcamentos_oportunidade=True, incluir_sem_valor_comercial=True,)
 
     if not resultado:
@@ -443,11 +445,14 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_o
         dados_itens_orcamento = dados_itens_orcamento_manual
     fretes = []
 
+    # Dados do orçamento
     valor_total_orc = Decimal(dados_orcamento['VALOR_TOTAL'])  # type:ignore
     destino_consumo_orc = True if dados_orcamento['DESTINO_MERCADORIAS'] == 'CONSUMO' else False  # type:ignore
     uf_origem_orc = dados_orcamento['UF_ORIGEM']  # type:ignore
     uf_destino_orc = dados_orcamento['UF_DESTINO']  # type:ignore
     cidade_destino_orc = dados_orcamento['CIDADE_DESTINO']  # type:ignore
+    cgc = dados_orcamento['CGC']  # type:ignore
+    natureza_cliente = dados_orcamento['NATUREZA_CLIENTE']  # type:ignore
 
     exportacao = True if uf_destino_orc == 'EX' else False
     dados_itens, pis_cofins_orc, icms_orc = get_dados_itens_frete(dados_itens_orcamento, exportacao)
@@ -466,12 +471,16 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_o
     if valores:
         site_setup = get_site_setup()
         if site_setup:
+            # Dados de impostos
             aliquota_pis_cofins = site_setup.aliquota_pis_cofins / 100
             if pis_cofins_orc == 0:
                 aliquota_pis_cofins = Decimal(3.08 / 100)  # 2% IR + 1,08% CSLL
             aliquota_icms_simples = site_setup.aliquota_icms_simples / 100
 
         for valor in valores:
+            transportadora = valor.transportadora_origem_destino.transportadora
+
+            # Calculo de quantidade de volumes, m³ e peso real
             razao = valor.razao
             total_peso_maior = 0
             total_peso_real = 0
@@ -513,23 +522,51 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_o
                 if kg_excedente:
                     frete_peso = maior_margem_valor + (valor_kg * (total_peso_maior - maior_margem_kg))
 
+            # Calculo de advaloren
             advaloren = valor.advaloren / 100
             advaloren_minimo = valor.advaloren_valor_minimo
             valor_advaloren = valor_total_orc * advaloren
             if valor_advaloren < advaloren_minimo:
                 valor_advaloren = advaloren_minimo
 
+            # Calculo de gris
             gris = valor.gris / 100
             gris_minimo = valor.gris_valor_minimo
             valor_gris = valor_total_orc * gris
             if valor_gris < gris_minimo:
                 valor_gris = gris_minimo
 
+            # Taxas fixas
             taxa_coleta = valor.taxa_coleta
             taxa_conhecimento = valor.taxa_conhecimento
             taxa_sefaz = valor.taxa_sefaz
             taxa_suframa = valor.taxa_suframa
 
+            taxa_zona_rural = 0
+            if zona_rural:
+                taxa_zona_rural = valor.taxa_zona_rural
+
+            # Calculo de taxa de dificuldade de entrega
+            taxa_dificuldade_entrega = 0
+            if natureza_cliente == 'PESSOA JURIDICA' and cgc:
+                cgc_digitos = somente_letras_digitos(cgc)
+                raiz_cgc = cgc_digitos[:-6]
+                taxa_raiz_cgc = TransportadorasTaxasCnpj.coluna_cnpj_digitos().filter(transportadora=transportadora,
+                                                                                      cnpj_digitos=raiz_cgc).first()
+                taxa_cnpj = TransportadorasTaxasCnpj.coluna_cnpj_digitos().filter(transportadora=transportadora,
+                                                                                  cnpj_digitos=cgc_digitos).first()
+                if taxa_cnpj or taxa_raiz_cgc:
+                    taxa_dificuldade_entrega = valor.taxa_dificuldade_entrega
+
+                    if taxa_raiz_cgc:
+                        if taxa_raiz_cgc.taxa_dificuldade_entrega:
+                            taxa_dificuldade_entrega = taxa_raiz_cgc.taxa_dificuldade_entrega
+
+                    if taxa_cnpj:
+                        if taxa_cnpj.taxa_dificuldade_entrega:
+                            taxa_dificuldade_entrega = taxa_cnpj.taxa_dificuldade_entrega
+
+            # Calculo de pedagio
             pedagio_fracao = valor.pedagio_fracao
             pedagio_fracao_valor = valor.pedagio_valor_fracao
             pedagio_minimo = valor.pedagio_valor_minimo
@@ -540,22 +577,21 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_o
             if valor_pedagio < pedagio_minimo:
                 valor_pedagio = pedagio_minimo
 
+            # Calculo de outras taxas sobre frete peso
             taxa_frete_peso = valor.taxa_frete_peso / 100
             taxa_frete_peso_minimo = valor.taxa_frete_peso_valor_minimo
             valor_taxa_frete_peso = frete_peso * taxa_frete_peso
             if valor_taxa_frete_peso < taxa_frete_peso_minimo:
                 valor_taxa_frete_peso = taxa_frete_peso_minimo
 
+            # Calculo de outras taxas sobre valor da nota
             taxa_valor_nota = valor.taxa_valor_nota / 100
             taxa_valor_nota_minimo = valor.taxa_valor_nota_valor_minimo
             valor_taxa_valor_nota = valor_total_orc * taxa_valor_nota
             if valor_taxa_valor_nota < taxa_valor_nota_minimo:
                 valor_taxa_valor_nota = taxa_valor_nota_minimo
 
-            taxa_zona_rural = 0
-            if zona_rural:
-                taxa_zona_rural = valor.taxa_zona_rural
-
+            # Prazos e taxa cidade
             dados_cidade_prazo = get_cidades_prazo_taxas(valor, cidade_destino_orc, uf_destino_orc)
             taxa_cidade = dados_cidade_prazo['taxa_cidade']
             prazo_tipo = dados_cidade_prazo['prazo_tipo']
@@ -564,10 +600,11 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_o
             observacoes_prazo = dados_cidade_prazo['observacoes_prazo']
             cif = dados_cidade_prazo['cif']
 
+            # Calculo de valor do frete
             valor_frete_liquido = (
                 frete_peso + valor_advaloren + valor_gris + taxa_coleta + taxa_conhecimento +
                 taxa_sefaz + taxa_suframa + valor_pedagio + valor_taxa_frete_peso + valor_taxa_valor_nota +
-                taxa_zona_rural + taxa_cidade
+                taxa_zona_rural + taxa_cidade + taxa_dificuldade_entrega
             )
             frete_minimo = valor.frete_minimo_valor
             frete_minimo_percentual = valor.frete_minimo_percentual / 100 * valor_total_orc
@@ -576,15 +613,18 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_o
             if valor_frete_liquido < frete_minimo:
                 valor_frete_liquido = frete_minimo
 
+            # Calculo de impostos sobre o frete
             aliquota_icms_frete = valor.transportadora_origem_destino.estado_origem_destino.icms_frete / 100
             simples_nacional = valor.transportadora_origem_destino.transportadora.simples_nacional
             if simples_nacional:
                 aliquota_icms_frete = aliquota_icms_simples
             aliquota_icms_frete_por_dentro = 1 - aliquota_icms_frete
 
+            # Calculo frete empresa final
             valor_frete_empresa = valor_frete_liquido / aliquota_icms_frete_por_dentro
             valor_icms_frete = valor_frete_empresa * aliquota_icms_frete
 
+            # Calculo de impostos e credito de icms sobre frete destacado em nota
             aliquota_icms = valor.transportadora_origem_destino.estado_origem_destino.icms / 100
             credito_icms = valor_icms_frete
             if destino_consumo_orc:
@@ -598,6 +638,7 @@ def calcular_frete(orcamento: int, zona_rural: bool = False, *, transportadora_o
             aliquota_impostos_totais = aliquota_icms + aliquota_pis_cofins
             aliquota_impostos_totais_por_dentro = 1 - aliquota_impostos_totais
 
+            # Calculo frete cliente final
             valor_frete_cliente = (valor_frete_empresa - credito_icms) / aliquota_impostos_totais_por_dentro
 
             frete = {

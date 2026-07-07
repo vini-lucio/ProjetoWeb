@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from frete.models import (Transportadoras, TransportadorasOrigemDestino, TransportadorasRegioesValores,
-                          TransportadorasRegioesMargens, TransportadorasRegioesCidades)
+                          TransportadorasRegioesMargens, TransportadorasRegioesCidades, TransportadorasTaxasCnpj)
 from utils.base_models import BaseModelAdminRedRequiredLog, ExportarXlsxMixIn
 
 
@@ -72,7 +72,7 @@ class TransportadorasRegioesValoresAdmin(BaseModelAdminRedRequiredLog):
         }),
         ('Taxas', {
             "fields": (
-                'taxa_coleta', 'taxa_conhecimento', 'taxa_sefaz', 'taxa_suframa',
+                'taxa_coleta', 'taxa_conhecimento', 'taxa_sefaz', 'taxa_suframa', 'taxa_dificuldade_entrega',
             ),
         }),
         ('Pedagio', {
@@ -169,3 +169,12 @@ class TransportadorasRegioesCidadesAdmin(ExportarXlsxMixIn, BaseModelAdminRedReq
             self.atualizar_prazos(obj, -1, request)
 
     subtrair_prazos.short_description = "Subtrair 1 dia aos prazos selecionados"
+
+
+@admin.register(TransportadorasTaxasCnpj)
+class TransportadorasTaxasCnpjAdmin(BaseModelAdminRedRequiredLog):
+    list_display = 'id', 'transportadora', 'cnpj'
+    list_display_links = list_display
+    ordering = 'transportadora__nome', 'cnpj',
+    search_fields = 'transportadora__nome',  'cnpj',
+    readonly_fields = 'criado_por', 'criado_em', 'atualizado_por', 'atualizado_em',
