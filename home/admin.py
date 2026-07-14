@@ -7,7 +7,7 @@ from home.models import (HomeLinks, SiteSetup, HomeLinksDocumentos, AssistentesT
                          Jobs, Paises, Estados, Cidades, Bancos, Atualizacoes, ProdutosModelos, ProdutosModelosTopicos,
                          ProdutosModelosTags, Unidades, Produtos, EstadosIcms, Vendedores, CanaisVendas, Regioes,
                          VendedoresRegioes, VendedoresEstados, ControleInscricoesEstaduais, InscricoesEstaduais,
-                         Responsaveis, Fornecedores, ProdutosTipos)
+                         Responsaveis, Fornecedores, ProdutosTipos, ProdutosFamilias)
 from django_summernote.admin import SummernoteModelAdmin
 from utils.base_models import (BaseModelAdminRedRequired, BaseModelAdminRedRequiredLog, AdminRedRequiredMixIn,
                                AdminLogMixIn, ExportarXlsxMixIn)
@@ -304,6 +304,14 @@ class ProdutosTiposAdmin(BaseModelAdminRedRequired):
     search_fields = 'descricao',
 
 
+@admin.register(ProdutosFamilias)
+class ProdutosFamiliasAdmin(BaseModelAdminRedRequired):
+    list_display = 'id', 'descricao',
+    list_display_links = list_display
+    ordering = 'descricao',
+    search_fields = 'descricao',
+
+
 @admin.register(Produtos)
 class ProdutosAdmin(BaseModelAdminRedRequiredLog):
     list_display = 'id', 'nome', 'm3_volume', 'status',
@@ -326,7 +334,7 @@ class ProdutosAdmin(BaseModelAdminRedRequiredLog):
         (None, {
             "fields": (
                 'chave_analysis', 'modelo', 'nome', 'unidade', 'descricao', 'peso_liquido', 'peso_bruto', 'status',
-                'tipo',
+                'tipo', 'familia',
             ),
         }),
         ('Embalagem', {

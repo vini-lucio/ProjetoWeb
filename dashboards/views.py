@@ -1,10 +1,11 @@
 from typing import Dict, Literal
 from django.shortcuts import render
 from django.http import HttpResponse
+from home.models import ProdutosFamilias
 from .models import IndicadoresValores, MetasCarteiras
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
                        DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
-                       get_relatorios_financeiros, confere_inscricoes_estaduais)
+                       get_relatorios_financeiros, confere_inscricoes_estaduais, dias_decorridos)
 from .services_estoque import DashBoardEstoque
 from .services_marketing import DashBoardMarketing
 from .services_producao import DashBoardProducao
@@ -20,6 +21,7 @@ from utils.base_forms import FormVendedoresMixIn, FormVendedoresNonRequiredMixIn
 from utils.cor_rentabilidade import get_cores_rentabilidade_job
 from utils.plotly_parametros import update_layout_kwargs
 from utils.site_setup import get_site_setup
+from decimal import Decimal
 import pandas as pd
 import numpy as np
 
@@ -294,8 +296,38 @@ def detalhes_dia(request):
             if site_setup:
                 inicio = site_setup.primeiro_dia_mes
                 fim = site_setup.ultimo_dia_mes
+                meta_mes = site_setup.meta_mes if not carteira else carteira.meta_mes
+                quantidade_dias_reais_mes = site_setup.dias_uteis_mes_reais
+                quantidade_dias_decorridos = Decimal(dias_decorridos(inicio, fim))
             dados = get_relatorios_vendas(fonte='pedidos', inicio=inicio, fim=fim, coluna_familia_produto=True,
                                           **carteira_parametros)
+
+            for dado in dados:
+                valor_mercadorias = Decimal(dado['VALOR_MERCADORIAS'])
+                familia = ProdutosFamilias.objects.filter(descricao=dado['FAMILIA_PRODUTO']).first()
+                meta_job_percentual = Decimal(0)
+                meta_familia_job_percentual = Decimal(0)
+                if familia:
+                    meta_familia_job_percentual = familia.proporcao_meta_job / 100
+                    if familia.job:
+                        meta_job_percentual = familia.job.proporcao_meta / 100
+                meta_total_percentual = meta_job_percentual * meta_familia_job_percentual
+                meta_total = meta_total_percentual * meta_mes
+
+                meta_total_proporcao = 0
+                if meta_total:
+                    meta_total_proporcao = valor_mercadorias / meta_total * 100
+
+                meta_dia = meta_total / quantidade_dias_reais_mes
+                meta_ate_dia = meta_dia * quantidade_dias_decorridos
+                valor_em_dia = valor_mercadorias - meta_ate_dia
+
+                dado.update({'META_JOB_PERCENTUAL': meta_job_percentual})
+                dado.update({'META_FAMILIA_JOB_PERCENTUAL': meta_familia_job_percentual})
+                dado.update({'META_TOTAL_PERCENTUAL': meta_total_percentual})
+                dado.update({'META_TOTAL': meta_total})
+                dado.update({'META_TOTAL_PROPORCAO': meta_total_proporcao})
+                dado.update({'VALOR_EM_DIA': valor_em_dia})
 
             contexto.update({'dados': dados, })
 

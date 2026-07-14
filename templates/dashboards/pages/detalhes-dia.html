@@ -34,11 +34,17 @@
                         <tr class="principal-claro">
                             <th>Familia</th>
                             <th>R$ Valor Mercadorias</th>
+                            <th>R$ Meta Mês</th>
+                            <th>% Meta Mês</th>
+                            <th>Valor Em Dia</th>
                         </tr>
                         {% for dado in dados %}
-                            <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
+                            <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %} {% if dado.VALOR_EM_DIA >= 0 %}fonte-roxo{% endif %}">
                                 <td>{{ dado.FAMILIA_PRODUTO }}</td>
                                 <td>R$ {{ dado.VALOR_MERCADORIAS | floatformat:2 }}</td>
+                                <td>R$ {{ dado.META_TOTAL | floatformat:2 }}</td>
+                                <td>{{ dado.META_TOTAL_PROPORCAO | floatformat:2 }}%</td>
+                                <td>{{ dado.VALOR_EM_DIA | floatformat:2 }}</td>
                             </tr>
                         {% endfor %}
                     </table>

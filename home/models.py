@@ -770,6 +770,34 @@ class ProdutosTipos(models.Model):
         return f'{self.descricao}'
 
 
+class ProdutosFamilias(models.Model):
+    class Meta:
+        verbose_name = 'Familia de Produto'
+        verbose_name_plural = 'Familias de Produto'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['chave_analysis',],
+                name='produtos_familias_unique_chave_analysis',
+                violation_error_message="Chave Analysis é unico em Produtos Familias"
+            ),
+            models.UniqueConstraint(
+                fields=['descricao',],
+                name='produtos_familias_unique_descricao',
+                violation_error_message="Descrição é unico em Produtos Familias"
+            ),
+        ]
+
+    chave_analysis = models.IntegerField("ID Analysis")
+    descricao = models.CharField("Descrição", max_length=50)
+    job = models.ForeignKey(Jobs, verbose_name="Job", on_delete=models.PROTECT,
+                            related_name="%(class)s", null=True, blank=True)
+    proporcao_meta_job = models.DecimalField("Proporção Meta Job %", default=0.00,  # type:ignore
+                                             max_digits=13, decimal_places=10)
+
+    def __str__(self) -> str:
+        return f'{self.descricao}'
+
+
 class Produtos(BaseLogModel):
     class Meta:
         verbose_name = 'Produto'
@@ -886,6 +914,8 @@ class Produtos(BaseLogModel):
                                              default=0)  # type:ignore
     prioridade = models.DecimalField("Prioridade", max_digits=4, decimal_places=0, default=0)  # type:ignore
     tipo = models.ForeignKey(ProdutosTipos, verbose_name="Tipo", on_delete=models.PROTECT, related_name="%(class)s")
+    familia = models.ForeignKey(ProdutosFamilias, verbose_name="Familia", on_delete=models.PROTECT,
+                                related_name="%(class)s", null=True, blank=True)
     chave_migracao = models.IntegerField("Chave Migração", null=True, blank=True)
 
     @property
