@@ -16,6 +16,8 @@ import os
 import zipfile
 import tempfile
 import importlib
+import anthropic
+from django.conf import settings
 
 
 class HomeLinksDocumentosInLine(admin.TabularInline):
@@ -203,9 +205,27 @@ class AtualizacoesAdmin(BaseModelAdminRedRequired):
     list_filter = 'gera_arquivo',
     ordering = 'descricao',
     search_fields = 'descricao', 'app', 'arquivo',
-    actions = 'exportar_atualizacoes', 'executar_funcoes',
+    actions = 'exportar_atualizacoes', 'executar_funcoes', 'testes_claude_api',
 
     campos_exportar = ['descricao', 'nome_funcao']
+
+    @admin.action(description="Teste Claude API")
+    def testes_claude_api(self, request, queryset):
+        client = anthropic.Anthropic(
+            api_key=settings.CHAVE_API_CLAUDE)
+
+        message = client.messages.create(
+            model="claude-opus-4-8",
+            max_tokens=1024,
+            system=[{"type": "text", "text": "Sempre inicie uma resposta com o nome de uma fruta",
+                    "cache_control": {"type": "ephemeral", "ttl": "1h"}}],
+            messages=[{"role": "user", "content": "testando"}],
+        )
+        conteudo = message.content[0].text  # type:ignore
+
+        response = HttpResponse(conteudo, content_type="text/plain")
+        response["Content-Disposition"] = 'attachment; filename="teste.txt"'
+        return response
 
     @admin.action(description="Exportar .XLSX Selecionados .ZIP")
     def exportar_atualizacoes(self, request, queryset):
