@@ -8,10 +8,11 @@ from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relator
                        get_relatorios_financeiros, confere_inscricoes_estaduais, dias_decorridos)
 from .services_estoque import DashBoardEstoque
 from .services_marketing import DashBoardMarketing
-from .services_producao import DashBoardProducao
+from .services_producao import DashBoardProducao, get_relatorios_producao
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
                     FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormListagensVendas,
-                    FormIndicadores, RelatoriosFinanceirosForm, FormDashboardMarketing, FormDashboardProducao)
+                    FormIndicadores, RelatoriosFinanceirosForm, FormDashboardMarketing, FormDashboardProducao,
+                    FormDashboardMaquinas)
 import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
@@ -976,3 +977,35 @@ def producao(request):
     contexto.update({'formulario': formulario})
 
     return render(request, 'dashboards/pages/producao.html', contexto)
+
+
+def maquinas(request):
+    """Retorna dados para pagina de dashboard de maquinas."""
+    titulo_pagina = 'Dashboard Maquinas'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = FormDashboardMaquinas(364)
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormDashboardMaquinas(364, request.GET)
+        if formulario.is_valid():
+            data_inicio = formulario.cleaned_data.get('inicio')
+            data_fim = formulario.cleaned_data.get('fim')
+            produto = formulario.cleaned_data.get('produto')
+            if produto:
+                produto = produto.CODIGO
+
+            # TODO: incluir todas as maquinas que rodam o produto selecionado, mesmo as não utilizadas no periodo
+            dados = get_relatorios_producao(
+                data_apontamento_inicio_maior_igual=data_inicio, data_apontamento_inicio_menor_igual=data_fim,
+                coluna_maquina=True, coluna_produtividade=True, coluna_toneladas_apontadas_liquidas=True,
+                job=22, setor=3, familia_produto=7766, produto=produto,
+                ordenar_maquina_prioritario=True,
+            )
+
+            contexto.update({'dados': dados, })
+
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/maquinas.html', contexto)

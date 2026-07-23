@@ -1,0 +1,44 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal principal-escuro">
+
+        <div class="link-conteudo link-conteudo-escuro">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            <form id="form" method="get">
+                <div class="grid-simples link-conteudo link-conteudo-escuro">
+                    {{ formulario.as_p }}
+                </div>
+                <div class="grid-simples">
+                    <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if dados %}
+
+                {% for maquina in dados %}
+                    <p>{{ maquina.MAQUINA }} | {{ maquina.HORAS_APONTADAS | floatformat:0 }} H | {{ maquina.TONELADAS_APONTADAS_LIQUIDAS | floatformat:1 }} T | {{ maquina.PRODUTIVIDADE_POR_CENTO | floatformat:1 }} %</p>
+                {% endfor %}
+
+                <div class="principal-escuro">
+                    <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

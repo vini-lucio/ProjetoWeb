@@ -21,6 +21,8 @@ from datetime import datetime
 # TODO: rest
 # TODO: substituir sistema monitoramento marco moreno?
 
+# TODO: Rever calculo de cores de rentabilidade? somente por orcamento calcular por familia? os totais do mes já foi feito nos dashboards igual fechamento
+
 
 @user_passes_test(lambda usuario: usuario.is_superuser, login_url='/admin/login/')
 def migracao(request):

@@ -2,7 +2,7 @@ from django import forms
 from django.db.models import Q
 from django.forms.widgets import DateInput
 from home.models import Jobs, Vendedores
-from utils.data_hora_atual import hoje_as_yyyymmdd, hoje
+from utils.data_hora_atual import hoje_as_yyyymmdd, hoje, data_x_dias
 from datetime import date
 
 
@@ -30,6 +30,22 @@ class FormPeriodoMesAtualMixIn(FormPeriodoInicioFimMixIn, forms.Form):
 
         h = hoje()
         primeiro_dia = date(h.year, h.month, 1).strftime("%Y-%m-%d")
+
+        self.fields['inicio'].initial = primeiro_dia
+        self.fields['fim'].initial = hoje_as_yyyymmdd()
+
+
+class FormPeriodoXDiasMixIn(FormPeriodoInicioFimMixIn, forms.Form):
+    def __init__(self, dias_antes: int, *args, **kwargs):
+        """Formulario com a data inicial com o fim hoje e o inicio de acordo com o informado nos parametros
+
+        Parametros:
+        -----------
+        :dias_antes [int]: com a quantidade de dias antes de hoje para a data de inicio"""
+        super().__init__(*args, **kwargs)
+
+        h = data_x_dias(dias_antes, True)
+        primeiro_dia = date(h.year, h.month, h.day).strftime("%Y-%m-%d")
 
         self.fields['inicio'].initial = primeiro_dia
         self.fields['fim'].initial = hoje_as_yyyymmdd()

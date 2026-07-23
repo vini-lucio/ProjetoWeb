@@ -81,9 +81,15 @@ class DashBoardVendas():
                                                                  data_entrega_itens_menor_igual=self.site_setup.primeiro_dia_util_proximo_mes,  # type:ignore
                                                                  coluna_peso_produto_proprio=True,
                                                                  coluna_rentabilidade_cor=True,
+                                                                 coluna_rentabilidade=True,
                                                                  coluna_carteira=True,
                                                                  **parametro_carteira)
             pedidos_mes_entrega_mes_dias = pd.DataFrame(pedidos_mes_entrega_mes_dias)
+            # job fluxus mostrar cor da familia e não da mesma forma que os fechamentos do periodo
+            if job_descricao != 'FLUXUS' and not pedidos_mes_entrega_mes_dias.empty:
+                pedidos_mes_entrega_mes_dias = pedidos_mes_entrega_mes_dias.drop(columns=['MC_COR', 'MC_VALOR_COR'])
+                pedidos_mes_entrega_mes_dias = pedidos_mes_entrega_mes_dias.rename(columns={'MC': 'MC_COR',
+                                                                                            'MC_VALOR': 'MC_VALOR_COR'})
         else:
             pedidos_mes_entrega_mes_dias = dados_pedidos_mes_entrega_mes_dias
 
@@ -99,9 +105,15 @@ class DashBoardVendas():
                                                                  data_entrega_itens_menor_igual=self.site_setup.primeiro_dia_util_proximo_mes,  # type:ignore
                                                                  coluna_peso_produto_proprio=True,
                                                                  coluna_rentabilidade_cor=True,
+                                                                 coluna_rentabilidade=True,
                                                                  coluna_carteira=True,
                                                                  **parametro_carteira)
             pedidos_fora_mes_entrega_mes = pd.DataFrame(pedidos_fora_mes_entrega_mes)
+            # job fluxus mostrar cor da familia e não da mesma forma que os fechamentos do periodo
+            if job_descricao != 'FLUXUS' and not pedidos_fora_mes_entrega_mes.empty:
+                pedidos_fora_mes_entrega_mes = pedidos_fora_mes_entrega_mes.drop(columns=['MC_COR', 'MC_VALOR_COR'])
+                pedidos_fora_mes_entrega_mes = pedidos_fora_mes_entrega_mes.rename(columns={'MC': 'MC_COR',
+                                                                                            'MC_VALOR': 'MC_VALOR_COR'})
         else:
             pedidos_fora_mes_entrega_mes = dados_pedidos_fora_mes_entrega_mes
 
@@ -116,9 +128,15 @@ class DashBoardVendas():
                                                     especie='E',
                                                     coluna_peso_produto_proprio=True,
                                                     coluna_rentabilidade_cor=True,
+                                                    coluna_rentabilidade=True,
                                                     coluna_carteira=True,
                                                     **parametro_carteira)
             desvolucoes_mes = pd.DataFrame(desvolucoes_mes)
+            # job fluxus mostrar cor da familia e não da mesma forma que os fechamentos do periodo
+            if job_descricao != 'FLUXUS' and not desvolucoes_mes.empty:
+                desvolucoes_mes = desvolucoes_mes.drop(columns=['MC_COR', 'MC_VALOR_COR'])
+                desvolucoes_mes = desvolucoes_mes.rename(columns={'MC': 'MC_COR',
+                                                                  'MC_VALOR': 'MC_VALOR_COR'})
         else:
             desvolucoes_mes = dados_desvolucoes_mes
 
@@ -1492,12 +1510,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                        'lfrete_valor_coluna': notas_lfrete_valor_coluna,
                                        'lfrete_from': notas_lfrete_from,
                                        'lfrete_join': notas_lfrete_join, },
+        # cor da rentailidade, ideal usar somente em documentos especificos, para não diferenciar com o calculo do fechamento
         'coluna_rentabilidade_cor': {'lfrete_coluna_cor': notas_lfrete_cor_coluna,
                                      'lfrete_from': notas_lfrete_from,
                                      'lfrete_join': notas_lfrete_join, },
         'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': notas_lfrete_aliquotas_itens_coluna,
                                    'lfrete_from': notas_lfrete_from,
                                    'lfrete_join': notas_lfrete_join, },
+        # cor da rentailidade, ideal usar somente em documentos especificos, para não diferenciar com o calculo do fechamento
         'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 12441 THEN 2 WHEN PRODUTOS.CHAVE_FAMILIA = 12819 THEN 5 END AS MC_COR_AJUSTE",
                                  'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 12441 THEN 2 WHEN PRODUTOS.CHAVE_FAMILIA = 12819 THEN 5 END,", },
 
@@ -2017,12 +2037,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                        'lfrete_valor_coluna': pedidos_lfrete_valor_coluna,
                                        'lfrete_from': pedidos_lfrete_from,
                                        'lfrete_join': pedidos_lfrete_join, },
+        # cor da rentailidade, ideal usar somente em documentos especificos, para não diferenciar com o calculo do fechamento
         'coluna_rentabilidade_cor': {'lfrete_coluna_cor': pedidos_lfrete_cor_coluna,
                                      'lfrete_from': pedidos_lfrete_from,
                                      'lfrete_join': pedidos_lfrete_join, },
         'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': pedidos_lfrete_aliquotas_itens_coluna,
                                    'lfrete_from': pedidos_lfrete_from,
                                    'lfrete_join': pedidos_lfrete_join, },
+        # cor da rentailidade, ideal usar somente em documentos especificos, para não diferenciar com o calculo do fechamento
         'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 12441 THEN 2 WHEN PRODUTOS.CHAVE_FAMILIA = 12819 THEN 5 END AS MC_COR_AJUSTE",
                                  'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 12441 THEN 2 WHEN PRODUTOS.CHAVE_FAMILIA = 12819 THEN 5 END,", },
 
@@ -2565,12 +2587,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                        'lfrete_valor_coluna': orcamentos_lfrete_valor_coluna,
                                        'lfrete_from': orcamentos_lfrete_from,
                                        'lfrete_join': orcamentos_lfrete_join, },
+        # cor da rentailidade, ideal usar somente em documentos especificos, para não diferenciar com o calculo do fechamento
         'coluna_rentabilidade_cor': {'lfrete_coluna_cor': orcamentos_lfrete_cor_coluna,
                                      'lfrete_from': orcamentos_lfrete_from,
                                      'lfrete_join': orcamentos_lfrete_join, },
         'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': orcamentos_lfrete_aliquotas_itens_coluna,
                                    'lfrete_from': orcamentos_lfrete_from,
                                    'lfrete_join': orcamentos_lfrete_join, },
+        # cor da rentailidade, ideal usar somente em documentos especificos, para não diferenciar com o calculo do fechamento
         'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 12441 THEN 2 WHEN PRODUTOS.CHAVE_FAMILIA = 12819 THEN 5 END AS MC_COR_AJUSTE",
                                  'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 12441 THEN 2 WHEN PRODUTOS.CHAVE_FAMILIA = 12819 THEN 5 END,", },
 
@@ -2794,12 +2818,14 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
                                        'lfrete_valor_coluna': orcamentos_itens_excluidos_lfrete_valor_coluna,
                                        'lfrete_from': orcamentos_itens_excluidos_lfrete_from,
                                        'lfrete_join': orcamentos_itens_excluidos_lfrete_join, },
+        # cor da rentailidade, ideal usar somente em documentos especificos, para não diferenciar com o calculo do fechamento
         'coluna_rentabilidade_cor': {'lfrete_coluna_cor': orcamentos_itens_excluidos_lfrete_cor_coluna,
                                      'lfrete_from': orcamentos_itens_excluidos_lfrete_from,
                                      'lfrete_join': orcamentos_itens_excluidos_lfrete_join, },
         'coluna_aliquotas_itens': {'lfrete_coluna_aliquotas_itens': orcamentos_itens_excluidos_lfrete_aliquotas_itens_coluna,
                                    'lfrete_from': orcamentos_lfrete_from,
                                    'lfrete_join': orcamentos_lfrete_join, },
+        # cor da rentailidade, ideal usar somente em documentos especificos, para não diferenciar com o calculo do fechamento
         'coluna_mc_cor_ajuste': {'mc_cor_ajuste_campo_alias': ", CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 12441 THEN 2 WHEN PRODUTOS.CHAVE_FAMILIA = 12819 THEN 5 END AS MC_COR_AJUSTE",
                                  'mc_cor_ajuste_campo': "CASE WHEN PRODUTOS.CHAVE_FAMILIA = 7766 THEN (-1) WHEN PRODUTOS.CHAVE_FAMILIA = 7767 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 8378 THEN 5 WHEN PRODUTOS.CHAVE_FAMILIA = 12441 THEN 2 WHEN PRODUTOS.CHAVE_FAMILIA = 12819 THEN 5 END,", },
 

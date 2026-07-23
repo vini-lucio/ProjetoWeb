@@ -2,15 +2,22 @@ from django import forms
 from django.forms.widgets import DateInput
 from .models import Indicadores
 from utils.base_forms import (FormPeriodoInicioFimMixIn, FormVendedoresMixIn, FormPesquisarIntegerMixIn,
-                              FormPeriodoMesAtualMixIn)
+                              FormPeriodoMesAtualMixIn, FormPeriodoXDiasMixIn)
 from analysis.models import (VENDEDORES, CLIENTES_TIPOS, FAIXAS_CEP, ESTADOS, FAMILIA_PRODUTOS, STATUS_ORCAMENTOS_ITENS,
-                             INFORMACOES_CLI, JOBS, MARCAS, GRUPO_PRODUTOS)
+                             INFORMACOES_CLI, JOBS, MARCAS, GRUPO_PRODUTOS, PRODUTOS)
 from utils.data_hora_atual import hoje_as_yyyymmdd, hoje
 from datetime import date, timedelta
 
 
 class FormDashboardProducao(FormPeriodoMesAtualMixIn, forms.Form):
     ...
+
+
+class FormDashboardMaquinas(FormPeriodoXDiasMixIn, forms.Form):
+    produtos = PRODUTOS.objects.filter(CHAVE_FAMILIA=7766, FORA_DE_LINHA='NAO',
+                                       DESENVOLVIMENTO='NAO').order_by('CODIGO')
+
+    produto = forms.ModelChoiceField(produtos, label="Produto", required=False)
 
 
 class FormDashboardMarketing(FormPeriodoMesAtualMixIn, forms.Form):
