@@ -905,3 +905,112 @@ class APONTAMENTOS_PARADAS(ReadOnlyMixin, models.Model):
         """Retorna coluna de com data de inicio truncada sem as horas."""
         return cls.objects.annotate(INICIO_TRUNC=RawSQL('TRUNC(APONTAMENTOS_PARADAS.INICIO)', [],
                                                         output_field=DateTimeField()))
+
+
+class MAQUINAS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."MAQUINAS"'
+        verbose_name = 'Maquina'
+        verbose_name_plural = 'Maquinas'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CODIGO = models.CharField("Codigo", max_length=12, null=True, blank=True)
+    DESCRICAO = models.CharField("Descrição", max_length=50, null=True, blank=True)
+
+    def __str__(self):
+        return self.CODIGO
+
+
+class MOLDES(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."MOLDES"'
+        verbose_name = 'Molde'
+        verbose_name_plural = 'Moldes'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CODIGO = models.CharField("Codigo", max_length=15, null=True, blank=True)
+    DESCRICAO = models.CharField("Descrição", max_length=50, null=True, blank=True)
+    CHAVE_PRODUTO = models.ForeignKey(PRODUTOS, db_column="CHAVE_PRODUTO", verbose_name="Produto",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CAVIDADES = models.IntegerField("Cavidades")
+
+    def __str__(self):
+        return self.CODIGO
+
+
+class MOLDES_MAQUINAS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."MOLDES_MAQUINAS"'
+        verbose_name = 'Molde Maquinas'
+        verbose_name_plural = 'Moldes Maquinas'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CHAVE_MOLDE = models.ForeignKey(MOLDES, db_column="CHAVE_MOLDE", verbose_name="Molde",
+                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_MAQUINA = models.ForeignKey(MAQUINAS, db_column="CHAVE_MAQUINA", verbose_name="Maquina",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.CHAVE_MOLDE} - {self.CHAVE_MAQUINA}'
+
+
+class PROCESSOS(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."PROCESSOS"'
+        verbose_name = 'Processo'
+        verbose_name_plural = 'Processos'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    CODIGO = models.CharField("Codigo", max_length=60, null=True, blank=True)
+    CHAVE_PRODUTO = models.ForeignKey(PRODUTOS, db_column="CHAVE_PRODUTO", verbose_name="Produto",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    PADRAO = models.CharField("Padrão", max_length=3, null=True, blank=True)
+    FORA_LINHA = models.CharField("Fora de Linha", max_length=3, null=True, blank=True)
+    DESCRICAO_PROCESSO = models.CharField("Descrição Processo", max_length=120, null=True, blank=True)
+
+    def __str__(self):
+        return self.CODIGO
+
+
+class CUSTOS_SETORES(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."CUSTOS_SETORES"'
+        verbose_name = 'Setor de Custos'
+        verbose_name_plural = 'Setores de Custos'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    NOME_SETOR = models.CharField("Nome Setor", max_length=50, null=True, blank=True)
+
+    def __str__(self):
+        return self.NOME_SETOR
+
+
+class PROCESSOS_OPERACOES(ReadOnlyMixin, models.Model):
+    class Meta:
+        managed = False
+        db_table = '"COPLAS"."PROCESSOS_OPERACOES"'
+        verbose_name = 'Operação Processo'
+        verbose_name_plural = 'Operações Processos'
+
+    CHAVE = models.IntegerField("ID", primary_key=True)
+    ORDEM = models.IntegerField("Ordem")
+    CHAVE_PROCESSO = models.ForeignKey(PROCESSOS, db_column="CHAVE_PROCESSO", verbose_name="Processo",
+                                       on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_MAQUINA = models.ForeignKey(MAQUINAS, db_column="CHAVE_MAQUINA", verbose_name="Maquina",
+                                      on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_MOLDE = models.ForeignKey(MOLDES, db_column="CHAVE_MOLDE", verbose_name="Molde",
+                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CHAVE_SETOR = models.ForeignKey(CUSTOS_SETORES, db_column="CHAVE_SETOR", verbose_name="Setor",
+                                    on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
+    CICLO = models.DecimalField("Ciclo", max_digits=22, decimal_places=6, null=True, blank=True)
+    TEMPO_TOTAL = models.DecimalField("Tempo Total", max_digits=22, decimal_places=6, null=True, blank=True)
+    PECAS_MINUTO = models.DecimalField("Peças / Minuto", max_digits=22, decimal_places=6, null=True, blank=True)
+    DESCRICAO = models.CharField("Descrição", max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.CHAVE_PROCESSO} - {self.DESCRICAO}'

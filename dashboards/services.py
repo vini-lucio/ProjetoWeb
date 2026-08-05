@@ -998,6 +998,7 @@ def eventos_em_aberto_por_dia(carteira: str = '%%') -> list | None:
     return resultado
 
 
+# TODO: voltar coluna proporção?
 def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'],
                                                  trocar_para_itens_excluidos: bool = False, **kwargs_formulario):
     """Retorna codigos SQL para placeholders da função get_relatorios_vendas.

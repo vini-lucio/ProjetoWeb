@@ -1,6 +1,8 @@
 from typing import Dict, Literal
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.db.models import F, Value
+from analysis.models import PROCESSOS, MAQUINAS
 from home.models import ProdutosFamilias
 from .models import IndicadoresValores, MetasCarteiras
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
@@ -993,16 +995,39 @@ def maquinas(request):
             data_inicio = formulario.cleaned_data.get('inicio')
             data_fim = formulario.cleaned_data.get('fim')
             produto = formulario.cleaned_data.get('produto')
-            if produto:
-                produto = produto.CODIGO
 
-            # TODO: incluir todas as maquinas que rodam o produto selecionado, mesmo as não utilizadas no periodo
+            produto_codigo = ''
+            maquinas = MAQUINAS.objects.filter(CODIGO__istartswith='IN').values(MAQUINA=F('CODIGO'))
+            maquinas_produto = None
+            if produto:
+                produto_codigo = produto.CODIGO
+                maquinas_produto = PROCESSOS.objects.filter(
+                    PADRAO='SIM', processos_operacoes__CHAVE_SETOR=3, CHAVE_PRODUTO=produto
+                ).values(
+                    MAQUINA=F('processos_operacoes__CHAVE_MOLDE__moldes_maquinas__CHAVE_MAQUINA__CODIGO')
+                ).annotate(RODA=Value(True))
+
             dados = get_relatorios_producao(
                 data_apontamento_inicio_maior_igual=data_inicio, data_apontamento_inicio_menor_igual=data_fim,
                 coluna_maquina=True, coluna_produtividade=True, coluna_toneladas_apontadas_liquidas=True,
-                job=22, setor=3, familia_produto=7766, produto=produto,
+                job=22, setor=3, familia_produto=7766, produto=produto_codigo,
                 ordenar_maquina_prioritario=True,
             )
+
+            maquinas = pd.DataFrame(maquinas)
+            maquinas_produto = pd.DataFrame(maquinas_produto)
+            dados = pd.DataFrame(dados)
+
+            if not dados.empty:
+                dados = pd.merge(dados, maquinas, 'outer', 'MAQUINA').fillna(0)
+                if not maquinas_produto.empty:
+                    dados = pd.merge(dados, maquinas_produto, 'outer', 'MAQUINA').fillna(0)
+                else:
+                    dados['RODA'] = True
+                mais_produtivo = dados['PRODUTIVIDADE_POR_CENTO'].min()
+                dados['MAIS_PRODUTIVO'] = dados['PRODUTIVIDADE_POR_CENTO'] == mais_produtivo
+
+            dados = dados.to_dict(orient='records')
 
             contexto.update({'dados': dados, })
 

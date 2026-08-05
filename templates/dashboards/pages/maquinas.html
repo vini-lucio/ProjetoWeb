@@ -28,7 +28,20 @@
             {% if dados %}
 
                 {% for maquina in dados %}
-                    <p>{{ maquina.MAQUINA }} | {{ maquina.HORAS_APONTADAS | floatformat:0 }} H | {{ maquina.TONELADAS_APONTADAS_LIQUIDAS | floatformat:1 }} T | {{ maquina.PRODUTIVIDADE_POR_CENTO | floatformat:1 }} %</p>
+                    <div class="moldura-verde moldura-verde-slim principal-escuro-2 grid-slim fonte-verde {% if not maquina.TONELADAS_APONTADAS_LIQUIDAS and maquina.RODA %}fonte-cinza{% endif %} {% if maquina.PRODUTIVIDADE_POR_CENTO > 0 %}fonte-vermelho{% endif %} {% if maquina.MAIS_PRODUTIVO %}fonte-roxo{% endif %} {% if not maquina.RODA %}fonte-azul{% endif %}" style="{% if not maquina.TONELADAS_APONTADAS_LIQUIDAS and maquina.RODA %}border:solid var(--cinza-claro);{% endif %} {% if maquina.PRODUTIVIDADE_POR_CENTO > 0 %}border:solid var(--vermelho-rentabilidade);{% endif %} {% if maquina.MAIS_PRODUTIVO %}border:solid var(--roxo-rentabilidade-2);{% endif %} {% if not maquina.RODA %}border:solid var(--azul-escuro);{% endif %}">
+                        <div>
+                            <p>{{ maquina.MAQUINA }} |</p>
+                        </div>
+                        <div>
+                            <p>{{ maquina.HORAS_APONTADAS | floatformat:0 }} H |</p>
+                        </div>
+                        <div>
+                            <p>{{ maquina.TONELADAS_APONTADAS_LIQUIDAS | floatformat:1 }} T |</p>
+                        </div>
+                        <div>
+                            <p>{{ maquina.PRODUTIVIDADE_POR_CENTO | floatformat:1 }} %</p>
+                        </div>
+                    </div>
                 {% endfor %}
 
                 <div class="principal-escuro">
