@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Literal
 from collections import Counter
 from decimal import Decimal
 from django.db.models import Q, F, IntegerField, Sum, Count, FloatField, ExpressionWrapper
@@ -1047,6 +1047,38 @@ def peso_estoque_produto_proprio_ano_mes_a_mes():
     """
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, ano=ano, mes=mes)
+
+    return resultado
+
+
+# TODO: get_relatorio_xxx ou filter django
+def peso_estoque_produto_proprio_dia_especifico(data, unidade: Literal['KG', 'TONELADAS']):
+    """Retorna o peso do estoque de produto proprio na data informada e se o peso sera por kg ou tonelada"""
+    alias = unidade
+    converter = ''
+    if unidade == 'TONELADAS':
+        converter = '/ 1000'
+
+    sql = """
+        SELECT :data AS DATA,
+            ROUND(SUM(MOVESTOQUE.SALDO_ESTOQUE * PRODUTOS.PESO_LIQUIDO) {converter}, 3) AS {alias}_ESTOQUE
+        FROM COPLAS.MOVESTOQUE,
+            COPLAS.PRODUTOS,
+            (
+                SELECT MAX(MOVESTOQUE.CHAVE) AS ULTIMA_MOVIMENTACAO
+                FROM COPLAS.PRODUTOS,
+                    COPLAS.MOVESTOQUE
+                WHERE PRODUTOS.CPROD = MOVESTOQUE.CHAVE_PRODUTO
+                    AND PRODUTOS.CHAVE_FAMILIA = 7766
+                    AND MOVESTOQUE.DATA_MOV <= :data
+                GROUP BY PRODUTOS.CPROD
+            ) ULTIMA_MOVIMENTACAO
+        WHERE MOVESTOQUE.CHAVE = ULTIMA_MOVIMENTACAO.ULTIMA_MOVIMENTACAO
+            AND PRODUTOS.CPROD = MOVESTOQUE.CHAVE_PRODUTO
+            AND PRODUTOS.CHAVE_FAMILIA = 7766
+    """.format(converter=converter, alias=alias)
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data=data)
 
     return resultado
 

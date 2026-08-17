@@ -9,7 +9,6 @@ import plotly.express as px
 import plotly.io as pio
 
 
-# TODO: pagina de grafico evolução de toneladas
 class DashBoardProducao():
     """Gera dashboards de produção."""
 
@@ -261,11 +260,17 @@ def map_relatorio_producao_sql_string_placeholders(**kwargs_formulario):
                        'job_campo': "JOBS.DESCRICAO,", },
         'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
 
+        'coluna_data_apontamento_inicio': {'data_apontamento_inicio_campo_alias': "TRUNC(APONTAMENTOS.INICIO) AS DATA_APONTAMENTO,",
+                                           'data_apontamento_inicio_campo': "TRUNC(APONTAMENTOS.INICIO),", },
+
         'coluna_ano_apontamento_inicio': {'ano_apontamento_inicio_campo_alias': "EXTRACT(YEAR FROM APONTAMENTOS.INICIO) AS ANO_APONTAMENTO,",
                                           'ano_apontamento_inicio_campo': "EXTRACT(YEAR FROM APONTAMENTOS.INICIO),", },
 
         'coluna_mes_apontamento_inicio': {'mes_apontamento_inicio_campo_alias': "EXTRACT(MONTH FROM APONTAMENTOS.INICIO) AS MES_APONTAMENTO,",
                                           'mes_apontamento_inicio_campo': "EXTRACT(MONTH FROM APONTAMENTOS.INICIO),", },
+
+        'coluna_dia_apontamento_inicio': {'dia_apontamento_inicio_campo_alias': "EXTRACT(DAY FROM APONTAMENTOS.INICIO) AS DIA_APONTAMENTO,",
+                                          'dia_apontamento_inicio_campo': "EXTRACT(DAY FROM APONTAMENTOS.INICIO),", },
 
         'data_apontamento_inicio_maior_igual': {'data_apontamento_inicio_maior_igual_pesquisa': "TRUNC(APONTAMENTOS.INICIO) >= :data_apontamento_inicio_maior_igual AND", },
         'data_apontamento_inicio_menor_igual': {'data_apontamento_inicio_menor_igual_pesquisa': "TRUNC(APONTAMENTOS.INICIO) <= :data_apontamento_inicio_menor_igual AND", },
@@ -365,8 +370,10 @@ def get_relatorios_producao(**kwargs):
     sql_base = """
         SELECT
             {job_campo_alias}
+            {data_apontamento_inicio_campo_alias}
             {ano_apontamento_inicio_campo_alias}
             {mes_apontamento_inicio_campo_alias}
+            {dia_apontamento_inicio_campo_alias}
             {maquina_campo_alias}
             {chave_ordem_producao_campo_alias}
             {material_campo_alias}
@@ -445,6 +452,8 @@ def get_relatorios_producao(**kwargs):
             {unidade_material_campo}
             {ano_apontamento_inicio_campo}
             {mes_apontamento_inicio_campo}
+            {dia_apontamento_inicio_campo}
+            {data_apontamento_inicio_campo}
 
             1
 
@@ -454,6 +463,7 @@ def get_relatorios_producao(**kwargs):
             {job_campo}
             {ano_apontamento_inicio_campo}
             {mes_apontamento_inicio_campo}
+            {dia_apontamento_inicio_campo}
             {material_campo}
             {estoque_abc_campo}
             {grupo_produto_campo}

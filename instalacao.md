@@ -172,7 +172,7 @@ git commit -m 'Initial'
 No computador local: 
 
 ```
-git remote add "app_rrepo" "usuario"@"ip":~/"app_repo"
+git remote add "app_repo" "usuario"@"ip":~/"app_repo"
 git push "app_repo" main
 ```
 
@@ -186,7 +186,7 @@ git pull "app_repo" main
 
 Arrumar arquivo .env-CHANGEME
 
-# Configurações iniciais para o servidor Ubuntu Postgressql 
+# Configurações iniciais para o servidor Ubuntu Postgressql e Oracle
 
 Aparentemente vai sempre gravar em minúsculo os nomes e senhas
 
@@ -216,8 +216,98 @@ Liberar o host no arquivo
 
 `/etc/postgresql/”versão”/main/pg_hba.conf`
 
+Incluir linha:
+
+`host all all samenet trust`
+
+Comentar configurações exceto:
+
+```
+local all postgres peer
+local all all peer
+local replication all peer
+```
+
 `sudo systemctl restart postgresql`
 
+## Oracle thick mode no Ubuntu instantclient
+
+Instant Client Installation for Linux x86-64 (64-bit)
+
+For general Instant Client information, see the [Home Page](https://www.oracle.com/database/technologies/instant-client.html).
+
+ODBC users should follow the [ODBC Installation Instructions](https://www.oracle.com/database/technologies/releasenote-odbc-ic.html).
+
+The "Database Client Installation Guide for Linux" chapter on Installing Oracle Instant Client is here.
+Instant Client RPMs are also available without click-through from [yum.oracle.com](http://yum.oracle.com/) for [Oracle Linux 9](https://yum.oracle.com/repo/OracleLinux/OL9/oracle/instantclient23/x86_64/index.html) and [Oracle Linux 8](https://yum.oracle.com/repo/OracleLinux/OL8/oracle/instantclient23/x86_64/index.html). Older RPM packages are available for [Oracle Linux 9](https://yum.oracle.com/repo/OracleLinux/OL9/oracle/instantclient23/x86_64/index.html), [Oracle Linux 8](https://yum.oracle.com/repo/OracleLinux/OL8/oracle/instantclient21/x86_64/), [Oracle Linux 7](https://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient21/x86_64/) and [Oracle Linux 6](https://yum.oracle.com/repo/OracleLinux/OL6/oracle/instantclient/x86_64/).
+
+Client-server version interoperability is detailed in [Doc ID 207303.1](https://support.oracle.com/epmos/faces/DocumentDisplay?id=207303.1). For example, Oracle Call Interface 19.3 can connect to Oracle Database 11.2 or later. Some tools may have other restrictions.
+
+Installation of ZIP files:
+
+1.	Download the desired Instant Client ZIP files. All installations require a Basic or Basic Light package.
+
+2.	Unzip the packages into a single directory such as /opt/oracle/instantclient_19_3 that is accessible to your application. For example:
+
+```
+cd /opt/oracle
+unzip instantclient-basic-linux.x64-19.24.0.0.0dbru.zip
+```
+
+The various packages install into subdirectories of /usr/lib/oracle, /usr/include/oracle, and /usr/share/oracle.
+
+3.	Prior to version 18.3, create the appropriate links for the version of Instant Client. For example:
+
+```
+cd /opt/oracle/instantclient_12_2
+ln -s libclntsh.so.12.1 libclntsh.so
+ln -s libocci.so.12.1 libocci.so
+```
+
+4.	Install the operating system libaio package. This is called libaio1 on some Linux distributions. On Oracle Linux 8 prior to Instant Client 21 you also need the libnsl package.
+
+For example, on Oracle Linux, run:
+
+```
+sudo yum install libaio
+sudo apt install libaio-dev
+sudo apt install libaio1t64
+```
+
+https://askubuntu.com/questions/1511776/ubuntu-24-04-php-8-3-oci8-and-libaio-so-1
+
+The package and the library have been renamed in 24.04. The package name now is libaio1t64 and the library is available as libaio.so.1t64, see https://askubuntu.com/a/1512197/31086
+
+As oci8.so still expecting libaio.so.1, creating the following symlink resolves the issue:
+
+`sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1`
+
+5.	If Instant Client is the only Oracle Software installed on this system then update the runtime link path, for example:
+
+```
+sudo sh -c "echo /opt/oracle/instantclient_19_24 > /etc/ld.so.conf.d/oracle-instantclient.conf"
+sudo ldconfig
+```
+
+Alternatively, set the LD_LIBRARY_PATH environment variable prior to running applications. For example:
+
+`export LD_LIBRARY_PATH=/opt/oracle/instantclient_19_24:$LD_LIBRARY_PATH`
+
+The variable can optionally be added to configuration files such as ~/.bash_profile and to application configuration files such as /etc/sysconfig/httpd.
+
+6.	If you intend to co-locate optional Oracle configuration files such as tnsnames.ora, sqlnet.ora, ldap.ora, or oraaccess.xml with Instant Client, put them in the network/admin subdirectory. This needs to be created for 12.2 and earlier, for example:
+
+`mkdir -p /opt/oracle/instantclient_12_2/network/admin`
+
+This is the default Oracle configuration directory for applications linked with this Instant Client.
+
+Alternatively, Oracle configuration files can be put in another, accessible directory. Then set the environment variable TNS_ADMIN to that directory name.
+
+7.	To use binaries such as sqlplus from the SQL*Plus package, unzip the package to the same directory as the Basic package and then update your PATH environment variable, for example:
+
+`export PATH=/opt/oracle/instantclient_19_3:$PATH`
+
+8.	Start your application.
 
 # Configurar Django no servidor Ubuntu
 
@@ -418,7 +508,7 @@ server {
 
 ```
 cd ../sites-enabled/
-sudo ln -s /etc/nginx/sites-available/"app"/etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/"app" /etc/nginx/sites-enabled/
 sudo systemctl restart nginx
 ```
 
@@ -472,85 +562,6 @@ sudo systemctl daemon-reload
 sudo systemctl start django-background-tasks
 sudo systemctl enable django-background-tasks
 ```
-
-## Oracle thick mode no Ubuntu instantclient
-
-Instant Client Installation for Linux x86-64 (64-bit)
-
-For general Instant Client information, see the [Home Page](https://www.oracle.com/database/technologies/instant-client.html).
-
-ODBC users should follow the [ODBC Installation Instructions](https://www.oracle.com/database/technologies/releasenote-odbc-ic.html).
-
-The "Database Client Installation Guide for Linux" chapter on Installing Oracle Instant Client is here.
-Instant Client RPMs are also available without click-through from [yum.oracle.com](http://yum.oracle.com/) for [Oracle Linux 9](https://yum.oracle.com/repo/OracleLinux/OL9/oracle/instantclient23/x86_64/index.html) and [Oracle Linux 8](https://yum.oracle.com/repo/OracleLinux/OL8/oracle/instantclient23/x86_64/index.html). Older RPM packages are available for [Oracle Linux 9](https://yum.oracle.com/repo/OracleLinux/OL9/oracle/instantclient23/x86_64/index.html), [Oracle Linux 8](https://yum.oracle.com/repo/OracleLinux/OL8/oracle/instantclient21/x86_64/), [Oracle Linux 7](https://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient21/x86_64/) and [Oracle Linux 6](https://yum.oracle.com/repo/OracleLinux/OL6/oracle/instantclient/x86_64/).
-
-Client-server version interoperability is detailed in [Doc ID 207303.1](https://support.oracle.com/epmos/faces/DocumentDisplay?id=207303.1). For example, Oracle Call Interface 19.3 can connect to Oracle Database 11.2 or later. Some tools may have other restrictions.
-
-Installation of ZIP files:
-
-1.	Download the desired Instant Client ZIP files. All installations require a Basic or Basic Light package.
-
-2.	Unzip the packages into a single directory such as /opt/oracle/instantclient_19_3 that is accessible to your application. For example:
-
-```
-cd /opt/oracle
-unzip instantclient-basic-linux.x64-19.3.0.0.0dbru.zip
-```
-
-The various packages install into subdirectories of /usr/lib/oracle, /usr/include/oracle, and /usr/share/oracle.
-
-3.	Prior to version 18.3, create the appropriate links for the version of Instant Client. For example:
-
-```
-cd /opt/oracle/instantclient_12_2
-ln -s libclntsh.so.12.1 libclntsh.so
-ln -s libocci.so.12.1 libocci.so
-```
-
-4.	Install the operating system libaio package. This is called libaio1 on some Linux distributions. On Oracle Linux 8 prior to Instant Client 21 you also need the libnsl package.
-
-For example, on Oracle Linux, run:
-
-```
-sudo yum install libaio
-sudo apt install libaio-dev
-sudo apt install libaio1t64
-```
-
-https://askubuntu.com/questions/1511776/ubuntu-24-04-php-8-3-oci8-and-libaio-so-1
-
-The package and the library have been renamed in 24.04. The package name now is libaio1t64 and the library is available as libaio.so.1t64, see https://askubuntu.com/a/1512197/31086
-
-As oci8.so still expecting libaio.so.1, creating the following symlink resolves the issue:
-
-`sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1`
-
-5.	If Instant Client is the only Oracle Software installed on this system then update the runtime link path, for example:
-
-```
-sudo sh -c "echo /opt/oracle/instantclient_19_24 > /etc/ld.so.conf.d/oracle-instantclient.conf"
-sudo ldconfig
-```
-
-Alternatively, set the LD_LIBRARY_PATH environment variable prior to running applications. For example:
-
-`export LD_LIBRARY_PATH=/opt/oracle/instantclient_19_24:$LD_LIBRARY_PATH`
-
-The variable can optionally be added to configuration files such as ~/.bash_profile and to application configuration files such as /etc/sysconfig/httpd.
-
-6.	If you intend to co-locate optional Oracle configuration files such as tnsnames.ora, sqlnet.ora, ldap.ora, or oraaccess.xml with Instant Client, put them in the network/admin subdirectory. This needs to be created for 12.2 and earlier, for example:
-
-`mkdir -p /opt/oracle/instantclient_12_2/network/admin`
-
-This is the default Oracle configuration directory for applications linked with this Instant Client.
-
-Alternatively, Oracle configuration files can be put in another, accessible directory. Then set the environment variable TNS_ADMIN to that directory name.
-
-7.	To use binaries such as sqlplus from the SQL*Plus package, unzip the package to the same directory as the Basic package and then update your PATH environment variable, for example:
-
-`export PATH=/opt/oracle/instantclient_19_3:$PATH`
-
-8.	Start your application.
 
 # Reiniciar Serviços
 

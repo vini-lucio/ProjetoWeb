@@ -998,7 +998,6 @@ def eventos_em_aberto_por_dia(carteira: str = '%%') -> list | None:
     return resultado
 
 
-# TODO: voltar coluna proporção?
 def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'],
                                                  trocar_para_itens_excluidos: bool = False, **kwargs_formulario):
     """Retorna codigos SQL para placeholders da função get_relatorios_vendas.
@@ -1264,6 +1263,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         }
     """
     map_sql_notas = {
+        'coluna_proporcao': {'proporcao_campo_alias': f", SUM({notas_valor_mercadorias}) / SUM(SUM({notas_valor_mercadorias})) OVER () * 100 AS VALOR_MERCADORIAS_PROPORCAO",
+                             'proporcao_campo_order_by': "VALOR_MERCADORIAS_PROPORCAO DESC,"},
+
         'data_liquidacao_titulo_entre': {'data_liquidacao_titulo_entre_pesquisa': "EXISTS(SELECT RECEBER.CHAVE FROM COPLAS.RECEBER WHERE NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND RECEBER.DATALIQUIDACAO BETWEEN :data_liquidacao_titulo_inicio AND :data_liquidacao_titulo_fim) AND", },
 
         'data_vencimento_titulo_entre': {'data_vencimento_titulo_entre_pesquisa': "EXISTS(SELECT RECEBER.CHAVE FROM COPLAS.RECEBER WHERE NOTAS.CHAVE = RECEBER.CHAVE_NOTA AND RECEBER.DATAVENCIMENTO BETWEEN :data_vencimento_titulo_inicio AND :data_vencimento_titulo_fim) AND", },
@@ -1302,6 +1304,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_valor_bruto': {'valor_bruto_campo_alias': "SUM(NOTAS_ITENS.VALOR_CONTABIL) AS VALOR_BRUTO,"},
 
+        'coluna_frete_empresa': {'frete_empresa_campo_alias': "SUM(COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_EMPRESA, 0)) AS FRETE_EMPRESA,"},
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM(COALESCE(NOTAS_ITENS.PESO_LIQUIDO / NULLIF(NOTAS_PESO_LIQUIDO.PESO_LIQUIDO, 0) * NOTAS.VALOR_FRETE_INCL_ITEM, 0)) AS FRETE_INCLUSO_ITEM,"},
         'coluna_frete_destacado': {'frete_destacado_campo_alias': "SUM(NOTAS_ITENS.RATEIO_FRETE) AS FRETE_DESTACADO,"},
 
@@ -1820,6 +1823,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         }
     """
     map_sql_pedidos = {
+        'coluna_proporcao': {'proporcao_campo_alias': f", SUM({pedidos_valor_mercadorias}) / SUM(SUM({pedidos_valor_mercadorias})) OVER () * 100 AS VALOR_MERCADORIAS_PROPORCAO",
+                             'proporcao_campo_order_by': "VALOR_MERCADORIAS_PROPORCAO DESC,"},
+
         'data_liquidacao_titulo_entre': {'data_liquidacao_titulo_entre_pesquisa': "", },
 
         'data_vencimento_titulo_entre': {'data_vencimento_titulo_entre_pesquisa': "", },
@@ -1858,6 +1864,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_valor_bruto': {'valor_bruto_campo_alias': "SUM((PEDIDOS_ITENS.VALOR_TOTAL + PEDIDOS_ITENS.RATEIO_FRETE + PEDIDOS_ITENS.VALOR_IPI + PEDIDOS_ITENS.ICMS_SUBSTITUICAO_VALOR) {conversao_moeda}) AS VALOR_BRUTO,".format(conversao_moeda=conversao_moeda)},
 
+        'coluna_frete_empresa': {'frete_empresa_campo_alias': "SUM((COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_EMPRESA, 0)) {conversao_moeda}) AS FRETE_EMPRESA,".format(conversao_moeda=conversao_moeda)},
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(PEDIDOS_ITENS.PESO_LIQUIDO / NULLIF(PEDIDOS.PESO_LIQUIDO, 0) * PEDIDOS.VALOR_FRETE_INCL_ITEM, 0)) {conversao_moeda}) AS FRETE_INCLUSO_ITEM,".format(conversao_moeda=conversao_moeda)},
         'coluna_frete_destacado': {'frete_destacado_campo_alias': "SUM(PEDIDOS_ITENS.RATEIO_FRETE {conversao_moeda}) AS FRETE_DESTACADO,".format(conversao_moeda=conversao_moeda)},
 
@@ -2356,6 +2363,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         }
     """
     map_sql_orcamentos = {
+        'coluna_proporcao': {'proporcao_campo_alias': f", SUM({orcamentos_valor_mercadorias}) / SUM(SUM({orcamentos_valor_mercadorias})) OVER () * 100 AS VALOR_MERCADORIAS_PROPORCAO",
+                             'proporcao_campo_order_by': "VALOR_MERCADORIAS_PROPORCAO DESC,"},
+
         'data_liquidacao_titulo_entre': {'data_liquidacao_titulo_entre_pesquisa': "", },
 
         'data_vencimento_titulo_entre': {'data_vencimento_titulo_entre_pesquisa': "", },
@@ -2394,6 +2404,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_valor_bruto': {'valor_bruto_campo_alias': "SUM((ORCAMENTOS_ITENS.VALOR_TOTAL + ORCAMENTOS_ITENS.RATEIO_FRETE + ORCAMENTOS_ITENS.VALOR_IPI + ORCAMENTOS_ITENS.ICMS_SUBSTITUICAO_VALOR) {conversao_moeda}) AS VALOR_BRUTO,".format(conversao_moeda=conversao_moeda)},
 
+        'coluna_frete_empresa': {'frete_empresa_campo_alias': "SUM((COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_EMPRESA, 0)) {conversao_moeda}) AS FRETE_EMPRESA,".format(conversao_moeda=conversao_moeda)},
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "SUM((COALESCE(ORCAMENTOS_ITENS.PESO_LIQUIDO / NULLIF(ORCAMENTOS.PESO_LIQUIDO, 0) * ORCAMENTOS.VALOR_FRETE_INCL_ITEM, 0)) {conversao_moeda}) AS FRETE_INCLUSO_ITEM,".format(conversao_moeda=conversao_moeda)},
         'coluna_frete_destacado': {'frete_destacado_campo_alias': "SUM(ORCAMENTOS_ITENS.RATEIO_FRETE {conversao_moeda}) AS FRETE_DESTACADO,".format(conversao_moeda=conversao_moeda)},
 
@@ -2756,6 +2767,9 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         }
     """
     map_sql_orcamentos_itens_excluidos = {
+        'coluna_proporcao': {'proporcao_campo_alias': f", SUM({orcamentos_itens_excluidos_valor_mercadorias}) / SUM(SUM({orcamentos_itens_excluidos_valor_mercadorias})) OVER () * 100 AS VALOR_MERCADORIAS_PROPORCAO",
+                             'proporcao_campo_order_by': "VALOR_MERCADORIAS_PROPORCAO DESC,"},
+
         # coluna_custo_materia_prima_notas Não funciona com a fluxus, conferir se mudar a forma de beneficiamento
         'coluna_custo_materia_prima_notas': {'custo_materia_prima_notas_campo_alias': ""},
 
@@ -2771,6 +2785,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
 
         'coluna_valor_bruto': {'valor_bruto_campo_alias': "SUM((ORCAMENTOS_ITENS_EXCLUIDOS.QUANTIDADE * ORCAMENTOS_ITENS_EXCLUIDOS.PRECO_VENDA) {conversao_moeda}) AS VALOR_BRUTO,".format(conversao_moeda=conversao_moeda)},
 
+        'coluna_frete_empresa': {'frete_empresa_campo_alias': "0 AS FRETE_EMPRESA,"},
         'coluna_frete_incluso_item': {'frete_incluso_item_campo_alias': "0 AS FRETE_INCLUSO_ITEM,"},
         'coluna_frete_destacado': {'frete_destacado_campo_alias': "0 AS FRETE_DESTACADO,"},
 
@@ -3160,6 +3175,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {peso_produto_proprio_campo_alias}
             {quantidade_volumes_campo_alias}
             {media_dia_campo_alias}
+            {frete_empresa_campo_alias}
             {frete_destacado_campo_alias}
             {frete_incluso_item_campo_alias}
             {custo_total_item_campo_alias}
@@ -3175,6 +3191,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {custo_materia_prima_notas_campo_alias}
 
             {valor_mercadorias}
+            {proporcao_campo_alias}
 
             {lfrete_coluna}
             {lfrete_valor_coluna}
@@ -3345,6 +3362,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {ordenar_sequencia_prioritario}
             {ordenar_valor_descrescente_prioritario}
 
+            {proporcao_campo_order_by}
             {job_campo}
             {ano_mes_emissao_campo}
             {ano_emissao_campo}

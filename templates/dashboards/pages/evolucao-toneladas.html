@@ -1,0 +1,59 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal principal-escuro">
+
+        <div class="link-conteudo link-conteudo-escuro">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            <form id="form" method="get">
+                <div class="grid-simples link-conteudo link-conteudo-escuro">
+                    {{ formulario.as_p }}
+                </div>
+                <div class="grid-simples">
+                    <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if dados %}
+
+                <div class="grid">
+                    <div class="moldura-verde-dashboard grid principal-claro">
+                        <div>
+                            {{ grafico_estoque_html | safe}}
+                            <p>Toneladas Reservadas: {{ toneladas_reservadas | floatformat:1 }} <spam class="fonte-muito-pequena-dashboard">* hoje ({% now "d/m/Y" %})</spam></p>
+                        </div>
+                    </div>
+                    <div class="moldura-verde-dashboard grid principal-claro">
+                        <div>
+                            {{ grafico_faturado_embalado_html | safe}}
+                        </div>
+                    </div>
+                    <div class="moldura-verde-dashboard grid principal-claro">
+                        <div>
+                            {{ grafico_faturado_embalado_acumulado_html | safe}}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="principal-escuro">
+                    <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

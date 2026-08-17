@@ -156,6 +156,7 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
 
     # Campos Gerais
     codigo_sql = forms.BooleanField(label="Codigo SQL", initial=False, required=False)
+    coluna_proporcao = forms.BooleanField(label="Coluna Proporção", initial=False, required=False)
     coluna_job = forms.BooleanField(label="Coluna Job", initial=True, required=False)
     job = forms.ModelChoiceField(jobs, label="Job", required=False)
     coluna_rentabilidade = forms.BooleanField(label="Coluna % MC", help_text="exceto excluidos", initial=False,
@@ -164,6 +165,7 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
                                                     required=False)
     coluna_quantidade_documentos = forms.BooleanField(label="Coluna Quantidade de Documentos", initial=False,
                                                       required=False)
+    coluna_data_emissao = forms.BooleanField(label="Coluna Data Emissão", initial=False, required=False)
     coluna_ano_emissao = forms.BooleanField(label="Coluna Ano Emissão", initial=False, required=False)
     coluna_mes_emissao = forms.BooleanField(label="Coluna Mês Emissão", initial=False, required=False)
     coluna_dia_emissao = forms.BooleanField(label="Coluna Dia Emissão", initial=False, required=False)
@@ -181,6 +183,11 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
                                                             required=False)
     log_nome_inclusao_documento = forms.CharField(label="Log Nome Inclusão do Documento", max_length=300,
                                                   required=False)
+    coluna_transportadora = forms.BooleanField(label="Coluna Transportadora", initial=False, required=False)
+    coluna_cobranca_frete = forms.BooleanField(label="Coluna Cobrança Frete", initial=False, required=False)
+    coluna_frete_empresa = forms.BooleanField(label="Coluna Frete Empresa", initial=False, required=False)
+    coluna_frete_destacado = forms.BooleanField(label="Coluna Frete Destacado", initial=False, required=False)
+    coluna_frete_incluso_item = forms.BooleanField(label="Coluna Frete Incluso Itens", initial=False, required=False)
 
     def get_agrupamentos_campos(self) -> dict[str, list[str]]:
         """Configura os campos que serão agrupados na visualização da pagina.
@@ -208,7 +215,9 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
                       'coluna_quantidade_documentos', 'coluna_ano_emissao', 'coluna_mes_emissao', 'coluna_dia_emissao',
                       'coluna_media_dia', 'coluna_documento', 'coluna_representante_documento', 'coluna_ano_a_ano',
                       'coluna_mes_a_mes', 'job', 'representante_documento', 'coluna_log_nome_inclusao_documento',
-                      'codigo_sql', 'log_nome_inclusao_documento'],
+                      'codigo_sql', 'log_nome_inclusao_documento', 'coluna_proporcao', 'coluna_data_emissao',
+                      'coluna_transportadora', 'coluna_cobranca_frete', 'coluna_frete_incluso_item',
+                      'coluna_frete_destacado', 'coluna_frete_empresa',],
         }
 
         return agrupamentos

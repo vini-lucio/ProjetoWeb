@@ -83,8 +83,10 @@
                                             <a target="_blank" href="{% url "analysis:grupo-economico" valor|stringformat:"d" %}">𓃑</a>
                                         {% elif chave == 'DOCUMENTO' %}
                                             {{ valor | stringformat:"d" }}
-                                        {% elif 'VALOR' in chave or 'MEDIA' in chave %}
+                                        {% elif 'VALOR' in chave or 'MEDIA' in chave or 'FRETE_DESTACADO' in chave or 'FRETE_INCLUSO_ITEM' in chave or 'FRETE_EMPRESA' in chave %}
                                             {{ valor | floatformat:2 }}
+                                        {% elif 'DATA' in chave %}
+                                            {{ valor | date:"d/m/Y" }}
                                         {% elif 'PESO_LIQUIDO' in chave %}
                                             {{ valor | floatformat:3 }}
                                         {% else %}

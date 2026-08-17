@@ -1,9 +1,10 @@
 from typing import Dict, Literal
 from django.shortcuts import render
 from django.http import HttpResponse
-from django.db.models import F, Value
-from analysis.models import PROCESSOS, MAQUINAS
+from django.db.models import F, Value, Sum
+from analysis.models import PROCESSOS, MAQUINAS, PRODUTOS
 from home.models import ProdutosFamilias
+from home.services import peso_estoque_produto_proprio_dia_especifico
 from .models import IndicadoresValores, MetasCarteiras
 from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relatorios_vendas, get_email_contatos,
                        DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
@@ -25,6 +26,7 @@ from utils.cor_rentabilidade import get_cores_rentabilidade_job
 from utils.plotly_parametros import update_layout_kwargs
 from utils.site_setup import get_site_setup
 from decimal import Decimal
+from datetime import timedelta
 import pandas as pd
 import numpy as np
 
@@ -1034,3 +1036,127 @@ def maquinas(request):
     contexto.update({'formulario': formulario})
 
     return render(request, 'dashboards/pages/maquinas.html', contexto)
+
+
+def evolucao_toneladas(request):
+    """Retorna dados para pagina de dashboard de evolução de toneladas."""
+    titulo_pagina = 'Dashboard Evolução de Toneladas'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = FormDashboardProducao()
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormDashboardProducao(request.GET)
+        if formulario.is_valid():
+            data_inicio = formulario.cleaned_data.get('inicio')
+            data_fim = formulario.cleaned_data.get('fim')
+
+            toneladas_reservadas = PRODUTOS.objects.filter(CHAVE_FAMILIA=7766).aggregate(
+                RESERVADO_TOTAL=Sum(F('ESTOQUE_RESERVADO') * F('PESO_LIQUIDO') / 1000))
+            toneladas_reservadas = float(toneladas_reservadas.get('RESERVADO_TOTAL', 0))
+
+            toneladas_faturadas = get_relatorios_vendas('faturamentos', inicio=data_inicio, fim=data_fim,
+                                                        coluna_data_emissao=True,
+                                                        coluna_toneladas_liquidas_produto_documento=True,
+                                                        incluir_sem_valor_comercial=True, cfop_baixa_estoque=True,
+                                                        familia_produto=7766)
+            dt_toneladas_faturadas = pd.DataFrame(toneladas_faturadas)
+            if not dt_toneladas_faturadas.empty:
+                dt_toneladas_faturadas = dt_toneladas_faturadas.drop(columns='VALOR_MERCADORIAS')
+                dt_toneladas_faturadas = dt_toneladas_faturadas.rename(
+                    columns={'DATA_EMISSAO': 'DATA', 'TONELADAS_LIQUIDAS_PRODUTO_DOCUMENTO': 'TONELADAS_FATURADAS'}
+                )
+
+            toneladas_embaladas = get_relatorios_producao(data_apontamento_inicio_maior_igual=data_inicio,
+                                                          data_apontamento_inicio_menor_igual=data_fim,
+                                                          coluna_data_apontamento_inicio=True,
+                                                          coluna_toneladas_apontadas_liquidas=True,
+                                                          familia_produto=7766, setor=12)
+            dt_toneladas_embaladas = pd.DataFrame(toneladas_embaladas)
+            if not dt_toneladas_embaladas.empty:
+                dt_toneladas_embaladas = dt_toneladas_embaladas.drop(columns='HORAS_APONTADAS')
+                dt_toneladas_embaladas = dt_toneladas_embaladas.rename(
+                    columns={'DATA_APONTAMENTO': 'DATA', 'TONELADAS_APONTADAS_LIQUIDAS': 'TONELADAS_EMBALADAS'}
+                )
+
+            toneladas_estoque_inicio = peso_estoque_produto_proprio_dia_especifico(
+                data_inicio - timedelta(days=1), 'TONELADAS')  # type:ignore
+            dt_toneladas_estoque_inicio = pd.DataFrame(toneladas_estoque_inicio)
+
+            toneladas_estoque_fim = peso_estoque_produto_proprio_dia_especifico(data_fim, 'TONELADAS')  # type:ignore
+            dt_toneladas_estoque_fim = pd.DataFrame(toneladas_estoque_fim)
+
+            dt_toneladas_estoque = pd.concat([dt_toneladas_estoque_inicio, dt_toneladas_estoque_fim])
+            dt_toneladas_estoque['DATA'] = dt_toneladas_estoque['DATA'].dt.strftime('%Y-%m-%d')
+
+            if not dt_toneladas_embaladas.empty and not dt_toneladas_faturadas.empty:
+                dados = pd.merge(dt_toneladas_faturadas, dt_toneladas_embaladas, 'outer', 'DATA').fillna(0)
+                dados = dados.sort_values('DATA')
+                dados['DATA'] = dados['DATA'].dt.strftime('%Y-%m-%d')
+                dados['META_TONELADAS_PRODUZIDAS'] = 6.5
+                dados['TONELADAS_FATURADAS_ACUMULADO'] = dados['TONELADAS_FATURADAS'].cumsum()
+                dados['TONELADAS_EMBALADAS_ACUMULADO'] = dados['TONELADAS_EMBALADAS'].cumsum()
+                dados['META_TONELADAS_PRODUZIDAS_ACUMULADO'] = dados['META_TONELADAS_PRODUZIDAS'].cumsum()
+
+                # Geração Grafico Estoque
+                grafico_estoque = px.bar(dt_toneladas_estoque, x='DATA', y='TONELADAS_ESTOQUE',
+                                         title='Toneladas Estoque',
+                                         text_auto=True, hover_name='DATA', width=400,
+                                         hover_data={'DATA': False, 'TONELADAS_ESTOQUE': ':,.1f', })
+                grafico_estoque.update_layout(update_layout_kwargs)
+                grafico_estoque.update_layout(dict(height=400))
+                grafico_estoque.update_xaxes(type='category')
+                grafico_estoque.update_traces(texttemplate='%{y:,.1f}')
+                grafico_estoque_html = pio.to_html(grafico_estoque, full_html=False)
+
+                # Geração Grafico Faturado X Embalado
+                grafico_faturado_embalado = px.bar(dados, x='DATA', y=['TONELADAS_FATURADAS', 'TONELADAS_EMBALADAS'],
+                                                   title='Toneladas Faturadas X Embaladas',
+                                                   text_auto=True, hover_name='DATA', barmode='group',
+                                                   labels={'variable': 'Data', 'value': 'Toneladas'},
+                                                   width=1100,
+                                                   hover_data={'DATA': False, 'variable': True, 'value': ':,.1f', }
+                                                   )
+                # grafico_faturado_embalado.add_trace(go.Scatter(
+                #     x=dados['DATA'], y=dados['META_TONELADAS_PRODUZIDAS'], name='META_TONELADAS_PRODUZIDAS',
+                #     mode='lines', line_color='black', hovertemplate='%{x}<br><br> %{y:,.1f}<extra></extra>',
+                #     opacity=0.4,
+                # ))
+                grafico_faturado_embalado.update_layout(update_layout_kwargs)
+                grafico_faturado_embalado.update_layout(dict(height=400))
+                grafico_faturado_embalado.update_xaxes(type='category')
+                grafico_faturado_embalado.update_traces(texttemplate='%{y:,.1f}')
+                grafico_faturado_embalado_html = pio.to_html(grafico_faturado_embalado, full_html=False)
+
+                # Geração Grafico Faturado X Embalado Acumulado
+                grafico_faturado_embalado_acumulado = px.bar(dados, x='DATA', y=['TONELADAS_FATURADAS_ACUMULADO',
+                                                                                 'TONELADAS_EMBALADAS_ACUMULADO'],
+                                                             title='Toneladas Faturadas X Embaladas Acumuladas',
+                                                             text_auto=True, hover_name='DATA', barmode='group',
+                                                             labels={'variable': 'Data', 'value': 'Toneladas'},
+                                                             width=1100,
+                                                             hover_data={'DATA': False,
+                                                                         'variable': True, 'value': ':,.1f', }
+                                                             )
+                # grafico_faturado_embalado_acumulado.add_trace(go.Scatter(
+                #     x=dados['DATA'], y=dados['META_TONELADAS_PRODUZIDAS_ACUMULADO'],
+                #     name='META_TONELADAS_PRODUZIDAS_ACUMULADO', mode='lines', line_color='black',
+                #     hovertemplate='%{x}<br><br> %{y:,.1f}<extra></extra>', opacity=0.4,
+                # ))
+                grafico_faturado_embalado_acumulado.update_layout(update_layout_kwargs)
+                grafico_faturado_embalado_acumulado.update_layout(dict(height=400))
+                grafico_faturado_embalado_acumulado.update_xaxes(type='category')
+                grafico_faturado_embalado_acumulado.update_traces(texttemplate='%{y:,.1f}')
+                grafico_faturado_embalado_acumulado_html = pio.to_html(grafico_faturado_embalado_acumulado,
+                                                                       full_html=False)
+
+                dados = dados.to_dict(orient='records')
+                contexto.update({'dados': dados, 'toneladas_reservadas': toneladas_reservadas,
+                                 'grafico_estoque_html': grafico_estoque_html,
+                                 'grafico_faturado_embalado_html': grafico_faturado_embalado_html,
+                                 'grafico_faturado_embalado_acumulado_html': grafico_faturado_embalado_acumulado_html})
+
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/evolucao-toneladas.html', contexto)
