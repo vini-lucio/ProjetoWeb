@@ -41,7 +41,6 @@ class DashBoardProducao():
         self.toneladas_faturadas_abc = get_relatorios_vendas(
             fonte='faturamentos', inicio=data_inicio, fim=data_fim,
             coluna_estoque_abc=True, coluna_toneladas_liquidas_produto_documento=True, familia_produto=7766,
-            cfop_baixa_estoque=True, incluir_sem_valor_comercial=True,
         )
         self.toneladas_faturadas_total = 0
         for tonelada_abc in self.toneladas_faturadas_abc:
@@ -260,6 +259,9 @@ def map_relatorio_producao_sql_string_placeholders(**kwargs_formulario):
                        'job_campo': "JOBS.DESCRICAO,", },
         'job': {'job_pesquisa': "JOBS.CODIGO = :chave_job AND", },
 
+        'coluna_data_apontamento': {'data_apontamento_campo_alias': "TRUNC(APONTAMENTOS.DATA) AS DATA,",
+                                    'data_apontamento_campo': "TRUNC(APONTAMENTOS.DATA),", },
+
         'coluna_data_apontamento_inicio': {'data_apontamento_inicio_campo_alias': "TRUNC(APONTAMENTOS.INICIO) AS DATA_APONTAMENTO,",
                                            'data_apontamento_inicio_campo': "TRUNC(APONTAMENTOS.INICIO),", },
 
@@ -275,6 +277,9 @@ def map_relatorio_producao_sql_string_placeholders(**kwargs_formulario):
         'data_apontamento_inicio_maior_igual': {'data_apontamento_inicio_maior_igual_pesquisa': "TRUNC(APONTAMENTOS.INICIO) >= :data_apontamento_inicio_maior_igual AND", },
         'data_apontamento_inicio_menor_igual': {'data_apontamento_inicio_menor_igual_pesquisa': "TRUNC(APONTAMENTOS.INICIO) <= :data_apontamento_inicio_menor_igual AND", },
 
+        'data_apontamento_maior_igual': {'data_apontamento_maior_igual_pesquisa': "TRUNC(APONTAMENTOS.DATA) >= :data_apontamento_maior_igual AND", },
+        'data_apontamento_menor_igual': {'data_apontamento_menor_igual_pesquisa': "TRUNC(APONTAMENTOS.DATA) <= :data_apontamento_menor_igual AND", },
+
         'coluna_toneladas_apontadas_liquidas': {'toneladas_apontadas_liquidas_campo_alias': "SUM(APONTAMENTOS.PRODUCAO_LIQUIDA * PRODUTOS.PESO_LIQUIDO / 1000) AS TONELADAS_APONTADAS_LIQUIDAS,", },
 
         'coluna_peso_apontado_liquido': {'peso_apontado_liquido_campo_alias': "SUM(APONTAMENTOS.PRODUCAO_LIQUIDA * PRODUTOS.PESO_LIQUIDO) AS PESO_APONTADO_LIQUIDO,", },
@@ -282,6 +287,8 @@ def map_relatorio_producao_sql_string_placeholders(**kwargs_formulario):
         'coluna_producao_liquida': {'producao_liquida_campo_alias': "SUM(APONTAMENTOS.PRODUCAO_LIQUIDA) AS PRODUCAO_LIQUIDA,", },
 
         'setor': {'setor_pesquisa': "APONTAMENTOS.CHAVE_SETOR = :chave_setor AND", },
+
+        'somente_apontamentos_efetivos': {'somente_apontamentos_efetivos_pesquisa': "APONTAMENTOS.EFETIVO = 'SIM' AND", },
 
         'coluna_produtividade': {'produtividade_campo_alias': "ROUND(SUM(APONTAMENTOS.PRODUCAO_LIQUIDA * PRODUTOS.PESO_LIQUIDO) / SUM(APONTAMENTOS.TEMPO * PROCESSOS_OPERACOES.PECAS_MINUTO * PRODUTOS.PESO_LIQUIDO) * 100, 2) * (-1) + 100 AS PRODUTIVIDADE_POR_CENTO,", },
     }
@@ -315,6 +322,8 @@ def get_relatorios_producao(**kwargs):
     codigo_sql = kwargs.get('codigo_sql')
     data_apontamento_inicio_maior_igual = kwargs.get('data_apontamento_inicio_maior_igual')
     data_apontamento_inicio_menor_igual = kwargs.get('data_apontamento_inicio_menor_igual')
+    data_apontamento_maior_igual = kwargs.get('data_apontamento_maior_igual')
+    data_apontamento_menor_igual = kwargs.get('data_apontamento_menor_igual')
     estoque_abc = kwargs.get('estoque_abc')
     grupo_produto = kwargs.get('grupo_produto')
     produto = kwargs.get('produto')
@@ -336,6 +345,12 @@ def get_relatorios_producao(**kwargs):
 
     if data_apontamento_inicio_menor_igual:
         kwargs_ora.update({'data_apontamento_inicio_menor_igual': data_apontamento_inicio_menor_igual})
+
+    if data_apontamento_maior_igual:
+        kwargs_ora.update({'data_apontamento_maior_igual': data_apontamento_maior_igual})
+
+    if data_apontamento_menor_igual:
+        kwargs_ora.update({'data_apontamento_menor_igual': data_apontamento_menor_igual})
 
     if grupo_produto:
         chave_grupo_produto = grupo_produto if isinstance(grupo_produto, int) else grupo_produto.pk
@@ -370,6 +385,7 @@ def get_relatorios_producao(**kwargs):
     sql_base = """
         SELECT
             {job_campo_alias}
+            {data_apontamento_campo_alias}
             {data_apontamento_inicio_campo_alias}
             {ano_apontamento_inicio_campo_alias}
             {mes_apontamento_inicio_campo_alias}
@@ -419,7 +435,7 @@ def get_relatorios_producao(**kwargs):
             ORDENS.CHAVE_PROCESSO = PROCESSOS.CHAVE AND
             PROCESSOS.CHAVE = PROCESSOS_OPERACOES.CHAVE_PROCESSO AND
             APONTAMENTOS.CHAVE_SETOR = PROCESSOS_OPERACOES.CHAVE_SETOR AND
-            APONTAMENTOS.CHAVE_MAQUINA = MAQUINAS.CHAVE AND
+            APONTAMENTOS.CHAVE_MAQUINA = MAQUINAS.CHAVE(+) AND
 
             {estoque_abc_pesquisa}
             {grupo_produto_pesquisa}
@@ -428,10 +444,13 @@ def get_relatorios_producao(**kwargs):
             {job_pesquisa}
             {data_apontamento_inicio_maior_igual_pesquisa}
             {data_apontamento_inicio_menor_igual_pesquisa}
+            {data_apontamento_maior_igual_pesquisa}
+            {data_apontamento_menor_igual_pesquisa}
             {setor_pesquisa}
             {familia_produto_pesquisa}
             {status_ordem_producao_em_aberto_pesquisa}
             {grupo_material_pesquisa}
+            {somente_apontamentos_efetivos_pesquisa}
 
             1 = 1
 
@@ -454,6 +473,7 @@ def get_relatorios_producao(**kwargs):
             {mes_apontamento_inicio_campo}
             {dia_apontamento_inicio_campo}
             {data_apontamento_inicio_campo}
+            {data_apontamento_campo}
 
             1
 

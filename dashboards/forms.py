@@ -151,6 +151,8 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
     coluna_quantidade = forms.BooleanField(label="Coluna Quantidade", initial=False, required=False)
     coluna_estoque_abc = forms.BooleanField(label="Coluna Estoque ABC", initial=False, required=False)
     produto_marca = forms.ModelChoiceField(marcas, label="Marca", required=False)
+    coluna_peso_liquido_produto = forms.BooleanField(label="Coluna Peso Liquido kg", help_text='no cadastro',
+                                                     initial=False, required=False)
     coluna_peso_liquido_produto_documento = forms.BooleanField(label="Coluna Peso Liquido kg", help_text='no documento',
                                                                initial=False, required=False)
 
@@ -209,7 +211,8 @@ class RelatoriosSupervisaoBaseForm(FormPeriodoInicioFimMixIn, forms.Form):
             'Sobre Produto': ['coluna_familia_produto', 'coluna_produto', 'coluna_unidade',
                               'coluna_preco_tabela_inclusao', 'coluna_preco_venda_medio', 'coluna_quantidade',
                               'coluna_estoque_abc', 'familia_produto', 'produto', 'produto_marca',
-                              'coluna_grupo_produto', 'grupo_produto', 'coluna_peso_liquido_produto_documento',],
+                              'coluna_grupo_produto', 'grupo_produto', 'coluna_peso_liquido_produto_documento',
+                              'coluna_peso_liquido_produto',],
 
             'Geral': ['coluna_job', 'coluna_rentabilidade', 'coluna_rentabilidade_valor',
                       'coluna_quantidade_documentos', 'coluna_ano_emissao', 'coluna_mes_emissao', 'coluna_dia_emissao',

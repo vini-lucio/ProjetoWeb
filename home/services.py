@@ -1083,6 +1083,30 @@ def peso_estoque_produto_proprio_dia_especifico(data, unidade: Literal['KG', 'TO
     return resultado
 
 
+# TODO: get_relatorio_xxx ou filter django
+def peso_ajustes_produto_proprio(data_inicio, data_fim, unidade: Literal['KG', 'TONELADAS']):
+    """Retorna o peso de ajustes de produto proprio no periodo e se o peso sera por kg ou tonelada"""
+    alias = unidade
+    converter = ''
+    if unidade == 'TONELADAS':
+        converter = '/ 1000'
+
+    sql = """
+        SELECT ROUND(SUM(MOVESTOQUE.QUANTIDADE * PRODUTOS.PESO_LIQUIDO * CASE WHEN MOVESTOQUE.TIPO = 'CREDITO' THEN 1 ELSE (-1) END) {converter}, 3) AS {alias}_ESTOQUE_AJUSTADO
+        FROM COPLAS.MOVESTOQUE,
+            COPLAS.PRODUTOS
+        WHERE PRODUTOS.CPROD = MOVESTOQUE.CHAVE_PRODUTO
+            AND PRODUTOS.CHAVE_FAMILIA = 7766
+            AND ORIGEM_MOVIMENTACAO IN ('INVENTARIO', 'MANUAL', 'REQ. ESTOQUE', 'REQUISICAO', 'RR')
+            AND MOVESTOQUE.DATA_MOV >= :data_inicio
+            AND MOVESTOQUE.DATA_MOV <= :data_fim
+    """.format(converter=converter, alias=alias)
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, data_inicio=data_inicio, data_fim=data_fim)
+
+    return resultado
+
+
 def insvestimento_retiradas_ano_mes_a_mes():
     """Retorna os investimentos e retiradas do periodo informado em site setup mes a mes"""
     site_setup = get_site_setup()

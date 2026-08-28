@@ -10,6 +10,14 @@
             </div>
         </div>
 
+        <div class="grid-simples">
+            <a target="_blank" href="{% url 'estoque:estoque' %}">
+                <div class="botao-div botao-escuro">
+                    Estoque
+                </div>
+            </a>
+        </div>
+
         <div class="link-conteudo link-conteudo-escuro">
 
             {% if erros %}
@@ -149,14 +157,6 @@
 
                 <div class="div-dashboard principal-escuro">
                     <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>
-                </div>
-
-                <div class="grid-simples">
-                    <a target="_blank" href="{% url 'estoque:estoque' %}">
-                        <div class="botao-div botao-escuro">
-                            Estoque
-                        </div>
-                    </a>
                 </div>
     
             {% endif %}

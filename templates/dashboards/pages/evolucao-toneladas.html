@@ -27,18 +27,47 @@
 
             {% if dados %}
 
+                <div class="grid-dashboard-2">
+                    <div class="moldura-verde-dashboard principal-escuro-2">
+                        <div>
+                            <p class="fonte-verde">Toneladas Reservadas</p>
+                        </div>
+                        <div class="grid principal-escuro-2">
+                            <div>
+                                <p class="fonte-verde"><spam class="fonte-muito-pequena-dashboard">* hoje ({% now "d/m/Y" %})</spam></p>
+                                <p>{{ toneladas_reservadas | floatformat:1 }}</p>
+                            </div>
+                            {% comment %} <div>
+                                <p class="fonte-verde">Faturadas</p>
+                                <p>{{ total_toneladas_faturadas | floatformat:1 }}</p>
+                            </div>
+                            <div>
+                                <p class="fonte-verde">Embaladas</p>
+                                <p>{{ total_toneladas_embaladas | floatformat:1 }}</p>
+                            </div> {% endcomment %}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid">
                     <div class="moldura-verde-dashboard grid principal-claro">
+                        <div>
+                            {{ grafico_variacao_estoque_html | safe}}
+                            <p>Ajustes: inventarios, movimentação manual, requisição de estoque, requisição de produção e entradas pelo RR</p>
+                            <p>Variancia: possiveis erros ou arredondamento</p>
+                        </div>
+                    </div>
+                    {% comment %} <div class="moldura-verde-dashboard grid principal-claro">
                         <div>
                             {{ grafico_estoque_html | safe}}
                             <p>Toneladas Reservadas: {{ toneladas_reservadas | floatformat:1 }} <spam class="fonte-muito-pequena-dashboard">* hoje ({% now "d/m/Y" %})</spam></p>
                         </div>
-                    </div>
-                    <div class="moldura-verde-dashboard grid principal-claro">
+                    </div> {% endcomment %}
+                    {% comment %} <div class="moldura-verde-dashboard grid principal-claro">
                         <div>
                             {{ grafico_faturado_embalado_html | safe}}
                         </div>
-                    </div>
+                    </div> {% endcomment %}
                     <div class="moldura-verde-dashboard grid principal-claro">
                         <div>
                             {{ grafico_faturado_embalado_acumulado_html | safe}}
