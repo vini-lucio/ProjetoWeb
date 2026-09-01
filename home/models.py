@@ -186,6 +186,8 @@ class SiteSetup(models.Model):
     dias_uteis_mes_reais = models.DecimalField("Dias Uteis Reais", default=0.00,  # type:ignore
                                                max_digits=5, decimal_places=2)
     meta_diaria = models.DecimalField("Meta Diaria", default=0.00, max_digits=15, decimal_places=2)  # type:ignore
+    meta_diaria_toneladas_produzidas = models.DecimalField("Meta Diaria Toneladas Produzidas", max_digits=15,
+                                                           decimal_places=4, default=0.00)  # type:ignore
     despesa_administrativa_fixa = models.DecimalField("Despesa Administrativa Fixa %", default=0.00,  # type:ignore
                                                       max_digits=5, decimal_places=2)
     rentabilidade_verde = models.DecimalField("Rentabilidade Verde %", default=0.00,   # type:ignore

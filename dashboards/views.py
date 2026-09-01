@@ -1096,10 +1096,15 @@ def evolucao_toneladas(request):
             toneladas_ajustes = toneladas_ajustes if toneladas_ajustes else 0
 
             if not dt_toneladas_embaladas.empty and not dt_toneladas_faturadas.empty:
+                site_setup = get_site_setup()
+                meta_diaria_toneladas_produzidas = 0
+                if site_setup:
+                    meta_diaria_toneladas_produzidas = float(site_setup.meta_diaria_toneladas_produzidas)
+
                 dados = pd.merge(dt_toneladas_faturadas, dt_toneladas_embaladas, 'outer', 'DATA').fillna(0)
                 dados = dados.sort_values('DATA')
                 dados['DATA'] = dados['DATA'].dt.strftime('%Y-%m-%d')
-                dados['META_TONELADAS_PRODUZIDAS'] = 6.5
+                dados['META_TONELADAS_PRODUZIDAS'] = meta_diaria_toneladas_produzidas
                 dados['TONELADAS_FATURADAS_ACUMULADO'] = dados['TONELADAS_FATURADAS'].cumsum()
                 dados['TONELADAS_APONTADAS_ACUMULADO'] = dados['TONELADAS_APONTADAS'].cumsum()
                 dados['META_TONELADAS_PRODUZIDAS_ACUMULADO'] = dados['META_TONELADAS_PRODUZIDAS'].cumsum()
@@ -1188,11 +1193,11 @@ def evolucao_toneladas(request):
                                                              )
 
                 # Linha Meta
-                # grafico_faturado_embalado_acumulado.add_trace(go.Scatter(
-                #     x=dados['DATA'], y=dados['META_TONELADAS_PRODUZIDAS_ACUMULADO'],
-                #     name='META_TONELADAS_PRODUZIDAS_ACUMULADO', mode='lines', line_color='black',
-                #     hovertemplate='%{x}<br><br> %{y:,.1f}<extra></extra>', opacity=0.4,
-                # ))
+                grafico_faturado_embalado_acumulado.add_trace(go.Scatter(
+                    x=dados['DATA'], y=dados['META_TONELADAS_PRODUZIDAS_ACUMULADO'],
+                    name='META_TONELADAS_PRODUZIDAS_ACUMULADO', mode='lines', line_color='black',
+                    hovertemplate='%{x}<br><br> %{y:,.1f}<extra></extra>', opacity=0.4,
+                ))
 
                 grafico_faturado_embalado_acumulado.update_layout(update_layout_kwargs)
                 grafico_faturado_embalado_acumulado.update_layout(height=400)
