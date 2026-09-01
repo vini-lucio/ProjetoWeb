@@ -26,9 +26,9 @@
             <a target="_blank" href="{% url "dashboards:maquinas" %}">
                 <div class="botao-div botao-escuro">Dashboard Maquinas</div>
             </a>
-            {% comment %} <a target="_blank" href="{% url "dashboards:evolucao-toneladas" %}">
+            <a target="_blank" href="{% url "dashboards:evolucao-toneladas" %}">
                 <div class="botao-div botao-escuro">Dashboard Evolução de Toneladas</div>
-            </a> {% endcomment %}
+            </a>
         </div>
 
         <div class="link-conteudo link-conteudo-escuro">
@@ -44,7 +44,7 @@
                     <div class="grid-dashboard-2">
                         <div class="moldura-verde-dashboard principal-escuro-2">
                             <div>
-                                <p class="fonte-verde">Toneladas Transformadas</p>
+                                <p class="fonte-verde">Toneladas Transformadas <span {% if dados.produtividade > 0 %}class="fonte-vermelho"{% endif %}>(Prod. {{ dados.produtividade | floatformat:1 }}%</span>)</p>
                                 <p class="fonte-muito-pequena-dashboard">* embalado no periodo</p>
                             </div>
                             <div class="grid principal-escuro-2">

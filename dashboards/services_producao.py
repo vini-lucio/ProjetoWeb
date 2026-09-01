@@ -19,6 +19,13 @@ class DashBoardProducao():
         :data_inicio [Date]: com a data inicial do periodo
         :data_fim [Date]: com a data final do periodo
         """
+        # Produtividade Total
+        produtividade = get_relatorios_producao(
+            data_apontamento_inicio_maior_igual=data_inicio, data_apontamento_inicio_menor_igual=data_fim,
+            coluna_produtividade=True, job=22, setor=3, familia_produto=7766,
+        )
+        self.produtividade = produtividade[0]['PRODUTIVIDADE_POR_CENTO'] if produtividade else 0
+
         # Toneladas Transformadas
         self.toneladas_transformadas_abc = get_relatorios_producao(
             data_apontamento_inicio_maior_igual=data_inicio, data_apontamento_inicio_menor_igual=data_fim,
