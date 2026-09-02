@@ -1068,6 +1068,18 @@ def evolucao_toneladas(request):
                     columns={'DATA_EMISSAO': 'DATA', 'TONELADAS_LIQUIDAS_PRODUTO': 'TONELADAS_FATURADAS'}
                 )
 
+            toneladas_vendidas = get_relatorios_vendas('pedidos', inicio=data_inicio, fim=data_fim,
+                                                       coluna_data_emissao=True,
+                                                       coluna_toneladas_liquidas_produto=True,
+                                                       incluir_sem_valor_comercial=True, cfop_baixa_estoque=True,
+                                                       familia_produto=7766)
+            dt_toneladas_vendidas = pd.DataFrame(toneladas_vendidas)
+            if not dt_toneladas_vendidas.empty:
+                dt_toneladas_vendidas = dt_toneladas_vendidas.drop(columns='VALOR_MERCADORIAS')
+                dt_toneladas_vendidas = dt_toneladas_vendidas.rename(
+                    columns={'DATA_EMISSAO': 'DATA', 'TONELADAS_LIQUIDAS_PRODUTO': 'TONELADAS_VENDIDAS'}
+                )
+
             # Possiveis diferenças de peso em produtos cadastrados com UN e MI, setor do apontamento ou produtos que usam outros produtos acabados (ex: PS, PPC)
             toneladas_embaladas = get_relatorios_producao(data_apontamento_maior_igual=data_inicio,
                                                           data_apontamento_menor_igual=data_fim,
@@ -1102,16 +1114,18 @@ def evolucao_toneladas(request):
                     meta_diaria_toneladas_produzidas = float(site_setup.meta_diaria_toneladas_produzidas)
 
                 dados = pd.merge(dt_toneladas_faturadas, dt_toneladas_embaladas, 'outer', 'DATA').fillna(0)
+                dados = pd.merge(dados, dt_toneladas_vendidas, 'outer', 'DATA').fillna(0)
                 dados = dados.sort_values('DATA')
                 dados['DATA'] = dados['DATA'].dt.strftime('%Y-%m-%d')
                 dados['META_TONELADAS_PRODUZIDAS'] = meta_diaria_toneladas_produzidas
-                dados['TONELADAS_FATURADAS_ACUMULADO'] = dados['TONELADAS_FATURADAS'].cumsum()
-                dados['TONELADAS_APONTADAS_ACUMULADO'] = dados['TONELADAS_APONTADAS'].cumsum()
-                dados['META_TONELADAS_PRODUZIDAS_ACUMULADO'] = dados['META_TONELADAS_PRODUZIDAS'].cumsum()
+                dados['Toneladas Faturadas ac.'] = dados['TONELADAS_FATURADAS'].cumsum()
+                dados['Toneladas Apontadas ac.'] = dados['TONELADAS_APONTADAS'].cumsum()
+                dados['Toneladas Vendidas ac.'] = dados['TONELADAS_VENDIDAS'].cumsum()
+                dados['Meta Toneladas Faturadas ac.'] = dados['META_TONELADAS_PRODUZIDAS'].cumsum()
                 dados['VARIACAO'] = dados['TONELADAS_APONTADAS'] - dados['TONELADAS_FATURADAS']
 
-                total_toneladas_faturadas = float(dados.iloc[-1]['TONELADAS_FATURADAS_ACUMULADO'])
-                total_toneladas_embaladas = float(dados.iloc[-1]['TONELADAS_APONTADAS_ACUMULADO'])
+                total_toneladas_faturadas = float(dados.iloc[-1]['Toneladas Faturadas ac.'])
+                total_toneladas_embaladas = float(dados.iloc[-1]['Toneladas Apontadas ac.'])
 
                 # Geração grafico variação de estoque waterfall
                 x_variacao_inicio = dt_toneladas_estoque.iloc[0]['DATA']
@@ -1182,8 +1196,8 @@ def evolucao_toneladas(request):
                 # grafico_faturado_embalado_html = pio.to_html(grafico_faturado_embalado, full_html=False)
 
                 # Geração Grafico Faturado X Embalado Acumulado
-                grafico_faturado_embalado_acumulado = px.bar(dados, x='DATA', y=['TONELADAS_APONTADAS_ACUMULADO',
-                                                                                 'TONELADAS_FATURADAS_ACUMULADO'],
+                grafico_faturado_embalado_acumulado = px.bar(dados, x='DATA', y=['Toneladas Apontadas ac.',
+                                                                                 'Toneladas Faturadas ac.'],
                                                              title='Toneladas Faturadas X Apontadas Acumuladas',
                                                              text_auto=True, hover_name='DATA', barmode='group',
                                                              labels={'variable': 'Data', 'value': 'Toneladas'},
@@ -1194,9 +1208,16 @@ def evolucao_toneladas(request):
 
                 # Linha Meta
                 grafico_faturado_embalado_acumulado.add_trace(go.Scatter(
-                    x=dados['DATA'], y=dados['META_TONELADAS_PRODUZIDAS_ACUMULADO'],
-                    name='META_TONELADAS_PRODUZIDAS_ACUMULADO', mode='lines', line_color='black',
+                    x=dados['DATA'], y=dados['Meta Toneladas Faturadas ac.'],
+                    name='Meta Toneladas Faturadas ac.', mode='lines', line_color='black',
                     hovertemplate='%{x}<br><br> %{y:,.1f}<extra></extra>', opacity=0.4,
+                ))
+
+                # Linha Toneladas Vendidas
+                grafico_faturado_embalado_acumulado.add_trace(go.Scatter(
+                    x=dados['DATA'], y=dados['Toneladas Vendidas ac.'],
+                    name='Toneladas Vendidas ac.', mode='lines', line_color='orange',
+                    hovertemplate='%{x}<br><br> %{y:,.1f}<extra></extra>',
                 ))
 
                 grafico_faturado_embalado_acumulado.update_layout(update_layout_kwargs)
