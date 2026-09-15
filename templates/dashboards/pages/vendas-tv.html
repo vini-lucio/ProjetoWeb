@@ -2,8 +2,8 @@
 
 {% block conteudo %}
 
-    {% if dados.confere_pedidos or dados.confere_inscricoes_estaduais %}
-        <section class="principal principal-escuro">
+    <section class="principal principal-escuro">
+        {% if dados.confere_pedidos or dados.confere_inscricoes_estaduais %}
             <div class="dashboard-vendas-conteudo dashboard-vendas-conteudo-escuro">
                 <div class="moldura-vermelha-dashboard div-dashboard-erros principal-escuro-2">
                     <div class="div-dashboard">
@@ -17,10 +17,8 @@
                     {% endfor %}
                 </div>
             </div>
-        </section>
-    {% endif %}
+        {% endif %}
 
-    <section class="principal principal-escuro">
         <div class="dashboard-vendas-conteudo">
 
             <div class="grid-dashboard-2">

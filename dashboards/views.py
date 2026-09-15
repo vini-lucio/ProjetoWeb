@@ -10,12 +10,13 @@ from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relator
                        DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
                        get_relatorios_financeiros, confere_inscricoes_estaduais, dias_decorridos)
 from .services_estoque import DashBoardEstoque
+from .services_pcp import DashBoardPcp
 from .services_marketing import DashBoardMarketing
 from .services_producao import DashBoardProducao, get_relatorios_producao
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
                     FormDashboardVendasCarteiras, FormAnaliseOrcamentos, FormEventos, FormListagensVendas,
                     FormIndicadores, RelatoriosFinanceirosForm, FormDashboardMarketing, FormDashboardProducao,
-                    FormDashboardMaquinas)
+                    FormDashboardMaquinas, FormDashboardPcp)
 import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
@@ -1240,3 +1241,26 @@ def evolucao_toneladas(request):
     contexto.update({'formulario': formulario})
 
     return render(request, 'dashboards/pages/evolucao-toneladas.html', contexto)
+
+
+def pcp(request):
+    """Retorna dados para pagina de dashboard de PCP."""
+    titulo_pagina = 'Dashboard PCP'
+
+    contexto: dict = {'titulo_pagina': titulo_pagina, }
+
+    formulario = FormDashboardPcp()
+
+    if request.method == 'GET' and request.GET:
+        formulario = FormDashboardPcp(request.GET)
+        if formulario.is_valid():
+            familia_produto = formulario.cleaned_data.get('familia_produto')
+            local = formulario.cleaned_data.get('local')
+
+            dados = DashBoardPcp(familia_produto.CHAVE, local)  # type:ignore
+
+            contexto.update({'dados': dados, 'local': local})
+
+    contexto.update({'formulario': formulario})
+
+    return render(request, 'dashboards/pages/pcp.html', contexto)

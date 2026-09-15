@@ -1,0 +1,135 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal principal-escuro">
+
+        <div class="link-conteudo link-conteudo-escuro">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            <form id="form" method="get">
+                <div class="grid-simples link-conteudo link-conteudo-escuro">
+                    {{ formulario.as_p }}
+                </div>
+                <div class="grid-simples">
+                    <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="grid link-conteudo link-conteudo-escuro">
+            <a target="_blank" href="{% url "dashboards:estoque" %}">
+                <div class="botao-div botao-escuro">Dashboard Estoque</div>
+            </a>
+            <a target="_blank" href="{% url "dashboards:maquinas" %}">
+                <div class="botao-div botao-escuro">Dashboard Maquinas</div>
+            </a>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if dados %}
+
+                <div class="principal-escuro">
+                    <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>
+                </div>
+
+                {% if dados.pedidos_estoque_negativo %}
+                    <div class="link-conteudo link-conteudo-escuro moldura-verde-dashboard principal-escuro-2">
+                        <div>
+                            <p class="fonte-verde">Prioridade Apontamento</p>
+                        </div>
+                        <div class="tabela-simples">
+                            <table>
+                                <tr class="principal-claro">
+                                    <th>Produto</th>
+                                    <th>Pedido</th>
+                                    <th>Quantidade</th>
+                                    <th>Estoque Atual</th>
+                                    <th>Estoque Disponivel</th>
+                                    <th>A Embalar</th>
+                                    <th>Data Entrega</th>
+                                </tr>
+                                {% for pedido in dados.pedidos_estoque_negativo %}
+                                    <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %} {% if pedido.CICLO > pedido.CICLO_PADRAO %}fonte-vermelho{% endif %}">
+                                        <td>{{ pedido.PRODUTO }}</td>
+                                        <td>{{ pedido.PEDIDO | stringformat:"d" }}</td>
+                                        <td>{{ pedido.QUANTIDADE | floatformat:3 }}</td>
+                                        <td>{{ pedido.ESTOQUE_ATUAL | floatformat:3 }}</td>
+                                        <td>{{ pedido.ESTOQUE_DISPONIVEL | floatformat:3 }}</td>
+                                        <td>{{ pedido.A_EMBALAR | floatformat:3 }}</td>
+                                        <td>{{ pedido.DATA_ENTREGA | date:"d/m/Y" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if dados.demanda %}
+                    <br>
+                    <div class="moldura-verde-dashboard grid principal-claro">
+                        <div>
+                            <p class="fonte-cinza" style="background-color: var(--roxo-rentabilidade);">Estoque Negativo</p>
+                        </div>
+                        <div>
+                            <p class="fonte-cinza" style="background-color: var(--vermelho-rentabilidade);">Estoque Critico</p>
+                        </div>
+                        <div>
+                            <p class="fonte-cinza" style="background-color: var(--amarelo-rentabilidade);">Estoque Baixo</p>
+                        </div>
+                        <div>
+                            <p class="fonte-cinza" style="background-color: var(--verde-rentabilidade);">Estoque OK</p>
+                        </div>
+                        <div>
+                            <p class="fonte-cinza" style="background-color: var(--roxo-rentabilidade-2);">Estoque Excesso</p>
+                        </div>
+                    </div>
+                    <br>
+
+                    <div class="link-conteudo link-conteudo-escuro moldura-verde-dashboard principal-escuro-2">
+                        <div>
+                            <p class="fonte-verde">Demanda {{ local }}</p>
+                        </div>
+                        <div class="tabela-simples">
+                            <table>
+                                <tr class="principal-claro">
+                                    <th>ABC</th>
+                                    <th>Produto</th>
+                                    <th>Disponibilidade</th>
+                                </tr>
+                                {% for produto in dados.demanda %}
+                                    <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
+                                        <td>{{ produto.ABC }}</td>
+                                        <td>
+                                            <span class="azul-negrito">{{ produto.CODIGO }}</span>
+                                            <br>
+                                            <span class="azul-negrito">A Produzir:</span> {{ produto.A_PRODUZIR | floatformat:3 }} {{ produto.UNIDADE }}{% if produto.HORAS_UTEIS_PRODUCAO %} ({{ produto.HORAS_UTEIS_PRODUCAO | floatformat:2 }} horas){% endif %}
+                                            <br>
+                                            <span class="azul-negrito">Demanda:</span> {{ produto.QUANTIDADE_MEDIANA | floatformat:3 }} {{ produto.UNIDADE }}
+                                        </td>
+                                        <td class="fonte-cinza" style="background-color: var({% if produto.STATUS == '0 NEGATIVO URGENTE ENTRAR EM MAQUINA' %}--roxo-rentabilidade{% elif produto.STATUS == '1 URGENTE ENTRAR EM MAQUINA' %}--vermelho-rentabilidade{% elif produto.STATUS == '2 ENTRAR EM MAQUINA' %}--amarelo-rentabilidade{% elif produto.ESTOQUE_DISPONIVEL > produto.QUANTIDADE_MEDIANA %}--roxo-rentabilidade-2{% else %}--verde-rentabilidade{% endif %});">
+                                            {{ produto.DEMANDA_DISPONIVEL | floatformat:2 }}%
+                                            <br>
+                                            ({{ produto.ESTOQUE_DISPONIVEL | floatformat:3 }} {{ produto.UNIDADE }})
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

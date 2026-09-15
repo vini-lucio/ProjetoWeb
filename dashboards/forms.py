@@ -9,6 +9,19 @@ from utils.data_hora_atual import hoje_as_yyyymmdd, hoje
 from datetime import date, timedelta
 
 
+class FormDashboardPcp(forms.Form):
+    familias_produtos = FAMILIA_PRODUTOS.objects.all().order_by('FAMILIA')
+    familia_padrao = familias_produtos.filter(CHAVE=7766).first()
+
+    locais = {
+        'Em Estoque': 'Em Estoque',
+        'Em Maquina': 'Em Maquina',
+    }
+
+    familia_produto = forms.ModelChoiceField(familias_produtos, label="Familia", initial=familia_padrao)
+    local = forms.ChoiceField(label="Local", choices=locais, initial='Em Estoque')  # type: ignore
+
+
 class FormDashboardProducao(FormPeriodoMesAtualMixIn, forms.Form):
     ...
 
