@@ -1,3 +1,4 @@
+from typing import Literal
 from analysis.models import PEDIDOS_ITENS
 from .services_producao import get_relatorios_producao
 from django.db.models import F
@@ -21,46 +22,48 @@ class DashBoardPcp():
         ).exclude(CHAVE_PEDIDO__STATUS='LIQUIDADO').order_by('DATA_ENTREGA')
         dt_pedidos_estoque_negativo = pd.DataFrame(pedidos_estoque_negativo)
 
+        injetado_aberto = get_relatorios_producao(status_ordem_producao_em_aberto=True,
+                                                  coluna_producao_liquida=True, coluna_produto=True,
+                                                  familia_produto=7766, setor=3)
+        dt_injetado_aberto = pd.DataFrame(injetado_aberto)
+        dt_injetado_aberto = dt_injetado_aberto.drop(columns=['HORAS_APONTADAS'])
+        dt_injetado_aberto = dt_injetado_aberto.rename(columns={'PRODUCAO_LIQUIDA': 'INJETADO'})
+
+        embalado_aberto = get_relatorios_producao(status_ordem_producao_em_aberto=True,
+                                                  coluna_producao_liquida=True, coluna_produto=True,
+                                                  familia_produto=7766, setor=12)
+        dt_embalado_aberto = pd.DataFrame(embalado_aberto)
+        dt_embalado_aberto = dt_embalado_aberto.drop(columns=['HORAS_APONTADAS'])
+        dt_embalado_aberto = dt_embalado_aberto.rename(columns={'PRODUCAO_LIQUIDA': 'EMBALADO'})
+
+        # TODO: trocar a embalar quando implementar novo sistema de embalagem?
+        dt_a_embalar = pd.merge(dt_injetado_aberto, dt_embalado_aberto, 'left', 'PRODUTO').fillna(0)
+        dt_a_embalar['A_EMBALAR'] = dt_a_embalar['INJETADO'] - dt_a_embalar['EMBALADO']
+
+        self.demanda = demanda_produtos(chave_familia_produto, local)
+
         if not dt_pedidos_estoque_negativo.empty:
-            injetado_aberto = get_relatorios_producao(status_ordem_producao_em_aberto=True,
-                                                      coluna_producao_liquida=True, coluna_produto=True,
-                                                      familia_produto=7766, setor=3)
-            dt_injetado_aberto = pd.DataFrame(injetado_aberto)
-            dt_injetado_aberto = dt_injetado_aberto.drop(columns=['HORAS_APONTADAS'])
-            dt_injetado_aberto = dt_injetado_aberto.rename(columns={'PRODUCAO_LIQUIDA': 'INJETADO'})
-
-            embalado_aberto = get_relatorios_producao(status_ordem_producao_em_aberto=True,
-                                                      coluna_producao_liquida=True, coluna_produto=True,
-                                                      familia_produto=7766, setor=12)
-            dt_embalado_aberto = pd.DataFrame(embalado_aberto)
-            dt_embalado_aberto = dt_embalado_aberto.drop(columns=['HORAS_APONTADAS'])
-            dt_embalado_aberto = dt_embalado_aberto.rename(columns={'PRODUCAO_LIQUIDA': 'EMBALADO'})
-
-            # TODO: trocar a embalar quando implementar novo sistema de embalagem?
-            dt_a_embalar = pd.merge(dt_injetado_aberto, dt_embalado_aberto, 'left', 'PRODUTO').fillna(0)
-            dt_a_embalar['A_EMBALAR'] = dt_a_embalar['INJETADO'] - dt_a_embalar['EMBALADO']
-
             dt_pedidos_estoque_negativo = pd.merge(dt_pedidos_estoque_negativo, dt_a_embalar,
                                                    'left', 'PRODUTO').fillna(0)
-
             self.pedidos_estoque_negativo = dt_pedidos_estoque_negativo.to_dict(orient='records')
-
-            self.demanda = demanda_produtos(chave_familia_produto, local)
 
 
 # TODO: get_relatorio_xxx ou filter django
-def demanda_produtos(chave_familia_produto, local) -> list | None:
+# TODO: levar em consideração o espaço fisico dos racks e porta pallets?
+def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'Em Maquina'] | None, chave_analysis_produto: int | None = None) -> list | None:
     """Retorna a demanda a ser produzida com prioridades.
 
     Parametros:
     -----------
     :chave_familia_produto [int]: com a chave da familia de produtos a ser filtrada.
-    :local [str]: com a local a pesquisar produtos 'Em Estoque' ou 'Em Maquina'.
+    :local [str | None]: com a local a pesquisar produtos 'Em Estoque' ou 'Em Maquina'. None para ignorar o local.
+    :chave_analysis_produto [int | None, default None]: com a chave analysis para buscar produto especifico.
 
     Retorno:
     --------
     :list[dict]: com a demanda de produtos."""
     filtro_op = ''
+    filtro_produto = ''
     order_by = """
         ORDER BY STATUS,
             CASE
@@ -87,13 +90,17 @@ def demanda_produtos(chave_familia_produto, local) -> list | None:
                     P DESC
             """
 
-        filtro_op = """
-            AND PRODUTOS.CPROD {em_maquina} IN (
-                SELECT DISTINCT CHAVE_PRODUTO
-                FROM COPLAS.ORDENS
-                WHERE STATUS NOT IN ('FECHADA', 'CANCELADA')
-            )
-        """.format(em_maquina=em_maquina)
+        if local:
+            filtro_op = """
+                AND PRODUTOS.CPROD {em_maquina} IN (
+                    SELECT DISTINCT CHAVE_PRODUTO
+                    FROM COPLAS.ORDENS
+                    WHERE STATUS NOT IN ('FECHADA', 'CANCELADA')
+                )
+            """.format(em_maquina=em_maquina)
+
+    if chave_analysis_produto:
+        filtro_produto = f"AND PRODUTOS.CPROD = {chave_analysis_produto}"
 
     sql = """
         SELECT CASE
@@ -106,6 +113,7 @@ def demanda_produtos(chave_familia_produto, local) -> list | None:
             ABC,
             IND,
             CODIGO,
+            CPROD,
             UNIDADE,
             QUANTIDADE_MEDIANA_SEM_0 AS QUANTIDADE_MEDIANA,
             ESTOQUE_ATUAL,
@@ -156,6 +164,7 @@ def demanda_produtos(chave_familia_produto, local) -> list | None:
                 SELECT PERIODO.ABC,
                     PERIODO.IND,
                     PERIODO.CODIGO,
+                    PERIODO.CPROD,
                     PERIODO.ESTOQUE_ATUAL,
                     PERIODO.ESTOQUE_DISPONIVEL,
                     PERIODO.ESTOQUE_RESERVADO,
@@ -192,6 +201,7 @@ def demanda_produtos(chave_familia_produto, local) -> list | None:
                                 WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTRATEGICO%' THEN 'ESTRATEGICO'
                             END AS ESTRATEGICO,
                             PRODUTOS.CODIGO,
+                            PRODUTOS.CPROD,
                             PRODUTOS.ESTOQUE_ATUAL,
                             PRODUTOS.ESTOQUE_DISPONIVEL,
                             PRODUTOS.ESTOQUE_RESERVADO,
@@ -254,10 +264,12 @@ def demanda_produtos(chave_familia_produto, local) -> list | None:
                             AND PRODUTOS.CODIGO NOT LIKE 'MA500-35  - _,_%'
                             AND PRODUTOS.CODIGO NOT LIKE 'TRY-OUT'
                             AND PRODUTOS.CHAVE_GRUPO NOT IN (10819, 12217)
+                            {filtro_produto}
                             {filtro_op}
                     ) PERIODO,
                     (
                         SELECT PRODUTOS.CODIGO,
+                            PRODUTOS.CPROD,
                             EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) || '-' || EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS MES_ANO,
                             SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE,
                             UNIDADES.UNIDADE
@@ -282,10 +294,12 @@ def demanda_produtos(chave_familia_produto, local) -> list | None:
                             AND PRODUTOS.CODIGO NOT LIKE 'MA500-35  - _,_%'
                             AND PRODUTOS.CODIGO NOT LIKE 'TRY-OUT'
                             AND PRODUTOS.CHAVE_GRUPO NOT IN (10819, 12217)
+                            {filtro_produto}
                             {filtro_op}
                             AND NOTAS.DATA_EMISSAO >= TRUNC(SYSDATE, 'MM') - INTERVAL '12' MONTH
                             AND NOTAS.DATA_EMISSAO <= LAST_DAY(TRUNC(SYSDATE, 'MM') - INTERVAL '1' MONTH)
                         GROUP BY PRODUTOS.CODIGO,
+                            PRODUTOS.CPROD,
                             EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) || '-' || EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO),
                             UNIDADES.UNIDADE
                     ) MED
@@ -295,6 +309,7 @@ def demanda_produtos(chave_familia_produto, local) -> list | None:
                     PERIODO.IND,
                     PERIODO.ESTRATEGICO,
                     PERIODO.CODIGO,
+                    PERIODO.CPROD,
                     PERIODO.ESTOQUE_ATUAL,
                     PERIODO.ESTOQUE_DISPONIVEL,
                     PERIODO.ESTOQUE_RESERVADO,
@@ -360,6 +375,7 @@ def demanda_produtos(chave_familia_produto, local) -> list | None:
                                             AND PRODUTOS.CODIGO NOT LIKE '%AMOSTRA%'
                                             AND PRODUTOS.CODIGO NOT LIKE 'ZKIT%'
                                             AND PRODUTOS.CODIGO NOT LIKE 'KIT%'
+                                            {filtro_produto}
                                     ) PRODUTOS
                             ) PERIODO,
                             (
@@ -382,6 +398,7 @@ def demanda_produtos(chave_familia_produto, local) -> list | None:
                                             AND PRODUTOS.CODIGO NOT LIKE '%AMOSTRA%'
                                             AND PRODUTOS.CODIGO NOT LIKE 'ZKIT%'
                                             AND PRODUTOS.CODIGO NOT LIKE 'KIT%'
+                                            {filtro_produto}
                                     ) PRODUTOS,
                                     COPLAS.NOTAS,
                                     COPLAS.NOTAS_ITENS
@@ -406,9 +423,66 @@ def demanda_produtos(chave_familia_produto, local) -> list | None:
         {order_by}
     """
 
-    sql = sql.format(filtro_op=filtro_op, order_by=order_by)
+    sql = sql.format(filtro_op=filtro_op, order_by=order_by, filtro_produto=filtro_produto)
 
     resultado = executar_oracle(sql, exportar_cabecalho=True, chave_familia_produto=chave_familia_produto)
+
+    if not resultado:
+        return []
+
+    return resultado
+
+
+# TODO: get_relatorio_xxx ou filter django
+def quantidade_produto_12_meses(chave_analysis_produto: int) -> list | None:
+    """Retorna a quantidade vendida do produto nos ultimos 12 meses mes a mes.
+
+    Parametros:
+    -----------
+    :chave_analysis_produto [int]: com a chave analysis para buscar produto especifico.
+
+    Retorno:
+    --------
+    :list[dict]: com a quantidade vendida do produto."""
+    sql = """
+        SELECT PERIODO.ANO_MES,
+            COALESCE(MED.QUANTIDADE, 0) AS QUANTIDADE
+        FROM (
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-12' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL UNION ALL
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-11' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL UNION ALL
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-10' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL UNION ALL
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-9' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL UNION ALL
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-8' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL UNION ALL
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-7' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL UNION ALL
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-6' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL UNION ALL
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-5' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL UNION ALL
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-4' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL UNION ALL
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-3' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL UNION ALL
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-2' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL UNION ALL
+                SELECT TO_CHAR(TRUNC(SYSDATE, 'MM') + INTERVAL '-1' MONTH, 'YYYY-MM') AS ANO_MES FROM DUAL
+            ) PERIODO,
+            (
+                SELECT PRODUTOS.CODIGO,
+                    TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM') AS ANO_MES,
+                    SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE
+                FROM COPLAS.NOTAS,
+                    COPLAS.NOTAS_ITENS,
+                    COPLAS.PRODUTOS
+                WHERE NOTAS.CHAVE = NOTAS_ITENS.CHAVE_NOTA
+                    AND NOTAS_ITENS.CHAVE_PRODUTO = PRODUTOS.CPROD
+                    AND NOTAS.VALOR_COMERCIAL = 'SIM'
+                    AND NOTAS.ESPECIE = 'S'
+                    AND PRODUTOS.CPROD = :chave_analysis_produto
+                    AND NOTAS.DATA_EMISSAO >= TRUNC(SYSDATE, 'MM') - INTERVAL '12' MONTH
+                    AND NOTAS.DATA_EMISSAO <= LAST_DAY(TRUNC(SYSDATE, 'MM') - INTERVAL '1' MONTH)
+                GROUP BY PRODUTOS.CODIGO,
+                    TO_CHAR(NOTAS.DATA_EMISSAO, 'YYYY-MM')
+            ) MED
+        WHERE PERIODO.ANO_MES = MED.ANO_MES(+)
+        ORDER BY PERIODO.ANO_MES
+    """
+
+    resultado = executar_oracle(sql, exportar_cabecalho=True, chave_analysis_produto=chave_analysis_produto)
 
     if not resultado:
         return []

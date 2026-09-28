@@ -1,0 +1,129 @@
+{% extends "home/base.html" %}
+
+{% block conteudo %}
+
+    <section class="principal principal-escuro">
+
+        <div class="link-conteudo link-conteudo-escuro">
+            <div class="titulo">
+                <h1>{{  titulo_pagina  }}</h1>
+            </div>
+
+            {% comment %} <form id="form" method="get">
+                <div class="grid-simples link-conteudo link-conteudo-escuro">
+                    {{ formulario.as_p }}
+                </div>
+                <div class="grid-simples">
+                    <button class="botao botao-escuro" name="atualizar-submit" type="submit">Atualizar</button>
+                </div>
+            </form> {% endcomment %}
+
+            <div class="grid link-conteudo link-conteudo-escuro">
+                <a target="_blank" href="{% url "dashboards:maquinas" %}?inicio={{ data_inicio | date:"Y-m-d" }}&fim={{ data_fim | date:"Y-m-d" }}&produto={{ demanda.CPROD | stringformat:"d" }}&atualizar-submit=">
+                    <div class="botao-div botao-escuro">Maquinas {{ demanda.CODIGO }}</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="link-conteudo link-conteudo-escuro">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if demanda %}
+
+                <div class="grid centralizar">
+
+                    <div class="link-conteudo link-conteudo-escuro moldura-verde-dashboard principal-escuro-2">
+                        <div class="grid centralizar">
+                            <div>
+                                <p class="fonte-verde">ABC</p>
+                                <p>{{ demanda.ABC }}</p>
+                            </div>
+                            <div>
+                                <p class="fonte-verde">Produto</p>
+                                <p>{{ demanda.CODIGO }}</p>
+                            </div>
+                            <div>
+                                <p class="fonte-verde">Demanda</p>
+                                <p>{{ demanda.QUANTIDADE_MEDIANA | floatformat:3 }} {{ demanda.UNIDADE }}</p>
+                            </div>
+                            <div>
+                                <p class="fonte-verde">Demanda Disponivel</p>
+                                <p class="fonte-cinza" style="background-color: var({% if demanda.STATUS == '0 NEGATIVO URGENTE ENTRAR EM MAQUINA' %}--roxo-rentabilidade{% elif demanda.STATUS == '1 URGENTE ENTRAR EM MAQUINA' %}--vermelho-rentabilidade{% elif demanda.STATUS == '2 ENTRAR EM MAQUINA' %}--amarelo-rentabilidade-2{% elif demanda.ESTOQUE_DISPONIVEL > demanda.QUANTIDADE_MEDIANA %}--roxo-rentabilidade-2{% else %}--verde-rentabilidade{% endif %});">{{ demanda.DEMANDA_DISPONIVEL | floatformat:2 }}%</p>
+                            </div>
+                            <div>
+                                <p class="fonte-verde">A Produzir</p>
+                                <p>{{ demanda.A_PRODUZIR | floatformat:3 }} {{ demanda.UNIDADE }} ({{ demanda.HORAS_UTEIS_PRODUCAO | floatformat:1 }} horas)</p>
+                            </div>
+                            <div>
+                                <p class="fonte-verde">Horas por {{ demanda.UNIDADE }}</p>
+                                <p>{{ horas_por_unidade | floatformat:4 }} h/{{ demanda.UNIDADE }}</p>
+                            </div>
+                        </div>
+
+                        <div class="grid centralizar">
+                            <div>
+                                <p class="fonte-verde">Estoque Atual</p>
+                                <p>{{ demanda.ESTOQUE_ATUAL | floatformat:3 }} {{ demanda.UNIDADE }}</p>
+                            </div>
+                            <div>
+                                <p class="fonte-verde">Estoque Reservado</p>
+                                <p>{{ demanda.ESTOQUE_RESERVADO | floatformat:3 }} {{ demanda.UNIDADE }}</p>
+                            </div>
+                            <div>
+                                <p class="fonte-verde">Estoque Disponivel</p>
+                                <p>{{ demanda.ESTOQUE_DISPONIVEL | floatformat:3 }} {{ demanda.UNIDADE }}</p>
+                            </div>
+                            <div>
+                                <p class="fonte-verde">Proxima Entrega</p>
+                                <p>{{ demanda.PROXIMA_ENTREGA | date:"d/m/Y" }}</p>
+                            </div>
+                            <div>
+                                <p class="fonte-verde">Ultima Entrega</p>
+                                <p>{{ demanda.ULTIMA_ENTREGA | date:"d/m/Y" }}</p>
+                            </div>
+                        </div>
+
+                        <div class="grid centralizar">
+                            <div>
+                                <p class="fonte-verde">Total Faturado 12 Meses</p>
+                                <p>{{ total_faturado | floatformat:3 }} {{ demanda.UNIDADE }}</p>
+                            </div>
+                            {% comment %} <div>
+                                <p class="fonte-verde">Total Perdido 12 Meses</p>
+                                <p>{{ total_perdido | floatformat:3 }} {{ demanda.UNIDADE }}</p>
+                            </div> {% endcomment %}
+                        </div>
+
+                    </div>
+
+                    <div class="grid-dashboard-2">
+                        <div class="grid moldura-verde-dashboard principal-claro">
+                            <div class="div-dashboard">
+                                {{ grafico_mes_a_mes_html | safe}}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% comment %} <div class="grid-dashboard-2">
+                        <div class="grid moldura-verde-dashboard principal-claro">
+                            <div class="div-dashboard">
+                                {{ grafico_status_orcamentos_html | safe}}
+                            </div>
+                        </div>
+                    </div> {% endcomment %}
+                </div>
+
+            {% endif %}
+
+            <div class="principal-escuro">
+                <p>Atualizado em: {% now "d/m/Y H:i:s" %}</p>
+            </div>
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

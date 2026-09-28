@@ -1,5 +1,5 @@
 from typing import Dict, Literal
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.db.models import F, Value, Sum
 from analysis.models import PROCESSOS, MAQUINAS, PRODUTOS
@@ -10,7 +10,7 @@ from .services import (DashboardVendasTv, DashboardVendasSupervisao, get_relator
                        DashboardVendasCarteira, eventos_dia_atrasos, confere_orcamento, eventos_em_aberto_por_dia,
                        get_relatorios_financeiros, confere_inscricoes_estaduais, dias_decorridos)
 from .services_estoque import DashBoardEstoque
-from .services_pcp import DashBoardPcp
+from .services_pcp import DashBoardPcp, demanda_produtos, quantidade_produto_12_meses
 from .services_marketing import DashBoardMarketing
 from .services_producao import DashBoardProducao, get_relatorios_producao
 from .forms import (RelatoriosSupervisaoFaturamentosForm, RelatoriosSupervisaoOrcamentosForm,
@@ -21,7 +21,7 @@ import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
 from utils.exportar_excel import arquivo_excel, salvar_excel_temporario, arquivo_excel_response
-from utils.data_hora_atual import data_x_dias
+from utils.data_hora_atual import data_x_dias, hoje
 from utils.base_forms import FormVendedoresMixIn, FormVendedoresNonRequiredMixIn
 from utils.cor_rentabilidade import get_cores_rentabilidade_job
 from utils.plotly_parametros import update_layout_kwargs
@@ -1264,3 +1264,87 @@ def pcp(request):
     contexto.update({'formulario': formulario})
 
     return render(request, 'dashboards/pages/pcp.html', contexto)
+
+
+def produto(request, chave_analysis: int):
+    """Retorna dados para pagina de dashboard de produtos.
+
+    Parametros:
+    -----------
+    :chave_analysis (int): com chave_analysis do produto.
+    """
+    produto = get_object_or_404(PRODUTOS, CPROD=chave_analysis)
+
+    processo = produto.processos.filter(PADRAO='SIM').first()  # type:ignore
+    operacao = processo.processos_operacoes.filter(CHAVE_SETOR=3).first()
+    horas_por_unidade = 0
+    if operacao:
+        horas_por_unidade = 1 / operacao.PECAS_MINUTO / 60
+
+    titulo_pagina = f'Dashboard {produto.CODIGO}'
+
+    contexto: Dict = {'titulo_pagina': titulo_pagina, 'horas_por_unidade': horas_por_unidade, }
+
+    # if request.method == 'GET' and request.GET:
+    demanda = demanda_produtos(produto.CHAVE_FAMILIA.CHAVE, None, produto.CPROD)  # type:ignore
+    demanda = demanda[0] if demanda else {}
+
+    # Grafico faturado mes a mes
+    mes_a_mes = quantidade_produto_12_meses(produto.CPROD)
+    dt_mes_a_mes = pd.DataFrame(mes_a_mes)
+    total_faturado = 0
+    if not dt_mes_a_mes.empty:
+        total_faturado = dt_mes_a_mes['QUANTIDADE'].sum()
+        dt_mes_a_mes['DEMANDA'] = demanda['QUANTIDADE_MEDIANA']  # type:ignore
+
+        grafico_mes_a_mes = px.bar(dt_mes_a_mes, x='ANO_MES', y='QUANTIDADE',
+                                   title=f'{produto.CODIGO} Quantidade Faturada Ultimos 12 Meses',
+                                   text_auto=True, hover_name='ANO_MES',
+                                   width=1100, hover_data={'ANO_MES': False, 'QUANTIDADE': ':,.3f', })
+
+        # Linha Meta
+        grafico_mes_a_mes.add_trace(go.Scatter(
+            x=dt_mes_a_mes['ANO_MES'], y=dt_mes_a_mes['DEMANDA'], name='DEMANDA', mode='lines', line_color='black',
+            hovertemplate='%{x}<br><br> %{y:,.3f}<extra></extra>',  # opacity=0.4,
+        ))
+
+        grafico_mes_a_mes.update_layout(update_layout_kwargs)
+        grafico_mes_a_mes.update_xaxes(type='category')
+        grafico_mes_a_mes.update_traces(texttemplate='%{y:,.3f}')
+        grafico_mes_a_mes_html = pio.to_html(grafico_mes_a_mes, full_html=False)
+        contexto.update({'grafico_mes_a_mes_html': grafico_mes_a_mes_html, })
+
+    # Grafico status orcamentos mes a mes
+    # data_inicio_1 = data_x_dias(364, True, sempre_dia_1=True)
+    # data_fim_1 = data_x_dias(0, True, sempre_dia_1=True) - timedelta(days=1)
+    # status_orcamentos = get_relatorios_vendas('orcamentos', inicio=data_inicio_1, fim=data_fim_1,
+    #                                           considerar_itens_excluidos=True, desconsiderar_justificativas=True,
+    #                                           produto=produto.CODIGO, coluna_status_produto_orcamento=True,
+    #                                           coluna_ano_mes_emissao=True, coluna_quantidade=True,)
+    # dt_status_orcamentos = pd.DataFrame(status_orcamentos)
+    # total_perdido = 0
+    # if not dt_status_orcamentos.empty:
+    #     dt_status_orcamentos = dt_status_orcamentos.sort_values('ANO_MES_EMISSAO')
+    #     dt_status_orcamentos = dt_status_orcamentos[~dt_status_orcamentos['STATUS'].isin(['FECHADO', 'EM ABERTO'])]
+    #     dt_status_orcamentos = dt_status_orcamentos[['ANO_MES_EMISSAO', 'QUANTIDADE']]
+    #     dt_status_orcamentos = dt_status_orcamentos.groupby('ANO_MES_EMISSAO').sum().reset_index()
+    #     total_perdido = dt_status_orcamentos['QUANTIDADE'].sum()
+    #     grafico_status_orcamentos = px.bar(dt_status_orcamentos, x='ANO_MES_EMISSAO', y='QUANTIDADE',
+    #                                        title=f'{produto.CODIGO} Orçamentos Perdidos Ultimos 12 Meses',
+    #                                        text_auto=True, hover_name='ANO_MES_EMISSAO', width=1100,
+    #                                        hover_data={'ANO_MES_EMISSAO': False, 'QUANTIDADE': ':,.3f', },
+    #                                        color_discrete_sequence=['red'])
+
+    #     grafico_status_orcamentos.update_layout(update_layout_kwargs)
+    #     grafico_status_orcamentos.update_xaxes(type='category')
+    #     grafico_status_orcamentos.update_traces(texttemplate='%{y:,.3f}')
+    #     grafico_status_orcamentos_html = pio.to_html(grafico_status_orcamentos, full_html=False)
+    #     contexto.update({'grafico_status_orcamentos_html': grafico_status_orcamentos_html, })
+
+    data_inicio = data_x_dias(364, True)
+    data_fim = hoje()
+
+    contexto.update({'demanda': demanda, 'total_faturado': total_faturado,  # 'total_perdido': total_perdido,
+                     'data_inicio': data_inicio, 'data_fim': data_fim, })
+
+    return render(request, 'dashboards/pages/produto.html', contexto)

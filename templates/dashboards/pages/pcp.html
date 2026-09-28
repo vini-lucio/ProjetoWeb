@@ -82,7 +82,7 @@
                             <p class="fonte-cinza" style="background-color: var(--vermelho-rentabilidade);">Estoque Critico</p>
                         </div>
                         <div>
-                            <p class="fonte-cinza" style="background-color: var(--amarelo-rentabilidade);">Estoque Baixo</p>
+                            <p class="fonte-cinza" style="background-color: var(--amarelo-rentabilidade-2);">Estoque Baixo</p>
                         </div>
                         <div>
                             <p class="fonte-cinza" style="background-color: var(--verde-rentabilidade);">Estoque OK</p>
@@ -108,13 +108,13 @@
                                     <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
                                         <td>{{ produto.ABC }}</td>
                                         <td>
-                                            <span class="azul-negrito">{{ produto.CODIGO }}</span>
+                                            <span class="azul-negrito">{{ produto.CODIGO }}</span><a target="_blank" href="{% url "dashboards:produto" produto.CPROD %}"> ⊕</a>
                                             <br>
                                             <span class="azul-negrito">A Produzir:</span> {{ produto.A_PRODUZIR | floatformat:3 }} {{ produto.UNIDADE }}{% if produto.HORAS_UTEIS_PRODUCAO %} ({{ produto.HORAS_UTEIS_PRODUCAO | floatformat:2 }} horas){% endif %}
                                             <br>
                                             <span class="azul-negrito">Demanda:</span> {{ produto.QUANTIDADE_MEDIANA | floatformat:3 }} {{ produto.UNIDADE }}
                                         </td>
-                                        <td class="fonte-cinza" style="background-color: var({% if produto.STATUS == '0 NEGATIVO URGENTE ENTRAR EM MAQUINA' %}--roxo-rentabilidade{% elif produto.STATUS == '1 URGENTE ENTRAR EM MAQUINA' %}--vermelho-rentabilidade{% elif produto.STATUS == '2 ENTRAR EM MAQUINA' %}--amarelo-rentabilidade{% elif produto.ESTOQUE_DISPONIVEL > produto.QUANTIDADE_MEDIANA %}--roxo-rentabilidade-2{% else %}--verde-rentabilidade{% endif %});">
+                                        <td class="fonte-cinza" style="background-color: var({% if produto.STATUS == '0 NEGATIVO URGENTE ENTRAR EM MAQUINA' %}--roxo-rentabilidade{% elif produto.STATUS == '1 URGENTE ENTRAR EM MAQUINA' %}--vermelho-rentabilidade{% elif produto.STATUS == '2 ENTRAR EM MAQUINA' %}--amarelo-rentabilidade-2{% elif produto.ESTOQUE_DISPONIVEL > produto.QUANTIDADE_MEDIANA %}--roxo-rentabilidade-2{% else %}--verde-rentabilidade{% endif %});">
                                             {{ produto.DEMANDA_DISPONIVEL | floatformat:2 }}%
                                             <br>
                                             ({{ produto.ESTOQUE_DISPONIVEL | floatformat:3 }} {{ produto.UNIDADE }})
