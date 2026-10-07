@@ -1,8 +1,10 @@
 from analysis.models import CLIENTES
 from dashboards.services import get_relatorios_vendas
 from dashboards.services_financeiro import get_relatorios_financeiros
+from django.contrib.staticfiles import finders
 from django.db.models import Count
 from django.utils import timezone
+from django.template.loader import render_to_string
 from marketing.models import LeadsRdStation
 from datetime import datetime
 from utils.plotly_parametros import update_layout_kwargs
@@ -97,17 +99,35 @@ class DashBoardMarketing():
         # Geração de graficos
         dados_grafico_leads_por_canal_origem = pd.DataFrame(self.quantidade_leads_por_canal_origem)
         if not dados_grafico_leads_por_canal_origem.empty:
-            grafico_leads_por_canal_origem = px.pie(dados_grafico_leads_por_canal_origem, values='leads',
-                                                    names='origem', title='Novos Leads por Canal de Origem')
-            grafico_leads_por_canal_origem.update_layout(update_layout_kwargs, paper_bgcolor='rgb(238, 238, 238)',
-                                                         legend_orientation='v', height=400, width=540)
-            self.grafico_leads_por_canal_origem_html = pio.to_html(grafico_leads_por_canal_origem, full_html=False)
+            self.grafico_leads_por_canal_origem = px.pie(dados_grafico_leads_por_canal_origem, values='leads',
+                                                         names='origem', title='Novos Leads por Canal de Origem')
+            self.grafico_leads_por_canal_origem.update_layout(update_layout_kwargs, paper_bgcolor='rgb(238, 238, 238)',
+                                                              legend_orientation='v', height=400, width=540)
+            self.grafico_leads_por_canal_origem_html = pio.to_html(
+                self.grafico_leads_por_canal_origem, full_html=False)
 
         dados_grafico_leads_por_regiao = pd.DataFrame(self.quantidade_leads_por_regiao)
         if not dados_grafico_leads_por_regiao.empty:
-            grafico_leads_por_regiao = px.pie(dados_grafico_leads_por_regiao, values='LEADS',
-                                              names='CHAVE_VENDEDOR3__NOMERED',
-                                              title='Novos Leads por Região')
-            grafico_leads_por_regiao.update_layout(update_layout_kwargs, paper_bgcolor='rgb(238, 238, 238)',
-                                                   legend_orientation='v', height=400, width=540)
-            self.grafico_leads_por_regiao_html = pio.to_html(grafico_leads_por_regiao, full_html=False)
+            self.grafico_leads_por_regiao = px.pie(dados_grafico_leads_por_regiao, values='LEADS',
+                                                   names='CHAVE_VENDEDOR3__NOMERED',
+                                                   title='Novos Leads por Região')
+            self.grafico_leads_por_regiao.update_layout(update_layout_kwargs, paper_bgcolor='rgb(238, 238, 238)',
+                                                        legend_orientation='v', height=400, width=540)
+            self.grafico_leads_por_regiao_html = pio.to_html(self.grafico_leads_por_regiao, full_html=False)
+
+    def gerar_full_html(self):
+        self.grafico_leads_por_canal_origem_html = pio.to_html(
+            self.grafico_leads_por_canal_origem, full_html=False, include_plotlyjs='cdn')  # type:ignore
+        self.grafico_leads_por_regiao_html = pio.to_html(
+            self.grafico_leads_por_regiao, full_html=False, include_plotlyjs=False)  # type:ignore
+
+        contexto = {'titulo_pagina': 'Dashboard Leads Marketing', 'dados': self, 'formulario': {}}
+        html = render_to_string('dashboards/pages/marketing-leads.html', contexto)
+
+        css = finders.find("home/css/style.css")
+        with open(css, encoding="utf-8") as c:  # type:ignore
+            css = c.read()
+
+        html = html.replace("</head>", f"<style>{css}</style></head>", 1)
+
+        return html

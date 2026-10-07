@@ -984,6 +984,7 @@ def producao(request):
     return render(request, 'dashboards/pages/producao.html', contexto)
 
 
+# TODO: incluir modulos dos moldes
 def maquinas(request):
     """Retorna dados para pagina de dashboard de maquinas."""
     titulo_pagina = 'Dashboard Maquinas'

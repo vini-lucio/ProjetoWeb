@@ -1,5 +1,6 @@
 from analysis.models import FORNECEDORES
 from django.apps import apps
+from django.core.mail import get_connection
 from django.db import models
 from django.utils.text import slugify
 from utils.imagens import redimensionar_imagem
@@ -218,6 +219,13 @@ class SiteSetup(models.Model):
                                               max_digits=5, decimal_places=2)
     aliquota_icms_simples = models.DecimalField("Aliquota ICMS Simples %", default=0.00,  # type:ignore
                                                 max_digits=5, decimal_places=2)
+    email_envio = models.CharField("e-mail Envio Padrão", max_length=255, null=True, blank=True)
+    senha_email_envio = models.CharField("Senha e-mail Envio Padrão", max_length=255, null=True, blank=True)
+
+    def get_email_connection(self) -> tuple:
+        """Retorna tupla com a conexão de email com usuario e senha e o email de envio"""
+        conexao = get_connection(username=self.email_envio, password=self.senha_email_envio)
+        return conexao, self.email_envio
 
     @property
     def _despesa_administrativa_fixa(self):

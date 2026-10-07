@@ -16,8 +16,6 @@ import os
 import zipfile
 import tempfile
 import importlib
-import anthropic
-from django.conf import settings
 
 
 class HomeLinksDocumentosInLine(admin.TabularInline):
@@ -90,6 +88,11 @@ class SiteSetupAdmin(BaseModelAdminRedRequired):
         ('Impostos Calulo de Frete', {
             "fields": (
                 'aliquota_pis_cofins', 'aliquota_icms_simples',
+            ),
+        }),
+        ('Configuração de e-mail Automatico', {
+            "fields": (
+                'email_envio', 'senha_email_envio',
             ),
         }),
     )

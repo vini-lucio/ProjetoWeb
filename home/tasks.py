@@ -2,11 +2,15 @@ from background_task import background
 from background_task.models import Task, CompletedTask
 from analysis.models import ORCAMENTOS
 from dashboards.models import MetasCarteiras
+from dashboards.services_marketing import DashBoardMarketing
 from home.models import ControleInscricoesEstaduais, InscricoesEstaduais, Estados
 from django.conf import settings
+from django.core.mail import EmailMessage
 from django.utils import timezone
 from django.db.models import Max
 from utils.converter import somente_letras_digitos
+from utils.data_hora_atual import hoje as hoje_2, data_x_dias
+from utils.site_setup import get_site_setup
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError
 import json
@@ -166,3 +170,36 @@ limpar_completed_tasks_agenda = timezone.make_aware(
     datetime.datetime.combine(hoje, limpar_completed_tasks_hora)
 )
 limpar_completed_tasks(schedule=limpar_completed_tasks_agenda, repeat=Task.DAILY)  # type:ignore
+
+
+@background(remove_existing_tasks=True)
+def dashboard_marketing_leads_email() -> None:
+    """Backgroup task que gera dashboard de leads de marketing e envia por email"""
+    try:
+        data_inicio = data_x_dias(60, True)
+        data_fim = hoje_2()
+        dashboard_marketing = DashBoardMarketing(data_inicio, data_fim, data_inicio, data_fim)
+        html_dashboard_marketing = dashboard_marketing.gerar_full_html()
+
+        conexao, email_envio = get_site_setup().get_email_connection()  # type:ignore
+
+        email = EmailMessage(
+            subject="Dashboard Leads Marketing",
+            body=f"Abrir anexo no browser. Referente ao periodo de {data_inicio} a {data_fim}. e-mail enviado automaticamente.",
+            from_email=email_envio,
+            to=["vinicius@coplas.com.br",],
+            connection=conexao
+        )
+        email.attach("dashboard_leads_marketing.html", html_dashboard_marketing, "text/html")
+        email.send()
+    except Exception as e:
+        erro = e
+
+
+dias_proxima_segunda = (0 - timezone.localtime().weekday()) % 7  # 0 é segunda
+dashboard_marketing_leads_email_agenda = timezone.localtime().replace(
+    hour=8, minute=0, second=0, microsecond=0) + datetime.timedelta(days=dias_proxima_segunda)
+if dashboard_marketing_leads_email_agenda <= timezone.localtime():
+    dashboard_marketing_leads_email_agenda += datetime.timedelta(days=7)
+dashboard_marketing_leads_email(schedule=dashboard_marketing_leads_email_agenda,  # type:ignore
+                                repeat=Task.EVERY_2_WEEKS)  # type:ignore

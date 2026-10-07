@@ -60,6 +60,12 @@ ALLOWED_HOSTS = [
 ]
 # ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
+# Configuração de e-mail
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "email-ssl.com.br"
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_TIMEOUT = 30
 
 # Application definition
 
