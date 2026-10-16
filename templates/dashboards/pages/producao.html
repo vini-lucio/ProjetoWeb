@@ -110,6 +110,26 @@
                                     <p class="branco-negrito">{{ dados.toneladas_estoque_atual_total | floatformat:1 }}</p>
                                 </div>
                             </div>
+
+                            <div>
+                                <p class="fonte-verde">Toneladas Estoque Em Excesso</p>
+                                <p class="fonte-muito-pequena-dashboard">* acima de 100% da demanda</p>
+                            </div>
+                            <div class="grid principal-escuro-2">
+                                {% for tonelada_excesso_estoque_abc in dados.toneladas_excesso_estoque_atual_abc %}
+                                    {% if tonelada_excesso_estoque_abc.ABC %}
+                                        <div>
+                                            <p class="fonte-verde">Itens {{ tonelada_excesso_estoque_abc.ABC }}</p>
+                                            <p>{{ tonelada_excesso_estoque_abc.TONELADAS_EXCEDENTE | floatformat:1 }}</p>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                                <div>
+                                    <p class="fonte-verde verde-negrito">Total</p>
+                                    <p class="branco-negrito">{{ dados.toneladas_excesso_estoque_atual_total | floatformat:1 }}</p>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 

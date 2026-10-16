@@ -984,7 +984,6 @@ def producao(request):
     return render(request, 'dashboards/pages/producao.html', contexto)
 
 
-# TODO: incluir modulos dos moldes
 def maquinas(request):
     """Retorna dados para pagina de dashboard de maquinas."""
     titulo_pagina = 'Dashboard Maquinas'
@@ -1008,7 +1007,8 @@ def maquinas(request):
                 maquinas_produto = PROCESSOS.objects.filter(
                     PADRAO='SIM', processos_operacoes__CHAVE_SETOR=3, CHAVE_PRODUTO=produto
                 ).values(
-                    MAQUINA=F('processos_operacoes__CHAVE_MOLDE__moldes_maquinas__CHAVE_MAQUINA__CODIGO')
+                    MAQUINA=F('processos_operacoes__CHAVE_MOLDE__moldes_maquinas__CHAVE_MAQUINA__CODIGO'),
+                    MODULOS_MOLDE=F('processos_operacoes__CHAVE_MOLDE__NUMERO_MODULOS')
                 ).annotate(RODA=Value(True))
 
             dados = get_relatorios_producao(
@@ -1021,11 +1021,14 @@ def maquinas(request):
             maquinas = pd.DataFrame(maquinas)
             maquinas_produto = pd.DataFrame(maquinas_produto)
             dados = pd.DataFrame(dados)
+            modulos_molde = 0
 
             if not dados.empty:
                 dados = pd.merge(dados, maquinas, 'right', 'MAQUINA').fillna(0)
                 if not maquinas_produto.empty:
-                    dados = pd.merge(dados, maquinas_produto, 'outer', 'MAQUINA').fillna(0)
+                    dados = pd.merge(dados, maquinas_produto, 'outer', 'MAQUINA').fillna(0).infer_objects(
+                        copy=False)  # type:ignore
+                    modulos_molde = dados['MODULOS_MOLDE'].iloc[0]
                 else:
                     dados['RODA'] = True
                 mais_produtivo = dados['PRODUTIVIDADE_POR_CENTO'].min()
@@ -1033,7 +1036,7 @@ def maquinas(request):
 
             dados = dados.to_dict(orient='records')
 
-            contexto.update({'dados': dados, })
+            contexto.update({'dados': dados, 'modulos_molde': modulos_molde, })
 
     contexto.update({'formulario': formulario})
 

@@ -102,12 +102,21 @@
                                 <tr class="principal-claro">
                                     <th>ABC</th>
                                     <th>Produto</th>
+                                    <th>A Produzir</th>
                                     <th>Disponibilidade</th>
+                                    <th>Demanda</th>
                                 </tr>
                                 {% for produto in dados.demanda %}
                                     <tr class="{% cycle 'principal-azul-claro' 'principal-claro' %}">
                                         <td>{{ produto.ABC }}</td>
-                                        <td>
+                                        <td>{{ produto.CODIGO }}<a target="_blank" href="{% url "dashboards:produto" produto.CPROD %}"> ⊕</a></td>
+                                        <td>{{ produto.A_PRODUZIR | floatformat:3 }} {{ produto.UNIDADE }}{% if produto.HORAS_UTEIS_PRODUCAO %} ({{ produto.HORAS_UTEIS_PRODUCAO | floatformat:2 }} h){% endif %}</td>
+                                        <td class="fonte-cinza" style="background-color: var({% if produto.STATUS == '0 NEGATIVO URGENTE ENTRAR EM MAQUINA' %}--roxo-rentabilidade{% elif produto.STATUS == '1 URGENTE ENTRAR EM MAQUINA' %}--vermelho-rentabilidade{% elif produto.STATUS == '2 ENTRAR EM MAQUINA' %}--amarelo-rentabilidade-2{% elif produto.ESTOQUE_DISPONIVEL > produto.QUANTIDADE_MEDIANA %}--roxo-rentabilidade-2{% else %}--verde-rentabilidade{% endif %});">
+                                            {{ produto.DEMANDA_DISPONIVEL | floatformat:2 }}% | {{ produto.ESTOQUE_DISPONIVEL | floatformat:3 }} {{ produto.UNIDADE }}
+                                        </td>
+                                        <td>de {{ produto.QUANTIDADE_MEDIANA | floatformat:3 }} {{ produto.UNIDADE }}</td>
+
+                                        {% comment %} <td>
                                             <span class="azul-negrito">{{ produto.CODIGO }}</span><a target="_blank" href="{% url "dashboards:produto" produto.CPROD %}"> ⊕</a>
                                             <br>
                                             <span class="azul-negrito">A Produzir:</span> {{ produto.A_PRODUZIR | floatformat:3 }} {{ produto.UNIDADE }}{% if produto.HORAS_UTEIS_PRODUCAO %} ({{ produto.HORAS_UTEIS_PRODUCAO | floatformat:2 }} horas){% endif %}
@@ -118,7 +127,8 @@
                                             {{ produto.DEMANDA_DISPONIVEL | floatformat:2 }}%
                                             <br>
                                             ({{ produto.ESTOQUE_DISPONIVEL | floatformat:3 }} {{ produto.UNIDADE }})
-                                        </td>
+                                        </td> {% endcomment %}
+
                                     </tr>
                                 {% endfor %}
                             </table>

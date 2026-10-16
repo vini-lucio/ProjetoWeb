@@ -80,6 +80,23 @@ class DashBoardProducao():
                 'Estoque', 'TONELADAS_ESTOQUE_DISPONIVEL', 'ESTOQUE_ABC', dados_grafico_toneladas_estoque_atual_abc
             )
 
+        # Toneladas Estoque Atual Em Excesso
+        from .services_pcp import demanda_produtos
+        demanda = demanda_produtos(7766, None)
+        dt_excesso = pd.DataFrame(demanda)
+        dt_excesso = dt_excesso[['ABC', 'PESO_LIQUIDO', 'QUANTIDADE_MEDIANA', 'ESTOQUE_DISPONIVEL']]
+        dt_excesso = dt_excesso[dt_excesso['ESTOQUE_DISPONIVEL'] > dt_excesso['QUANTIDADE_MEDIANA']]
+        dt_excesso['QUANTIDADE_EXCEDENTE'] = dt_excesso['ESTOQUE_DISPONIVEL'] - dt_excesso['QUANTIDADE_MEDIANA']
+        dt_excesso['TONELADAS_EXCEDENTE'] = dt_excesso['QUANTIDADE_EXCEDENTE'] * dt_excesso['PESO_LIQUIDO'] / 1000
+        dt_excesso = dt_excesso[['ABC', 'TONELADAS_EXCEDENTE']].groupby('ABC').sum().reset_index()
+        self.toneladas_excesso_estoque_atual_abc = dt_excesso.to_dict(orient='records')
+
+        self.toneladas_excesso_estoque_atual_total = 0
+        for tonelada_abc in self.toneladas_excesso_estoque_atual_abc:
+            self.toneladas_excesso_estoque_atual_total += tonelada_abc['TONELADAS_EXCEDENTE'] if tonelada_abc['ABC'] else 0
+            if not tonelada_abc['ABC']:
+                self.toneladas_excesso_estoque_atual_abc.remove(tonelada_abc)
+
         # Detalhe estoque materia prima
         toneladas_estoque_atual_total_materia_prima = list(PRODUTOS.objects.filter(
             CHAVE_GRUPO__pk=8273, ESTOQUE_ATUAL__gt=0).values(PRODUTO=F('CODIGO')).annotate(

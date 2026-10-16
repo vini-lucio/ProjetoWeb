@@ -95,6 +95,10 @@
                                 <p class="fonte-verde">Total Perdido 12 Meses</p>
                                 <p>{{ total_perdido | floatformat:3 }} {{ demanda.UNIDADE }}</p>
                             </div> {% endcomment %}
+                            <div>
+                                <p class="fonte-verde">Modulos Molde Padrão</p>
+                                <p>{% if demanda.NUMERO_MODULOS %}{{ demanda.NUMERO_MODULOS }}{% else %}0{% endif %}</p>
+                            </div>
                         </div>
 
                     </div>

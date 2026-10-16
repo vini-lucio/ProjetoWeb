@@ -103,7 +103,7 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
         filtro_produto = f"AND PRODUTOS.CPROD = {chave_analysis_produto}"
 
     sql = """
-        SELECT CASE
+        SELECT DISTINCT CASE
                 WHEN ABC = 'A' THEN 1
                 WHEN ABC = 'B' THEN 2
                 WHEN ABC = 'C'
@@ -115,6 +115,7 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
             CODIGO,
             CPROD,
             UNIDADE,
+            PESO_LIQUIDO,
             QUANTIDADE_MEDIANA_SEM_0 AS QUANTIDADE_MEDIANA,
             ESTOQUE_ATUAL,
             ESTOQUE_DISPONIVEL,
@@ -139,6 +140,7 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                 WHEN QUANTIDADE_MEDIANA_SEM_0 < ESTOQUE_DISPONIVEL THEN 0
                 ELSE QUANTIDADE_MEDIANA_SEM_0 - ESTOQUE_DISPONIVEL + COALESCE(PP_MP_PROCESSO, 0)
             END * HORAS_PRODUCAO AS HORAS_UTEIS_PRODUCAO,
+            NUMERO_MODULOS,
             CASE
                 WHEN ESTOQUE_DISPONIVEL - COALESCE(PP_MP_PROCESSO, 0) < 0 THEN '0 NEGATIVO URGENTE ENTRAR EM MAQUINA'
                 WHEN CASE
@@ -165,6 +167,7 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                     PERIODO.IND,
                     PERIODO.CODIGO,
                     PERIODO.CPROD,
+                    PERIODO.PESO_LIQUIDO,
                     PERIODO.ESTOQUE_ATUAL,
                     PERIODO.ESTOQUE_DISPONIVEL,
                     PERIODO.ESTOQUE_RESERVADO,
@@ -185,7 +188,8 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                     END AS QUANTIDADE_MEDIANA_SEM_0,
                     PERIODO.PROXIMA_ENTREGA,
                     PERIODO.ULTIMA_ENTREGA,
-                    PERIODO.HORAS_PRODUCAO
+                    PERIODO.HORAS_PRODUCAO,
+                    PERIODO.NUMERO_MODULOS
                 FROM (
                         SELECT CASE
                                 WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTOQUE A%' THEN 'A'
@@ -202,6 +206,7 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                             END AS ESTRATEGICO,
                             PRODUTOS.CODIGO,
                             PRODUTOS.CPROD,
+                            PRODUTOS.PESO_LIQUIDO,
                             PRODUTOS.ESTOQUE_ATUAL,
                             PRODUTOS.ESTOQUE_DISPONIVEL,
                             PRODUTOS.ESTOQUE_RESERVADO,
@@ -209,13 +214,17 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                             UNIDADES.UNIDADE,
                             PEDIDOS.PROXIMA_ENTREGA,
                             PEDIDOS.ULTIMA_ENTREGA,
-                            HORAS_PRODUCAO.HORAS_PRODUCAO
+                            HORAS_PRODUCAO.HORAS_PRODUCAO,
+                            HORAS_PRODUCAO.NUMERO_MODULOS
                         FROM (
                                 SELECT PROCESSOS.CHAVE_PRODUTO,
-                                    PROCESSOS_OPERACOES.TEMPO_TOTAL / 60 / 60 AS HORAS_PRODUCAO
+                                    PROCESSOS_OPERACOES.TEMPO_TOTAL / 60 / 60 AS HORAS_PRODUCAO,
+                                    MOLDES.NUMERO_MODULOS
                                 FROM COPLAS.PROCESSOS,
-                                    COPLAS.PROCESSOS_OPERACOES
+                                    COPLAS.PROCESSOS_OPERACOES,
+                                    COPLAS.MOLDES
                                 WHERE PROCESSOS.CHAVE = PROCESSOS_OPERACOES.CHAVE_PROCESSO
+                                    AND PROCESSOS_OPERACOES.CHAVE_MOLDE = MOLDES.CHAVE(+)
                                     AND PROCESSOS_OPERACOES.CHAVE_SETOR = 3
                                     AND PROCESSOS.PADRAO = 'SIM'
                             ) HORAS_PRODUCAO,
@@ -310,13 +319,15 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                     PERIODO.ESTRATEGICO,
                     PERIODO.CODIGO,
                     PERIODO.CPROD,
+                    PERIODO.PESO_LIQUIDO,
                     PERIODO.ESTOQUE_ATUAL,
                     PERIODO.ESTOQUE_DISPONIVEL,
                     PERIODO.ESTOQUE_RESERVADO,
                     PERIODO.UNIDADE,
                     PERIODO.PROXIMA_ENTREGA,
                     PERIODO.ULTIMA_ENTREGA,
-                    PERIODO.HORAS_PRODUCAO
+                    PERIODO.HORAS_PRODUCAO,
+                    PERIODO.NUMERO_MODULOS
             ) PROD,
             (
                 SELECT CPROD AS PP_MP_CPROD,

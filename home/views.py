@@ -20,6 +20,7 @@ from datetime import datetime
 # TODO: Paginas personalizadas com informassões consolidades (com links) de clientes, produtos, vendas, produção, financeiro, etc???????
 # TODO: rest
 # TODO: substituir sistema monitoramento marco moreno?
+# TODO: alertas automaticos por email de dashboards (ex: pallets em excesso no recebimento)?
 
 # TODO: Rever calculo de cores de rentabilidade? somente por orcamento calcular por familia? os totais do mes já foi feito nos dashboards igual fechamento
 

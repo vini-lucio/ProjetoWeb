@@ -26,6 +26,14 @@
             {% endif %}
 
             {% if dados %}
+                <div class="link-conteudo link-conteudo-escuro moldura-verde-dashboard principal-escuro-2">
+                    <div class="grid centralizar">
+                        <div>
+                            <p class="fonte-verde">Modulos Molde Padrão</p>
+                            <p>{{ modulos_molde | floatformat:0 }}</p>
+                        </div>
+                    </div>
+                </div>
 
                 {% for maquina in dados %}
                     <div class="moldura-verde moldura-verde-slim principal-escuro-2 grid-slim fonte-verde {% if not maquina.TONELADAS_APONTADAS_LIQUIDAS and maquina.RODA %}fonte-cinza{% endif %} {% if maquina.PRODUTIVIDADE_POR_CENTO > 0 %}fonte-vermelho{% endif %} {% if maquina.MAIS_PRODUTIVO %}fonte-roxo{% endif %} {% if not maquina.RODA %}fonte-azul{% endif %}" style="{% if not maquina.TONELADAS_APONTADAS_LIQUIDAS and maquina.RODA %}border:solid var(--cinza-claro);{% endif %} {% if maquina.PRODUTIVIDADE_POR_CENTO > 0 %}border:solid var(--vermelho-rentabilidade);{% endif %} {% if maquina.MAIS_PRODUTIVO %}border:solid var(--roxo-rentabilidade-2);{% endif %} {% if not maquina.RODA %}border:solid var(--azul-escuro);{% endif %}">
@@ -33,10 +41,10 @@
                             <p>{{ maquina.MAQUINA }} |</p>
                         </div>
                         <div>
-                            <p>{{ maquina.HORAS_APONTADAS | floatformat:0 }} H |</p>
+                            <p>{{ maquina.HORAS_APONTADAS | floatformat:0 }} Horas |</p>
                         </div>
                         <div>
-                            <p>{{ maquina.TONELADAS_APONTADAS_LIQUIDAS | floatformat:1 }} T |</p>
+                            <p>{{ maquina.TONELADAS_APONTADAS_LIQUIDAS | floatformat:1 }} Ton. |</p>
                         </div>
                         <div>
                             <p>{{ maquina.PRODUTIVIDADE_POR_CENTO | floatformat:1 }} %</p>

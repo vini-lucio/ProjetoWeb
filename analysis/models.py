@@ -935,6 +935,7 @@ class MOLDES(ReadOnlyMixin, models.Model):
     CHAVE_PRODUTO = models.ForeignKey(PRODUTOS, db_column="CHAVE_PRODUTO", verbose_name="Produto",
                                       on_delete=models.PROTECT, related_name="%(class)s", null=True, blank=True)
     CAVIDADES = models.IntegerField("Cavidades")
+    NUMERO_MODULOS = models.IntegerField("Numero Modulos", null=True, blank=True)
 
     def __str__(self):
         return self.CODIGO
