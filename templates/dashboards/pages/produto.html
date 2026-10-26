@@ -55,12 +55,14 @@
                             </div>
                             <div>
                                 <p class="fonte-verde">A Produzir</p>
-                                <p>{{ demanda.A_PRODUZIR | floatformat:3 }} {{ demanda.UNIDADE }} ({{ demanda.HORAS_UTEIS_PRODUCAO | floatformat:1 }} horas)</p>
+                                <p>{{ demanda.A_PRODUZIR | floatformat:3 }} {{ demanda.UNIDADE }}{% if demanda.HORAS_UTEIS_PRODUCAO %}({{ demanda.HORAS_UTEIS_PRODUCAO | floatformat:1 }} horas){% endif %}</p>
                             </div>
-                            <div>
-                                <p class="fonte-verde">Horas por {{ demanda.UNIDADE }}</p>
-                                <p>{{ horas_por_unidade | floatformat:4 }} h/{{ demanda.UNIDADE }}</p>
-                            </div>
+                            {% if horas_por_unidade %}
+                                <div>
+                                    <p class="fonte-verde">Horas por {{ demanda.UNIDADE }}</p>
+                                    <p>{{ horas_por_unidade | floatformat:4 }} h/{{ demanda.UNIDADE }}</p>
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="grid centralizar">

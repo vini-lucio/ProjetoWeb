@@ -116,7 +116,7 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
             CPROD,
             UNIDADE,
             PESO_LIQUIDO,
-            QUANTIDADE_MEDIANA_SEM_0 AS QUANTIDADE_MEDIANA,
+            QUANTIDADE_MEDIANA_SEM_0 + COALESCE(PP_MP_PROCESSO, 0) AS QUANTIDADE_MEDIANA,
             ESTOQUE_ATUAL,
             ESTOQUE_DISPONIVEL,
             ESTOQUE_RESERVADO,
@@ -124,42 +124,42 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
             PROXIMA_ENTREGA,
             ULTIMA_ENTREGA,
             CASE
-                WHEN QUANTIDADE_MEDIANA_SEM_0 = 0 THEN CASE
+                WHEN QUANTIDADE_MEDIANA_SEM_0 + COALESCE(PP_MP_PROCESSO, 0) = 0 THEN CASE
                     WHEN ESTOQUE_DISPONIVEL < 0 THEN 0
                     ELSE 1
                 END
                 ELSE (
-                    ESTOQUE_DISPONIVEL - COALESCE(PP_MP_PROCESSO, 0)
-                ) / QUANTIDADE_MEDIANA_SEM_0
+                    ESTOQUE_DISPONIVEL
+                ) / (QUANTIDADE_MEDIANA_SEM_0 + COALESCE(PP_MP_PROCESSO, 0))
             END * 100 AS DEMANDA_DISPONIVEL,
             CASE
-                WHEN QUANTIDADE_MEDIANA_SEM_0 < ESTOQUE_DISPONIVEL THEN 0
+                WHEN QUANTIDADE_MEDIANA_SEM_0 + COALESCE(PP_MP_PROCESSO, 0) < ESTOQUE_DISPONIVEL THEN 0
                 ELSE QUANTIDADE_MEDIANA_SEM_0 - ESTOQUE_DISPONIVEL + COALESCE(PP_MP_PROCESSO, 0)
             END A_PRODUZIR,
             CASE
-                WHEN QUANTIDADE_MEDIANA_SEM_0 < ESTOQUE_DISPONIVEL THEN 0
+                WHEN QUANTIDADE_MEDIANA_SEM_0 + COALESCE(PP_MP_PROCESSO, 0) < ESTOQUE_DISPONIVEL THEN 0
                 ELSE QUANTIDADE_MEDIANA_SEM_0 - ESTOQUE_DISPONIVEL + COALESCE(PP_MP_PROCESSO, 0)
             END * HORAS_PRODUCAO AS HORAS_UTEIS_PRODUCAO,
             NUMERO_MODULOS,
             CASE
-                WHEN ESTOQUE_DISPONIVEL - COALESCE(PP_MP_PROCESSO, 0) < 0 THEN '0 NEGATIVO URGENTE ENTRAR EM MAQUINA'
+                WHEN ESTOQUE_DISPONIVEL < 0 THEN '0 NEGATIVO URGENTE ENTRAR EM MAQUINA'
                 WHEN CASE
-                    WHEN QUANTIDADE_MEDIANA_SEM_0 = 0 THEN CASE
+                    WHEN QUANTIDADE_MEDIANA_SEM_0 + COALESCE(PP_MP_PROCESSO, 0) = 0 THEN CASE
                         WHEN ESTOQUE_DISPONIVEL < 0 THEN 0
                         ELSE 1
                     END
                     ELSE (
-                        ESTOQUE_DISPONIVEL - COALESCE(PP_MP_PROCESSO, 0)
-                    ) / QUANTIDADE_MEDIANA_SEM_0
+                        ESTOQUE_DISPONIVEL
+                    ) / (QUANTIDADE_MEDIANA_SEM_0 + COALESCE(PP_MP_PROCESSO, 0))
                 END * 100 <= 10 THEN '1 URGENTE ENTRAR EM MAQUINA'
                 WHEN CASE
-                    WHEN QUANTIDADE_MEDIANA_SEM_0 = 0 THEN CASE
+                    WHEN QUANTIDADE_MEDIANA_SEM_0 + COALESCE(PP_MP_PROCESSO, 0) = 0 THEN CASE
                         WHEN ESTOQUE_DISPONIVEL < 0 THEN 0
                         ELSE 1
                     END
                     ELSE (
-                        ESTOQUE_DISPONIVEL - COALESCE(PP_MP_PROCESSO, 0)
-                    ) / QUANTIDADE_MEDIANA_SEM_0
+                        ESTOQUE_DISPONIVEL
+                    ) / (QUANTIDADE_MEDIANA_SEM_0 + COALESCE(PP_MP_PROCESSO, 0))
                 END * 100 < 50 THEN '2 ENTRAR EM MAQUINA'
             END AS STATUS
         FROM (
@@ -330,16 +330,14 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                     PERIODO.NUMERO_MODULOS
             ) PROD,
             (
-                SELECT CPROD AS PP_MP_CPROD,
-                    CODIGO AS PP_MP_CODIGO,
-                    CASE
+                SELECT CODIGO AS PP_MP_CODIGO,
+                    SUM(CASE
                         WHEN QUANTIDADE_MEDIANA_SEM_0 IS NULL
                         OR QUANTIDADE_MEDIANA_SEM_0 < ESTOQUE_DISPONIVEL THEN 0
                         ELSE QUANTIDADE_MEDIANA_SEM_0 - ESTOQUE_DISPONIVEL
-                    END PP_MP_PROCESSO
+                    END * QUANTIDADE_PROCESSO) PP_MP_PROCESSO
                 FROM (
-                        SELECT PERIODO.CPROD,
-                            PERIODO.CODIGO,
+                        SELECT PERIODO.CODIGO,
                             CASE
                                 WHEN (
                                     PERIODO.ABC = 'C'
@@ -354,7 +352,8 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                                 OR PERIODO.ESTRATEGICO = 'ESTRATEGICO' THEN 0
                                 ELSE MEDIAN(MED.QUANTIDADE)
                             END AS QUANTIDADE_MEDIANA_SEM_0,
-                            PERIODO.ESTOQUE_DISPONIVEL
+                            PERIODO.ESTOQUE_DISPONIVEL,
+                            PERIODO.QUANTIDADE_PROCESSO
                         FROM (
                                 SELECT PRODUTOS.CPROD,
                                     PRODUTOS.CODIGO,
@@ -367,7 +366,8 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                                     CASE
                                         WHEN PRODUTOS.CARACTERISTICA2 LIKE '%ESTRATEGICO%' THEN 'ESTRATEGICO'
                                     END AS ESTRATEGICO,
-                                    PRODUTOS.ESTOQUE_DISPONIVEL * PRODUTOS.QUANTIDADE AS ESTOQUE_DISPONIVEL
+                                    PRODUTOS.ESTOQUE_DISPONIVEL,
+                                    PRODUTOS.QUANTIDADE AS QUANTIDADE_PROCESSO
                                 FROM (
                                         SELECT DISTINCT PRODUTOS.CPROD,
                                             MATERIAIS.CODIGO,
@@ -381,18 +381,23 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                                         WHERE PROCESSOS.CHAVE = PROCESSOS_MATERIAIS.CHAVE_PROCESSO
                                             AND PROCESSOS.CHAVE_PRODUTO = PRODUTOS.CPROD
                                             AND PROCESSOS_MATERIAIS.CHAVE_MATERIAL = MATERIAIS.CPROD
+                                            AND PROCESSOS.PADRAO = 'SIM'
                                             AND PROCESSOS.FORA_LINHA = 'NAO'
+                                            AND PRODUTOS.FORA_DE_LINHA = 'NAO'
+                                            AND PRODUTOS.DESENVOLVIMENTO = 'NAO'
+                                            AND MATERIAIS.FORA_DE_LINHA = 'NAO'
+                                            AND MATERIAIS.DESENVOLVIMENTO = 'NAO'
                                             AND MATERIAIS.CHAVE_FAMILIA = :chave_familia_produto
                                             AND PRODUTOS.CODIGO NOT LIKE '%AMOSTRA%'
                                             AND PRODUTOS.CODIGO NOT LIKE 'ZKIT%'
                                             AND PRODUTOS.CODIGO NOT LIKE 'KIT%'
-                                            {filtro_produto}
                                     ) PRODUTOS
                             ) PERIODO,
                             (
                                 SELECT EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) || '-' || EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO) AS MES_ANO,
+                                    PRODUTOS.CPROD,
                                     PRODUTOS.CODIGO,
-                                    SUM(NOTAS_ITENS.QUANTIDADE * PRODUTOS.QUANTIDADE) AS QUANTIDADE
+                                    SUM(NOTAS_ITENS.QUANTIDADE) AS QUANTIDADE
                                 FROM (
                                         SELECT DISTINCT PRODUTOS.CPROD,
                                             MATERIAIS.CODIGO,
@@ -404,12 +409,16 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                                         WHERE PROCESSOS.CHAVE = PROCESSOS_MATERIAIS.CHAVE_PROCESSO
                                             AND PROCESSOS.CHAVE_PRODUTO = PRODUTOS.CPROD
                                             AND PROCESSOS_MATERIAIS.CHAVE_MATERIAL = MATERIAIS.CPROD
+                                            AND PROCESSOS.PADRAO = 'SIM'
                                             AND PROCESSOS.FORA_LINHA = 'NAO'
+                                            AND PRODUTOS.FORA_DE_LINHA = 'NAO'
+                                            AND PRODUTOS.DESENVOLVIMENTO = 'NAO'
+                                            AND MATERIAIS.FORA_DE_LINHA = 'NAO'
+                                            AND MATERIAIS.DESENVOLVIMENTO = 'NAO'
                                             AND MATERIAIS.CHAVE_FAMILIA = :chave_familia_produto
                                             AND PRODUTOS.CODIGO NOT LIKE '%AMOSTRA%'
                                             AND PRODUTOS.CODIGO NOT LIKE 'ZKIT%'
                                             AND PRODUTOS.CODIGO NOT LIKE 'KIT%'
-                                            {filtro_produto}
                                     ) PRODUTOS,
                                     COPLAS.NOTAS,
                                     COPLAS.NOTAS_ITENS
@@ -419,16 +428,20 @@ def demanda_produtos(chave_familia_produto: int, local: Literal['Em Estoque', 'E
                                     AND NOTAS.ESPECIE = 'S'
                                     AND NOTAS.DATA_EMISSAO >= TRUNC(SYSDATE, 'MM') - INTERVAL '12' MONTH
                                     AND NOTAS.DATA_EMISSAO <= LAST_DAY(TRUNC(SYSDATE, 'MM') - INTERVAL '1' MONTH)
-                                GROUP BY PRODUTOS.CODIGO,
+                                GROUP BY PRODUTOS.CPROD,
+                                    PRODUTOS.CODIGO,
                                     EXTRACT(MONTH FROM NOTAS.DATA_EMISSAO) || '-' || EXTRACT(YEAR FROM NOTAS.DATA_EMISSAO)
                             ) MED
                         WHERE PERIODO.CODIGO = MED.CODIGO(+)
+                            AND PERIODO.CPROD = MED.CPROD(+)
                         GROUP BY PERIODO.CPROD,
                             PERIODO.ABC,
                             PERIODO.ESTRATEGICO,
                             PERIODO.CODIGO,
-                            PERIODO.ESTOQUE_DISPONIVEL
+                            PERIODO.ESTOQUE_DISPONIVEL,
+                            PERIODO.QUANTIDADE_PROCESSO
                     )
+                GROUP BY CODIGO
             ) PP_MP_PROCESSO
         WHERE CODIGO = PP_MP_CODIGO(+)
         {order_by}
