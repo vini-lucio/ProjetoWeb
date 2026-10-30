@@ -1574,6 +1574,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "",
                                       'data_entrega_itens_campo': "", },
         'data_entrega_itens_maior_que': {'data_entrega_itens_maior_que_pesquisa': "", },
+        'data_entrega_itens_maior_igual': {'data_entrega_itens_maior_igual_pesquisa': "", },
         'data_entrega_itens_menor_igual': {'data_entrega_itens_menor_igual_pesquisa': "", },
 
         'coluna_status_documento': {'status_documento_campo_alias': "CASE NOTAS.ATIVA WHEN 'NAO' THEN 'CANCELADA' END AS STATUS_DOCUMENTO,",
@@ -2108,6 +2109,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "PEDIDOS_ITENS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "PEDIDOS_ITENS.DATA_ENTREGA,", },
         'data_entrega_itens_maior_que': {'data_entrega_itens_maior_que_pesquisa': "PEDIDOS_ITENS.DATA_ENTREGA > :data_entrega_itens_maior_que AND", },
+        'data_entrega_itens_maior_igual': {'data_entrega_itens_maior_igual_pesquisa': "PEDIDOS_ITENS.DATA_ENTREGA >= :data_entrega_itens_maior_igual AND", },
         'data_entrega_itens_menor_igual': {'data_entrega_itens_menor_igual_pesquisa': "PEDIDOS_ITENS.DATA_ENTREGA <= :data_entrega_itens_menor_igual AND", },
 
         'coluna_status_documento': {'status_documento_campo_alias': "PEDIDOS.STATUS AS STATUS_DOCUMENTO,",
@@ -2665,6 +2667,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS_ITENS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "ORCAMENTOS_ITENS.DATA_ENTREGA,", },
         'data_entrega_itens_maior_que': {'data_entrega_itens_maior_que_pesquisa': "ORCAMENTOS_ITENS.DATA_ENTREGA > :data_entrega_itens_maior_que AND", },
+        'data_entrega_itens_maior_igual': {'data_entrega_itens_maior_igual_pesquisa': "ORCAMENTOS_ITENS.DATA_ENTREGA >= :data_entrega_itens_maior_igual AND", },
         'data_entrega_itens_menor_igual': {'data_entrega_itens_menor_igual_pesquisa': "ORCAMENTOS_ITENS.DATA_ENTREGA <= :data_entrega_itens_menor_igual AND", },
 
         'coluna_status_documento': {'status_documento_campo_alias': "ORCAMENTOS.STATUS AS STATUS_DOCUMENTO,",
@@ -2868,6 +2871,7 @@ def map_relatorio_vendas_sql_string_placeholders(fonte: Literal['orcamentos', 'p
         'coluna_data_entrega_itens': {'data_entrega_itens_campo_alias': "ORCAMENTOS.DATA_ENTREGA,",
                                       'data_entrega_itens_campo': "ORCAMENTOS.DATA_ENTREGA,", },
         'data_entrega_itens_maior_que': {'data_entrega_itens_maior_que_pesquisa': "ORCAMENTOS.DATA_ENTREGA > :data_entrega_itens_maior_que AND", },
+        'data_entrega_itens_maior_igual': {'data_entrega_itens_maior_igual_pesquisa': "ORCAMENTOS.DATA_ENTREGA >= :data_entrega_itens_maior_igual AND", },
         'data_entrega_itens_menor_igual': {'data_entrega_itens_menor_igual_pesquisa': "ORCAMENTOS.DATA_ENTREGA <= :data_entrega_itens_menor_igual AND", },
 
         'ordenar_sequencia_prioritario': {'sequencia_campo': "ORCAMENTOS_ITENS_EXCLUIDOS.CHAVE,",
@@ -2948,6 +2952,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
     informacao_estrategica = kwargs.get('informacao_estrategica')
     job = kwargs.get('job')
     data_entrega_itens_maior_que = kwargs.get('data_entrega_itens_maior_que')
+    data_entrega_itens_maior_igual = kwargs.get('data_entrega_itens_maior_igual')
     data_entrega_itens_menor_igual = kwargs.get('data_entrega_itens_menor_igual')
     data_emissao_menor_que = kwargs.get('data_emissao_menor_que')
     especie = kwargs.get('especie')
@@ -3060,6 +3065,9 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
 
     if data_entrega_itens_maior_que:
         kwargs_ora.update({'data_entrega_itens_maior_que': data_entrega_itens_maior_que})
+
+    if data_entrega_itens_maior_igual:
+        kwargs_ora.update({'data_entrega_itens_maior_igual': data_entrega_itens_maior_igual})
 
     if data_entrega_itens_menor_igual:
         kwargs_ora.update({'data_entrega_itens_menor_igual': data_entrega_itens_menor_igual})
@@ -3280,6 +3288,7 @@ def get_relatorios_vendas(fonte: Literal['orcamentos', 'pedidos', 'faturamentos'
             {informacao_estrategica_pesquisa}
             {job_pesquisa}
             {data_entrega_itens_maior_que_pesquisa}
+            {data_entrega_itens_maior_igual_pesquisa}
             {data_entrega_itens_menor_igual_pesquisa}
             {data_emissao_menor_que_pesquisa}
             {especie_pesquisa}

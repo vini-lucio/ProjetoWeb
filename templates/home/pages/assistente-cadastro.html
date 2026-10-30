@@ -1,0 +1,109 @@
+{% extends "home/base.html" %}
+
+{% load static %}
+
+{% block conteudo %}
+
+    <section class="principal">
+
+        <div class="link-conteudo">
+            <div class="titulo">
+                <h1>{{ titulo_pagina }}</h1>
+            </div>
+
+            <form method="get">
+                <div class="grid-simples link-conteudo alinhar-direita">
+                    {{ formulario.as_p }}
+                </div>
+                <button class="botao" type="submit">Pesquisar CNPJ (PODE DEMORAR! AGUARDE)</button>
+            </form>
+        </div>
+
+        <div class="link-conteudo">
+
+            {% if erros %}
+                <p>{{ erros }}</p>
+            {% endif %}
+
+            {% if dados_api_cnpja %}
+
+                <div class="tabela-simples">
+                    <table>
+                        <tr>
+                            <td class="azul-negrito alinhar-direita">Razão Social</td>
+                            <td class="alinhar-esquerda">{{ dados_api_cnpja.company.name }}</td>
+                        </tr>
+                        <tr>
+                            <td class="azul-negrito alinhar-direita">Nome Fantasia</td>
+                            <td class="alinhar-esquerda">{% if dados_api_cnpja.alias %}{{ dados_api_cnpja.alias }}{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <td class="azul-negrito alinhar-direita">Estabelecimento</td>
+                            <td class="alinhar-esquerda">{% if dados_api_cnpja.head %}Matriz{% else %}Filial{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <td class="azul-negrito alinhar-direita">Capital Social</td>
+                            <td class="alinhar-esquerda">R$ {{ dados_api_cnpja.company.equity | floatformat:"2" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="azul-negrito alinhar-direita">Natureza Juridica</td>
+                            <td class="alinhar-esquerda">{{ dados_api_cnpja.company.nature.text }}</td>
+                        </tr>
+                        <tr>
+                            <td class="azul-negrito alinhar-direita">Porte</td>
+                            <td class="alinhar-esquerda">{{ dados_api_cnpja.company.size.text }}</td>
+                        </tr>
+                        <tr>
+                            <td class="azul-negrito alinhar-direita">Data Abertura</td>
+                            <td class="alinhar-esquerda">{{ dados_api_cnpja.founded }}</td>
+                        </tr>
+                        <tr>
+                            <td class="azul-negrito alinhar-direita">Situação Cadastral</td>
+                            <td class="alinhar-esquerda">{{ dados_api_cnpja.status.text }}</td>
+                        </tr>
+                        <tr>
+                            <td class="azul-negrito alinhar-direita">Atividade Principal</td>
+                            <td class="alinhar-esquerda">{{ dados_api_cnpja.mainActivity.text }}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="tabela-simples">
+                    <table>
+                        <tr>
+                            <th>Socios</th>
+                            <th>CPF/CNPJ</th>
+                            <th>Tipo</th>
+                            <th>Qualificação</th>
+                        </tr>
+                        {% for socio in dados_api_cnpja.company.members %}
+                            <tr>
+                                <td>{{ socio.person.name }}</td>
+                                <td>{{ socio.person.taxId }}</td>
+                                <td>{{ socio.person.type }}</td>
+                                <td>{{ socio.role.text }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+
+            {% endif %}
+
+            {% if dados_api_claude %}
+                {{ dados_api_claude|json_script:"resposta-claude" }}
+
+                <div class="alinhar-esquerda" id="resposta"></div>
+
+                <script src="{% static 'home/js/marked.min.js' %}"></script>
+                <script src="{% static 'home/js/purify.min.js' %}"></script>
+                <script>
+                    const texto = JSON.parse(document.getElementById("resposta-claude").textContent);
+                    document.getElementById("resposta").innerHTML = DOMPurify.sanitize(marked.parse(texto));
+                </script>
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% endblock conteudo %}

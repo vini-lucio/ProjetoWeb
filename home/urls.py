@@ -1,7 +1,8 @@
 from django.urls import path
 from home.views import (IndexListView, HomeLinkDetailView, ConsultoriaVendasListView,
                         calculo_piso_elevado, calculo_quimicos, calculo_niveladores, tabela_precos, migracao,
-                        calculo_nivelamento_lajes, ProdutosModelosListView, ProdutosModelosDetailView)
+                        calculo_nivelamento_lajes, ProdutosModelosListView, ProdutosModelosDetailView,
+                        assistente_cadastro)
 
 app_name = 'home'
 
@@ -17,4 +18,5 @@ urlpatterns = [
     path('consultoria-vendas/tabela-precos/', tabela_precos, name='tabela-precos'),
     path('produtos-modelos/', ProdutosModelosListView.as_view(), name='produtos-modelos'),
     path('produtos-modelos/<int:pk>/', ProdutosModelosDetailView.as_view(), name='produtos-modelo'),
+    path('assistente-cadastro/', assistente_cadastro, name='assistente-cadastro'),
 ]

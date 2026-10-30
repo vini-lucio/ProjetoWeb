@@ -261,7 +261,7 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
     status_orcamentos_itens_tipos.insert(1, ('PERDIDO_CANCELADO', 'PERDIDO OU CANCELADO'))
 
     # Campos Sobre Produto
-    coluna_status_produto_orcamento = forms.BooleanField(label="Coluna Status", initial=False, required=False)
+    coluna_status_produto_orcamento = forms.BooleanField(label="Coluna Status", initial=True, required=False)
     status_produto_orcamento = forms.ModelChoiceField(status_orcamentos_itens, label="Status", required=False)
     coluna_status_produto_orcamento_tipo = forms.BooleanField(label="Coluna Status Tipo", initial=False,
                                                               required=False)
@@ -273,6 +273,11 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
     considerar_itens_excluidos = forms.BooleanField(label="Considerar Itens Excluidos",
                                                     help_text="com justificativas validas",
                                                     initial=True, required=False)
+    coluna_data_entrega_itens = forms.BooleanField(label="Coluna Data Entrega", initial=False, required=False)
+    data_entrega_itens_maior_igual = forms.DateField(label="Data Entrega Inicio", required=False,
+                                                     widget=DateInput(attrs={'type': 'date'}))
+    data_entrega_itens_menor_igual = forms.DateField(label="Data Entrega Fim", required=False,
+                                                     widget=DateInput(attrs={'type': 'date'}))
 
     def get_agrupamentos_campos(self) -> dict[str, list[str]]:
         super_agrupamento = super().get_agrupamentos_campos()
@@ -283,6 +288,9 @@ class RelatoriosSupervisaoOrcamentosForm(RelatoriosSupervisaoBaseForm):
         super_agrupamento['Sobre Produto'].append('status_produto_orcamento_tipo')
         super_agrupamento['Sobre Produto'].append('desconsiderar_justificativas')
         super_agrupamento['Sobre Produto'].append('considerar_itens_excluidos')
+        super_agrupamento['Sobre Produto'].append('coluna_data_entrega_itens')
+        super_agrupamento['Sobre Produto'].append('data_entrega_itens_maior_igual')
+        super_agrupamento['Sobre Produto'].append('data_entrega_itens_menor_igual')
 
         return super_agrupamento
 
