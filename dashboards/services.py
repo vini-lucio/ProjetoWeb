@@ -504,6 +504,7 @@ def confere_inscricoes_estaduais(fonte, parametro_carteira: dict = {}, parametro
     return erros
 
 
+# TODO: exportação conferir campo cidade exportação do cadastro de clientes
 # Não trocado para get_relatorios_xxx, muito especifico
 def confere_orcamento(orcamento: int = 0) -> list | None:
     """Retorna possiveis erros de um orçamento em aberto.
@@ -631,6 +632,7 @@ def confere_orcamento(orcamento: int = 0) -> list | None:
     return resultado
 
 
+# TODO: exportação conferir campo cidade exportação do cadastro de clientes
 # Não trocado para get_relatorios_xxx, muito especifico
 def confere_pedidos(carteira: str = '%%', parametro_carteira: dict = {}) -> list | None:
     """Retorna possiveis erros dos pedidos em aberto.

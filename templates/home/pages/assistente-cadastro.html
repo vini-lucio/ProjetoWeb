@@ -15,7 +15,7 @@
                 <div class="grid-simples link-conteudo alinhar-direita">
                     {{ formulario.as_p }}
                 </div>
-                <button class="botao" type="submit">Pesquisar CNPJ (PODE DEMORAR! AGUARDE)</button>
+                <button id="pesquisar-cnpj" onclick="mudarTextoPesquisar()" class="botao" type="submit">Pesquisar</button>
             </form>
         </div>
 
@@ -105,5 +105,12 @@
         </div>
 
     </section>
+
+    <script>
+        function mudarTextoPesquisar() {
+            var button = document.getElementById("pesquisar-cnpj");
+            button.innerText = "Aguarde... Pode demorar!";
+        }
+    </script>
 
 {% endblock conteudo %}

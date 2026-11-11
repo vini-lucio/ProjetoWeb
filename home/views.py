@@ -324,6 +324,7 @@ def assistente_cadastro(request):
 
             claude_api = anthropic.Anthropic(api_key=settings.CHAVE_API_CLAUDE)
 
+            # TODO: incluir busca de contatos de compras
             menssagem_api_claude = claude_api.messages.create(
                 model="claude-haiku-5-5",
                 max_tokens=10000,

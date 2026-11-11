@@ -201,5 +201,4 @@ dashboard_marketing_leads_email_agenda = timezone.localtime().replace(
     hour=8, minute=0, second=0, microsecond=0) + datetime.timedelta(days=dias_proxima_segunda)
 if dashboard_marketing_leads_email_agenda <= timezone.localtime():
     dashboard_marketing_leads_email_agenda += datetime.timedelta(days=7)
-dashboard_marketing_leads_email(schedule=dashboard_marketing_leads_email_agenda,  # type:ignore
-                                repeat=Task.EVERY_2_WEEKS)  # type:ignore
+dashboard_marketing_leads_email(schedule=dashboard_marketing_leads_email_agenda, repeat=Task.WEEKLY)  # type:ignore
